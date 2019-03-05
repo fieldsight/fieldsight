@@ -1,4 +1,4 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends "fieldsight/manage_base.html" %}
 {% load i18n staticfiles %}
 {% load filters %}
 {% block kocript %}
@@ -256,6 +256,78 @@ vm = new ManagePeopleViewModel(pk, level, organization);
 
 </script>
 {% endblock %}
+  {% block breadcrumb %}
+
+        <nav aria-label="breadcrumb" role="navigation">
+
+          <ol class="breadcrumb">
+                      {% if level == "0" %}
+            <li class="breadcrumb-item"><a href="{% url 'fieldsight:site-dashboard' pk %}">{{ obj.name }}</a></li>
+                      {% endif %}
+                      {% if level == "1" %}
+            <li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' pk %}">{{ obj.name }}</a></li>
+                      {% endif %}
+                      {% if level == "2" %}
+            <li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' pk %}">{{ obj.name }}</a></li>
+                      {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'Manage' %} {% trans 'People' %}</li>
+           </ol>
+        </nav>
+  {% endblock %}
+  {% block manage_left_bar %}
+        <div class="col-md-4 col-lg-3 bg-primary-light">
+            <ul class="nav nav-pills flex-column">
+                {% if level == "2" %}
+                  <li class="nav-item">
+                      <a class="nav-link active" href="{% url 'fieldsight:manage-people-organization' obj.pk %}" data-load="org-manage-people.html">People</a>
+                  </li>
+                 <li class="nav-item">
+                      <a class="nav-link" href="#" data-load="org-manage-project.html">Projects</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link" href="{% url 'fieldsight:organization-edit' organization %}" data-load="org-manage-detail.html">Organization</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link" href="#" data-load="org-manage-detail.html">Geo Layers</a>
+                  </li>
+
+
+                 {% elif level == "1" %}
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'fieldsight:manage-people-project' obj.pk %}" data-load="org-manage-people.html">People</a>
+                    </li>
+
+                   <li class="nav-item">
+                        <a class="nav-link" href="#" data-load="org-manage-project.html">Forms</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'fieldsight:organization-edit' organization %}" data-load="org-manage-detail.html">Sites</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-load="org-manage-detail.html">Settings</a>
+                    </li>
+
+                  {% elif level == "0" %}
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{% url 'fieldsight:manage-people-site' obj.pk %}" data-load="org-manage-people.html">People</a>
+                        </li>
+
+                       <li class="nav-item">
+                            <a class="nav-link" href="#" data-load="org-manage-project.html">Edit Site Information</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'fieldsight:organization-edit' organization %}" data-load="org-manage-detail.html">Site Documents</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-load="org-manage-detail.html">Forms</a>
+                        </li>
+
+                {% endif %}
+
+            </ul>
+        </div>
+  {% endblock %}
+
 {% block content %}
 {% csrf_token %}
 <input type="hidden" id="invite_organization_id" value="{{ organization }}">
@@ -270,22 +342,23 @@ vm = new ManagePeopleViewModel(pk, level, organization);
 
 
       <div id="main-content" class="padding">
-              <nav aria-label="breadcrumb" role="navigation">
-                {% block breadcrumbs %}
-          <ol class="breadcrumb">
-                      {% if level == "0" %}
-            <li class="breadcrumb-item"><a href="{% url 'fieldsight:site-dashboard' pk %}">{{ obj.name }}</a></li>
-                      {% endif %}
-                      {% if level == "1" %}
-            <li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' pk %}">{{ obj.name }}</a></li>
-                      {% endif %}
-                      {% if level == "2" %}
-            <li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' pk %}">{{ obj.name }}</a></li>
-                      {% endif %}
-            <li class="breadcrumb-item active" aria-current="page">{% trans 'Manage' %} {% trans 'People' %}</li>
-           </ol>
-                {% endblock %}
-              </nav>
+           <nav aria-label="breadcrumb" role="navigation">
+                  {% block breadcrumbs %}
+            <ol class="breadcrumb">
+                        {% if level == "0" %}
+              <li class="breadcrumb-item"><a href="{% url 'fieldsight:site-dashboard' pk %}">{{ obj.name }}</a></li>
+                        {% endif %}
+                        {% if level == "1" %}
+              <li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' pk %}">{{ obj.name }}</a></li>
+                        {% endif %}
+                        {% if level == "2" %}
+              <li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' pk %}">{{ obj.name }}</a></li>
+                        {% endif %}
+              <li class="breadcrumb-item active" aria-current="page">{% trans 'Manage' %} {% trans 'People' %}</li>
+             </ol>
+                  {% endblock %}
+           </nav>
+
           <div class="" data-bind="with:siteVm ,visible: currentVm() == 'site'" style="display:none;">
           <div class="tabbing margin-top">
           <ul class="nav nav-tabs" role="tablist">
