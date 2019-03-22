@@ -3,7 +3,9 @@ import datetime
 import json
 import redis
 import xlwt
+import stripe
 from django.contrib.contenttypes.models import ContentType
+from django.utils.decorators import method_decorator
 from io import BytesIO
 from django.conf import settings
 from django.contrib import messages
@@ -15,12 +17,13 @@ from django.forms import modelformset_factory
 from django.http import HttpResponseRedirect, JsonResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.template.response import TemplateResponse
-from django.views.generic import ListView, TemplateView, View
+from django.views.generic import ListView, TemplateView, View, FormView
 from django.core.urlresolvers import reverse_lazy, reverse
 from django.contrib.auth.decorators import login_required
 from django.core.serializers import serialize
 from django.forms.forms import NON_FIELD_ERRORS
 from django.core.exceptions import PermissionDenied
+from django.contrib.auth.decorators import login_required
 
 from fcm.utils import get_device_model
 
@@ -41,6 +44,8 @@ from onadata.apps.fsforms.line_data_project import LineChartGenerator, LineChart
 from onadata.apps.fsforms.models import FieldSightXF, Stage, FInstance, Instance
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.models import UserProfile
+from onadata.apps.fsforms.tasks import clone_form
+from onadata.apps.logger.models import XForm
 from onadata.apps.geo.models import GeoLayer
 from .mixins import (LoginRequiredMixin, SuperAdminMixin, OrganizationMixin, ProjectMixin, SiteView,
                      CreateView, UpdateView, DeleteView, OrganizationView as OView, ProjectView as PView,
@@ -51,10 +56,12 @@ from .rolemixins import FullMapViewMixin, SuperUserRoleMixin, ReadonlyProjectLev
     DonorRoleMixin, DonorSiteViewRoleMixin, SiteDeleteRoleMixin, SiteRoleMixin, ProjectRoleView, ReviewerRoleMixin, ProjectRoleMixin,\
     OrganizationRoleMixin, ReviewerRoleMixinDeleteView, ProjectRoleMixinDeleteView, RegionRoleMixin, RegionSupervisorReviewerMixin
 
-from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType
+from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, ProjectType
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
                     SiteBulkEditForm, SiteTypeForm)
+
+from onadata.apps.subscriptions.models import Subscription, Customer, Package
 from django.views.generic import TemplateView
 from django.core.mail import send_mail, EmailMessage
 from django.contrib.sites.shortcuts import get_current_site
@@ -62,6 +69,7 @@ from django.template.loader import render_to_string, get_template
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes, smart_str
 from django.utils.crypto import get_random_string
+from django.views.decorators.csrf import csrf_exempt
 
 from django.utils.encoding import force_text
 from django.utils.http import urlsafe_base64_decode
@@ -84,7 +92,11 @@ from django.core.files.base import ContentFile
 from onadata.apps.fsforms.reports_util import get_images_for_site, get_images_for_site_all, get_site_responses_coords, get_images_for_sites_count
 from onadata.apps.staff.models import Team
 from .metaAttribsGenerator import generateSiteMetaAttribs
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 @login_required
 def dashboard(request):
@@ -92,6 +104,7 @@ def dashboard(request):
     if current_role_count == 1:
         current_role = request.roles[0]
         role_type = request.roles[0].group.name
+
         if role_type == "Staff Project Manager":
             return HttpResponseRedirect(reverse("staff:staff-project-detail"))
         if role_type == "Unassigned":
@@ -177,8 +190,10 @@ def FormResponseSite(request, pk):
 
     return JsonResponse(data)
 
+
 class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, TemplateView):
     template_name = "fieldsight/organization_dashboard.html"
+
     def get_context_data(self, **kwargs):
         # dashboard_data = super(Organization_dashboard, self).get_context_data(**kwargs)
         obj = Organization.objects.get(pk=self.kwargs.get('pk'))
@@ -197,6 +212,9 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         roles_org = UserRole.objects.filter(organization_id = self.kwargs.get('pk'), project__isnull=True,
                                             site__isnull = True,
                                             ended_at__isnull=True)
+        key = settings.STRIPE_PUBLISHABLE_KEY
+        # has_user_package = Subscription.objects.filter(stripe_customer__user=self.request.user).values('package').exists()
+        has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user).exists()
 
         dashboard_data = {
             'obj': obj,
@@ -216,8 +234,11 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
             'progress_labels': [] , #bar_graph.data.keys(),
             'roles_org': roles_org,
             'total_submissions': flagged + approved + rejected + outstanding,
+            'key': key,
+            'has_user_free_package': has_user_free_package
         }
         return dashboard_data
+
 
 class Project_dashboard(ProjectRoleMixin, TemplateView):
     template_name = "fieldsight/project_dashboard.html"
@@ -294,7 +315,8 @@ class Project_dashboard(ProjectRoleMixin, TemplateView):
             'total_submissions': flagged + approved + rejected + outstanding,
             'site_visits' : site_visits,
             'active_supervisors' : active_supervisors,
-            'new_submissions' : new_submissions
+            'new_submissions' : new_submissions,
+            'gsuit_meta_json': json.dumps(obj.gsuit_meta),
             
     }
 
@@ -407,18 +429,66 @@ class UserDetailView(object):
 class OrganizationListView(OrganizationView, SuperUserRoleMixin, ListView):
     pass
 
-class OrganizationCreateView(OrganizationView, SuperUserRoleMixin, CreateView):
+
+class OrganizationCreateView(OrganizationView, CreateView):
+
+    @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
+    def dispatch(self, request, *args, **kwargs):
+        if self.request.user.is_authenticated():
+            if request.group.name == "Super Admin" or request.group.name == "Unassigned":
+                return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
+        raise PermissionDenied()
+
     def form_valid(self, form):
+
         self.object = form.save()
+        self.object.owner = self.request.user
+        self.object.save()
         noti = self.object.logs.create(source=self.request.user, type=9, title="new Organization",
                                        organization=self.object, content_object=self.object,
                                        description="{0} created a new organization named {1}".
                                        format(self.request.user, self.object.name))
+
+        user = self.request.user
+        profile = user.user_profile
+        if not profile.organization:
+            profile.organization = self.object
+            profile.save()
+
+        # subscribed to free plan
+        if not user.is_superuser:
+            free_package = Package.objects.get(plan=0)
+            customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
+            Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer, initiated_on=datetime.datetime.now(),
+                                        package=free_package, organization=self.object)
+
+        project = Project.objects.get(name="Example Project", organization_id=self.object.id)
+        sites = Site.objects.filter(project=project)
+
+        task_obj = CeleryTaskProgress.objects.create(user=user,
+                                                     description="Auto Clone and Deployment of Forms",
+                                                     task_type=15, content_object=self.object)
+        if task_obj:
+            clone_form.delay(user, project, task_obj.id)
         # result = {}
         # result['description'] = '{0} created a new organization named {1} '.format(noti.source.get_full_name(), self.object.name)
         # result['url'] = noti.get_absolute_url()
         # ChannelGroup("notify-{}".format(self.object.id)).send({"text": json.dumps(result)})
         # ChannelGroup("notify-0").send({"text": json.dumps(result)})
+
+        if self.request.group.name == "Unassigned":
+            previous_group = UserRole.objects.get(user=self.request.user, group__name=self.request.group.name)
+            previous_group.delete()
+
+            new_group = Group.objects.get(name="Organization Admin")
+            UserRole.objects.create(user=self.request.user, group=new_group, organization=self.object)
+
+            group = Group.objects.get(name='Site Supervisor')
+            for site in sites:
+                UserRole.objects.get_or_create(user=user, group=group, organization=self.object, project_id=project.id,
+                                           site_id=site.id)
+
+            return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': self.object.pk}))
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -1169,6 +1239,8 @@ class RolesView(LoginRequiredMixin, TemplateView):
                                                                                           region__is_active=True)
 
         context['staff_project_manager'] = self.request.roles.select_related('staff_project').filter(group__name = "Staff Project Manager", staff_project__is_deleted = False)
+        context['unassigned'] = self.request.roles.filter(group__name="Unassigned")
+
         if Team.objects.filter(leader_id = self.request.user.id).exists():
             context['staff_teams'] = Team.objects.filter(leader_id = self.request.user.id, is_deleted=False)
         else:
@@ -1720,7 +1792,7 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         peoples_involved = obj.project_roles.filter(group__name__in=["Project Manager", "Reviewer"]).distinct('user')
         project_managers = obj.project_roles.select_related('user').filter(group__name__in=["Project Manager"]).distinct('user')
 
-        sites = obj.sites.filter(is_active=True, is_survey=False)
+        sites = obj.sites.filter(is_active=True, is_survey=False)[:100]
         data = serialize('custom_geojson', sites, geometry_field='location',
                          fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone','id',))
 
@@ -1749,7 +1821,6 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
             'project_managers':project_managers,
             'organization': organization,
             'total_submissions': line_chart_data.values()[-1],
-    
         }
         return render(request, 'fieldsight/project_individual_submission_report.html', dashboard_data)
 
@@ -3160,7 +3231,8 @@ class DonorProjectDashboard(DonorRoleMixin, TemplateView):
             'total_submissions': outstanding + flagged + approved + rejected,
             'site_visits' : site_visits,
             'active_supervisors' : active_supervisors,
-            'new_submissions' : new_submissions
+            'new_submissions' : new_submissions,
+            'gsuit_meta_json': json.dumps(obj.gsuit_meta),
     }
         return dashboard_data
 
@@ -3746,4 +3818,20 @@ class GeoJSONContent(View):
         return JsonResponse(json.loads(lines), status=200)
 
 
+class RequestOrganizationSearchView(TemplateView):
+    template_name = 'fieldsight/request_organization_list.html'
 
+    def get_context_data(self, **kwargs):
+        context = super(RequestOrganizationSearchView, self).get_context_data(**kwargs)
+        query = self.request.GET.get("q")
+        context['org'] = Organization.objects.filter(name__icontains=query).values('name', 'id')
+
+        return context
+
+
+@receiver(post_save,sender=Organization)
+def auto_create_project_site(instance, created, **kwargs):
+    if created:
+        project_type_id = ProjectType.objects.first().id
+        project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id)
+        Site.objects.create(name="Example Site", project=project, identifier="example site")

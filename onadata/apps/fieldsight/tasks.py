@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 import time
+import os
 import json
 import datetime
 from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType
+from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
 from channels import Group as ChannelGroup
@@ -49,58 +50,87 @@ from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
+from onadata.apps.fsforms.tasks import clone_form
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-gauth = GoogleAuth()
 
 class DriveException(Exception):
     pass
 
 def upload_to_drive(file_path, title, folder, project):
-    pass
-    # try:
-    #     drive = GoogleDrive(gauth)
+    # pass
+    """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
+    try:
+        gauth = GoogleAuth()
+        drive = GoogleDrive(gauth)
 
-    #     folder_id = drive.ListFile({'q':"title = '"+ folder +"'"}).GetList()[0]['id']
-    #     file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()
-
-    #     if not file:    
-    #         file = drive.CreateFile({'title' : title, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
-    #     else:
-    #         file = file[0]
-
-    #     file.SetContentFile(file_path)
-    #     file.Upload({'convert':True})    
-
-    #     permissions = file.GetPermissions()
-
-    #     user_emails = project.project_roles.filter(ended_at__isnull = True, site=None).distinct('user').values_list('user__email', flat=True)
+        folders = drive.ListFile({'q':"title = '"+ folder +"'"}).GetList()
         
-    #     all_users = set(user_emails)
+        if folders:
+            folder_id = folders[0]['id']
+        else:
+            folder_metadata = {'title' : folder, 'mimeType' : 'application/vnd.google-apps.folder'}
+            folder = drive.CreateFile(folder_metadata)
+            folder.Upload()            
+            folder_id = folder['id']
+        
+        file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()
 
-    #     existing_perms = []
+        if not file:    
+            file = drive.CreateFile({'title' : title, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
+        else:
+            file = file[0]
 
-    #     for permission in permissions:
-    #         existing_perms.append(permission['emailAddress'])
+        file.SetContentFile(file_path)
+        file.Upload({'convert':True})    
+        gsuit_meta = project.gsuit_meta
+        gsuit_meta[folder] = {'link':file['alternateLink'], 'updated_at':datetime.datetime.now().isoformat()}
+        project.gsuit_meta = gsuit_meta
+        project.save()
+        permissions = file.GetPermissions()
 
-    #     perms = set(existing_perms)
+        user_emails = project.project_roles.filter(ended_at__isnull = True, site=None).distinct('user').values_list('user__email', flat=True)
+        
+        all_users = set(user_emails)
 
-    #     perm_to_rm = perms - all_users
-    #     perm_to_add = all_users - perms
+        existing_perms = []
 
-    #     for permission in permissions:
-    #         if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "fieldsighthero@gmail.com":
-    #             file.DeletePermission(permission['id'])
+        for permission in permissions:
+            existing_perms.append(permission['emailAddress'])
 
-    #     for perm in perm_to_add:
-    #         file.InsertPermission({
-    #                     'type':'user',
-    #                     'value':perm,
-    #                     'role': 'writer'
-    #                 })
-    # except Exception as e:
-    #     raise DriveException({"message":e})
+        perms = set(existing_perms)
+
+        perm_to_rm = perms - all_users
+        perm_to_add = all_users - perms
+
+        for permission in permissions:
+            if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "fieldsighthero@gmail.com":
+                file.DeletePermission(permission['id'])
+
+        file.InsertPermission({
+                    'type':'user',
+                    'value':'aashish.baidya.c3@gmail.com',
+                    'role': 'writer'
+                })
+
+        file.InsertPermission({
+                    'type':'user',
+                    'value':'skhatri.np@gmail.com',
+                    'role': 'writer'
+                })
+
+
+        # for perm in perm_to_add:
+        #     file.InsertPermission({
+        #                 'type':'user',
+        #                 'value':perm,
+        #                 'role': 'writer'
+        #             })
+
+
+    except Exception as e:
+        raise DriveException({"message":e})
 
 
 @shared_task()
@@ -282,12 +312,9 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                                    extra_message=" <a href='/"+ "media/stage-report/{}_stage_data.xls".format(project.id) +"'>Site Stage Progress report </a> generation in project")
         
         if not site_type_ids and not region_ids:
-            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "progress_report-{}".format(project.id), "Site Progress", project)
+            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project)
 
     except DriveException as e:
-        task.description = "ERROR: " + str(e.message) 
-        task.status = 3
-        task.save()
         print 'Report upload to drive  Unsuccesfull. %s' % e
         print e.__dict__
         noti = task.logs.create(source=task.user, type=432, title="Site Stage Progress report upload to Google Drive in Project",
@@ -881,24 +908,33 @@ def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids
                                    extra_message=" <a href='" +  task.file.url +"'>Xls sites detail report</a> generation in project")
 
         if not type_ids and not region_ids:
-            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "site_details-{}".format(project.id), "Site Details", project)
+            
+            if not os.path.exists("media/site-details-report/"):
+                os.makedirs("media/site-details-report/")
+
+            temporarylocation="media/site-details-report/site_details_{}.xls".format(project.id)
+            with open(temporarylocation,'wb') as out: ## Open temporary file as bytes
+                out.write(xls)                ## Read bytes into file
+
+            upload_to_drive(temporarylocation, "{} - Site Information".format(project.id), "Site Information", project)
+
+            os.remove(temporarylocation)
 
     except DriveException as e:
-        task.description = "ERROR: " + str(e.message) 
-        task.status = 3
-        task.save()
         print 'Report upload to drive  Unsuccesfull. %s' % e
         print e.__dict__
-        noti = task.logs.create(source=task.user, type=432, title="Xls Details report upload to Google Drive in Project",
+        noti = task.logs.create(source=task.user, type=432, title="Xls Site Information report upload to Google Drive in Project",
                                        content_object=project, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
+        os.remove(temporarylocation)
+
 
     except Exception as e:
         task.description = "ERROR: " + str(e.message) 
         task.status = 3
         print e.__dict__
         task.save()
-        task.logs.create(source=source_user, type=432, title="Xls Details Report generation in project",
+        task.logs.create(source=source_user, type=432, title="Xls Site Information Report generation in project",
                                    content_object=project, recipient=source_user,
                                    extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
@@ -1662,7 +1698,7 @@ def exportProjectstatistics(task_prog_obj_id, source_user, project_id, reportTyp
         if reportType == "Monthly":
             data.insert(0, ["Date", "Month", "Site Visits", "Submissions","Active Users"])
             i=1
-            for month in rrule(MONTHLY, dtstart=new_startdate, until=new_enddate):
+            for month in rrule(MONTHLY, dtstart=new_startdate, until=end):
                 str_month = month.strftime("%Y-%m")
                 data.insert(i, [str_month, month.strftime("%B"), 0, 0, 0])
                 index[str_month] = i
@@ -1702,7 +1738,7 @@ def exportProjectstatistics(task_prog_obj_id, source_user, project_id, reportTyp
         if reportType in ["Daily", "Weekly"]:
             data.insert(0, ["Date", "Day", "Site Visits", "Submissions", "Active Users"])
             i=1
-            for day in rrule(DAILY, dtstart=new_startdate, until=new_enddate):
+            for day in rrule(DAILY, dtstart=new_startdate, until=end):
                 str_day = day.strftime("%Y-%m-%d")
                 data.insert(i, [str_day, day.strftime("%A"), 0, 0, 0])
                 index[str_day] = i
@@ -1748,22 +1784,22 @@ def exportProjectstatistics(task_prog_obj_id, source_user, project_id, reportTyp
         if reportType == "Weekly":
             weekly_data = [["Week No.", "Week Start", "Week End", "Site Visits", "Submissions","Active Users"]]
 
-        weekcount = 0
-        for value in data[1:]:
-            day = datetime.datetime.strptime(value[0], "%Y-%m-%d").weekday() + 1
-            # Since start day is Monday And in Nepa we Calculate from Saturday for now.
-            if day == 7 or weekcount == 0:
-                weekcount += 1
-                weekly_data.insert(weekcount, ["Week "+ str(weekcount),"","",0,0,0])
+            weekcount = 0
+            for value in data[1:]:
+                day = datetime.datetime.strptime(value[0], "%Y-%m-%d").weekday() + 1
+                # Since start day is Monday And in Nepa we Calculate from Saturday for now.
+                if day == 7 or weekcount == 0:
+                    weekcount += 1
+                    weekly_data.insert(weekcount, ["Week "+ str(weekcount),"","",0,0,0])
 
-                weekly_data[weekcount][1] = value[0]
-            weekly_data[weekcount][2] = value[0]
-            weekly_data[weekcount][3] += value[2]
-            weekly_data[weekcount][4] += value[3]
-            weekly_data[weekcount][5] += value[4] 
+                    weekly_data[weekcount][1] = value[0]
+                weekly_data[weekcount][2] = value[0]
+                weekly_data[weekcount][3] += value[2]
+                weekly_data[weekcount][4] += value[3]
+                weekly_data[weekcount][5] += value[4] 
 
-        for value in weekly_data:
-            ws.append(value)
+            for value in weekly_data:
+                ws.append(value)
 
         else:
             for value in data:
@@ -1903,4 +1939,13 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
 
-
+#
+# @shared_task(max_retries=5)
+# def auto_create_default_project_site(user, organization_id):
+#     project_type_id = ProjectType.objects.first().id
+#     project = Project.objects.create(name="Demo Project", organization_id=organization_id, type_id=project_type_id)
+#     print('project createed')
+#     Site.objects.create(name="Demo Site", project=project)
+#     print('site createed')
+#     token = user.auth_token.key
+#     clone_form.delay(user, token, project)
