@@ -497,6 +497,12 @@ class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView
     def get_success_url(self):
         return reverse('fieldsight:organizations-dashboard', kwargs={'pk': self.kwargs['pk']})
 
+    def get_context_data(self, **kwargs):
+        context = super(OrganizationUpdateView, self).get_context_data(**kwargs)
+        context['level'] = "2"
+        context['obj'] = Organization.objects.get(id=self.kwargs['pk'])
+        return context
+
     def form_valid(self, form):
         self.object = form.save()
         noti = self.object.logs.create(source=self.request.user, type=13, title="edit Organization",

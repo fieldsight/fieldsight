@@ -307,15 +307,79 @@
 			</div>
             			<div id="main-content" class="padding">
 
-                            {% block breadcrumb %}
+							<!-- breadcrumb-->
 
-                            {% endblock %}
+                             <nav aria-label="breadcrumb" role="navigation">
+
+							  <ol class="breadcrumb">
+										  {% if level == "0" %}
+								<li class="breadcrumb-item"><a href="{% url 'fieldsight:site-dashboard' pk %}">{{ obj.name }}</a></li>
+										  {% endif %}
+										  {% if level == "1" %}
+								<li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' pk %}">{{ obj.name }}</a></li>
+										  {% endif %}
+										  {% if level == "2" %}
+								<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' obj.pk %}">{{ obj.name }}</a></li>
+										  {% endif %}
+								<li class="breadcrumb-item active" aria-current="page">{% trans 'Manage' %} {% trans 'People' %}</li>
+							   </ol>
+							</nav>
+							<!-- end breadcrumb -->
+
 
 				<div id="left-tabbing" class="row no-gutters">
 
-                    {% block manage_left_bar %}
+                   <!-- ...........left bar....... -->
+					 <div class="col-md-4 col-lg-3 bg-primary-light">
+							<ul class="nav nav-pills flex-column">
+								{% if level == "2" %}
+								  <li class="nav-item">
+									  <a class="nav-link" href="{% url 'fieldsight:manage-people-organization' obj.pk %}" data-load="org-manage-people.html">People</a>
+								  </li>
 
-                    {% endblock %}
+								  <li class="nav-item">
+									  <a class="nav-link" href="{% url 'fieldsight:organization-edit' obj.pk %}" data-load="org-manage-detail.html">Organization</a>
+								  </li>
+								  <li class="nav-item">
+									  <a class="nav-link" href="#" data-load="org-manage-detail.html">Geo Layers</a>
+								  </li>
+
+
+								 {% elif level == "1" %}
+									<li class="nav-item">
+										<a class="nav-link active" href="{% url 'fieldsight:manage-people-project' obj.pk %}" data-load="org-manage-people.html">People</a>
+									</li>
+
+								   <li class="nav-item">
+										<a class="nav-link" href="{% url 'forms:setup-forms' 1 obj.pk %}" data-load="org-manage-project.html">Forms</a>
+									</li>
+									<li class="nav-item">
+										<a class="nav-link" href="{% url 'fieldsight:organization-edit' organization %}" data-load="org-manage-detail.html">Sites</a>
+									</li>
+									<li class="nav-item">
+										<a class="nav-link" href="#" data-load="org-manage-detail.html">Settings</a>
+									</li>
+
+								  {% elif level == "0" %}
+										<li class="nav-item">
+											<a class="nav-link active" href="{% url 'fieldsight:manage-people-site' obj.pk %}" data-load="org-manage-people.html">People</a>
+										</li>
+
+									   <li class="nav-item">
+											<a class="nav-link" href="#" data-load="org-manage-project.html">Edit Site Information</a>
+										</li>
+										<li class="nav-item">
+											<a class="nav-link" href="{% url 'fieldsight:organization-edit' organization %}" data-load="org-manage-detail.html">Site Documents</a>
+										</li>
+										<li class="nav-item">
+											<a class="nav-link" href="#" data-load="org-manage-detail.html">Forms</a>
+										</li>
+
+								{% endif %}
+
+							</ul>
+						</div>
+					<!--  .........end left bar...... -->
 
 					<div class="col-md-8 col-lg-9">
 						<div id="load-content" class="padding bg-white">
