@@ -3,7 +3,7 @@ from django.conf.urls import url
 from onadata.apps.users.views import ContactViewSet, UsersListView, MyProfile, EndUserRole, web_login, web_signup, \
 create_role, ProfileCreateView, export_users_xls, ViewInvitations, decline_invitation, accept_invitation, accept_all_invitations
 from onadata.apps.users.viewsets import UserViewSet, ProfileViewSet, UserListViewSet, SearchableUserListViewSet, \
-    MySitesViewset, MySitesOnlyViewset, MyProjectsViewset
+    SitesViewset, MySitesOnlyViewset, MyProjectsViewset, MyRegionSitesViewset, MyRolesViewset, MySitesViewset
 from . import views
 from django.contrib.auth.views import password_reset
 
@@ -24,6 +24,9 @@ urlpatterns = [
     url(r'^contacts/(?P<pk>[0-9]+)/$', ContactViewSet.as_view({'get': 'list'}), name='project_contacts'),
     url(r'^me/', views.current_user, name='current_user'),
     url(r'^metwo/', views.current_usertwo, name='current_usertwo'),
+    url(r'^api/myroles/', MyRolesViewset.as_view(), name='my_roles'),
+    url(r'^api/my-sites/', SitesViewset.as_view({'get': 'list'}), name='sites'),
+    url(r'^api/my-region-sites/', MyRegionSitesViewset.as_view({'get': 'list'}), name='region_sites'),
     url(r'^mysites/', MySitesViewset.as_view({'get': 'list'}), name='msvs'),
     url(r'^mysitesonly/', MySitesOnlyViewset.as_view({'get': 'list'}), name='msovs'),
     url(r'^myprojects/', MyProjectsViewset.as_view({'get': 'list'}), name='mpvs'),

@@ -17,6 +17,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework import views
 
 from onadata.apps.api.viewsets.xform_viewset import CsrfExemptSessionAuthentication
 from onadata.apps.eventlog.models import FieldSightLog
@@ -34,14 +35,16 @@ from itertools import chain
 
 
 class MySitesResultsSetPagination(PageNumberPagination):
-    page_size = 400
+    page_size = 200
     page_size_query_param = 'page_size'
     max_page_size = 1000
+
 
 class MySitesOnlyResultsSetPagination(PageNumberPagination):
     page_size = 1000
     page_size_query_param = 'page_size'
     max_page_size = 1000
+
 
 class AddPeoplePermission(BasePermission):
 
@@ -247,7 +250,9 @@ class MySitesViewset(viewsets.ReadOnlyModelViewSet):
 
     def get_serializer_context(self):
 
-        sites = UserRole.objects.filter(user=self.request.user).values_list('site', flat=True).distinct()
+        sites = Site.objects.filter(site_roles__user=self.request.user, site_roles__ended_at=None, id__isnull=False,
+                                    is_active=True, site_roles__group__name="Site Supervisor") \
+            .select_related('region', 'project', 'type', 'project__type', 'project__organization')
         if self.queryset.filter(user=self.request.user, ended_at=None, region__isnull=False, region__is_active=True,
                              group__name="Region Supervisor").values_list('region', flat=True).exists():
             regions_id = self.queryset.filter(user=self.request.user, ended_at=None, region__isnull=False, region__is_active=True,
@@ -261,6 +266,69 @@ class MySitesViewset(viewsets.ReadOnlyModelViewSet):
         blue_prints = BluePrints.objects.filter(site__in=sites)
         return {'request': self.request, 'blue_prints': blue_prints}
 
+
+class MyRolesViewset(views.APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        regions_id = UserRole.objects.filter(user=self.request.user, ended_at=None, region__isnull=False,
+                                          region__is_active=True, group__name="Region Supervisor").values_list('region', flat=True)
+        has_regions = UserRole.objects.filter(user=self.request.user, ended_at=None, region__isnull=False,
+                                region__is_active=True, group__name="Region Supervisor").values_list('region',
+
+                                                                                                     flat=True).exists()
+        myroles = [
+            {"user": self.request.user.username,
+             "regions": regions_id,
+             "has_regions": has_regions
+
+             }
+
+        ]
+        return Response(myroles)
+
+
+class SitesViewset(viewsets.ReadOnlyModelViewSet):
+    serializer_class = MySiteRolesSerializer
+    permission_classes = (IsAuthenticated,)
+    queryset = UserRole.objects.filter(ended_at=None, group__name="Site Supervisor")
+    pagination_class = MySitesResultsSetPagination
+
+    def get_queryset(self):
+        sites = Site.objects.filter(site_roles__user=self.request.user, site_roles__ended_at=None, id__isnull=False, is_active=True, site_roles__group__name="Site Supervisor")\
+            .select_related('region', 'project', 'type', 'project__type', 'project__organization')
+
+        return sites
+
+    def get_serializer_context(self):
+
+        sites = UserRole.objects.filter(user=self.request.user).values_list('site', flat=True).distinct()
+
+        blue_prints = BluePrints.objects.filter(site__in=sites)
+        return {'request': self.request, 'blue_prints': blue_prints}
+
+
+class MyRegionSitesViewset(viewsets.ReadOnlyModelViewSet):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = MySiteRolesSerializer
+    queryset = UserRole.objects.filter(ended_at=None, group__name="Region Supervisor")
+    pagination_class = MySitesResultsSetPagination
+
+    def get_queryset(self):
+        region_id = int(self.request.query_params.get('region_id'))
+
+        sites = Site.objects.filter(Q(region_id=region_id) | Q(region_id__parent=region_id) | Q(region_id__parent__parent=region_id)).select_related('region', 'project', 'type', 'project__type', 'project__organization')
+
+        return sites
+
+    def get_serializer_context(self):
+        region_id = int(self.request.query_params.get('region_id'))
+        sites = Site.objects.filter(Q(region_id=region_id) | Q(region_id__parent=region_id) | Q(
+            region_id__parent__parent=region_id)).select_related('region', 'project', 'type', 'project__type',
+                                                                     'project__organization')
+
+        blue_prints = BluePrints.objects.filter(site__in=sites)
+        return {'request': self.request, 'blue_prints': blue_prints}
 #no project info
 
 
