@@ -47,11 +47,13 @@ class SignUpForm(forms.Form):
 
     def clean_email(self):
         email = self.cleaned_data['email']
+        
         if validate_email(email)==False:
             raise ValidationError('Enter a valid Email address')
         
-        if User.objects.filter(email=email):
+        if User.objects.filter(email__icontains=email):
             raise ValidationError('User with this email already exists')
+
         else:
             return email
 
