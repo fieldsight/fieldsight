@@ -334,7 +334,8 @@ class SiteDashboardView(SiteRoleMixin, TemplateView):
     def get_context_data(self, is_supervisor_only, **kwargs):
         # dashboard_data = super(SiteDashboardView, self).get_context_data(**kwargs)
         obj =  get_object_or_404(Site, pk=self.kwargs.get('pk'), is_active=True)
-        peoples_involved = obj.site_roles.filter(ended_at__isnull=True).distinct('user')
+        peoples_involved = UserRole.objects.filter(ended_at__isnull=True).filter(
+            Q(site=obj) | Q(region__project=obj.project)).select_related('user').distinct('user_id').count()
         data = serialize('custom_geojson', [obj], geometry_field='location',
                          fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone', 'id'))
 
@@ -350,8 +351,6 @@ class SiteDashboardView(SiteRoleMixin, TemplateView):
             if question['question_name'] in meta_answers:
                 mylist.append({question['question_text'] : meta_answers[question['question_name']]})
         myanswers = mylist
-
-
 
         result = get_images_for_sites_count(obj.id)
         
@@ -2711,11 +2710,14 @@ class ExcelBulkSiteSample(ProjectRoleMixin, View):
             task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), regions)
             task_obj.task_id = task.id
             task_obj.save()
-            status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
-        else:
-            status, data = 401, {'status':'false','message':'Error occured please try again.'}
-        return JsonResponse(data, status=status)
+            #status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
+            messages.info(request, 'The sites details xls file is being generated. You will be notified after the file is generated.')
 
+        else:
+            #status, data = 401, {'status':'false','message':'Error occured please try again.'}
+            messages.info(request, 'Error occured please try again.')
+
+        return HttpResponseRedirect(reverse('fieldsight:site-upload', kwargs={'pk': project.pk}))
 
     def write_site(self, row, site, ws):
         columns = [
