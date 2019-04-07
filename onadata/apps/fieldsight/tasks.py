@@ -57,6 +57,8 @@ from onadata.apps.fsforms.tasks import clone_form
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
+form_status_map=["Pending", "Rejected", "Flagged", "Approved"]
+
 def cleanhtml(raw_html):
    cleanr = re.compile('<\S.*?>')
    cleantext = re.sub(cleanr, '', raw_html)
@@ -251,29 +253,26 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         
         sites = Site.objects.filter(project_id=project.id)
 
+        sites_filter = {}
+        finstance_filter = {'project_fxf__in': form_ids}
+        
         if site_type_ids:
-            sites = sites.filter(type_id__in=site_type_ids)
+            sites_filter['type_id__in'] = site_type_ids
+            finstance_filter['site__type_id__in'] = site_type_ids
 
         if region_ids:
-            sites = sites.filter(region_id__in=region_ids)
-
-        sites = sites.values('id','identifier', 'name', 'region__identifier', 'address').annotate(**query)
+            sites_filter['region_id__in']=region_ids
+            finstance_filter['site_id__in'] = site_type_ids
 
         site_dict = {}
+
 
         # Redoing query because annotate and lat long did not go well in single query.
         # Probable only an issue because of old django version.
 
-        site_objs = Site.objects.filter(project_id=project_id)
         
-        if site_type_ids:
-            site_objs = site_objs.filter(type_id__in=site_type_ids)
-
-        if region_ids:
-            site_objs = site_objs.filter(region_id__in=region_ids)
-
-
-        for site_obj in site_objs.iterator():
+        
+        for site_obj in sites.filter(**sites_filter).iterator():
             site_dict[str(site_obj.id)] = {'visits':0,'site_status':'No Submission', 'latitude':site_obj.latitude,'longitude':site_obj.longitude}
         
 
@@ -281,12 +280,13 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         gc.collect()
 
 
-        sites_status=FInstance.objects.filter(project_fxf__in=form_ids, site__isnull=False).order_by('site_id','-id').distinct('site_id').values_list('site_id', 'form_status', flat=True)
+        sites_status=FInstance.objects.filter(**finstance_filter).order_by('site_id','-id').distinct('site_id').values_list('site_id', 'form_status')
         
-        form_status_map=["Pending", "Rejected", "Flagged", "Approved"] 
         for site_status in sites_status:
-            site_dict[str(site_status['site_id'])]['site_status'] = form_status_map[site_status.get('form_status', 0)]
-
+            try:
+                site_dict[str(site_status[0])]['site_status'] = form_status_map[site_status[1]]
+            except:
+                pass
         sites_status = None
         gc.collect()
         
@@ -312,6 +312,7 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         site_visits = None
         gc.collect()
 
+        sites = sites.filter(**sites_filter).values('id','identifier', 'name', 'region__identifier', 'address').annotate(**query)
         try:
             for site in sites:
                 # import pdb; pdb.set_trace();
@@ -771,7 +772,7 @@ def siteDetailsGenerator(project, sites, ws):
                     generate(meta['project_id'], sub_site_map.get(meta['question_name'], []), meta, sub_meta_ref_sites.get(meta['question_name'], []), selected_metas)
 
 
-        for site in sites.iterator():
+        for site in sites.select_related('region').iterator():
             
             columns = {'identifier':site.identifier, 'name':site.name, 'site_type_identifier':site.type.identifier if site.type else "", 'phone':site.phone, 'address':site.address, 'public_desc':site.public_desc, 'additional_desc':site.additional_desc, 'latitude':site.latitude,
                        'longitude':site.longitude, }
@@ -833,8 +834,6 @@ def siteDetailsGenerator(project, sites, ws):
                 "answer": { '$last': "$"+meta['question']['name'] }
                }
              }])
-
-            
 
             for submission in query['result']:
                 try:    
@@ -965,6 +964,7 @@ def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids
 
 
     except Exception as e:
+
         task.description = "ERROR: " + str(e.message) 
         task.status = 3
         print e.__dict__
@@ -1016,6 +1016,7 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
         ws_site_details.title = "Site Details"
         form_id = 0
         form_names=[]
+
         
         def generate_sheet_name(form_name):
             form_names.append(form_name)
@@ -1028,7 +1029,7 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
                     sheet_name=sheet_name.replace(ch,"_")
 
             return sheet_name
-
+        
         for form in forms.iterator():
             form_id += 1
             sheet_name = generate_sheet_name(form.xf.title)
@@ -1051,10 +1052,9 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
 
                     answers['identifier'] = formresponse.site.identifier
                     answers['name'] = formresponse.site.name
-                    answers['status'] = formresponse.get_form_status_display()
+                    answers['status'] = form_status_map[formresponse.form_status]
                     
                     if r_question_answers:
-
                         repeat_answers.append({'name': formresponse.site.name, 'identifier': formresponse.site.identifier, 'repeated': r_question_answers })
 
                     if len([{'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}] + questions) > len(head_columns):
@@ -1101,12 +1101,14 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
                     
                         wr.cell(row=1, column=col_num+3).value = cleanhtml(head_str)
                         
-            forms = None
+            del formresponses           
             gc.collect()
 
         if not forms:
             ws = wb.create_sheet(title='No Forms')
         
+        forms = None
+        gc.collect()
 
         sites = Site.objects.filter(pk__in=response_sites)
         status, message = siteDetailsGenerator(project, sites, ws_site_details)
