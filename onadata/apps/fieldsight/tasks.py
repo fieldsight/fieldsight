@@ -886,7 +886,6 @@ def siteDetailsGenerator(project, sites, ws):
             ws.append(row)
 
         del sites
-        del site_list
         gc.collect()
         return True, 'success'
 
