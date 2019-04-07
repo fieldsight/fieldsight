@@ -18,7 +18,7 @@ from onadata.libs.utils.fieldsight_tools import clone_kpi_form
 from django.core.mail import EmailMessage
 
 
-@shared_task(max_retries=10, soft_time_limit=4200)
+@shared_task(max_retries=10, soft_time_limit=60)
 def copy_allstages_to_sites(pk):
     try:
         project = Project.objects.get(pk=pk)
@@ -32,7 +32,7 @@ def copy_allstages_to_sites(pk):
         raise copy_allstages_to_sites.retry(countdown=seconds_to_wait)
 
 
-@shared_task(max_retries=10, soft_time_limit=4200)
+@shared_task(max_retries=10, soft_time_limit=60)
 def copy_stage_to_sites(main_stage, pk):
     try:
         project = Project.objects.get(pk=pk)
@@ -63,7 +63,7 @@ def copy_stage_to_sites(main_stage, pk):
         # First countdown will be 1.0, then 2.0, 4.0, etc.
         raise copy_stage_to_sites.retry(countdown=seconds_to_wait)
 
-@shared_task(max_retries=10, soft_time_limit=4200)
+@shared_task(max_retries=10, soft_time_limit=60)
 def copy_sub_stage_to_sites(sub_stage, pk):
     try:
         project = Project.objects.get(pk=pk)
@@ -93,7 +93,7 @@ def copy_sub_stage_to_sites(sub_stage, pk):
         # First countdown will be 1.0, then 2.0, 4.0, etc.
         raise copy_sub_stage_to_sites.retry(countdown=seconds_to_wait)
 
-@shared_task(max_retries=10, soft_time_limit=3200)
+@shared_task(max_retries=10, soft_time_limit=60)
 def copy_schedule_to_sites(schedule, fxf_status, pk):
     try:
         fxf = schedule.schedule_forms
@@ -119,11 +119,6 @@ def copy_schedule_to_sites(schedule, fxf_status, pk):
 def post_update_xform(xform_id, user):
     existing_xform = XForm.objects.get(pk=xform_id)
     user = User.objects.get(pk=user)
-    xf = XformHistory(xform=existing_xform, xls=existing_xform.xls, json=existing_xform.json,
-                      description=existing_xform.description, xml=existing_xform.xml,
-                      id_string=existing_xform.id_string, title=existing_xform.title, uuid=existing_xform.uuid)
-    xf.save()
-
     existing_xform.logs.create(source=user, type=20, title="Kobo form Updated",
                                 description="update kobo form ")
 
@@ -132,24 +127,38 @@ def post_update_xform(xform_id, user):
 
 @shared_task(max_retries=5)
 def clone_form(user, project, task_id):
-    name = "Test Form"
     token = user.auth_token.key
-    clone, id_string = clone_kpi_form(settings.KPI_DEFAULT_FORM1_STRING, token, task_id, name)
-    if clone:
-        xf = XForm.objects.get(id_string=id_string, user=user)
-        fxf, created = FieldSightXF.objects.get_or_create(xf=xf, project=project)
+
+    #general clone
+
+    clone1, id_string1 = clone_kpi_form(settings.DEFAULT_FORM_3['id_string'], token, task_id, settings.DEFAULT_FORM_3['name'])
+    if clone1:
+        xf = XForm.objects.get(id_string=id_string1, user=user)
+        FieldSightXF.objects.get_or_create(xf=xf, project=project, is_deployed=True)
     else:
-        # send email to admins for unsuccessful form clone or deployment
-        # task_obj = CeleryTaskProgress.objects.get(id=task_id)
-        # to_email = ''
-        # mail_subject = 'Error in deploying and cloning form'
-        # for key, value in task_obj.other_fields.items():
-        #     message = 'Task '+ key + ' failed for user ' + user.username + ' with status code: ' + str(value)
-        # email = EmailMessage(
-        #     mail_subject, message, to=[to_email]
-        # )
-        # email.send()
-        pass
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+        raise ValueError(" Failed  clone and deploy")
+
+    clone2, id_string2 = clone_kpi_form(settings.DEFAULT_FORM_2['id_string'], token, task_id, settings.DEFAULT_FORM_2['name'])
+    if clone2:
+        xf2 = XForm.objects.get(id_string=id_string2, user=user)
+        schedule, created = Schedule.objects.get_or_create(name =settings.DEFAULT_FORM_2['name'], project=project)
+        FieldSightXF.objects.get_or_create(xf=xf2, project=project, is_scheduled=True, schedule=schedule, is_deployed=True)
+    else:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+        raise ValueError(" Failed  clone and deploy")
+
+    clone3, id_string3 = clone_kpi_form(settings.DEFAULT_FORM_1['id_string'], token, task_id, settings.DEFAULT_FORM_1['name'])
+    if clone3:
+        xf3 = XForm.objects.get(id_string=id_string3, user=user)
+        schedule2, created2 = Schedule.objects.get_or_create(name=settings.DEFAULT_FORM_1['name'], project=project, schedule_level_id=1)
+        FieldSightXF.objects.get_or_create(xf=xf3, project=project, is_scheduled=True,
+                                                           schedule=schedule2, is_deployed=True)
+    else:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+        raise ValueError(" Failed  clone and deploy")
+    CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+
 
 
 # @shared_task(max_retries=10)

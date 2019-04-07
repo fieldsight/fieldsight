@@ -330,6 +330,7 @@ class MyProfile(LoginRequiredMixin, View):
 
             roles_org = user.user_roles.select_related('organization').filter(organization__isnull = False, project__isnull = True, site__isnull = True, ended_at__isnull=True, group__name="Organization Admin")
             roles_project = user.user_roles.select_related('project').filter(organization__isnull = False, project__isnull = False, site__isnull = True, ended_at__isnull=True, group__name="Project Manager")
+            roles_doner = user.user_roles.select_related('project').filter(organization__isnull = False, project__isnull = False, site__isnull = True, ended_at__isnull=True, group__name="Project Donor")
             roles_reviewer = user.user_roles.select_related('site').filter(organization__isnull = False, project__isnull = False, site__isnull = False, group__name="Reviewer", ended_at__isnull=True)
             roles_SA = user.user_roles.select_related('site').filter(organization__isnull = False, project__isnull = False, site__isnull = False, group__name="Site Supervisor", ended_at__isnull=True)
             roles_region_supervisor = user.user_roles.select_related('region').filter(organization__isnull=False, project__isnull=False, region__isnull=False, group__name="Region Supervisor", ended_at__isnull=True)
@@ -362,7 +363,8 @@ class MyProfile(LoginRequiredMixin, View):
                                                           'roles_site': roles_reviewer, 'roles_SA': roles_SA,
                                                           'roles_reviewer': roles_reviewer, 'responses': responses,
                                                           'roles_region_reviewer': roles_region_reviewer,
-                                                          'roles_region_supervisor': roles_region_supervisor
+                                                          'roles_region_supervisor': roles_region_supervisor,
+                                                          'roles_project_doner': roles_doner,
                                                           })
 
 
@@ -384,9 +386,11 @@ class UsersListView(TemplateView, SuperAdminMixin):
 
 class ViewInvitations(LoginRequiredMixin, TemplateView):
     template_name = "users/invitations.html"
+
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated():
             user = User.objects.get(pk=kwargs.get('pk'))
+
             if request.user == user:
                 return super(ViewInvitations, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
@@ -395,6 +399,7 @@ class ViewInvitations(LoginRequiredMixin, TemplateView):
         context = super(ViewInvitations, self).get_context_data(*args, **kwargs)
 
         email = User.objects.values('email').get(pk=kwargs.get('pk'))
+        context['has_org'] = Organization.objects.filter(owner=self.request.user).exists()
         context['invitations'] = UserInvite.objects.filter(email=email['email'], is_used=False, is_declied=False)
         return context
 
@@ -439,7 +444,8 @@ def web_login(request):
                                   {'form': form,
                                    'email_error': "Your Account is Deactivated, Please Contact Administrator.",
                                    'valid_email': valid_email,
-                                   'login_username':username
+                                   'login_username':username,
+                                   'login_password': pwd,
                                    })
             else:
                 if valid_email:
@@ -453,7 +459,8 @@ def web_login(request):
                                'valid_email': valid_email,
                                'email_error': email_error,
                                'password_error': password_error,
-                               'login_username':username
+                               'login_username':username,
+                               'login_password':pwd,
                                })
         else:
             if request.POST.get('login_username') != None:
@@ -465,6 +472,7 @@ def web_login(request):
                 'valid_email': False,
                 'email_error': "Your Email and Password Didnot Match.",
                 'login_username':login_username,
+                'login_password': request.POST.get('password', ""),
                 })
     else:
         form = LoginForm()

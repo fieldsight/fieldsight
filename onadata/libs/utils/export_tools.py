@@ -5,6 +5,8 @@ import os
 import re
 import six
 import tempfile
+from pyxform import SurveyElementBuilder
+from pyxform.xform2json import create_survey_element_from_xml
 from urlparse import urlparse
 from zipfile import ZipFile
 
@@ -39,7 +41,7 @@ from onadata.libs.utils.common_tags import (
 from onadata.libs.exceptions import J2XException
 from .analyser_export import generate_analyser
 from onadata.apps.fsforms.XFormMediaAttributes import get_questions_and_media_attributes
-from onadata.apps.fsforms.models import FInstance
+from onadata.apps.fsforms.models import FInstance, XformHistory
 from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.fieldsight.tasks import upload_to_drive
 # this is Mongo Collection where we will store the parsed submissions
@@ -385,7 +387,7 @@ class ExportBuilder(object):
         except ValueError:
             return value
 
-    def pre_process_row(self, row, section):
+    def pre_process_row(self, row, section, postgres_data={}):
         # print(type(row),"Row##################################")
         """
         Split select multiples, gps and decode . and $
@@ -418,21 +420,19 @@ class ExportBuilder(object):
                 row[elm['xpath']] = ExportBuilder.convert_type(
                     value, elm['type'])
         try:
-            site_id = row['fs_site']
-            site = Site.objects.get(pk=site_id)
+            site_id = int(row['fs_site'])
+            site = postgres_data['sites'].get(site_id)
+            row['site_name'] = site.get("name", "")
+            row['address'] = site.get("address", "")
+            row['phone'] = site.get("phone", "")
+            row['identifier'] = site.get("identifier", "")
         except Exception as e:
-            print(str(e)," **************** NO Site")
+            pass
             # print(str(row))
             row['site_name'] = ""
             row['address'] = ""
             row['phone'] = ""
             row['identifier'] = ""
-
-        else:
-            row['site_name'] = site.name
-            row['address'] = site.address
-            row['phone'] = site.phone
-            row['identifier'] = site.identifier
         return row
 
     def to_zipped_csv(self, path, data, *args):
@@ -527,11 +527,42 @@ class ExportBuilder(object):
             i += 1
         return generated_name
 
-    def to_xls_export(self, path, data, username, id_string, *args):
+    def to_xls_export(self, path, data, username, id_string, filter_query):
+        __version__ = None
+        try:
+            __version__ = filter_query['$and'][0]['__version__']
+        except Exception as e:
+            print(str(e))
+        submission_status_dict = {0: 'Pending', 1: 'Rejected', 2: 'Flagged', 3: 'Approved'}
+
         xform = XForm.objects.get(
         user__username__iexact=username, id_string__exact=id_string)
-        
-        json_question = json.loads(xform.json)
+
+        question_json = xform.json
+        try:
+            if __version__:
+                question_json = XformHistory.objects.get(xform=xform, version=__version__).json
+        except Exception as e:
+            print(str(e))
+
+        fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_project_uuid'])
+        if __version__:
+            submissions = fxf_form.project_form_instances.filter(version=__version__).select_related("site").values("form_status", "instance", "site", "site__name", "site__address", "site__phone", "site__identifier")
+        else:
+            submissions =fxf_form.project_form_instances.select_related("site").values("form_status", "instance","site", "site__name", "site__address", "site__phone", "site__identifier")
+        [s for s in submissions] # query db
+
+        postgres_data = {
+                'sites': {},
+                 'username': username,
+                 'status_display': {}
+                 }
+        for s in submissions:
+            if s['site'] not in postgres_data['sites']:
+                postgres_data['sites'][s['site']] = {"name":s['site__name'], "address":s['site__address'], "identifier":s['site__identifier'], "phone":s['site__phone']}
+            postgres_data['status_display'][s['instance']] = submission_status_dict.get(s['form_status'])
+
+        json_question = json.loads(question_json)
         parsedQuestions = get_questions_and_media_attributes(json_question['children'])
 
         from django.contrib.sites.models import Site as DjangoSite
@@ -545,14 +576,15 @@ class ExportBuilder(object):
             data_new = []
             for f in fields:
                     if f in data and f in parsedQuestions.get('media_attributes'):
-                        data_new.append('=HYPERLINK("http://'+domain+'/attachment/medium?media_file='+xform.user.username+'/attachments/'+data.get(f)+'", "Attachment")')
+                        data_new.append('=HYPERLINK("http://'+domain+'/attachment/medium?media_file='+postgres_data['username']+'/attachments/'+data.get(f)+'", "Attachment")')
                     else:
                         if f == "fs_status":
                             try:
-                                status=FInstance.objects.get(instance_id=data.get('_id')).get_form_status_display()
+                                status_display = postgres_data['status_display'].get(data.get('_id'), "No Status")
+                                # status_display=FInstance.objects.get(instance_id=data.get('_id')).get_form_status_display()
                             except:
-                                status="No Status"
-                            data_new.append(status)
+                                status_display="No Status"
+                            data_new.append(status_display)
                         else:         
                             data_new.append(data.get(f,''))
             work_sheet.append(data_new)
@@ -606,12 +638,12 @@ class ExportBuilder(object):
                 row = output.get(section_name, None)
                 if type(row) == dict:
                     write_row(
-                        self.pre_process_row(row, section),
+                        self.pre_process_row(row, section, postgres_data),
                         ws, fields, work_sheet_titles)
                 elif type(row) == list:
                     for child_row in row:
                         write_row(
-                            self.pre_process_row(child_row, section),
+                            self.pre_process_row(child_row, section, postgres_data),
                             ws, fields, work_sheet_titles)
             index += 1
 
@@ -744,6 +776,19 @@ def dict_to_flat_export(d, parent_index=0):
     pass
 
 
+def build_survey_from_history(xform, __version__):
+    if not XformHistory.objects.filter(xform=xform, version=__version__).exists():
+        return False
+    history = XformHistory.objects.get(xform=xform, version=__version__)
+    try:
+        builder = SurveyElementBuilder()
+        survey =  builder.create_survey_element_from_json(history.json)
+    except ValueError:
+        xml = bytes(bytearray(history.xml, encoding='utf-8'))
+        survey = create_survey_element_from_xml(xml)
+
+    return survey
+
 def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
@@ -769,7 +814,19 @@ def generate_export(export_type, extension, username, id_string,
     export_builder.GROUP_DELIMITER = group_delimiter
     export_builder.SPLIT_SELECT_MULTIPLES = split_select_multiples
     export_builder.BINARY_SELECT_MULTIPLES = binary_select_multiples
-    export_builder.set_survey(xform.data_dictionary().survey)
+    __version__ = "0"
+    try:
+        __version__ = filter_query['$and'][0]['__version__']
+    except Exception as e:
+        print(str(e))
+    if __version__:
+        survey = build_survey_from_history(xform, __version__)
+        if not survey:
+            export_builder.set_survey(xform.data_dictionary().survey)
+        else:
+            export_builder.set_survey(survey)
+    else:
+        export_builder.set_survey(xform.data_dictionary().survey)
 
     prefix = slugify('{}_export__{}__{}'.format(export_type, username, id_string))
     temp_file = NamedTemporaryFile(prefix=prefix, suffix=("." + extension))
@@ -778,7 +835,7 @@ def generate_export(export_type, extension, username, id_string,
     func = getattr(export_builder, export_type_func_map[export_type])
 
     func.__call__(
-        temp_file.name, records, username, id_string, None)
+        temp_file.name, records, username, id_string, filter_query)
 
     # generate filename
     basename = "%s_%s" % (
@@ -813,7 +870,14 @@ def generate_export(export_type, extension, username, id_string,
             temporarylocation="media/forms/submissions_{}.xls".format(id_string)
             import shutil
             shutil.copy(temp_file.name, temporarylocation)
-            upload_to_drive(temporarylocation, 'report_'+id_string, id_string, FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_project_uuid']).project)
+            fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_project_uuid'])
+            if fxf_form.schedule:
+                name = fxf_form.schedule.name
+            elif fxf_form.stage:
+                name = fxf_form.stage.name
+            else:
+                name = fxf_form.xf.title
+            upload_to_drive(temporarylocation, name+'_'+id_string, str(fxf_form.id)+'_'+name+'_'+id_string, fxf_form.project)
         
             os.remove(temporarylocation)
         
@@ -856,8 +920,6 @@ def query_mongo(username, id_string, query=None, hide_deleted=True):
     #     query = {"$and": [query, {"_deleted_at": None}]}
     # query = {"$and": [query, qry]}
     # print(query)
-    print("cpount", xform_instances.find(qry).count())
-    print("qry", qry)
     return xform_instances.find(qry)
 
 

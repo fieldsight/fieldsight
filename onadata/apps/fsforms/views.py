@@ -30,6 +30,7 @@ from rest_framework.response import Response
 from channels import Group as ChannelGroup
 
 from onadata.apps.fieldsight.models import Site, Project
+from onadata.apps.users.models import UserProfile
 from onadata.apps.fsforms.reports_util import delete_form_instance, get_images_for_site_all, get_instances_for_field_sight_form, build_export_context, \
     get_xform_and_perms, query_mongo, get_instance, update_status, get_instances_for_project_field_sight_form
 from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer, SubStageSerializer, \
@@ -1545,6 +1546,18 @@ class Html_export(ReadonlyFormMixin, ListView):
         context['obj'] = fsxf
         if site_id != 0:
             context['site_id'] = site_id
+        allow_group_list = ['Organization Admin', 'Project Manager']
+        if fsxf.site is not None:
+            project = fsxf.site.project_id
+        else:
+            project = fsxf.project_id
+        higher_roles = self.request.roles.filter(project_id=project, group__name__in=allow_group_list)
+        if higher_roles:
+            context['is_read_only'] = False
+        elif self.request.roles.filter(group__name="Super Admin"):
+            context['is_read_only'] = False
+        else:
+            context['is_read_only'] = True
         return context
 
     def get_queryset(self, **kwargs):
@@ -1559,7 +1572,7 @@ class Html_export(ReadonlyFormMixin, ListView):
         if query:
             if not fsxf.from_project:
                 new_queryset = FInstance.objects.filter(
-                    Q(site_fxf=fsxf_id) & 
+                    Q(site_fxf=fsxf_id) &
                     (
                         Q(submitted_by__first_name__icontains=query)|
                         Q(submitted_by__last_name__icontains=query)
@@ -1567,7 +1580,7 @@ class Html_export(ReadonlyFormMixin, ListView):
                     )
             else:
                 new_queryset = FInstance.objects.filter(
-                    Q(project_fxf=fsxf_id) & 
+                    Q(project_fxf=fsxf_id) &
                     (
                         Q(submitted_by__first_name__icontains=query)|
                         Q(submitted_by__last_name__icontains=query)
@@ -1575,7 +1588,7 @@ class Html_export(ReadonlyFormMixin, ListView):
                     )
 
         else:
-            new_queryset = queryset.order_by('-id') 
+            new_queryset = queryset.order_by('-id')
         return new_queryset
 
 
@@ -1593,6 +1606,15 @@ class Project_html_export(ReadonlyFormMixin, ListView):
         context['form_name'] = fsxf.xf.title
         context['fsxfid'] = fsxf_id
         context['obj'] = fsxf
+        allow_group_list = ['Organization Admin', 'Project Manager']
+        project = fsxf.project_id
+        higher_roles = self.request.roles.filter(project_id=project, group__name__in=allow_group_list)
+        if higher_roles:
+            context['is_read_only'] = False
+        elif self.request.roles.filter(group__name="Super Admin"):
+            context['is_read_only'] = False
+        else:
+            context['is_read_only'] = True
         return context
 
     def get_queryset(self, **kwargs):
@@ -1601,18 +1623,17 @@ class Project_html_export(ReadonlyFormMixin, ListView):
         queryset = FInstance.objects.filter(project_fxf=fsxf_id)
         if query:
             new_queryset = FInstance.objects.filter(
-                Q(project_fxf=fsxf_id) & 
+                Q(project_fxf=fsxf_id) &
                 (
-                    Q(site__name__icontains=query) | 
-                    Q(site__identifier__icontains=query) | 
+                    Q(site__name__icontains=query) |
+                    Q(site__identifier__icontains=query) |
                     Q(submitted_by__first_name__icontains=query)|
                     Q(submitted_by__last_name__icontains=query)
                 )
                 )
         else:
-            new_queryset = queryset.order_by('-id') 
+            new_queryset = queryset.order_by('-id')
         return new_queryset
-
 
 @group_required('KoboForms')
 def project_html_export(request, fsxf_id):
@@ -1716,6 +1737,17 @@ def instance_status(request, instance):
             return Response({'error': "This Detail Data is missing in Postgres DB"}, status=status.HTTP_400_BAD_REQUEST)
         fi = FInstance.objects.get(instance__id=instance)
         if request.method == 'POST':
+            site = fi.site
+            if site:
+                has_acess = False
+                if request.roles.filter(site=site, group__name="Reviewer") or request.roles.filter(region=site.region, group__name="Region Reviewer"):
+                    has_acess = True
+                elif request.roles.filter(project=site.project, group__name="Project Manager") or \
+                    request.roles.filter(organization=site.project.organization, group__name="Organization Admin") or request.roles.filter(group__name="Super Admin"):
+                    has_acess = True
+                if not has_acess:
+                    return Response({'error': "You are not permitted to change Status of this Submission"}, status=status.HTTP_400_BAD_REQUEST)
+
             with transaction.atomic():
                 submission_status = request.data.get("status", 0)
                 message = request.data.get("message", "")
@@ -1816,7 +1848,7 @@ def alter_answer_status(request, instance_id, status, fsid):
 
 # @group_required('KoboForms')
 class InstanceKobo(ConditionalFormMixin, View):
-    def get(self, request, fsxf_id, is_read_only, site_id=None):
+    def get(self, request, fsxf_id, is_read_only=True, is_doner=True, site_id=None):
         fxf = FieldSightXF.objects.get(pk=fsxf_id)
         xform, is_owner, can_edit, can_view = fxf.xf, True, False, True
         audit = {
@@ -1832,7 +1864,8 @@ class InstanceKobo(ConditionalFormMixin, View):
             'username': xform.user,
             'fxf': fxf,
             'can_edit': can_edit,
-            'is_readonly': is_read_only
+            'is_readonly': is_read_only,
+            'is_doner': is_doner
         }
         if site_id is not None:
             kwargs['site_id'] = site_id
@@ -1948,22 +1981,25 @@ def download_jsonform(request,  fsxf_id):
     try:
         instance_id = request.get_full_path().split("/")[-1]
         instance_id = int(instance_id)
-        finstance = FInstance.objects.get(pk=instance_id)
-        fs_xform = finstance.fsxf
-        version = finstance.version
-        xform = fs_xform.xform
-        try:
-            history = XformHistory.objects.get(xform=xform, version=version)
-            json = history.json
-        except Exception as e:
-            # no history
-            pass
+        finstance = FInstance.objects.get(instance=instance_id)
+        #hack
+        xform =  finstance.instance.xform #hack version less
+        json = xform.json #hack version less
+        # end hack
+        # fs_xform = finstance.fsxf
+        # version = finstance.version
+        # xform = fs_xform.xf
+        # try:
+        #     history = XformHistory.objects.get(xform=xform, version=version)
+        #     json = history.json
+        #     # print("his", json)
+        # except Exception as e:
+        #     json = xform.json
     except Exception as e:
         # no instance id in url
         fs_xform = FieldSightXF.objects.get(pk=fsxf_id)
         xform = fs_xform.xf
         json = xform.json
-
     if request.method == "OPTIONS":
         response = HttpResponse()
         add_cors_headers(response)
@@ -2238,6 +2274,8 @@ class CreateKoboFormView(TemplateView, LoginRequiredMixin):
         token, created = Token.objects.get_or_create(user=self.request.user)
         data["token_key"] = token
         data["kpi_url"] = settings.KPI_URL
+        data['has_user_profile'] = UserProfile.objects.filter(user=self.request.user).exists()
+
         return data
 
 class DeleteFInstance(FInstanceRoleMixin, View):
