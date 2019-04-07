@@ -884,9 +884,16 @@ def siteDetailsGenerator(project, sites, ws):
             for col_num in range(len(header_columns)):
                 row.append(site.get(header_columns[col_num]['id'], ""))    
             ws.append(row)
+
+        del sites
+        del site_list
+        gc.collect()
         return True, 'success'
 
     except Exception as e:
+        del sites
+        del site_list
+        gc.collect()
         return False, e.message
 
 # project = Project.objects.get(pk=137)
@@ -1107,13 +1114,14 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
         if not forms:
             ws = wb.create_sheet(title='No Forms')
         
-        forms = None
-        gc.collect()
+        else if len(forms) < 2:        
+            sites = Site.objects.filter(pk__in=response_sites)
+            status, message = siteDetailsGenerator(project, sites, ws_site_details)
+            if not status:
+                raise ValueError(message)
 
-        sites = Site.objects.filter(pk__in=response_sites)
-        status, message = siteDetailsGenerator(project, sites, ws_site_details)
-        if not status:
-            raise ValueError(message)
+        del forms
+        gc.collect()
 
         wb.save(buffer)
         buffer.seek(0)
