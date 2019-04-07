@@ -316,12 +316,12 @@
 								<li class="breadcrumb-item"><a href="{% url 'fieldsight:site-dashboard' pk %}">{{ obj.name }}</a></li>
 										  {% endif %}
 										  {% if level == "1" %}
-								<li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' pk %}">{{ obj.name }}</a></li>
+								<li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' obj.pk %}">{{ obj.name }}</a></li>
 										  {% endif %}
 										  {% if level == "2" %}
 								<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' obj.pk %}">{{ obj.name }}</a></li>
 										  {% endif %}
-								<li class="breadcrumb-item active" aria-current="page">{% trans 'Manage' %} {% trans 'People' %}</li>
+								<li class="breadcrumb-item active" aria-current="page">{% trans 'Settings' %}</li>
 							   </ol>
 							</nav>
 							<!-- end breadcrumb -->
@@ -347,29 +347,36 @@
 
 								 {% elif level == "1" %}
 									<li class="nav-item">
-										<a class="nav-link active" href="{% url 'fieldsight:manage-people-project' obj.pk %}" data-load="org-manage-people.html">People</a>
+										<a class="nav-link" href="{% url 'fieldsight:project-edit' obj.pk %}" data-load="org-manage-detail.html">{{obj.name}} Information</a>
+									</li>
+									<li class="nav-item">
+										<a class="nav-link" href="{% url 'fieldsight:site-types' obj.pk %}" data-load="org-manage-detail.html">Site Types</a>
 									</li>
 
-								   <li class="nav-item">
-										<a class="nav-link" href="{% url 'forms:setup-forms' 1 obj.pk %}" data-load="org-manage-project.html">Forms</a>
+									<li class="nav-item">
+										<a class="nav-link" href="{% url 'fieldsight:region-list' obj.pk %}" data-load="org-manage-detail.html">Manage Regions</a>
 									</li>
 									<li class="nav-item">
-										<a class="nav-link" href="{% url 'fieldsight:organization-edit' organization %}" data-load="org-manage-detail.html">Sites</a>
+										<a class="nav-link" href="{% url 'fieldsight:define-site-meta' obj.pk %}" data-load="org-manage-detail.html">Site Information</a>
 									</li>
-									<li class="nav-item">
-										<a class="nav-link" href="#" data-load="org-manage-detail.html">Settings</a>
-									</li>
+
+<!--									<li class="nav-item">-->
+<!--										<a class="nav-link" href="#" data-load="org-manage-detail.html">Manage Sites</a>-->
+<!--									</li>-->
+
+<!--									<li class="nav-item">-->
+<!--										<a class="nav-link" href="#" data-load="org-manage-detail.html">Map Layers</a>-->
+<!--									</li>-->
+
+
 
 								  {% elif level == "0" %}
-										<li class="nav-item">
-											<a class="nav-link active" href="{% url 'fieldsight:manage-people-site' obj.pk %}" data-load="org-manage-people.html">People</a>
-										</li>
 
 									   <li class="nav-item">
 											<a class="nav-link" href="#" data-load="org-manage-project.html">Edit Site Information</a>
 										</li>
 										<li class="nav-item">
-											<a class="nav-link" href="{% url 'fieldsight:organization-edit' organization %}" data-load="org-manage-detail.html">Site Documents</a>
+											<a class="nav-link" href="#" data-load="org-manage-detail.html">Site Documents</a>
 										</li>
 										<li class="nav-item">
 											<a class="nav-link" href="#" data-load="org-manage-detail.html">Forms</a>
@@ -497,7 +504,7 @@
 
 
 </script>
-<script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/notifications.js?v=5.0" ></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/notifications.js?v=6.0" ></script>
 {%block extrascript %}
 {% endblock %}
     </body>

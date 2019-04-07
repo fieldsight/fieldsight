@@ -1,4 +1,4 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends "fieldsight/manage_base.html" %}
 {% load i18n staticfiles %}
 {% load filters %}
 {% block content %}
@@ -27,14 +27,6 @@
 
 
             <div id="main-content" class="padding">
-                <nav aria-label="breadcrumb" role="navigation">
-                    {% block breadcrumbs %}
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' obj.pk %}">{{ obj.name }}</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">{% trans 'Meta' %} {% trans 'Attributes' %} {% trans 'Upload' %}</li>
-                     </ol>
-                    {% endblock %}
-                </nav>
 
                 <section id="app" class="panel">
                    
@@ -1619,6 +1611,11 @@ var FormSubStatQuestion = React.createClass({
 </script> 
 <script type="text/javascript">
     $('.selectize').selectize();
+      $(document).ready(function(){
+
+        $("ul.nav li:nth-child(4) a" ).addClass("active");
+
+});
 </script>
 {% endblock %}
 

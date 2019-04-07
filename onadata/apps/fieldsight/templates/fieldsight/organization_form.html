@@ -1,4 +1,4 @@
-{% extends "fieldsight/manage_base.html" %}
+{% extends "fieldsight/fieldsight_base.html" %}
 {% load i18n staticfiles %}
 {% load filters %}
 
@@ -215,14 +215,6 @@
  var static_url ="{{ STATIC_URL }}";
  var elat = "{{form.instance.latitude}}";
  var elong = "{{form.instance.longitude}}";
-
-    $(document).ready(function(){
-        $("ul.nav li a:nth-child(1)" ).removeClass("active");
-
-        $("ul.nav li:nth-child(2) a" ).addClass("active");
-
-});
-
 
 </script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/addmarker.js"></script>
