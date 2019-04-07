@@ -35,6 +35,7 @@ from django.core.files.storage import get_storage_class
 from onadata.libs.utils.viewer_tools import get_path
 from PIL import Image
 import tempfile, zipfile
+
 from onadata.libs.utils.viewer_tools import get_path
 import pyexcel as p
 from .metaAttribsGenerator import get_form_answer, get_form_sub_status, get_form_submission_count, get_form_ques_ans_status
@@ -271,14 +272,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         # Probable only an issue because of old django version.
 
         
-        
         for site_obj in sites.filter(**sites_filter).iterator():
             site_dict[str(site_obj.id)] = {'visits':0,'site_status':'No Submission', 'latitude':site_obj.latitude,'longitude':site_obj.longitude}
-        
-
-        site_objs = None
-        gc.collect()
-
 
         sites_status=FInstance.objects.filter(**finstance_filter).order_by('site_id','-id').distinct('site_id').values_list('site_id', 'form_status')
         
@@ -312,12 +307,13 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         site_visits = None
         gc.collect()
 
+        
         sites = sites.filter(**sites_filter).values('id','identifier', 'name', 'region__identifier', 'address').annotate(**query)
-        try:
-            for site in sites:
-                # import pdb; pdb.set_trace();
-                
-                site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'], site_dict[site.get('id')]['latitude'], site_dict[site.get('id')]['longitude'], site_dict[site.get('id')]['site_status']]
+        
+        for site in sites:
+            # import pdb; pdb.set_trace();
+            try:
+                site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'], site_dict[str(site.get('id'))]['latitude'], site_dict[str(site.get('id'))]['longitude'], site_dict[str(site.get('id'))]['site_status']]
                 
                 for stage in ss_index:
                     site_row.append(site.get(stage, ""))
@@ -325,8 +321,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                 site_row.extend([site_dict[str(site.get('id'))]['visits'], site['submission'], site['flagged'], site['rejected']])
 
                 data.append(site_row)
-        except:
-            pass
+            except Exception as e:
+                print e
 
         sites = None
         site_dict = None
@@ -363,7 +359,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         noti = task.logs.create(source=task.user, type=432, title="Site Stage Progress report generation in Project",
                                        content_object=project, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
-        
+
+     
 @shared_task()
 def UnassignUser(task_prog_obj_id, user_id, sites, regions, projects, group_id):
     time.sleep(5)
