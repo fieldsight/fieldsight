@@ -891,8 +891,6 @@ def siteDetailsGenerator(project, sites, ws):
         return True, 'success'
 
     except Exception as e:
-        del sites
-        del site_list
         gc.collect()
         return False, e.message
 
