@@ -4,6 +4,7 @@ import re
 import os
 import json
 import datetime
+import gc
 from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
@@ -258,20 +259,6 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
 
         sites = sites.values('id','identifier', 'name', 'region__identifier', 'address').annotate(**query)
 
-
-        site_visits = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": project.id, "fs_project_uuid": {"$in":form_ids}}},  { "$group" : { 
-              "_id" :  { 
-                "fs_site": "$fs_site",
-                "date": { "$substr": [ "$start", 0, 10 ] }
-              },
-           }
-         }, { "$group": { "_id": "$_id.fs_site", "visits": { 
-                  "$push": { 
-                      "date":"$_id.date"
-                  }          
-             }
-         }}])['result']
-
         site_dict = {}
 
         # Redoing query because annotate and lat long did not go well in single query.
@@ -286,15 +273,45 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
             site_objs = site_objs.filter(region_id__in=region_ids)
 
 
-        for site_obj in site_objs:
-            site_dict[site_obj.id] = {'visits':0,'site_status':site_obj.site_status, 'latitude':site_obj.latitude,'longitude':site_obj.longitude}
+        for site_obj in site_objs.iterator():
+            site_dict[str(site_obj.id)] = {'visits':0,'site_status':'No Submission', 'latitude':site_obj.latitude,'longitude':site_obj.longitude}
         
+
+        site_objs = None
+        gc.collect()
+
+
+        sites_status=FInstance.objects.filter(project_fxf__in=form_ids, site__isnull=False).order_by('site_id','-id').distinct('site_id').values_list('site_id', 'form_status', flat=True)
+        
+        form_status_map=["Pending", "Rejected", "Flagged", "Approved"] 
+        for site_status in sites_status:
+            site_dict[str(site_status['site_id'])]['site_status'] = form_status_map[site_status.get('form_status', 0)]
+
+        sites_status = None
+        gc.collect()
+        
+        site_visits = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": project.id, "fs_project_uuid": {"$in":form_ids}}},  { "$group" : { 
+              "_id" :  { 
+                "fs_site": "$fs_site",
+                "date": { "$substr": [ "$start", 0, 10 ] }
+              },
+           }
+         }, { "$group": { "_id": "$_id.fs_site", "visits": { 
+                  "$push": { 
+                      "date":"$_id.date"
+                  }          
+             }
+         }}])['result']
+
         for site_visit in site_visits:
             try:
-                site_dict[int(site_visit['_id'])]['visits'] = len(site_visit['visits'])
+                site_dict[str(site_visit['_id'])]['visits'] = len(site_visit['visits'])
             except:
                 pass
-        
+
+        site_visits = None
+        gc.collect()
+
         try:
             for site in sites:
                 # import pdb; pdb.set_trace();
@@ -304,11 +321,15 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                 for stage in ss_index:
                     site_row.append(site.get(stage, ""))
 
-                site_row.extend([site_dict[site.get('id')]['visits'], site['submission'], site['flagged'], site['rejected']])
+                site_row.extend([site_dict[str(site.get('id'))]['visits'], site['submission'], site['flagged'], site['rejected']])
 
                 data.append(site_row)
         except:
             pass
+
+        sites = None
+        site_dict = None
+        gc.collect()
 
         p.save_as(array=data, dest_file_name="media/stage-report/{}_stage_data.xls".format(project.id))
         xl_data = open("media/stage-report/{}_stage_data.xls".format(project.id), "rb")
@@ -703,9 +724,9 @@ def siteDetailsGenerator(project, sites, ws):
             sub_meta_ref_sites = {}
             sub_site_map = {}
             
-            sitenew = Site.objects.filter(identifier__in = identifiers, project_id = project_id)
+            sitesnew = Site.objects.filter(identifier__in = identifiers, project_id = project_id)
             
-            for site in sitenew:
+            for site in sitesnew.iterator():
                 if project_id == str(project.id):
                     continue
             
@@ -739,7 +760,10 @@ def siteDetailsGenerator(project, sites, ws):
                     else:
                         for idf in identifier:
                             site_list[idf][project_id+"-"+meta.get('question_name')] = meta_ans.get(meta.get('question_name'), "")
-                         
+            
+            del sitesnew
+            gc.collect()
+
             for meta in selected_metas.get(project_id, []):
                 head = header_columns
                 head += [{'id':project_id+"-"+meta.get('question_name'), 'name':meta.get('question_text')}]
@@ -747,7 +771,7 @@ def siteDetailsGenerator(project, sites, ws):
                     generate(meta['project_id'], sub_site_map.get(meta['question_name'], []), meta, sub_meta_ref_sites.get(meta['question_name'], []), selected_metas)
 
 
-        for site in sites:
+        for site in sites.iterator():
             
             columns = {'identifier':site.identifier, 'name':site.name, 'site_type_identifier':site.type.identifier if site.type else "", 'phone':site.phone, 'address':site.address, 'public_desc':site.public_desc, 'additional_desc':site.additional_desc, 'latitude':site.latitude,
                        'longitude':site.longitude, }
@@ -780,8 +804,8 @@ def siteDetailsGenerator(project, sites, ws):
             
             site_list[site.id] = columns
         
-
-        
+        del sites
+        gc.collect()
 
         for meta in meta_ques:
             if meta['question_type'] == "Link":
@@ -986,7 +1010,7 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
 
         new_enddate = end + datetime.timedelta(days=1)
 
-        forms = FieldSightXF.objects.select_related('xf').filter(pk__in=fs_ids, is_survey=False, is_deleted=False).prefetch_related(Prefetch('project_form_instances', queryset=FInstance.objects.select_related('instance').filter(site_id__in=sites, date__range=[new_startdate, new_enddate]))).order_by('-is_staged', 'is_scheduled')
+        forms = FieldSightXF.objects.select_related('xf', 'xf__user').filter(pk__in=fs_ids, is_survey=False, is_deleted=False)
         wb = Workbook()
         ws_site_details = wb.active
         ws_site_details.title = "Site Details"
@@ -1005,7 +1029,7 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
 
             return sheet_name
 
-        for form in forms:
+        for form in forms.iterator():
             form_id += 1
             sheet_name = generate_sheet_name(form.xf.title)
             ws=wb.create_sheet(title=sheet_name)
@@ -1016,8 +1040,10 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
 
             ws.append(['Header'])
 
-            for formresponse in form.project_form_instances.all():
-                if formresponse.site:
+            formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, date__range=[new_startdate, new_enddate])
+
+            for formresponse in formresponses.iterator():
+                if formresponse.site_id:
                     if not formresponse.site_id in response_sites:
                         response_sites.append(formresponse.site_id)
                     
@@ -1075,6 +1101,8 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
                     
                         wr.cell(row=1, column=col_num+3).value = cleanhtml(head_str)
                         
+            forms = None
+            gc.collect()
 
         if not forms:
             ws = wb.create_sheet(title='No Forms')
