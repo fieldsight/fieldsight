@@ -1114,7 +1114,7 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
         if not forms:
             ws = wb.create_sheet(title='No Forms')
         
-        else if len(forms) < 2:        
+        elif len(forms) < 2:        
             sites = Site.objects.filter(pk__in=response_sites)
             status, message = siteDetailsGenerator(project, sites, ws_site_details)
             if not status:
