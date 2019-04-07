@@ -197,7 +197,7 @@ def site_download_zipfile(task_prog_obj_id, size):
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()                                                                      
 
-@shared_task(time_limit=7200, soft_time_limit=7200)
+@shared_task(time_limit=300, soft_time_limit=300)
 def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, region_ids):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
@@ -251,9 +251,9 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         head_row.extend(["Site Visits", "Submission Count", "Flagged Submission", "Rejected Submission"])
         data.append(head_row)
         
-        sites = Site.objects.filter(project_id=project.id)
+        sites = Site.objects.filter(is_active=True)
 
-        sites_filter = {}
+        sites_filter = {'project_id': project.id}
         finstance_filter = {'project_fxf__in': form_ids}
         
         if site_type_ids:
@@ -885,7 +885,6 @@ def siteDetailsGenerator(project, sites, ws):
                 row.append(site.get(header_columns[col_num]['id'], ""))    
             ws.append(row)
 
-        del sites
         gc.collect()
         return True, 'success'
 
