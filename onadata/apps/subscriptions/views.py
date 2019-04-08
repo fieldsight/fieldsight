@@ -408,7 +408,7 @@ class TeamSettingsView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super(TeamSettingsView, self).get_context_data(**kwargs)
 
-        context['organization'] = get_object_or_404(Organization, id=self.kwargs['org_id'])
+        context['obj'] = get_object_or_404(Organization, id=self.kwargs['org_id'])
         if not self.request.user.is_superuser:
             customer = Customer.objects.get(user=self.request.user)
             context['customer'] = customer
@@ -418,6 +418,7 @@ class TeamSettingsView(LoginRequiredMixin, TemplateView):
             context['subscribed_package'] = Subscription.objects.select_related().get(stripe_customer=customer).package
             context['has_user_free_package'] = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user).exists()
             context['key'] = settings.STRIPE_PUBLISHABLE_KEY
+            context['level'] = "2"
 
         return context
 

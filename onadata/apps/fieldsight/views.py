@@ -438,6 +438,11 @@ class OrganizationCreateView(OrganizationView, CreateView):
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
+    def get_context_data(self, **kwargs):
+        context = super(OrganizationCreateView, self).get_context_data(**kwargs)
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        return context
+
     def form_valid(self, form):
 
         self.object = form.save()
@@ -500,6 +505,7 @@ class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView
         context = super(OrganizationUpdateView, self).get_context_data(**kwargs)
         context['level'] = "2"
         context['obj'] = Organization.objects.get(id=self.kwargs['pk'])
+        context['base_template'] = "fieldsight/manage_base.html"
         return context
 
     def form_valid(self, form):

@@ -1,4 +1,4 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends "fieldsight/manage_base.html" %}
 {% load i18n staticfiles %}
 {% load filters %}
 {% block content %}
@@ -40,15 +40,7 @@
 
 {% endblock %}
 			<div id="main-content" class="padding">
-                <nav aria-label="breadcrumb" role="navigation">
-                    {% block breadcrumbs %}
-					<ol class="breadcrumb">
-						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' organization.id %}">{{organization}}</a></li>
-						<li class="breadcrumb-item active" aria-current="page">Team Settings</li>
 
-					 </ol>
-                    {% endblock %}
-				</nav>
 				<section class="panel">
                     {% if messages %}
                         {% for message in messages %}
@@ -58,7 +50,7 @@
                     {% endfor %}
 				{% endif %}
                     <header class="panel-heading clearfix">
-                        <h3><i class="la la-building"></i>{% trans 'Team' %} {% trans 'Settings' %}</h3>
+                        <h3><i class="la la-building"></i>{% trans 'Account' %} {% trans 'Information' %}</h3>
 
 
                     </header>
@@ -90,7 +82,7 @@
                                 </ul>
 
                                 {% if has_user_free_package %}
-                                    <a href="{% url 'fieldsight:organizations-dashboard' organization.id%}" class="btn btn-sm btn-primary mb-4">Upgrade Your Package</a>
+                                    <a href="{% url 'fieldsight:organizations-dashboard' obj.id%}" class="btn btn-sm btn-primary mb-4">Upgrade Your Package</a>
                                 {% endif %}
                             </div>
                             <div class="col-md-4">
@@ -239,6 +231,12 @@
 		displayError.textContent = '';
 	  }
 	});
+
+    $(document).ready(function(){
+
+        $("ul.nav li:nth-child(5) a" ).addClass("active");
+
+    });
 
 </script>
 {% endblock %}

@@ -333,19 +333,29 @@
 					 <div class="col-md-4 col-lg-3 bg-primary-light">
 							<ul class="nav nav-pills flex-column">
 								{% if level == "2" %}
-								  <li class="nav-item">
-									  <a class="nav-link" href="{% url 'fieldsight:manage-people-organization' obj.pk %}" data-load="org-manage-people.html">People</a>
-								  </li>
+									<!-- ...............for Organization............. -->
 
 								  <li class="nav-item">
-									  <a class="nav-link" href="{% url 'fieldsight:organization-edit' obj.pk %}" data-load="org-manage-detail.html">Organization</a>
+									  <a class="nav-link" href="{% url 'fieldsight:organization-edit' obj.pk %}" data-load="org-manage-detail.html">{{obj}} Information</a>
+								  </li>
+								 <li class="nav-item">
+									  <a class="nav-link" href="#" data-load="org-manage-detail.html">Roles</a>
+								  </li>
+								 <li class="nav-item">
+									  <a class="nav-link" href="#" data-load="org-manage-detail.html">Terms and Labels</a>
 								  </li>
 								  <li class="nav-item">
-									  <a class="nav-link" href="#" data-load="org-manage-detail.html">Geo Layers</a>
+									  <a class="nav-link" href="{% url 'fieldsight:geo-layers' obj.id%}" data-load="org-manage-detail.html">Map Layers</a>
 								  </li>
-
+								{% if obj.owner == request.user and not request.user.is_superuser %}
+									<li class="nav-item">
+										<a class="nav-link" href="{% url 'subscriptions:team_settings' obj.pk %}">Account Information</a>
+									 </li>
+							     {% endif %}
 
 								 {% elif level == "1" %}
+									<!-- ...............for Project............. -->
+
 									<li class="nav-item">
 										<a class="nav-link" href="{% url 'fieldsight:project-edit' obj.pk %}" data-load="org-manage-detail.html">{{obj.name}} Information</a>
 									</li>
