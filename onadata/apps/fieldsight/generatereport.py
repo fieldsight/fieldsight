@@ -223,8 +223,10 @@ class PDFReport:
                     new_answer_text = answer_text[0:360]
                     answer_text = new_answer_text + ".... ( full answer followed after this table. )"
                     self.additional_data.append({question_label : answer_dict[question_name]})
-
-                answer = Paragraph(answer_text, styBackground)
+                try:
+                    answer = Paragraph(str(answer_text), styBackground)
+                except:
+                    answer = Paragraph(answer_text, styBackground)
                 isNull = False
         else:
             answer = Paragraph('', styBackground)
@@ -233,7 +235,7 @@ class PDFReport:
         if self.removeNullField and isNull:
             pass
         else:
-            row=[Paragraph(question_label, styBackground), answer]
+            row=[Paragraph(question_label, styBackground), str(answer)]
             self.data.append(row)
 
     def parse_repeat(self, prev_groupname, r_object, nr_answer):
