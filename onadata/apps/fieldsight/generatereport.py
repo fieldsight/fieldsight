@@ -185,7 +185,7 @@ class PDFReport:
         # Release the canvas
         canvas.restoreState()
     
-    def get_multi_label(question_label):
+    def get_multi_label(self, question_label):
         question_label = ""
         for key, value in question_label:
             question_label += ' / ' + value
