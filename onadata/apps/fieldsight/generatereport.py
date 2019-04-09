@@ -187,7 +187,7 @@ class PDFReport:
     
     def get_multi_label(self, question_label):
         question_label = ""
-        for key, value in question_label:
+        for key, value in question_label.items():
             question_label += ' / ' + value
 
         return question_label 
