@@ -836,7 +836,8 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
                                                     project_id=self.kwargs.get('pk'))
         if existing_identifier:
             messages.add_message(self.request, messages.INFO,
-                                 'Your identifier conflict with existing site please use different identifier to create site')
+                                 'Your identifier "' + form.cleaned_data.get(
+                'identifier') + '" conflict with existing site please use different identifier to create site')
 
             return HttpResponseRedirect(reverse(
                 'fieldsight:site-add',

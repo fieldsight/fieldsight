@@ -79,7 +79,7 @@
 					<li class="dropdown">
 						<a href="#" id="dropdownMenuButtonNotification" onclick="getmytasksdata()" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 							<i class="la la-tasks"></i>
-							<span class="badge badge-warning"><span class="task_count"></span></span>
+							<span class="badge badge-warning" id="id_task"><span class="task_count"></span></span>
 						</a>
 						<div class="dropdown-menu large-dropdown-menu dropdown-menu-right pt-0" aria-labelledby="dropdownMenuButtonNotification">
 							<div class="notification-tabs">
@@ -166,10 +166,16 @@
 					</li>
 
 					<li class="dropdown">
+<!--						<a href="#" id="dropdownMenuButtonNotification" onclick="getnotifdata()" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-->
+<!--							<i class="la la-bell"></i>-->
+<!--							<span class="badge badge-warning"><span class="not_count"></span></span>-->
+<!--						</a>-->
+
 						<a href="#" id="dropdownMenuButtonNotification" onclick="getnotifdata()" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 							<i class="la la-bell"></i>
-							<span class="badge badge-warning"><span class="not_count"></span></span>
+							<span class="badge badge-warning" id="id_notif"><span class="not_count"></span></span>
 						</a>
+
 
 
 
@@ -338,12 +344,12 @@
 								  <li class="nav-item">
 									  <a class="nav-link" href="{% url 'fieldsight:organization-edit' obj.pk %}" data-load="org-manage-detail.html">{{obj}} Information</a>
 								  </li>
-								 <li class="nav-item">
-									  <a class="nav-link" href="#" data-load="org-manage-detail.html">Roles</a>
-								  </li>
-								 <li class="nav-item">
-									  <a class="nav-link" href="#" data-load="org-manage-detail.html">Terms and Labels</a>
-								  </li>
+<!--								 <li class="nav-item">-->
+<!--									  <a class="nav-link" href="#" data-load="org-manage-detail.html">Roles</a>-->
+<!--								  </li>-->
+<!--								 <li class="nav-item">-->
+<!--									  <a class="nav-link" href="#" data-load="org-manage-detail.html">Terms and Labels</a>-->
+<!--								  </li>-->
 								  <li class="nav-item">
 									  <a class="nav-link" href="{% url 'fieldsight:geo-layers' obj.id%}" data-load="org-manage-detail.html">Map Layers</a>
 								  </li>
@@ -515,7 +521,7 @@
 
 </script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/notifications.js?v=6.0" ></script>
-{%block extrascript %}
+{% block extrascript %}
 {% endblock %}
     </body>
 
