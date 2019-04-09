@@ -20,7 +20,7 @@
 					<h3><i class="la la-user"></i>{% trans 'View' %} {% trans 'Profile' %}</h3>
 						<div class="panel-heading-right">
 							{% ifequal request.user obj.user %}
-							<a href="{% url 'users:profile_update' obj.user.id|profile%}" title="" class="btn btn-sm btn-primary"><i class="la la-plus"></i>{% trans 'Update' %} {% trans 'Profile'%} </a>
+							<a href="{% url 'users:profile_update' obj.user.id|profile%}" title="" class="btn btn-sm btn-primary"><i class="la la-edit"></i> {% trans 'Update' %} {% trans 'Profile'%} </a>
 							{% endifequal %}
 						</div>
                     </header>
@@ -367,8 +367,37 @@
 
 
 						</div>
-						{% if responses %}
-						<div class="col-md-12 col-lg-4">
+							<div class="col-lg-4 col-sm-12">
+
+<!--								<div class="widget-info widget-site-map mt-3 bg-white padding">-->
+<!--								<div class="widget-head">-->
+<!--									<div class="dropdown pull-right">-->
+<!--									  <button class="btn btn-sm btn-xs btn-primary dropdown-toggle" type="button" id="dropdownMenuFilter" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-->
+<!--										<i class="la la-filter"></i> Filter-->
+<!--									  </button>-->
+<!--									  <div class="dropdown-menu" aria-labelledby="dropdownMenuFilter">-->
+<!--										<button class="dropdown-item" type="button">Project</button>-->
+<!--										<button class="dropdown-item" type="button">Site</button>-->
+<!--										<button class="dropdown-item" type="button" data-toggle="collapse" data-target="#collapseFilter" aria-expanded="false" aria-controls="collapseFilter">Date Range</button>-->
+<!--									  </div>-->
+<!--									</div>-->
+<!--									<h4>{% trans 'Map' %}</h4>-->
+<!--								</div>-->
+<!--								<div class="widget-body">-->
+<!--									<div class="collapse" id="collapseFilter">-->
+<!--										<div class="card card-body">-->
+<!--										  <div class="input-group">-->
+<!--											  <span class="input-group-addon">From</span>-->
+<!--											  <input type="date" class="form-control" >-->
+<!--											  <span class="input-group-addon">To</span>-->
+<!--											  <input type="date" class="form-control" >-->
+<!--										  </div>-->
+<!--										</div>-->
+<!--									</div>-->
+<!--									<div id="map" class="full-map ah-col" style="z-index:0;"></div>-->
+<!--								</div>-->
+<!--							</div>-->
+								{% if responses %}
 							<div class="widget-info margin-top bg-white padding">
 								<div class="widget-head">
 									<h4>{% trans 'Latest Submission' %}</h4>
@@ -396,13 +425,15 @@
 										</div>
 										</a>
 										{% endfor %}
-											
+
 									</div>
-										
+
 								</div>
 							</div>
-						</div>
 						{% endif %}
+							</div>
+
+
 
 					</div>
                 </section>
