@@ -185,6 +185,13 @@ class PDFReport:
         # Release the canvas
         canvas.restoreState()
     
+    def get_multi_label(question_label):
+        question_label = ""
+        for key, value in question_label:
+            question_label += ' / ' + value
+
+        return question_label 
+
     def append_row(self, question_name, question_label, question_type, answer_dict):
         styNormal = self.bodystyle
         styBackground = ParagraphStyle('background', parent=styNormal, backColor=colors.white)
@@ -235,7 +242,9 @@ class PDFReport:
         if self.removeNullField and isNull:
             pass
         else:
-            row=[Paragraph(question_label, styBackground), str(answer)]
+            if isinstance(question_label, dict):
+                question_label = self.get_multi_label(question_label)
+            row=[Paragraph(question_label, styBackground), answer]
             self.data.append(row)
 
     def parse_repeat(self, prev_groupname, r_object, nr_answer):
