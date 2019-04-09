@@ -186,11 +186,11 @@ class PDFReport:
         canvas.restoreState()
     
     def get_multi_label(self, question_label):
-        question_label = ""
+        new_label = ""
         for key, value in question_label.items():
-            question_label += ' / ' + value
+            new_label += ' / ' + value
 
-        return question_label 
+        return new_label 
 
     def append_row(self, question_name, question_label, question_type, answer_dict):
         styNormal = self.bodystyle
