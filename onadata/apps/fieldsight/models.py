@@ -8,7 +8,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.conf import settings
-from django.db.models import IntegerField, Count, Case, When
+from django.db.models import IntegerField, Count, Case, When, Sum
 from django.db.models.signals import post_save
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -470,15 +470,30 @@ class Site(models.Model):
         self.save()
 
     def progress(self):
-        project_id =  self.project_id
-        stages = self.project.stages.filter(project_stage_id=0).count() + self.stages.all().count()
-        
+        approved_site_forms_weight = self.site_instances.filter(form_status=3, site_fxf__is_staged=True).distinct().aggregate(Sum('site_fxf__stage__weight'))['site_fxf__stage__weight__sum']
+        approved_project_forms_weight = self.site_instances.filter(form_status=3, project_fxf__is_staged=True).distinct().aggregate(Sum('project_fxf__stage__weight'))['project_fxf__stage__weight__sum']
+        approved_sites_form_weight = approved_site_forms_weight if approved_site_forms_weight else 0
+        approved_project_form_weight = approved_project_forms_weight if approved_project_forms_weight else 0
+        approved_weight = approved_sites_form_weight + approved_project_form_weight
+        if approved_weight:
+            from onadata.apps.fsforms.models import Stage
+            site_stages_weight = Stage.objects.filter(stage__site=self).aggregate(Sum('weight'))['weight__sum']
+            project_stages_weight = Stage.objects.filter(stage__project=self.project).aggregate(Sum('weight'))['weight__sum']
+            site_stages_weight = site_stages_weight if site_stages_weight else 0
+            project_stages_weight = project_stages_weight if project_stages_weight else 0
+            total_weight = site_stages_weight + project_stages_weight
+            p = ("%.0f" % (approved_weight / (total_weight * 0.01)))
+            p = int(p)
+            if p > 99:
+                return 100
+            return p
         approved_forms_site = self.site_instances.filter(form_status=3, site_fxf__is_staged=True).values_list('site_fxf', flat=True)
         approved_forms_project = self.site_instances.filter(form_status=3, project_fxf__is_staged=True).values_list('project_fxf', flat=True)
-        
         approved = len(set(approved_forms_site)) + len(set(approved_forms_project))
         if not approved:
             return 0
+        from onadata.apps.fsforms.models import Stage
+        stages = Stage.objects.filter(stage__project=self.project).count() + Stage.objects.filter(stage__site=self).count()
         if not stages:
             return 0
         p = ("%.0f" % (approved/(stages*0.01)))
