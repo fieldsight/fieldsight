@@ -227,6 +227,7 @@ class SearchableUserListViewSet(viewsets.ModelViewSet):
 
 class MySitesViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = MySiteRolesSerializer
+    permission_classes = (IsAuthenticated,)
     queryset = UserRole.objects.filter(ended_at=None, group__name__in=["Site Supervisor", "Region Supervisor"])
     pagination_class = MySitesResultsSetPagination
 
