@@ -468,9 +468,11 @@ class Site(models.Model):
         self.save()
 
     def progress(self):
-        approved_site_forms_weight = sum(self.site_instances.filter(form_status=3, site_fxf__is_staged=True).distinct('site_fxf').values_list('site_fxf__stage__weight', flat=True))
-        approved_project_forms_weight = sum(self.site_instances.filter(form_status=3, project_fxf__is_staged=True).distinct('project_fxf').values_list('project_fxf__stage__weight', flat=True))
-        approved_weight = approved_site_forms_weight + approved_project_forms_weight
+        approved_site_forms_weight = self.site_instances.filter(form_status=3, site_fxf__is_staged=True).distinct('site_fxf').values_list('site_fxf__stage__weight', flat=True)
+        approved_site_weight_total = sum([w for w in approved_site_forms_weight if w  is not None])
+        approved_project_forms_weight = self.site_instances.filter(form_status=3, project_fxf__is_staged=True).distinct('project_fxf').values_list('project_fxf__stage__weight', flat=True)
+        approved_projects_weight_total = sum([w for w in approved_project_forms_weight if w is not None])
+        approved_weight = approved_site_weight_total + approved_projects_weight_total
         if approved_weight:
             from onadata.apps.fsforms.models import Stage
             site_stages_weight = Stage.objects.filter(stage__site=self).aggregate(Sum('weight'))['weight__sum']
