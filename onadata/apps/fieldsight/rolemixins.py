@@ -120,25 +120,30 @@ class RegionalMixin(LoginRequiredMixin):
 
         raise PermissionDenied()
 #use when project role and doner role is required mostly it is like readonly because doner is only allowed to read only
+
+
 class ReadonlyProjectLevelRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         if request.group.name == "Super Admin":
             return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
         
         project_id = self.kwargs.get('pk')
-        user_id = request.user.id
-        user_role = request.roles.filter(project_id = project_id, group_id=2)
+        user_role = request.roles.filter(project_id=project_id, group__name="Project Manager")
         
         if user_role:
             return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
         organization_id = Project.objects.get(pk=project_id).organization.id
-        user_role_asorgadmin = request.roles.filter(organization_id = organization_id, group_id=1)
+        user_role_asorgadmin = request.roles.filter(organization_id = organization_id, group__name="Organization Admin")
         
         if user_role_asorgadmin:
             return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
-        user_role_asdonor = request.roles.filter(project_id = project_id, group_id=7)
+        user_role_pm = request.roles.filter(project_id=project_id, group__name="Project Manager")
+        if user_role_pm:
+            return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
+
+        user_role_asdonor = request.roles.filter(project_id = project_id, group__name="Project Donor")
         if user_role_asdonor:
             return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=True, *args, **kwargs)
 
@@ -150,31 +155,33 @@ class ReadonlySiteLevelRoleMixin(LoginRequiredMixin):
 
         if request.group.name == "Super Admin":
             return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
-        
+
         site_id = self.kwargs.get('pk')
         user_id = request.user.id
-        user_role = request.roles.filter(user_id = user_id, site_id = site_id, group_id__in=[3,4])
-        
-        if user_role:
-            return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
-        
         project = Site.objects.get(pk=site_id).project
-        user_role_aspadmin = request.roles.filter(user_id = user_id, project_id = project.id, group_id=2)
-        if user_role_aspadmin:
+
+        organization_id = project.organization.id
+        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id,
+                                                    group__name="Organization Admin")
+        if user_role_asorgadmin:
+            return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
+
+        user_role_pm = request.roles.filter(user_id=user_id, project_id=project.id, group__name="Project Manager")
+        if user_role_pm:
             return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
         if Site.objects.filter(pk=site_id, region__isnull=False).values('region').exists():
             region = Site.objects.get(pk=site_id).region
-            user_role_as_region_user = request.roles.filter(user_id=user_id, project_id=project.id, region_id=region.id, group__name__in=["Region Supervisor", "Region Reviewer"])
+            user_role_as_region_user = request.roles.filter(user_id=user_id, project_id=project.id, region_id=region.id,
+                                                            group__name__in=["Region Supervisor", "Region Reviewer"])
             if user_role_as_region_user:
-                return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
+                return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=True, *args, **kwargs)
 
-        organization_id = project.organization.id
-        user_role_asorgadmin = request.roles.filter(user_id = user_id, organization_id = organization_id, group_id=1)
-        if user_role_asorgadmin:
-            return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
+        user_role = request.roles.filter(site_id = site_id, group_name__in=["Reviewer","Site Supervisor"])
+        if user_role:
+            return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=True, *args, **kwargs)
 
-        user_role_asdonor = request.roles.filter(user_id = user_id, project_id = project.id, group_id=7)
+        user_role_asdonor = request.roles.filter( project_id = project.id, group__name="Project Donor")
         if user_role_asdonor:
             return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=True, *args, **kwargs)
 
