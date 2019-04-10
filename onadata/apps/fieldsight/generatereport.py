@@ -185,6 +185,13 @@ class PDFReport:
         # Release the canvas
         canvas.restoreState()
     
+    def get_multi_label(self, question_label):
+        new_label = ""
+        for key, value in question_label.items():
+            new_label += value if new_label == "" else ' / ' + value  
+
+        return new_label 
+
     def append_row(self, question_name, question_label, question_type, answer_dict):
         styNormal = self.bodystyle
         styBackground = ParagraphStyle('background', parent=styNormal, backColor=colors.white)
@@ -223,8 +230,10 @@ class PDFReport:
                     new_answer_text = answer_text[0:360]
                     answer_text = new_answer_text + ".... ( full answer followed after this table. )"
                     self.additional_data.append({question_label : answer_dict[question_name]})
-
-                answer = Paragraph(answer_text, styBackground)
+                try:
+                    answer = Paragraph(str(answer_text), styBackground)
+                except:
+                    answer = Paragraph(answer_text, styBackground)
                 isNull = False
         else:
             answer = Paragraph('', styBackground)
@@ -233,6 +242,8 @@ class PDFReport:
         if self.removeNullField and isNull:
             pass
         else:
+            if isinstance(question_label, dict):
+                question_label = self.get_multi_label(question_label)
             row=[Paragraph(question_label, styBackground), answer]
             self.data.append(row)
 
