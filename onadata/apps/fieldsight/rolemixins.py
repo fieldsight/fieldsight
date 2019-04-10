@@ -492,6 +492,18 @@ class ConditionalFormMixin(LoginRequiredMixin):
         if user_role:
             return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args, is_read_only= False,**kwargs)
 
+        if form.site is not None:
+            user_role = request.roles.filter(Q(site_id = form.site_id, group_id=4) | Q(project_id = form.site.project_id, group_id=7))
+            if user_role and request.roles.filter(project_id = form.site.project_id, group_id=7):
+                is_doner = True
+        else:
+            user_role = request.roles.filter(project_id = form.project_id, group_id=7)
+            if user_role:
+                is_doner = True
+        if user_role:
+            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args, is_read_only= True, is_doner=is_doner,  **kwargs)
+        # donet check first for dashboard or doner dashboard. then check reviewer
+
         if request.roles.filter(project_id=project_id, group__name__in=["Reviewer", "Region Reviewer"]).exists():
             return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args,  is_read_only=False, **kwargs)
 
@@ -503,16 +515,7 @@ class ConditionalFormMixin(LoginRequiredMixin):
         user_role_asorgadmin = request.roles.filter(organization_id = organization_id, group_id=1)
         if user_role_asorgadmin:
             return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args,  is_read_only= False, **kwargs)
-        if form.site is not None:
-            user_role = request.roles.filter(Q(site_id = form.site_id, group_id=4) | Q(project_id = form.site.project_id, group_id=7))
-            if user_role and request.roles.filter(project_id = form.site.project_id, group_id=7):
-                is_doner = True
-        else:
-            user_role = request.roles.filter(project_id = form.project_id, group_id=7)
-            if user_role:
-                is_doner = True
-        if user_role:
-            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args, is_read_only= True, is_doner=is_doner,  **kwargs)
+
         # return super(ConditionalFormMixin, self).dispatch(request, fsxf_id, is_read_only=True, *args, **kwargs)
         raise PermissionDenied()
 
