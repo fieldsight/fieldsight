@@ -427,8 +427,6 @@ class Site(models.Model):
     def update_status(self):
         try:
             status = self.site_instances.order_by('-date').first().form_status
-            print status, identifier
-
         except:
             status = 0
         self.current_status = status
