@@ -1546,13 +1546,14 @@ class Html_export(ReadonlyFormMixin, ListView):
         context['obj'] = fsxf
         if site_id != 0:
             context['site_id'] = site_id
-        allow_group_list = ['Organization Admin', 'Project Manager']
         if fsxf.site is not None:
-            project = fsxf.site.project_id
+            project = fsxf.site.project
         else:
-            project = fsxf.project_id
-        higher_roles = self.request.roles.filter(project_id=project, group__name__in=allow_group_list)
-        if higher_roles:
+            project = fsxf.project
+        organization_roles = self.request.roles.filter(organization_id=project.organization_id, group__name="Organization Admin")
+        if organization_roles:
+            context['is_read_only'] = False
+        elif self.request.roles.filter(project_id=project, group__name="Project Manager"):
             context['is_read_only'] = False
         elif self.request.roles.filter(group__name="Super Admin"):
             context['is_read_only'] = False
@@ -1606,10 +1607,11 @@ class Project_html_export(ReadonlyFormMixin, ListView):
         context['form_name'] = fsxf.xf.title
         context['fsxfid'] = fsxf_id
         context['obj'] = fsxf
-        allow_group_list = ['Organization Admin', 'Project Manager']
-        project = fsxf.project_id
-        higher_roles = self.request.roles.filter(project_id=project, group__name__in=allow_group_list)
-        if higher_roles:
+        project = fsxf.project
+        organization_roles = self.request.roles.filter(organization_id=project.organization_id, group__name="Organization Admin")
+        if organization_roles:
+            context['is_read_only'] = False
+        elif self.request.roles.filter(project_id=project, group__name="Project Manager"):
             context['is_read_only'] = False
         elif self.request.roles.filter(group__name="Super Admin"):
             context['is_read_only'] = False
