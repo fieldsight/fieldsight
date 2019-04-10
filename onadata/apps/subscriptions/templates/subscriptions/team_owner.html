@@ -57,7 +57,7 @@
 					<div class="panel-body">
 						<div class="">
                           <div class="row">
-                              <div class="col-md-4">
+                              <div class="col-md-6">
                                 <h6 class="mt-4"><strong>Subscribed Package:</strong></h6>
                                 <div class="sp-head mt-4 mb-4">
                                     <h5>{{subscribed_package.get_plan_display}}</h5>
@@ -85,14 +85,14 @@
                                     <a href="{% url 'fieldsight:organizations-dashboard' obj.id%}" class="btn btn-sm btn-primary mb-4">Upgrade Your Package</a>
                                 {% endif %}
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 {% if not has_user_free_package %}
                                 <h6 class="mt-4"><strong>Account Information:</strong></h6>
                                 <ul class="list-icon mt-4 mb-2">
                                     <li>
                                         <i class="la la-envelope"></i>
                                         Email Address<br/>
-                                        <strong>{{customer.user__email}}</strong>
+                                        <strong>{{customer.user.email}}</strong>
                                     </li>
                                     <li>
                                         <i class="la la-credit-card"></i>
@@ -103,7 +103,7 @@
                                 <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#collapseEditCard" aria-expanded="false" aria-controls="collapseEditCard">Edit Card Info <i class="la la-edit"></i></button>
                                 {% endif %}
                             </div>
-                            <div class="col-md-4 collapse" id="collapseEditCard">
+                            <div class="col-md-12 collapse" id="collapseEditCard">
                                 <h6 class="mt-4 ml-4"><strong>Edit Card Info:</strong></h6>
                                 <form action="{% url 'subscriptions:update_card' %}" method="post" id="payment-form">{% csrf_token %}
                                 <div class="card-input-wrap m-4">
