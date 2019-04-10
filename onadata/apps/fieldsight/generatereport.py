@@ -25,7 +25,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from onadata.libs.utils.image_tools import image_url
 from onadata.apps.logger.models import Attachment
-from .metaAttribsGenerator import generateSiteMetaAttribs
+from onadata.apps.fieldsight.metaAttribsGenerator import generateSiteMetaAttribs
 
 styleSheet = getSampleStyleSheet()
 styles = getSampleStyleSheet()
@@ -456,9 +456,12 @@ class PDFReport:
             meta_data=[]
             if metas:
                 for meta in metas:
-                    row=[Paragraph(meta['question_text'], styBackground), Paragraph(str(meta['answer']) if isinstance(meta['answer'], int) else meta['answer'], styBackground)]
+                    try: 
+                        row=[Paragraph(meta['question_text'], styBackground), Paragraph(str(meta['answer']), styBackground)]
+                        
+                    except Exception as e:
+                        row=[Paragraph(meta['question_text'], styBackground), Paragraph( meta['answer'], styBackground)]
                     meta_data.append(row)
-                
                 metat1 = Table(meta_data, colWidths=(60*mm, None))
                 metat1.setStyle(self.ts1)
                 elements.append(metat1)
