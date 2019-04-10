@@ -251,9 +251,11 @@ assigntoken(csrf_token);
 								<button class="dropdown-item"  data-toggle="modal" data-target="#importModal"><i class="la la-clipboard"></i> {% trans 'Import Sites' %}</button>
 								{% endif %}
 								{% if obj.cluster_sites %}
-								<a class="dropdown-item" href="{% url 'fieldsight:multi_site_region_assign' obj.id%}"><i class="la la-map-marker"></i>{% trans 'Assign' %} {% trans 'sites' %} {% trans 'to' %} {% trans 'regions' %}</a>
+<!--									<a class="dropdown-item" href="{% url 'fieldsight:multi_site_region_assign' obj.id%}"><i class="la la-map-marker"></i>{% trans 'Assign' %} {% trans 'sites' %} {% trans 'to' %} {% trans 'regions' %}</a>-->
+									<a class="dropdown-item" href="{% url 'fieldsight:project_region_sites' obj.id %}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
+
 								{% else %}
-								<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
+									<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
 								{% endif %}
 								<a class="dropdown-item" href="{% url 'fieldsight:project-edit' obj.pk %}"><i class="la la-clipboard"></i> {% trans 'Settings' %}</a>
 

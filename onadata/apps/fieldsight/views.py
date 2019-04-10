@@ -2173,6 +2173,27 @@ class RegionListView(RegionView, ProjectRoleMixin, ListView):
         return queryset
 
 
+class ProjectRegionSitesView(ProjectRoleMixin, ListView):
+    model = Region
+    template_name = "fieldsight/project_region_sites.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectRegionSitesView, self).get_context_data(**kwargs)
+        project = Project.objects.get(pk=self.kwargs.get('project_id'))
+        context['project'] = project
+
+        return context
+
+    def get_queryset(self):
+        if self.request.GET.get("q"):
+            query = self.request.GET.get("q")
+            queryset = Region.objects.filter(project_id=self.kwargs.get('project_id'), parent=None, is_active=True).\
+                filter(Q(name__icontains=query) | Q(identifier__icontains=query))
+        else:
+            queryset = Region.objects.filter(project_id=self.kwargs.get('project_id'), parent=None, is_active=True)
+        return queryset
+
+
 class RegionCreateView(RegionView, ProjectRoleMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super(RegionCreateView, self).get_context_data(**kwargs)
