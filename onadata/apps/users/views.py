@@ -179,7 +179,12 @@ def current_usertwo(request):
     user = request.user
     if user.is_anonymous():
         return Response({'code': 401, 'message': 'Unauthorized User'})
-    elif not user.user_profile.organization:
+    try:
+        user.user_profile
+    except Exception as e:
+        return Response({'code': 403, 'message': 'Sorry, you have not created your profile. '
+                                                 'Please create your profile in web'})
+    if not user.user_profile.organization:
         return Response({'code': 403, 'message': 'Sorry, you are not assigned to any organization yet. '
                                                  'Please contact your project manager.'})
     else:
