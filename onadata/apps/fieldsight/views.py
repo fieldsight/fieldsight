@@ -805,6 +805,36 @@ class ProjectDeleteView(ProjectRoleMixinDeleteView, View):
 
         return HttpResponseRedirect(reverse('fieldsight:org-project-list', kwargs={'pk': project.organization_id }))
 
+
+class ProjectGeoLayerView(ProjectRoleMixin, UpdateView):
+
+    model = Project
+    fields = ('geo_layers',)
+    template_name = 'fieldsight/project_geo_layer.html'
+
+    def get_success_url(self):
+        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectGeoLayerView, self).get_context_data(**kwargs)
+        context['level'] = "1"
+        context['obj'] = self.object
+        context['base_template'] = "fieldsight/manage_base.html"
+
+        return context
+
+    # def form_valid(self, form):
+    #     self.object = form.save(new=False)
+    #
+    #     noti = self.object.logs.create(source=self.request.user, type=14, title="Edit Project",
+    #                                    organization=self.object.organization,
+    #                                    project=self.object, content_object=self.object,
+    #                                    description='{0} changed the details of project named {1}'.format(
+    #                                        self.request.user.get_full_name(), self.object.name))
+
+        # return HttpResponseRedirect(self.get_success_url())
+
+
 class SiteView(object):
     model = Site
     # success_url = reverse_lazy('fieldsight:org-site-list')

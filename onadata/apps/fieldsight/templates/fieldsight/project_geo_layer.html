@@ -1,0 +1,67 @@
+{% extends 'fieldsight/manage_base.html' %}
+{% load i18n staticfiles %}
+{% load filters %}
+
+{% block extracss %}
+
+
+{% endblock %}
+
+{% block content %}
+{% load filters %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
+
+			<div class="padding">
+
+				<section class="panel">
+                    <header class="panel-heading clearfix">
+                        <h3><i class="la la-building"></i>{% trans 'Map Layers' %}</h3>
+						
+                    </header>
+					<div class="panel-body">
+						<!-- Add New Organization-->
+						<div id="newOrganization" class="margin-top">
+							<form enctype="multipart/form-data" method="post">
+								{{form.media}}
+								{% csrf_token %}
+								<div class="form-row">
+                                    {% for field in form.visible_fields %}
+									<div class="form-group col-md-6 {% if field.errors %} alert alert-danger {% endif %}">
+
+									  <label class="col-form-label">Add {{ field.label }}</label>
+                                        {% if field.name == "geo_layers" %}
+                                        {{ field|add_class:"form-control selectize" }}
+
+                              		{{ field.errors }}
+									 </div>
+                                    {% endif %}
+									{% endfor %}
+
+								</div>
+								<button type="submit" class="btn btn-primary"><i class="la la-floppy-o"></i> {% trans ' Save' %}</button>
+
+							</form>
+						</div>
+					</div>
+
+                </section>
+
+			</div>
+{% endblock %}
+
+{%block extrascript %}
+  	<script type="text/javascript">
+
+        $(document).ready(function(){
+
+        $("ul.nav li:nth-child(1) a" ).addClass("active");
+        $("#id_logo").closest(".form-group").find(".text-danger").hide();
+
+
+});
+    </script>
+
+{% endblock %}
+
+

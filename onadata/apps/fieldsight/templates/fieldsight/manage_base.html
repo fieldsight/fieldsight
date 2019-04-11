@@ -378,7 +378,7 @@
 <!--									</li>-->
 
 									<li class="nav-item">
-										<a class="nav-link" href="#" data-load="org-manage-detail.html">Map Layers</a>
+										<a class="nav-link" href="{% url 'fieldsight:project_geo_layer' obj.pk %}" data-load="org-manage-detail.html">Map Layers</a>
 									</li>
 
 									{% if obj.cluster_sites %}
