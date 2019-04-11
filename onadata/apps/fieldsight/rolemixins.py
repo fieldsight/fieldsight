@@ -177,7 +177,7 @@ class ReadonlySiteLevelRoleMixin(LoginRequiredMixin):
             if user_role_as_region_user:
                 return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=True, *args, **kwargs)
 
-        user_role = request.roles.filter(site_id = site_id, group_name__in=["Reviewer","Site Supervisor"])
+        user_role = request.roles.filter(site_id = site_id, group__name__in=["Reviewer","Site Supervisor"])
         if user_role:
             return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=True, *args, **kwargs)
 
