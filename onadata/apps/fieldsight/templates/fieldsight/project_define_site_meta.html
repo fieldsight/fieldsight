@@ -20,7 +20,7 @@
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
- <script src="{% static 'js/formparser.js' %}"></script>
+ <script src="{% static 'js/formparser.js' %}?v=1.1"></script>
  <script src="{% static 'js/reactjs/react.min.js' %}"></script>
  <script src="{% static 'js/reactjs/browser.min.js' %}"></script>
  <script src="{% static 'js/reactjs/react-dom.min.js' %}"></script>
@@ -453,7 +453,7 @@
                             this.state.options.map(this.eachOption)
                         }
                     <button onClick={this.addOption} className="btn btn-primary"><i className="la la-plus"></i> Option</button><hr/>
-                    <button className="btn btn-primary" onClick={this.editDone}><i className={this.props.is_new ? 'la la-plus':'la la-check'}></i> { this.props.is_new ? 'Add to Form':'Preview'}</button>            
+                    <button className="btn btn-primary" onClick={this.editDone}><i className={this.props.is_new ? 'la la-plus':'la la-check'}></i> { this.props.is_new ? 'Add Attribute':'Preview'}</button>            
                     </div>
                 );
             },

@@ -4,6 +4,7 @@ import re
 import os
 import json
 import datetime
+import gc
 from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
@@ -34,6 +35,7 @@ from django.core.files.storage import get_storage_class
 from onadata.libs.utils.viewer_tools import get_path
 from PIL import Image
 import tempfile, zipfile
+
 from onadata.libs.utils.viewer_tools import get_path
 import pyexcel as p
 from .metaAttribsGenerator import get_form_answer, get_form_sub_status, get_form_submission_count, get_form_ques_ans_status
@@ -55,6 +57,8 @@ from onadata.apps.fsforms.tasks import clone_form
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+
+form_status_map=["Pending", "Rejected", "Flagged", "Approved"]
 
 def cleanhtml(raw_html):
    cleanr = re.compile('<\S.*?>')
@@ -194,7 +198,7 @@ def site_download_zipfile(task_prog_obj_id, size):
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()                                                                      
 
-@shared_task(time_limit=7200, soft_time_limit=7200)
+@shared_task(time_limit=300, soft_time_limit=300)
 def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, region_ids):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
@@ -248,17 +252,39 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         head_row.extend(["Site Visits", "Submission Count", "Flagged Submission", "Rejected Submission"])
         data.append(head_row)
         
-        sites = Site.objects.filter(project_id=project.id)
+        sites = Site.objects.filter(is_active=True)
 
+        sites_filter = {'project_id': project.id}
+        finstance_filter = {'project_fxf__in': form_ids}
+        
         if site_type_ids:
-            sites = sites.filter(type_id__in=site_type_ids)
+            sites_filter['type_id__in'] = site_type_ids
+            finstance_filter['site__type_id__in'] = site_type_ids
 
         if region_ids:
-            sites = sites.filter(region_id__in=region_ids)
+            sites_filter['region_id__in']=region_ids
+            finstance_filter['site_id__in'] = site_type_ids
 
-        sites = sites.values('id','identifier', 'name', 'region__identifier', 'address').annotate(**query)
+        site_dict = {}
 
 
+        # Redoing query because annotate and lat long did not go well in single query.
+        # Probable only an issue because of old django version.
+
+        
+        for site_obj in sites.filter(**sites_filter).iterator():
+            site_dict[str(site_obj.id)] = {'visits':0,'site_status':'No Submission', 'latitude':site_obj.latitude,'longitude':site_obj.longitude}
+
+        sites_status=FInstance.objects.filter(**finstance_filter).order_by('site_id','-id').distinct('site_id').values_list('site_id', 'form_status')
+        
+        for site_status in sites_status:
+            try:
+                site_dict[str(site_status[0])]['site_status'] = form_status_map[site_status[1]]
+            except:
+                pass
+        sites_status = None
+        gc.collect()
+        
         site_visits = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": project.id, "fs_project_uuid": {"$in":form_ids}}},  { "$group" : { 
               "_id" :  { 
                 "fs_site": "$fs_site",
@@ -272,43 +298,35 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
              }
          }}])['result']
 
-        site_dict = {}
-
-        # Redoing query because annotate and lat long did not go well in single query.
-        # Probable only an issue because of old django version.
-
-        site_objs = Site.objects.filter(project_id=project_id)
-        
-        if site_type_ids:
-            site_objs = site_objs.filter(type_id__in=site_type_ids)
-
-        if region_ids:
-            site_objs = site_objs.filter(region_id__in=region_ids)
-
-
-        for site_obj in site_objs:
-            site_dict[site_obj.id] = {'visits':0,'site_status':site_obj.site_status, 'latitude':site_obj.latitude,'longitude':site_obj.longitude}
-        
         for site_visit in site_visits:
             try:
-                site_dict[int(site_visit['_id'])]['visits'] = len(site_visit['visits'])
+                site_dict[str(site_visit['_id'])]['visits'] = len(site_visit['visits'])
             except:
                 pass
+
+        site_visits = None
+        gc.collect()
+
         
-        try:
-            for site in sites:
-                # import pdb; pdb.set_trace();
-                
-                site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'], site_dict[site.get('id')]['latitude'], site_dict[site.get('id')]['longitude'], site_dict[site.get('id')]['site_status']]
+        sites = sites.filter(**sites_filter).values('id','identifier', 'name', 'region__identifier', 'address').annotate(**query)
+        
+        for site in sites:
+            # import pdb; pdb.set_trace();
+            try:
+                site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'], site_dict[str(site.get('id'))]['latitude'], site_dict[str(site.get('id'))]['longitude'], site_dict[str(site.get('id'))]['site_status']]
                 
                 for stage in ss_index:
                     site_row.append(site.get(stage, ""))
 
-                site_row.extend([site_dict[site.get('id')]['visits'], site['submission'], site['flagged'], site['rejected']])
+                site_row.extend([site_dict[str(site.get('id'))]['visits'], site['submission'], site['flagged'], site['rejected']])
 
                 data.append(site_row)
-        except:
-            pass
+            except Exception as e:
+                print e
+
+        sites = None
+        site_dict = None
+        gc.collect()
 
         p.save_as(array=data, dest_file_name="media/stage-report/{}_stage_data.xls".format(project.id))
         xl_data = open("media/stage-report/{}_stage_data.xls".format(project.id), "rb")
@@ -341,7 +359,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         noti = task.logs.create(source=task.user, type=432, title="Site Stage Progress report generation in Project",
                                        content_object=project, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
-        
+
+     
 @shared_task()
 def UnassignUser(task_prog_obj_id, user_id, sites, regions, projects, group_id):
     time.sleep(5)
@@ -703,9 +722,9 @@ def siteDetailsGenerator(project, sites, ws):
             sub_meta_ref_sites = {}
             sub_site_map = {}
             
-            sitenew = Site.objects.filter(identifier__in = identifiers, project_id = project_id)
+            sitesnew = Site.objects.filter(identifier__in = identifiers, project_id = project_id)
             
-            for site in sitenew:
+            for site in sitesnew.iterator():
                 if project_id == str(project.id):
                     continue
             
@@ -739,7 +758,10 @@ def siteDetailsGenerator(project, sites, ws):
                     else:
                         for idf in identifier:
                             site_list[idf][project_id+"-"+meta.get('question_name')] = meta_ans.get(meta.get('question_name'), "")
-                         
+            
+            del sitesnew
+            gc.collect()
+
             for meta in selected_metas.get(project_id, []):
                 head = header_columns
                 head += [{'id':project_id+"-"+meta.get('question_name'), 'name':meta.get('question_text')}]
@@ -747,7 +769,7 @@ def siteDetailsGenerator(project, sites, ws):
                     generate(meta['project_id'], sub_site_map.get(meta['question_name'], []), meta, sub_meta_ref_sites.get(meta['question_name'], []), selected_metas)
 
 
-        for site in sites:
+        for site in sites.select_related('region').iterator():
             
             columns = {'identifier':site.identifier, 'name':site.name, 'site_type_identifier':site.type.identifier if site.type else "", 'phone':site.phone, 'address':site.address, 'public_desc':site.public_desc, 'additional_desc':site.additional_desc, 'latitude':site.latitude,
                        'longitude':site.longitude, }
@@ -780,8 +802,8 @@ def siteDetailsGenerator(project, sites, ws):
             
             site_list[site.id] = columns
         
-
-        
+        del sites
+        gc.collect()
 
         for meta in meta_ques:
             if meta['question_type'] == "Link":
@@ -809,8 +831,6 @@ def siteDetailsGenerator(project, sites, ws):
                 "answer": { '$last': "$"+meta['question']['name'] }
                }
              }])
-
-            
 
             for submission in query['result']:
                 try:    
@@ -861,9 +881,12 @@ def siteDetailsGenerator(project, sites, ws):
             for col_num in range(len(header_columns)):
                 row.append(site.get(header_columns[col_num]['id'], ""))    
             ws.append(row)
+
+        gc.collect()
         return True, 'success'
 
     except Exception as e:
+        gc.collect()
         return False, e.message
 
 # project = Project.objects.get(pk=137)
@@ -941,6 +964,7 @@ def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids
 
 
     except Exception as e:
+
         task.description = "ERROR: " + str(e.message) 
         task.status = 3
         print e.__dict__
@@ -986,12 +1010,13 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
 
         new_enddate = end + datetime.timedelta(days=1)
 
-        forms = FieldSightXF.objects.select_related('xf').filter(pk__in=fs_ids, is_survey=False, is_deleted=False).prefetch_related(Prefetch('project_form_instances', queryset=FInstance.objects.select_related('instance').filter(site_id__in=sites, date__range=[new_startdate, new_enddate]))).order_by('-is_staged', 'is_scheduled')
+        forms = FieldSightXF.objects.select_related('xf', 'xf__user').filter(pk__in=fs_ids, is_survey=False, is_deleted=False)
         wb = Workbook()
         ws_site_details = wb.active
         ws_site_details.title = "Site Details"
         form_id = 0
         form_names=[]
+
         
         def generate_sheet_name(form_name):
             form_names.append(form_name)
@@ -1004,8 +1029,8 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
                     sheet_name=sheet_name.replace(ch,"_")
 
             return sheet_name
-
-        for form in forms:
+        
+        for form in forms.iterator():
             form_id += 1
             sheet_name = generate_sheet_name(form.xf.title)
             ws=wb.create_sheet(title=sheet_name)
@@ -1016,8 +1041,10 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
 
             ws.append(['Header'])
 
-            for formresponse in form.project_form_instances.all():
-                if formresponse.site:
+            formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, date__range=[new_startdate, new_enddate])
+
+            for formresponse in formresponses.iterator():
+                if formresponse.site_id:
                     if not formresponse.site_id in response_sites:
                         response_sites.append(formresponse.site_id)
                     
@@ -1025,10 +1052,9 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
 
                     answers['identifier'] = formresponse.site.identifier
                     answers['name'] = formresponse.site.name
-                    answers['status'] = formresponse.get_form_status_display()
+                    answers['status'] = form_status_map[formresponse.form_status]
                     
                     if r_question_answers:
-
                         repeat_answers.append({'name': formresponse.site.name, 'identifier': formresponse.site.identifier, 'repeated': r_question_answers })
 
                     if len([{'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}] + questions) > len(head_columns):
@@ -1075,15 +1101,20 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
                     
                         wr.cell(row=1, column=col_num+3).value = cleanhtml(head_str)
                         
+            del formresponses           
+            gc.collect()
 
         if not forms:
             ws = wb.create_sheet(title='No Forms')
         
+        elif len(forms) < 2:        
+            sites = Site.objects.filter(pk__in=response_sites)
+            status, message = siteDetailsGenerator(project, sites, ws_site_details)
+            if not status:
+                raise ValueError(message)
 
-        sites = Site.objects.filter(pk__in=response_sites)
-        status, message = siteDetailsGenerator(project, sites, ws_site_details)
-        if not status:
-            raise ValueError(message)
+        del forms
+        gc.collect()
 
         wb.save(buffer)
         buffer.seek(0)

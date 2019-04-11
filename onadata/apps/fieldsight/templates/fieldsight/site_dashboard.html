@@ -60,10 +60,10 @@
 						    </a>
 						  </li>
 						  <li class="nav-item">
-						    <a class="nav-link" id="modalTab02-tab" data-toggle="tab" href="#modalTab02" role="tab" aria-controls="modalTab03" aria-selected="false">Data Export</a>
+						    <a class="nav-link" id="modalTab02-tab" data-toggle="tab" href="#modalTab02" role="tab" aria-controls="modalTab03" aria-selected="false">Site Report</a>
 						  </li>
 						  <li class="nav-item">
-						    <a class="nav-link" id="modalTab03-tab" data-toggle="tab" href="#modalTab03" role="tab" aria-controls="modalTab05" aria-selected="false">Project Logs</a>
+						    <a class="nav-link" id="modalTab03-tab" data-toggle="tab" href="#modalTab03" role="tab" aria-controls="modalTab05" aria-selected="false">Site Logs</a>
 						  </li>
 						</ul>
 	      			</div>
@@ -156,9 +156,7 @@
 										<i class="la la-cogs"></i> {% trans 'Manage' %}
 									</a>
 									<div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButtonManage">
-										{% if not is_supervisor_only %}
 										<a class="dropdown-item" href="{% url 'fieldsight:site-edit' obj.pk %}"><i class="la la-edit"></i>{% trans 'Edit Site Information' %}</a>
-										{% endif %}
 										<a class="dropdown-item" href="{% url 'fieldsight:site-blue-prints' obj.pk %}"><i class="la la-file-text-o"></i>{% trans 'Site' %} {% trans 'Documents' %}</a>
 										<a class="dropdown-item" href="{% url 'fieldsight:manage-people-site' obj.pk %}"><i class="la la-user"></i>{% trans 'People' %}</a>
 										<a class="dropdown-item" href="{% url 'forms:setup-forms' 0 obj.pk %}"><i class="la la-clipboard"></i>{% trans 'Forms (for this site only)' %}</a>
