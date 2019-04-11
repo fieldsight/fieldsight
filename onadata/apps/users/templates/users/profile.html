@@ -20,7 +20,7 @@
 					<h3><i class="la la-user"></i>{% trans 'View' %} {% trans 'Profile' %}</h3>
 						<div class="panel-heading-right">
 							{% ifequal request.user obj.user %}
-							<a href="{% url 'users:profile_update' obj.user.id|profile%}" title="" class="btn btn-sm btn-primary"><i class="la la-plus"></i>{% trans 'Update' %} {% trans 'Profile'%} </a>
+							<a href="{% url 'users:profile_update' obj.user.id|profile%}" title="" class="btn btn-sm btn-primary"><i class="la la-edit"></i> {% trans 'Update' %} {% trans 'Profile'%} </a>
 							{% endifequal %}
 						</div>
                     </header>
@@ -82,7 +82,7 @@
 
 										{% for role in roles_org %}
 										
-											<div class="col-lg-12 col-md-12 margin-top">
+											<div class="col-lg-6 col-md-6 margin-top">
 											<a href="{% url 'fieldsight:organizations-dashboard' role.organization.pk %}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
@@ -119,7 +119,7 @@
 										<div class="row">
 										{% for role in roles_project %}
 										
-											<div class="col-lg-12 col-md-12 margin-top">
+											<div class="col-lg-6 col-md-6 margin-top">
 												<a href="{% url 'fieldsight:project-dashboard' role.project.pk %}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
@@ -154,7 +154,7 @@
 										<div class="row">
 										{% for role in roles_project_doner %}
 
-											<div class="col-lg-12 col-md-12 margin-top">
+											<div class="col-lg-6 col-md-6 margin-top">
 												<a href="{% url 'fieldsight:project-dashboard' role.project.pk %}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
@@ -190,7 +190,7 @@
 										<div class="row">
 											{% for role in roles_region_supervisor %}
 
-											<div class="col-lg-12 col-md-12 margin-top">
+											<div class="col-lg-6 col-md-6 margin-top">
 												<a href="{% url 'fieldsight:regional-sites' role.region.project.id role.region.pk %}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
@@ -229,7 +229,7 @@
 										<div class="row">
 											{% for role in roles_region_reviewer %}
 
-											<div class="col-lg-12 col-md-12 margin-top">
+											<div class="col-lg-6 col-md-6 margin-top">
 												<a href="{% url 'fieldsight:regional-sites' role.region.project.id role.region.pk %}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
@@ -268,7 +268,7 @@
 										<div class="row">
 											{% for role in roles_reviewer %}
 											
-											<div class="col-lg-12 col-md-12 margin-top">
+											<div class="col-lg-6 col-md-6 margin-top">
 												<a href="{% url 'fieldsight:site-dashboard' role.site.pk %}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
@@ -306,7 +306,7 @@
 										<div class="row">
 											{% for role in roles_SA %}
 											
-											<div class="col-lg-12 col-md-12 margin-top">
+											<div class="col-lg-6 col-md-6 margin-top">
 												<a href="{% url 'fieldsight:site-dashboard' role.site.pk %}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
@@ -367,8 +367,37 @@
 
 
 						</div>
-						{% if responses %}
-						<div class="col-md-12 col-lg-4">
+							<div class="col-lg-4 col-sm-12">
+
+<!--								<div class="widget-info widget-site-map mt-3 bg-white padding">-->
+<!--								<div class="widget-head">-->
+<!--									<div class="dropdown pull-right">-->
+<!--									  <button class="btn btn-sm btn-xs btn-primary dropdown-toggle" type="button" id="dropdownMenuFilter" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-->
+<!--										<i class="la la-filter"></i> Filter-->
+<!--									  </button>-->
+<!--									  <div class="dropdown-menu" aria-labelledby="dropdownMenuFilter">-->
+<!--										<button class="dropdown-item" type="button">Project</button>-->
+<!--										<button class="dropdown-item" type="button">Site</button>-->
+<!--										<button class="dropdown-item" type="button" data-toggle="collapse" data-target="#collapseFilter" aria-expanded="false" aria-controls="collapseFilter">Date Range</button>-->
+<!--									  </div>-->
+<!--									</div>-->
+<!--									<h4>{% trans 'Map' %}</h4>-->
+<!--								</div>-->
+<!--								<div class="widget-body">-->
+<!--									<div class="collapse" id="collapseFilter">-->
+<!--										<div class="card card-body">-->
+<!--										  <div class="input-group">-->
+<!--											  <span class="input-group-addon">From</span>-->
+<!--											  <input type="date" class="form-control" >-->
+<!--											  <span class="input-group-addon">To</span>-->
+<!--											  <input type="date" class="form-control" >-->
+<!--										  </div>-->
+<!--										</div>-->
+<!--									</div>-->
+<!--									<div id="map" class="full-map ah-col" style="z-index:0;"></div>-->
+<!--								</div>-->
+<!--							</div>-->
+								{% if responses %}
 							<div class="widget-info margin-top bg-white padding">
 								<div class="widget-head">
 									<h4>{% trans 'Latest Submission' %}</h4>
@@ -396,13 +425,15 @@
 										</div>
 										</a>
 										{% endfor %}
-											
+
 									</div>
-										
+
 								</div>
 							</div>
-						</div>
 						{% endif %}
+							</div>
+
+
 
 					</div>
                 </section>
