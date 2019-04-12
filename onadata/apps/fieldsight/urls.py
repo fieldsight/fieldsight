@@ -69,7 +69,7 @@ from .views import (
     SiteSearchView, ProjectDashboardStageResponsesStatus, GeoJSONContent, DonorFullMap, ProjectSiteListGeoJSON,
     SiteBulkEditView, site_refrenced_metas, UnassignUserRegionAndSites, MainRegionsAndSitesAPI, redirectToSite,
     municipality_data, FormResponseSite, DonorRegionalSitelist, SubRegionAndSitesAPI, SiteSearchLiteView,
-    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView)
+    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites)
 
 
 from onadata.apps.geo.views import (
@@ -118,6 +118,8 @@ urlpatterns = [
 
     url(r'^proj-users/(?P<pk>\d+)/$', ProjUserList.as_view(), name='proj-user-list'),
     url(r'^proj-sites/(?P<pk>\d+)/$', ProjSiteList.as_view(), name='proj-site-list'),
+    url(r'^manage-project-sites/(?P<project_id>\d+)/$', ManageProjectSites.as_view(), name='manage_project_sites'),
+
     url(r'^donor-proj-sites/(?P<pk>\d+)/$', DonorProjSiteList.as_view(), name='donor-proj-site-list'),
 
     url(r'^site-users/(?P<pk>\d+)/$', SiteUserList.as_view(), name='site-user-list'),

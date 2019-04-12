@@ -1376,6 +1376,26 @@ class ProjSiteList(ProjectRoleMixin, ListView):
         queryset = Site.objects.filter(project_id=self.kwargs.get('pk'),is_survey=False, is_active=True)
         return queryset
 
+
+class ManageProjectSites(ProjectRoleMixin, ListView):
+    model = Site
+    template_name = 'fieldsight/manage_project_site.html'
+    paginate_by = 90
+
+    def get_context_data(self, **kwargs):
+        context = super(ManageProjectSites, self).get_context_data(**kwargs)
+        context['pk'] = self.kwargs.get('project_id')
+        context['region_id'] = None
+        context['type'] = "project"
+        context['obj'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
+        context['level'] = "1"
+        return context
+
+    def get_queryset(self):
+        queryset = Site.objects.filter(project_id=self.kwargs.get('project_id'),is_survey=False, is_active=True)
+        return queryset
+
+
 class DonorProjSiteList(ReadonlyProjectLevelRoleMixin, ListView):
     model = Site
     template_name = 'fieldsight/donor_site_list.html'
