@@ -2587,7 +2587,8 @@ class OrganizationUserSearchView(ListView):
     def get_queryset(self):
         query = self.request.GET.get("q")
         return self.model.objects.filter(organization_id=self.kwargs.get('pk'), ended_at__isnull=True).\
-            filter(Q(user__username__icontains=query) | Q(user__first_name__icontains=query)).distinct('user')
+            filter(Q(user__username__icontains=query) | Q(user__first_name__icontains=query) |
+                   Q(user__last_name__icontains=query) | Q(user__email__icontains=query)).distinct('user')
 
 
 class ProjectUserSearchView(ListView):
@@ -2605,7 +2606,8 @@ class ProjectUserSearchView(ListView):
     def get_queryset(self):
         query = self.request.GET.get("q")
         return self.model.objects.select_related('user').filter(project_id=self.kwargs.get('pk'), ended_at__isnull=True).\
-            filter(Q(user__username__icontains=query) | Q(user__first_name__icontains=query)).distinct('user_id')
+            filter(Q(user__username__icontains=query) | Q(user__first_name__icontains=query) |
+                   Q(user__last_name__icontains=query) | Q(user__email__icontains=query)).distinct('user_id')
 
 
 class SiteUserSearchView(ListView):
@@ -2625,7 +2627,8 @@ class SiteUserSearchView(ListView):
         project = Site.objects.get(pk=self.kwargs.get('pk')).project
         return self.model.objects.select_related('user').filter(ended_at__isnull=True).\
             filter(Q(site_id=self.kwargs.get('pk')) | Q(region__project=project)).\
-            filter(Q(user__username__icontains=query) | Q(user__first_name__icontains=query)).distinct('user_id')
+            filter(Q(user__username__icontains=query) | Q(user__first_name__icontains=query) |
+                   Q(user__last_name__icontains=query) | Q(user__email__icontains=query)).distinct('user_id')
 
 
 class DefineProjectSiteMeta(RegionSupervisorReviewerMixin, TemplateView):
