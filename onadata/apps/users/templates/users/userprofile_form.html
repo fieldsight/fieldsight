@@ -1,4 +1,4 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends base_template %}
 {% load i18n staticfiles %}
 {% load filters %}
 
@@ -150,6 +150,17 @@
 <script src="{{ STATIC_URL }}js/cropper.min.js"></script>
 <script>
           $('input.required').closest('.form-group').find('label').addClass('required');
+
+          type = "{{type}}";
+          if (type == 'create_profile'){
+
+                  $("a").removeAttr('href');
+                  $( "span" ).removeClass( "la la-bars" )
+
+
+          }
+
+
 
 </script>
 {% endblock %}

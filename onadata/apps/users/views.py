@@ -298,6 +298,14 @@ class MyProfileView(ProfileView):
 
 
 class ProfileCreateView(MyProfileView, CreateView):
+
+    def get_context_data(self, *args, **kwargs):
+        context = super(ProfileCreateView, self).get_context_data(*args, **kwargs)
+
+        context['base_template'] = "fieldsight/fieldsight_not_user_base.html"
+        context['type'] = "create_profile"
+        return context
+
     def form_valid(self, form):
         user = self.request.user
         user.first_name = form.cleaned_data['first_name']
@@ -309,8 +317,14 @@ class ProfileCreateView(MyProfileView, CreateView):
 
 
 class ProfileUpdateView(MyProfileView, OwnerMixin, UpdateView):
-    # pass
-    #
+
+    def get_context_data(self, *args, **kwargs):
+        context = super(ProfileUpdateView, self).get_context_data(*args, **kwargs)
+
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        context['type'] = "update_profile"
+        return context
+
     def form_valid(self, form):
         user = self.request.user
         user.first_name = form.cleaned_data['first_name']

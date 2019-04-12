@@ -1,4 +1,4 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends base_template %}
 {% load i18n staticfiles %}
 {% load filters %}
 {% block page-title %} {% trans 'Profile '  %}{{obj.user }}{% endblock %}
@@ -420,3 +420,21 @@
 
 </div>
 {% endblock %}
+
+{% block extrascript %}
+<script>
+
+          has_user_profile = "{{has_user_profile}}";
+          if (has_user_profile== 'False'){
+
+                  $(".logo").removeAttr('href');
+                  $( "span" ).removeClass( "la la-bars" )
+
+
+          }
+
+
+
+</script>
+{% endblock %}
+
