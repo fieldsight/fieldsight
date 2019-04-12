@@ -120,28 +120,28 @@ def upload_to_drive(file_path, title, folder_title, project):
         perm_to_add = all_users - perms
 
         for permission in permissions:
-            if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "fieldsighthero@gmail.com":
+            if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "exports.fieldsight@gmail.com":
                 file.DeletePermission(permission['id'])
 
-        file.InsertPermission({
-                    'type':'user',
-                    'value':'aashish.baidya.c3@gmail.com',
-                    'role': 'writer'
-                })
+        # file.InsertPermission({
+        #             'type':'user',
+        #             'value':'aashish.baidya.c3@gmail.com',
+        #             'role': 'writer'
+        #         })
 
-        file.InsertPermission({
-                    'type':'user',
-                    'value':'skhatri.np@gmail.com',
-                    'role': 'writer'
-                })
+        # file.InsertPermission({
+        #             'type':'user',
+        #             'value':'skhatri.np@gmail.com',
+        #             'role': 'writer'
+        #         })
 
 
-        # for perm in perm_to_add:
-        #     file.InsertPermission({
-        #                 'type':'user',
-        #                 'value':perm,
-        #                 'role': 'writer'
-        #             })
+        for perm in perm_to_add:
+            file.InsertPermission({
+                        'type':'user',
+                        'value':perm,
+                        'role': 'writer'
+                    })
 
 
     except Exception as e:
