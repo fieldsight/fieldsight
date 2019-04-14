@@ -480,13 +480,6 @@ assigntoken(csrf_token);
 						</div>
 					</div>
 					
-					{% verbatim %}
-					<div class="row" id="logdatas">
-						
-					</div>
-					{% endverbatim %}
-					
-					
 					<div class="row">
 						<div class="col-lg-3 col-md-6 col-sm-12">
 							<a href="{% url 'fieldsight:proj-submission-data' obj.pk 2 %}" class="mini-stat padding-large margin-top clearfix">
@@ -532,6 +525,7 @@ assigntoken(csrf_token);
 
 						</div>
 					{% endverbatim %}
+
 
 					<div class="row">
 						<div class="col-lg-8 col-md-12">
@@ -588,6 +582,12 @@ assigntoken(csrf_token);
 							</div>
 						</div>
 					</div>
+					
+					{% verbatim %}
+					<div class="row" id="logdatas">
+
+					</div>
+					{% endverbatim %}
 
 
 					<!--<div class="row">-->
