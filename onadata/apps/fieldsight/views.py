@@ -59,7 +59,7 @@ from .rolemixins import FullMapViewMixin, SuperUserRoleMixin, ReadonlyProjectLev
 from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, ProjectType
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
-                    SiteBulkEditForm, SiteTypeForm)
+                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm)
 
 from onadata.apps.subscriptions.models import Subscription, Customer, Package
 from django.views.generic import TemplateView
@@ -809,8 +809,8 @@ class ProjectDeleteView(ProjectRoleMixinDeleteView, View):
 class ProjectGeoLayerView(ProjectRoleMixin, UpdateView):
 
     model = Project
-    fields = ('geo_layers',)
     template_name = 'fieldsight/project_geo_layer.html'
+    form_class = ProjectGeoLayerForm
 
     def get_success_url(self):
         return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
@@ -822,6 +822,14 @@ class ProjectGeoLayerView(ProjectRoleMixin, UpdateView):
         context['base_template'] = "fieldsight/manage_base.html"
 
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super(ProjectGeoLayerView, self).get_form_kwargs()
+        proj = Project.objects.get(id=self.kwargs['pk'])
+        kwargs.update({
+            'organization_id': proj.organization.id,
+        })
+        return kwargs
 
     # def form_valid(self, form):
     #     self.object = form.save(new=False)
