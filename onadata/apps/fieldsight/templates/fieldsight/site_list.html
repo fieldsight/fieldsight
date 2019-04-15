@@ -146,7 +146,7 @@
 
 										{% endif %}
 									{% with site.get_site_submission_count as count %}
-										<li class="site-submission"><i class="la la-thumbs-up"></i>{{ count.approved }}</li>
+										<li class="site-submission"><i class="la la-database"></i>{{ count.approved|add:count.outstanding|add:count.rejected|add:count.flagged }}</li>
 									{% endwith %}
 									</ul>
 								</div>

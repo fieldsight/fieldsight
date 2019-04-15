@@ -1392,15 +1392,15 @@ class ManageProjectSites(ProjectRoleMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super(ManageProjectSites, self).get_context_data(**kwargs)
-        context['pk'] = self.kwargs.get('project_id')
+        context['pk'] = self.kwargs.get('pk')
         context['region_id'] = None
         context['type'] = "project"
-        context['obj'] = get_object_or_404(Project, id=self.kwargs.get('project_id'))
+        context['obj'] = get_object_or_404(Project, id=self.kwargs.get('pk'))
         context['level'] = "1"
         return context
 
     def get_queryset(self):
-        queryset = Site.objects.filter(project_id=self.kwargs.get('project_id'),is_survey=False, is_active=True)
+        queryset = Site.objects.filter(project_id=self.kwargs.get('pk'),is_survey=False, is_active=True)
         return queryset
 
 

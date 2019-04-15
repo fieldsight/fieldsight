@@ -118,7 +118,7 @@ urlpatterns = [
 
     url(r'^proj-users/(?P<pk>\d+)/$', ProjUserList.as_view(), name='proj-user-list'),
     url(r'^proj-sites/(?P<pk>\d+)/$', ProjSiteList.as_view(), name='proj-site-list'),
-    url(r'^manage-project-sites/(?P<project_id>\d+)/$', ManageProjectSites.as_view(), name='manage_project_sites'),
+    url(r'^manage-project-sites/(?P<pk>\d+)/$', ManageProjectSites.as_view(), name='manage_project_sites'),
 
     url(r'^donor-proj-sites/(?P<pk>\d+)/$', DonorProjSiteList.as_view(), name='donor-proj-site-list'),
 
