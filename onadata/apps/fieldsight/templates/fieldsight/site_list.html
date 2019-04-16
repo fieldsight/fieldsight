@@ -133,16 +133,34 @@
 								<a href="{% url 'fieldsight:site-dashboard' site.pk %}" title="">
 								<div class="site-item mt-4" data-mh="eq-site">
 									<img src="{{ site.logo.url }}" alt="">
-									<h5>{{site.name}}</h5>
+									<div style="display:flex">
+										<h5 style="width:70%">{{site.name}}</h5>
+										{% if site.progress %}
+										<div style="padding-left:15px;width:30%" >
+											<div class="progress progress-striped active progress-sm" style="width:100%;">
+												<div class="progress-bar progress-bar-success" role="progressbar" style="width:{{ site.progress }}%;}">
+												<span class="progress-bar-value" style="color:white;">{{ site.progress }}% Complete'"</span>
+
+
+												</div>
+											</div>
+										</div>
+										{% endif %}
+									</div>
 									<span class="site-id">{{site.identifier}}</span>
-									{% if site.progress %}
-										<span class="site-progress" data-progress="{{site.progress}}"></span>
-									{% endif %}
+
 									<ul class="add-info-list">
-										{% if site.address %}
-											<li class="site-add"><i class="la la-map-marker"></i>{{ site.address }}</li>
+										{% if site.region %}
+											<li class="site-add"><i class="la la-map-marker"></i>{{ site.region.identifier }}</li>
+
 										{% else %}
-											<li class="site-add"><i class="la la-map-marker"></i>&nbsp;</li>
+
+											{% if site.address %}
+												<li class="site-add"><i class="la la-map-marker"></i>{{ site.address }}</li>
+											{% else %}
+												<li class="site-add"><i class="la la-map-marker"></i>&nbsp;</li>
+
+											{% endif %}
 
 										{% endif %}
 									{% with site.get_site_submission_count as count %}
@@ -239,7 +257,7 @@
 	<script>
 		$(document).ready(function(){
 		$('.site-progress').sparkline([$('.site-progress').attr('data-progress'), 100 - $('.site-progress').attr('data-progress')], {
-			type: 'pie',
+			type: 'bar',
 			sliceColors:['#00628E', 'rgba(0,0,0,.1)'],
 		});
 	});
