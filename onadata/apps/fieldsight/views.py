@@ -1664,6 +1664,10 @@ class ActivateRole(TemplateView):
                 invite.save()
                 return HttpResponseRedirect(reverse('login'))
             user = user_exists[0]
+            profile = user.user_profile
+            if not profile.organization:
+                profile.organization = invite.organization
+                profile.save()
         else:
             username = request.POST.get('username')
             if len(request.POST.get('username')) < 6:
