@@ -1,0 +1,73 @@
+{% extends "fieldsight/fieldsight_base.html" %}
+{% load i18n staticfiles %}
+{% load filters %}
+
+{% block content %}
+<div id="main-content" class="padding">
+
+				<section class="panel">
+
+                    <header class="panel-heading clearfix">
+                    <h3><i class="la la-map-marker"></i>{% trans 'Regions' %}</h3>
+
+                    <div class="panel-heading-right">
+							<a class="btn btn-sm btn-primary" data-toggle="collapse" href="#searchSite" aria-expanded="false" aria-controls="searchSite"><i class="la la-search"></i> {% trans 'Search' %}</a>
+
+                    </div>
+
+                    </header>
+
+
+					<div class="panel-body">
+
+						<!--Search Regions-->
+						<div class="collapse margin-top" id="searchSite">
+							<form class="padding" action="{% url 'fieldsight:project_region_sites' project.pk %}" method="GET">
+								<div class="row">
+									<div class="col-md-6 ml-md-auto">
+										<div class="input-group">
+										<input type="text" class="form-control" name="q" placeholder="Search for..." required value='{{ request.GET.q }}'/>
+										  <span class="input-group-btn">
+											<button class="btn btn-primary" type="submit"><i class="la la-search"></i> {% trans 'Search' %}</button>
+										  </span>
+										</div>
+									</div>
+									<div class="col-md-3"></div>
+								</div>
+							</form>
+						</div>
+						<div class="row" >
+
+						{% for region in object_list %}
+
+							<div class="col-md-4 col-sm-6">
+								<a href= "{% url 'fieldsight:regional-sites' project.pk region.pk %}" title="" class="site-item-wrap  margin-top clearfix">
+
+									<div class="basic-info clearfix">
+										<h4 class="detail-text1" >{{region.name}}</h4>
+                                 		<p class="address"><i class="fa fa-map-marker" aria-hidden="true"></i> <span  class="detail-text1">{{ region.identifier }}</span></p>
+                                 		<p class="address"><i class="fa fa-map-marker" aria-hidden="true"></i> <span  class="detail-text1">Total Sites: {{ region.get_sites_count }}</span></p>
+									</div>
+
+
+							</a>
+							</div>
+						    {% empty %}
+							<div class="col-md-4 col-sm-6">
+
+							<h3>No Regions</h3>
+
+							</div>
+
+						{% endfor %}
+						</div>
+					<br>
+						</div>
+					</section>
+			</div>
+
+{% endblock %}
+
+{%block extrascript %}
+
+{% endblock %}

@@ -1,4 +1,4 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends base_template %}
 {% load i18n staticfiles %}
 {% load filters %}
 
@@ -6,6 +6,7 @@
 
 
 {% endblock %}
+
 {% block content %}
 {% load filters %}
 <link href="{% static 'css/cropper.min.css' %}" rel="stylesheet">
@@ -79,19 +80,8 @@
 
     });
   </script>
-			<div id="main-content" class="padding">
-      			<nav aria-label="breadcrumb" role="navigation">
-					{% block breadcrumbs %}
-					<ol class="breadcrumb">
-						{% if form.instance.id %}
-						<li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' form.instance.id %}">{{ form.instance.name }}</a></li>
-						{% else %}
-						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' pk %}">{{ org.name }}</a></li>
-						{% endif %}
-						<li class="breadcrumb-item active" aria-current="page">{{ scenario }}</li>
-					 </ol>
-					{% endblock %}
-				</nav>
+			<div class="padding">
+
 				<section class="panel">
                     <header class="panel-heading clearfix">
 						{% if form.instance.id %}
@@ -216,6 +206,15 @@
      var static_url ="{{ STATIC_URL }}";
      var elat = "{{form.instance.latitude}}";
      var elong = "{{form.instance.longitude}}";
+
+        $(document).ready(function(){
+
+        $("ul.nav li:nth-child(1) a" ).addClass("active");
+        $("#id_logo").closest(".form-group").find(".text-danger").hide();
+
+
+});
+
 
     </script>
 	<script type="text/javascript" src="{{ STATIC_URL }}js/addmarker.js"></script>

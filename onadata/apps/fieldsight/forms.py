@@ -308,6 +308,22 @@ class ProjectForm(forms.ModelForm):
         super(ProjectForm, self).clean()
 
 
+class ProjectGeoLayerForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        org_id = kwargs.pop('organization_id', None)
+
+        super(ProjectGeoLayerForm, self).__init__(*args, **kwargs)
+
+        self.fields['geo_layers'].queryset = GeoLayer.objects.filter(
+            organization__id=org_id
+        )
+
+    class Meta:
+        model = Project
+        fields = ('geo_layers',)
+
+
 class SiteForm(HTML5BootstrapModelForm, KOModelForm):
     x = forms.FloatField(widget=forms.HiddenInput(), required=False)
     y = forms.FloatField(widget=forms.HiddenInput(), required=False)

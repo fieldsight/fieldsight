@@ -247,20 +247,19 @@ assigntoken(csrf_token);
 								<a class="dropdown-item" href="{% url 'fieldsight:manage-people-project' obj.pk %}"><i class="la la-user"></i>{% trans ' People' %}</a>
 								<a class="dropdown-item" href="{% url 'forms:setup-forms' 1 obj.pk %}"><i class="la la-clipboard"></i>{% trans ' Forms' %}</a>
 
-								<a class="dropdown-item" href="{% url 'fieldsight:site-types'  obj.pk %}"><i class="la la-clipboard"></i>{% trans ' Site Types' %}</a>
-
-								<a class="dropdown-item" href="{% url 'fieldsight:project-edit' obj.pk %}"><i class="la la-clipboard"></i> {% trans 'Edit Project' %}</a>
 								{% if request.group.name == "Super Admin" %}
 								<button class="dropdown-item"  data-toggle="modal" data-target="#importModal"><i class="la la-clipboard"></i> {% trans 'Import Sites' %}</button>
 								{% endif %}
 								{% if obj.cluster_sites %}
-								<a class="dropdown-item" href="{% url 'fieldsight:multi_site_region_assign' obj.id%}"><i class="la la-map-marker"></i>{% trans 'Assign' %} {% trans 'sites' %} {% trans 'to' %} {% trans 'regions' %}</a>
+<!--									<a class="dropdown-item" href="{% url 'fieldsight:multi_site_region_assign' obj.id%}"><i class="la la-map-marker"></i>{% trans 'Assign' %} {% trans 'sites' %} {% trans 'to' %} {% trans 'regions' %}</a>-->
+									<a class="dropdown-item" href="{% url 'fieldsight:project_region_sites' obj.id %}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
+
 								{% else %}
-								<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
+									<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
 								{% endif %}
-								<a href="{% url 'fieldsight:define-site-meta' obj.pk %}" title="" class="dropdown-item"><i class="la la-info"></i>  {% trans 'Meta' %} {% trans 'Attributes' %}</a>
-								<a class="dropdown-item" href="{% url 'fieldsight:region-list' obj.pk %}"><i class="la la-map-marker"></i>{% trans 'Manage Regions' %}</a>
-								
+								<a class="dropdown-item" href="{% url 'fieldsight:project-edit' obj.pk %}"><i class="la la-clipboard"></i> {% trans 'Settings' %}</a>
+
+
 								
 							</div>
 						</span>

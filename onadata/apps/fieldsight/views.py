@@ -59,7 +59,7 @@ from .rolemixins import FullMapViewMixin, SuperUserRoleMixin, ReadonlyProjectLev
 from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, ProjectType
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
-                    SiteBulkEditForm, SiteTypeForm)
+                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm)
 
 from onadata.apps.subscriptions.models import Subscription, Customer, Package
 from django.views.generic import TemplateView
@@ -438,6 +438,11 @@ class OrganizationCreateView(OrganizationView, CreateView):
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
+    def get_context_data(self, **kwargs):
+        context = super(OrganizationCreateView, self).get_context_data(**kwargs)
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        return context
+
     def form_valid(self, form):
 
         self.object = form.save()
@@ -495,6 +500,13 @@ class OrganizationCreateView(OrganizationView, CreateView):
 class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView):
     def get_success_url(self):
         return reverse('fieldsight:organizations-dashboard', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        context = super(OrganizationUpdateView, self).get_context_data(**kwargs)
+        context['level'] = "2"
+        context['obj'] = Organization.objects.get(id=self.kwargs['pk'])
+        context['base_template'] = "fieldsight/manage_base.html"
+        return context
 
     def form_valid(self, form):
         self.object = form.save()
@@ -716,6 +728,7 @@ class ProjectCreateView(ProjectView, OrganizationRoleMixin, CreateView):
         context = super(ProjectCreateView, self).get_context_data(**kwargs)
         context['org'] = Organization.objects.get(pk=self.kwargs.get('pk'))
         context['pk'] = self.kwargs.get('pk')
+        context['base_template'] = "fieldsight/fieldsight_base.html"
         return context
 
     def get_form_kwargs(self):
@@ -746,6 +759,15 @@ class ProjectCreateView(ProjectView, OrganizationRoleMixin, CreateView):
 class ProjectUpdateView(ProjectView, ProjectRoleMixin, UpdateView):
     def get_success_url(self):
         return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectUpdateView, self).get_context_data(**kwargs)
+        context['level'] = "1"
+        context['obj'] = self.object
+        context['base_template'] = "fieldsight/manage_base.html"
+
+
+        return context
 
     def form_valid(self, form):
         self.object = form.save(new=False)
@@ -783,6 +805,44 @@ class ProjectDeleteView(ProjectRoleMixinDeleteView, View):
 
         return HttpResponseRedirect(reverse('fieldsight:org-project-list', kwargs={'pk': project.organization_id }))
 
+
+class ProjectGeoLayerView(ProjectRoleMixin, UpdateView):
+
+    model = Project
+    template_name = 'fieldsight/project_geo_layer.html'
+    form_class = ProjectGeoLayerForm
+
+    def get_success_url(self):
+        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectGeoLayerView, self).get_context_data(**kwargs)
+        context['level'] = "1"
+        context['obj'] = self.object
+        context['base_template'] = "fieldsight/manage_base.html"
+
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super(ProjectGeoLayerView, self).get_form_kwargs()
+        proj = Project.objects.get(id=self.kwargs['pk'])
+        kwargs.update({
+            'organization_id': proj.organization.id,
+        })
+        return kwargs
+
+    # def form_valid(self, form):
+    #     self.object = form.save(new=False)
+    #
+    #     noti = self.object.logs.create(source=self.request.user, type=14, title="Edit Project",
+    #                                    organization=self.object.organization,
+    #                                    project=self.object, content_object=self.object,
+    #                                    description='{0} changed the details of project named {1}'.format(
+    #                                        self.request.user.get_full_name(), self.object.name))
+
+        # return HttpResponseRedirect(self.get_success_url())
+
+
 class SiteView(object):
     model = Site
     # success_url = reverse_lazy('fieldsight:org-site-list')
@@ -814,7 +874,8 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
                                                     project_id=self.kwargs.get('pk'))
         if existing_identifier:
             messages.add_message(self.request, messages.INFO,
-                                 'Your identifier conflict with existing site please use different identifier to create site')
+                                 'Your identifier "' + form.cleaned_data.get(
+                'identifier') + '" conflict with existing site please use different identifier to create site')
 
             return HttpResponseRedirect(reverse(
                 'fieldsight:site-add',
@@ -1322,11 +1383,33 @@ class ProjSiteList(ProjectRoleMixin, ListView):
         context['pk'] = self.kwargs.get('pk')
         context['region_id'] = None
         context['type'] = "project"
+        context['obj'] = get_object_or_404(Project, id=self.kwargs.get('pk'))
+        context['level'] = "1"
         return context
 
     def get_queryset(self):
         queryset = Site.objects.filter(project_id=self.kwargs.get('pk'),is_survey=False, is_active=True)
         return queryset
+
+
+class ManageProjectSites(ProjectRoleMixin, ListView):
+    model = Site
+    template_name = 'fieldsight/manage_project_site.html'
+    paginate_by = 90
+
+    def get_context_data(self, **kwargs):
+        context = super(ManageProjectSites, self).get_context_data(**kwargs)
+        context['pk'] = self.kwargs.get('pk')
+        context['region_id'] = None
+        context['type'] = "project"
+        context['obj'] = get_object_or_404(Project, id=self.kwargs.get('pk'))
+        context['level'] = "1"
+        return context
+
+    def get_queryset(self):
+        queryset = Site.objects.filter(project_id=self.kwargs.get('pk'),is_survey=False, is_active=True)
+        return queryset
+
 
 class DonorProjSiteList(ReadonlyProjectLevelRoleMixin, ListView):
     model = Site
@@ -2151,9 +2234,10 @@ class RegionListView(RegionView, ProjectRoleMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(RegionListView, self).get_context_data(**kwargs)
         project = Project.objects.get(pk=self.kwargs.get('pk'))
-        context['project'] = project
+        context['obj'] = project
         context['pk'] = self.kwargs.get('pk')
         context['type'] = "region"
+        context["level"] = "1"
         return context
 
     def get_queryset(self):
@@ -2162,12 +2246,35 @@ class RegionListView(RegionView, ProjectRoleMixin, ListView):
         return queryset
 
 
+class ProjectRegionSitesView(ProjectRoleMixin, ListView):
+    model = Region
+    template_name = "fieldsight/project_region_sites.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectRegionSitesView, self).get_context_data(**kwargs)
+        project = Project.objects.get(pk=self.kwargs.get('project_id'))
+        context['project'] = project
+
+        return context
+
+    def get_queryset(self):
+        if self.request.GET.get("q"):
+            query = self.request.GET.get("q")
+            queryset = Region.objects.filter(project_id=self.kwargs.get('project_id'), parent=None, is_active=True).\
+                filter(Q(name__icontains=query) | Q(identifier__icontains=query))
+        else:
+            queryset = Region.objects.filter(project_id=self.kwargs.get('project_id'), parent=None, is_active=True)
+        return queryset
+
+
 class RegionCreateView(RegionView, ProjectRoleMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super(RegionCreateView, self).get_context_data(**kwargs)
         project = Project.objects.get(pk=self.kwargs.get('pk'))
-        context['project'] = project
+        context['obj'] = project
         context['pk'] = self.kwargs.get('pk')
+        context['level'] = "1"
+
         if self.kwargs.get('parent_pk'):
             context['parent_identifier'] = Region.objects.get(pk=self.kwargs.get('parent_pk')).get_concat_identifier()
             print context['parent_identifier']
@@ -2253,8 +2360,9 @@ class RegionUpdateView(RegionView, RegionRoleMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super(RegionUpdateView, self).get_context_data(**kwargs)
         region = Region.objects.get(pk=self.kwargs.get('pk'))
-        context['project'] = region.project
+        context['obj'] = region.project
         context['pk'] = self.kwargs.get('pk')
+        context['level'] = "1"
         context['subregion_list'] = Region.objects.filter(
             parent__pk=self.kwargs.get('pk')
         )
@@ -2642,11 +2750,14 @@ class SiteUserSearchView(ListView):
                    Q(user__last_name__icontains=query) | Q(user__email__icontains=query)).distinct('user_id')
 
 
+
 class DefineProjectSiteMeta(RegionSupervisorReviewerMixin, TemplateView):
     def get(self, request, pk):
         project_obj = Project.objects.get(pk=pk)
+        level = "1"
         json_questions = json.dumps(project_obj.site_meta_attributes)
-        return render(request, 'fieldsight/project_define_site_meta.html', {'obj': project_obj, 'json_questions': json_questions,})
+        return render(request, 'fieldsight/project_define_site_meta.html', {'obj': project_obj, 'json_questions':
+            json_questions, 'level': level})
 
     def post(self, request, pk, *args, **kwargs):
         project = Project.objects.get(pk=pk)
@@ -2696,6 +2807,7 @@ class SiteMetaForm(ReviewerRoleMixin, TemplateView):
 class MultiSiteAssignRegionView(ProjectRoleMixin, TemplateView):
     def get(self, request, pk):
         project = Project.objects.get(pk=pk)
+        level = "1"
 
         if project.cluster_sites is False:
             raise PermissionDenied()
@@ -3371,12 +3483,11 @@ class DefineProjectSiteCriteria(ProjectRoleMixin, TemplateView):
         project.save()
         return HttpResponseRedirect(reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs.get('pk')}))
 
+
 class AllResponseImages(ReadonlySiteLevelRoleMixin, View):
     def get(self, request, pk, **kwargs):
         all_imgs = get_images_for_site_all(pk)
         return render(request, 'fieldsight/gallery.html', {'is_donor_only': kwargs.get('is_donor_only', False), 'all_imgs' : json.dumps(list(all_imgs["result"]), cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8')})
-
-
 
 
 class SitesTypeView(ProjectRoleMixin, TemplateView):
@@ -3388,6 +3499,8 @@ class SitesTypeView(ProjectRoleMixin, TemplateView):
         types = project.types.filter(deleted=False)
         data['types'] = types
         data['obj'] = project
+        data['level'] = "1"
+
         return data
 
 
@@ -3399,6 +3512,7 @@ class AddSitesTypeView(ProjectRoleMixin, CreateView):
         data = super(AddSitesTypeView, self).get_context_data(**kwargs)
         project = Project.objects.get(pk=self.kwargs.get('pk'))
         data['obj'] = project
+        data['level'] = "1"
         return data
 
     def get_success_url(self):
@@ -3479,6 +3593,13 @@ class EditSitesTypeView(UpdateView):
             return super(EditSitesTypeView, self).dispatch(request, *args, **kwargs)
 
         raise PermissionDenied()
+
+    def get_context_data(self, **kwargs):
+        data = super(EditSitesTypeView, self).get_context_data(**kwargs)
+        project = self.object.project
+        data['obj'] = project
+        data['level'] = "1"
+        return data
 
     def get_success_url(self):
         project = self.object.project
