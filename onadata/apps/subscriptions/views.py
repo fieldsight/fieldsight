@@ -18,6 +18,7 @@ from django.views.generic import TemplateView
 from .models import Customer, Subscription, Invoice, Package
 from onadata.apps.fieldsight.models import Organization
 from onadata.apps.fieldsight.mixins import LoginRequiredMixin
+from .tasks import email_after_updating_plan
 
 
 MONTHLY_PLAN_NAME = {
@@ -341,7 +342,6 @@ def finish_subscription(request, org_id):
 
         )
         organization = get_object_or_404(Organization, id=org_id)
-
         sub_data = {
             'stripe_sub_id': sub.id,
             'is_active': True,
@@ -356,6 +356,9 @@ def finish_subscription(request, org_id):
 
         except Exception as e:
             return JsonResponse({'error': str(e)})
+
+        user = request.user
+        email_after_updating_plan.delay(user, plan_name)
 
         return render(request, 'fieldsight/pricing_step_3.html', {'organization': organization,
                                                                   'submissions': package.submissions,
@@ -440,5 +443,9 @@ def update_card(request):
     return HttpResponseRedirect(reverse("subscriptions:team_settings", kwargs={'org_id': request.user.organizations.all()[0].pk}))
 
 
+@csrf_exempt
+def charge(request):
+    stripe.api_key = settings.STRIPE_SECRET_KEY
 
-
+    data=stripe.Charge.retrieve('ch_1EP6gyJK8rFIs6PIk0IFWOe1')
+    return JsonResponse({'receipt': data['receipt_url']})

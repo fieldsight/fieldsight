@@ -79,7 +79,7 @@ import pyexcel as p
 
 from onadata.apps.fieldsight.tasks import generate_stage_status_report, generateSiteDetailsXls, UnassignAllProjectRolesAndSites, \
     UnassignAllSiteRoles, UnassignUser, generateCustomReportPdf, multiuserassignproject, bulkuploadsites, multiuserassignsite, \
-    multiuserassignregion, multi_users_assign_regions, multi_users_assign_to_entire_project
+    multiuserassignregion, multi_users_assign_regions, multi_users_assign_to_entire_project, email_after_subscribed_plan
 from .generatereport import PDFReport
 from django.utils import translation
 from django.conf import settings
@@ -460,6 +460,8 @@ class OrganizationCreateView(OrganizationView, CreateView):
             customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
             Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer, initiated_on=datetime.datetime.now(),
                                         package=free_package, organization=self.object)
+            user = self.request.user
+            email_after_subscribed_plan.delay(user, free_package)
 
         project = Project.objects.get(name="Example Project", organization_id=self.object.id)
         sites = Site.objects.filter(project=project)

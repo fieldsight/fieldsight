@@ -1,0 +1,6 @@
+{% autoescape off %}
+Hi {{ user.username }},
+You have updated your plan from Free Package to {{plan.get_plan_display}}.
+
+Download your receipt. <a href="">Receipt Form</a>
+{% endautoescape %}

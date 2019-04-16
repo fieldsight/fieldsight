@@ -42,7 +42,8 @@ from .metaAttribsGenerator import get_form_answer, get_form_sub_status, get_form
 from django.conf import settings
 from django.db.models import Sum, Case, When, IntegerField, Count
 from django.core.exceptions import MultipleObjectsReturned
-
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
@@ -1993,3 +1994,18 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
 #     print('site createed')
 #     token = user.auth_token.key
 #     clone_form.delay(user, token, project)
+
+
+@shared_task(time_limit=120, soft_time_limit=120)
+def email_after_subscribed_plan(user, free_package):
+    mail_subject = 'Thank you'
+    message = render_to_string('subscriptions/subscribed_email.html', {
+        'user': user,
+        'plan': free_package,
+        'domain': settings.SITE_URL,
+    })
+    to_email = user.email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.send()
