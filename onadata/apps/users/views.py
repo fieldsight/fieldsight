@@ -619,6 +619,10 @@ def accept_invitation(request, pk, username):
     user = get_object_or_404(User, username=username)
     invitation = get_object_or_404(UserInvite, pk=pk)
 
+    profile = user.user_profile
+    if not profile.organization:
+        profile.organization = invitation.organization
+        profile.save()
     if user.user_roles.all()[0].group.name == "Unassigned":
         previous_group = UserRole.objects.get(user=user, group__name="Unassigned")
         previous_group.delete()
@@ -746,12 +750,16 @@ def accept_all_invitations(request, username):
     user = get_object_or_404(User, username=username)
     invitations = UserInvite.objects.filter(email=user.email, is_used=False, is_declied=False)
 
-
+    profile = user.user_profile
+    if not profile.organization:
+        profile.organization = invitations[0].organization
+        profile.save()
     if user.user_roles.all()[0].group.name == "Unassigned":
         previous_group = UserRole.objects.get(user=user, group__name="Unassigned")
         previous_group.delete()
 
     for invitation in invitations:
+
         site_ids = invitation.site.all().values_list('pk', flat=True)
         project_ids = invitation.project.all().values_list('pk', flat=True)
         if invitation.regions.all().values_list('pk', flat=True).exists():
