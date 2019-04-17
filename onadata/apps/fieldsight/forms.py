@@ -256,13 +256,13 @@ class ProjectForm(forms.ModelForm):
 
         if not is_new:
             org_id = kwargs['instance'].organization.id
-        self.fields['geo_layers'].queryset = GeoLayer.objects.filter(
-            organization__id=org_id
-        )
+        # self.fields['geo_layers'].queryset = GeoLayer.objects.filter(
+        #     organization__id=org_id
+        # )
 
     class Meta:
         model = Project
-        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta')
+        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers')
         #organization_filters = ['organization']
         widgets = {
             'is_active': forms.HiddenInput(),
