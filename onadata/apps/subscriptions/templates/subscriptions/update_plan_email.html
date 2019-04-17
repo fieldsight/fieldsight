@@ -1,6 +1,12 @@
 {% autoescape off %}
 Hi {{ user.username }},
-You have updated your plan from Free Package to {{plan.get_plan_display}}.
+You have updated your plan from Free Package to {{plan_name}}.
+Features Include :
 
-Download your receipt. <a href="{{receipt_url}}">Receipt Form</a>
+{{submissions}} Submissions
+Unlimited Users, Unlimited Projects, Unlimited Sites
+Unlimited Forms, Stages & Schedules
+Unlimited Reports, Dashboards & Maps
+
+Your Receipt Form. "{{receipt_url}}"
 {% endautoescape %}
