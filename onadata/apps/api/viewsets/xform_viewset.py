@@ -2,7 +2,9 @@ import os
 import json
 
 from datetime import datetime
+
 from django.core.exceptions import ValidationError
+from django.core.files.storage import get_storage_class
 from django.contrib.auth.models import User
 from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.translation import ugettext as _
@@ -11,14 +13,11 @@ from django.shortcuts import get_object_or_404
 
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.authentication import BasicAuthentication, CSRFCheck
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.fsforms.models import XformHistory
-from onadata.apps.fsforms.tasks import post_update_xform
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -167,13 +166,18 @@ def _get_owner(request):
     return owner
 
 
-def response_for_format(data, format=None):
+def response_for_format(form, format=None):
     if format == 'xml':
-        formatted_data = data.xml
+        formatted_data = form.xml
     elif format == 'xls':
-        formatted_data = data.xls
+        file_path = form.xls.name
+        default_storage = get_storage_class()()
+        if file_path != '' and default_storage.exists(file_path):
+            formatted_data = form.xls
+        else:
+            raise Http404(_("No XLSForm found."))
     else:
-        formatted_data = json.loads(data.json)
+        formatted_data = json.loads(form.json)
     return Response(formatted_data)
 
 
@@ -250,22 +254,6 @@ def custom_response_handler(request, xform, query, export_type,
         file_path=export.filepath)
 
     return response
-
-
-from rest_framework.authentication import SessionAuthentication
-
-
-class CsrfExemptSessionAuthentication(SessionAuthentication):
-
-    def enforce_csrf(self, request):
-        # reason = CSRFCheck().process_view(request, None, (), {})
-        # import ipdb
-        # ipdb.set_trace()
-        # if reason:
-        #     CSRF failed, bail with explicit error message
-            # raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
-        return  # To not perform the csrf check previously happening
-
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
@@ -730,14 +718,13 @@ data (instance/submission per row)
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
-        renderers.SurveyRenderer
+        renderers.RawXMLRenderer
     ]
     queryset = XForm.objects.all()
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [XFormPermissions, ]
-    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     # TODO: Figure out what `updatable_fields` does; if nothing, remove it
     updatable_fields = set(('description', 'downloadable', 'require_auth',
                             'shared', 'shared_data', 'title'))
@@ -751,7 +738,6 @@ data (instance/submission per row)
     def create(self, request, *args, **kwargs):
         owner = _get_owner(request)
         survey = utils.publish_xlsform(request, owner)
-
 
         if isinstance(survey, XForm):
             xform = XForm.objects.get(pk=survey.pk)
@@ -769,16 +755,6 @@ data (instance/submission per row)
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            # noti = xform.logs.create(source=request.user, type=7, title="new Kobo form",
-            #                          organization=request.organization,
-            #                         description="new kobo form {0} created by {1}".
-            #                         format(xform.title, request.user.username))
-            # result = {}
-            # result['description'] = noti.description
-            # result['url'] = noti.get_absolute_url()
-            # ChannelGroup("notify-0").send({"text":json.dumps(result)})
-            # if noti.organization:
-            #     ChannelGroup("notify-{}".format(noti.organization.id)).send({"text":json.dumps(result)})
             headers = self.get_success_headers(serializer.data)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED,
@@ -805,22 +781,22 @@ data (instance/submission per row)
                 else:
                     # Something odd; hopefully it can be coerced into a string
                     raise exceptions.ParseError(detail=survey)
-
-            xf, created = XformHistory.objects.get_or_create(xform=existing_xform, xls=existing_xform.xls, json=existing_xform.json,
-                              description=existing_xform.description, xml=existing_xform.xml,
-                              id_string=existing_xform.id_string, title=existing_xform.title, uuid=existing_xform.uuid)
-            post_update_xform.apply_async((), {'xform_id': pk, 'user': request.user.id}, countdown=2)
-
+        # Let the superclass handle updates to the other fields
         return super(XFormViewSet, self).update(request, pk, *args, **kwargs)
 
     @detail_route(methods=['GET'])
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
-        if format not in ['json', 'xml', 'xls']:
+        if format not in ['json', 'xml', 'xls', 'csv']:
             return HttpResponseBadRequest('400 BAD REQUEST',
                                           content_type='application/json',
                                           status=400)
-        return response_for_format(form, format=format)
+
+        filename = form.id_string + "." + format
+        response = response_for_format(form, format=format)
+        response['Content-Disposition'] = 'attachment; filename=' + filename
+
+        return response
 
     @detail_route(methods=['GET'])
     def enketo(self, request, **kwargs):
@@ -847,7 +823,6 @@ data (instance/submission per row)
 
         if lookup == self.public_forms_endpoint:
             self.object_list = self._get_public_forms_queryset()
-            # _get_mobile_forms_queryset()
 
             page = self.paginate_queryset(self.object_list)
             if page is not None:
