@@ -1,3 +1,4 @@
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.permissions import IsAuthenticated
 
@@ -29,11 +30,13 @@ class XFormPermissions(DjangoObjectPermissions):
     authenticated_users_only = False
 
     def __init__(self, *args, **kwargs):
-        # The default `perms_map` does not include GET, OPTIONS, or HEAD. See
+        # The default `perms_map` does not include GET, OPTIONS, PATCH or HEAD. See
         # http://www.django-rest-framework.org/api-guide/filtering/#djangoobjectpermissionsfilter
         self.perms_map['GET'] = ['%(app_label)s.view_%(model_name)s']
         self.perms_map['OPTIONS'] = ['%(app_label)s.view_%(model_name)s']
         self.perms_map['HEAD'] = ['%(app_label)s.view_%(model_name)s']
+        self.perms_map['PATCH'] = ['%(app_label)s.change_%(model_name)s']
+
         return super(XFormPermissions, self).__init__(*args, **kwargs)
 
     def has_permission(self, request, view):
@@ -42,16 +45,11 @@ class XFormPermissions(DjangoObjectPermissions):
 
         if 'pk' in view.kwargs:
 
-            # Always allow listing xform (again, this is to match unit tests)
-            # since we are filtering them down the road.
-            if view.action == 'list':
-                return True
-
-            # Allow getting a shared xform is you are anonymous.
-            pk = view.kwargs.get('pk')
-            if view.action == 'retrieve':
-                xform = XForm.objects.get(pk=pk)
-                if xform.shared_data or xform.shared:
+            # Allow anonymous users to access shared data
+            if request.method == 'GET' and view.action in ('list', 'retrieve'):
+                pk = view.kwargs.get('pk')
+                xform = get_object_or_404(XForm, pk=pk)
+                if xform.shared_data:
                     return True
 
             check_inherit_permission_from_project(view.kwargs.get('pk'),
@@ -66,13 +64,12 @@ class XFormPermissions(DjangoObjectPermissions):
         return super(XFormPermissions, self).has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
-
-        # Currently the permissions are ambigious on this. They check
-        # permissions, but want to let you list public data. So we always
-        # return True for list, and let the view filter the with shared*=True
-        # down the road
-        if request.method == 'GET' and view.action == 'list':
-            return True
+        # Allow anonymous users to access shared data
+        if request.method == 'GET' and view.action in ('list', 'retrieve'):
+            pk = view.kwargs.get('pk')
+            xform = get_object_or_404(XForm, pk=pk)
+            if xform.shared_data:
+                return True
 
         if request.method == 'DELETE' and view.action == 'labels':
             user = request.user
@@ -81,6 +78,18 @@ class XFormPermissions(DjangoObjectPermissions):
 
         return super(XFormPermissions, self).has_object_permission(
             request, view, obj)
+
+
+class XFormDataPermissions(XFormPermissions):
+
+    # TODO: move other data-specific logic out of `XFormPermissions` and into
+    # this class
+
+    def __init__(self, *args, **kwargs):
+        super(XFormDataPermissions, self).__init__(*args, **kwargs)
+        # Those who can edit submissions can also delete them, following the
+        # behavior of `onadata.apps.main.views.delete_data`
+        self.perms_map['DELETE'] = ['%(app_label)s.' + CAN_CHANGE_XFORM]
 
 
 class UserProfilePermissions(DjangoObjectPermissions):
