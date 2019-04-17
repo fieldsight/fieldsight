@@ -10,6 +10,5 @@ urlpatterns = [
     url(r'^finish/(?P<org_id>\d+)/$', finish_subscription, name='finish_subscription'),
     url(r'^ajax/get-package/$', get_package, name='get_package'),
     url(r'^team-settings/(?P<org_id>\d+)/$', TeamSettingsView.as_view(), name='team_settings'),
-    url(r'^charge/$', charge, name='charge'),
 
 ]

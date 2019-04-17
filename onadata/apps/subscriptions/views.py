@@ -433,14 +433,3 @@ def update_card(request):
 
         messages.success(request, 'You have been successfully updated your card.')
     return HttpResponseRedirect(reverse("subscriptions:team_settings", kwargs={'org_id': request.user.organizations.all()[0].pk}))
-
-
-@csrf_exempt
-def charge(request):
-    stripe.api_key = settings.STRIPE_SECRET_KEY
-
-    # data=stripe.Charge.retrieve('ch_1EP6gyJK8rFIs6PIk0IFWOe1')
-    # return JsonResponse({'receipt': data['receipt_url']})
-    data = {}
-    return JsonResponse(data)
-
