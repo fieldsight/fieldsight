@@ -2252,7 +2252,7 @@ class ProjectRegionSitesView(ProjectRoleMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super(ProjectRegionSitesView, self).get_context_data(**kwargs)
-        project = Project.objects.get(pk=self.kwargs.get('project_id'))
+        project = Project.objects.get(pk=self.kwargs.get('pk'))
         context['project'] = project
 
         return context
@@ -2260,10 +2260,10 @@ class ProjectRegionSitesView(ProjectRoleMixin, ListView):
     def get_queryset(self):
         if self.request.GET.get("q"):
             query = self.request.GET.get("q")
-            queryset = Region.objects.filter(project_id=self.kwargs.get('project_id'), parent=None, is_active=True).\
+            queryset = Region.objects.filter(project_id=self.kwargs.get('pk'), parent=None, is_active=True).\
                 filter(Q(name__icontains=query) | Q(identifier__icontains=query))
         else:
-            queryset = Region.objects.filter(project_id=self.kwargs.get('project_id'), parent=None, is_active=True)
+            queryset = Region.objects.filter(project_id=self.kwargs.get('pk'), parent=None, is_active=True)
         return queryset
 
 
