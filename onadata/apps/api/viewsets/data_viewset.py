@@ -1,25 +1,30 @@
+import json
+
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
-from django.core.exceptions import PermissionDenied
 
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.settings import api_settings
 
 from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
-from onadata.apps.api.tools import add_tags_to_instance
+from onadata.apps.api.tools import add_tags_to_instance, \
+    add_validation_status_to_instance, get_validation_status, \
+    remove_validation_status_from_instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
-from onadata.apps.api.permissions import XFormPermissions
+from onadata.apps.api.permissions import XFormDataPermissions
+from onadata.libs.permissions import CAN_CHANGE_XFORM
 from onadata.libs.serializers.data_serializer import (
     DataSerializer, DataListSerializer, DataInstanceSerializer)
 from onadata.libs import filters
@@ -284,6 +289,53 @@ https://example.com/api/v1/data/28058/20/labels/hello%20world
 >
 >        HTTP 200 OK
 
+
+## Query submitted validation status of a specific submission
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/validation_status</pre>
+
+> Example
+>
+>       curl -X GET https://example.com/api/v1/data/22845/56/validation_status
+
+> Response
+>
+>       {
+>           "timestamp": 1513299978,
+>           "by_whom ": "John Doe",
+>           "uid": "validation_status_approved",
+>           "color": "#00ff00",
+>           "label: "Approved"
+>       }
+
+## Change validation status of a submission data point
+
+A `PATCH` payload of parameter `validation_status`.
+
+<pre class="prettyprint">
+<b>PATCH</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/validation_status</pre>
+
+Payload
+
+>       {
+>           "validation_status_uid": "validation_status_not_approved"
+>       }
+
+> Example
+>
+>       curl -X PATCH https://example.com/api/v1/data/22845/56/validation_status
+
+> Response
+>
+>       {
+>           "timestamp": 1513299978,
+>           "by_whom ": "John Doe",
+>           "uid": "validation_status_not_approved",
+>           "color": "#ff0000",
+>           "label": "Not Approved"
+>       }
+
 ## Get list of public data endpoints
 
 <pre class="prettyprint">
@@ -345,12 +397,13 @@ Delete a specific submission in a form
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
-        renderers.SurveyRenderer
+        renderers.RawXMLRenderer
     ]
 
+    content_negotiation_class = renderers.InstanceContentNegotiation
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
                        filters.XFormOwnerFilter)
-    permission_classes = (XFormPermissions,)
+    permission_classes = (XFormDataPermissions,)
     lookup_field = 'pk'
     lookup_fields = ('pk', 'dataid')
     extra_lookup_fields = None
@@ -379,6 +432,10 @@ Delete a specific submission in a form
         dataid = self.kwargs.get(dataid_lookup)
 
         if pk is not None and dataid is not None:
+            try:
+                int(pk)
+            except ValueError:
+                raise ParseError(_(u"Invalid pk %(pk)s" % {'pk': pk}))
             try:
                 int(dataid)
             except ValueError:
@@ -427,6 +484,37 @@ Delete a specific submission in a form
 
         return qs
 
+    @detail_route(methods=["GET", "PATCH", "DELETE"])
+    def validation_status(self, request, *args, **kwargs):
+        """
+        View or modify validation status of specific instance.
+        User needs 'validate_xform' permission to update the data.
+
+        :param request: Request
+        :return: Response
+        """
+        http_status = status.HTTP_200_OK
+        instance = self.get_object()
+        data = {}
+
+        if request.method != "GET":
+            if request.user.has_perm("validate_xform", instance.asset):
+                if request.method == "PATCH" and not add_validation_status_to_instance(request, instance):
+                    http_status = status.HTTP_400_BAD_REQUEST
+                elif request.method == "DELETE":
+                    if remove_validation_status_from_instance(instance):
+                        http_status = status.HTTP_204_NO_CONTENT
+                        data = None
+                    else:
+                        http_status = status.HTTP_400_BAD_REQUEST
+            else:
+                raise PermissionDenied(_(u"You do not have validate permissions."))
+
+        if http_status == status.HTTP_200_OK:
+            data = instance.validation_status
+
+        return Response(data, status=http_status)
+
     @detail_route(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
     def labels(self, request, *args, **kwargs):
         http_status = status.HTTP_400_BAD_REQUEST
@@ -466,7 +554,7 @@ Delete a specific submission in a form
         data = {}
         if isinstance(self.object, XForm):
             raise ParseError(_(u"Data id not provided."))
-        elif(isinstance(self.object, Instance)):
+        elif isinstance(self.object, Instance):
             if request.user.has_perm("change_xform", self.object.xform):
                 return_url = request.query_params.get('return_url')
                 if not return_url:
@@ -482,44 +570,32 @@ Delete a specific submission in a form
 
         return Response(data=data)
 
+    def retrieve(self, request, *args, **kwargs):
+        # XML rendering does not a serializer
+        if request.accepted_renderer.format == "xml":
+            instance = self.get_object()
+            return Response(instance.xml)
+        else:
+            return super(DataViewSet, self).retrieve(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         self.object = self.get_object()
 
         if isinstance(self.object, XForm):
             raise ParseError(_(u"Data id not provided."))
         elif isinstance(self.object, Instance):
-
-            if request.user.has_perm("delete_xform", self.object.xform):
+            # Redundant permissions check that duplicates
+            # `XFormDataPermissions`, left here to minimize changes. We're
+            # deleting an `Instance`, not an `XForm`, so the correct permission
+            # to verify is `change_xform` (`CAN_CHANGE_XFORM`). This matches
+            # the behavior of `onadata.apps.main.views.delete_data`
+            if request.user.has_perm(CAN_CHANGE_XFORM, self.object.xform):
                 self.object.delete()
             else:
                 raise PermissionDenied(_(u"You do not have delete "
                                          u"permissions."))
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def retrieve(self, request, *args, **kwargs):
-        data_id = str(kwargs.get('dataid'))
-        _format = kwargs.get('format')
-
-        if not data_id.isdigit():
-            raise ParseError(_(u"Data ID should be an integer"))
-
-        try:
-            instance = Instance.objects.get(pk=data_id)
-            if _format == 'json' or _format is None:
-                return Response(instance.json)
-            elif _format == 'xml':
-                return Response(instance.xml)
-            else:
-                raise ParseError(
-                    _(u"'%(_format)s' format unknown or not implemented!" %
-                      {'_format': _format})
-                )
-        except Instance.DoesNotExist:
-            raise ParseError(
-                _(u"data with id '%(data_id)s' not found!" %
-                  {'data_id': data_id})
-            )
 
     def list(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
@@ -556,3 +632,88 @@ Delete a specific submission in a form
             return res
 
         return custom_response_handler(request, xform, query, export_type)
+
+    def modify(self, request, *args, **kwargs):
+
+        xform = self.get_object()
+        http_status = status.HTTP_200_OK
+        response = {}
+
+        if request.user.has_perm("validate_xform", xform):
+
+            owner = xform.user
+            userform_id = "{}_{}".format(owner.username, xform.id_string)
+            query = {ParsedInstance.USERFORM_ID: userform_id}  # Query used for MongoDB
+            filter_ = {"xform_id": xform.id}  # Filter for Django ORM
+            payload = {}
+
+            try:
+                payload = json.loads(request.data.get("payload", "{}"))
+            except ValueError:
+                http_status = status.HTTP_400_BAD_REQUEST
+                response = {"detail": _("Invalid payload")}
+
+            if http_status == status.HTTP_200_OK:
+
+                if request.data.get("reset"):
+                    new_validation_status_uid = {}
+                else:
+                    new_validation_status_uid = payload.get("validation_status.uid")
+
+                if new_validation_status_uid is None:
+                    http_status = status.HTTP_400_BAD_REQUEST
+                    response = {"detail": _("No validation_status.uid provided")}
+                else:
+                    # Create new validation_status object
+                    new_validation_status = get_validation_status(
+                        new_validation_status_uid, xform, request.user.username)
+
+                    # 3 scenarios to update submissions
+
+                    # First scenario / Modify submissions based on user's query
+                    if payload.get("query"):
+                        # Validate if query is valid.
+                        try:
+                            query.update(payload.get("query"))
+                        except ValueError:
+                            raise ParseError(_("Invalid query: %(query)s"
+                                               % {'query': json.dumps(payload.get("query"))}))
+
+                        query_kwargs = {
+                            "query": json.dumps(query),
+                            "fields": '["_id"]'
+                        }
+
+                        cursor = ParsedInstance.query_mongo_no_paging(**query_kwargs)
+                        submissions_ids = [record.get("_id") for record in list(cursor)]
+                        filter_.update({"id__in": submissions_ids})
+
+                    # Second scenario / Modify submissions based on list of ids
+                    elif payload.get("submissions_ids"):
+                        try:
+                            # Use int() to test if list of integers is valid.
+                            submissions_ids = payload.get("submissions_ids", [])
+                            or_ = {u"$or": [{u"_id": int(submission_id)} for submission_id in submissions_ids]}
+                            query.update(or_)
+                        except ValueError:
+                            raise ParseError(_("Invalid submissions ids: %(submissions_ids)s"
+                                               % {'submissions_ids': json.dumps(payload.get("submissions_ids"))}))
+
+                        filter_.update({"id__in": submissions_ids})
+                    # Third scenario / Modify all submissions in form, but confirmation param must be among payload
+                    elif payload.get("confirm", False) is not True:
+                        http_status = status.HTTP_400_BAD_REQUEST
+                        response = {"detail": _("No confirmations provided")}
+
+                    # If everything is OK, submit data to DBs
+                    if http_status == status.HTTP_200_OK:
+                        # Update Postgres & Mongo
+                        updated_records_count = Instance.objects.\
+                            filter(**filter_).update(validation_status=new_validation_status)
+                        ParsedInstance.bulk_update_validation_statuses(query, new_validation_status)
+                        response = {"detail": _("{} submissions have been updated").format(updated_records_count)}
+
+            return Response(response, http_status)
+
+        else:
+            raise PermissionDenied(_(u"You do not have validate permissions."))
