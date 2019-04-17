@@ -14,10 +14,12 @@ from django.shortcuts import get_object_or_404
 from django.core.urlresolvers import reverse
 from django.contrib import messages
 from django.views.generic import TemplateView
+from django.contrib.auth.models import User
 
 from .models import Customer, Subscription, Invoice, Package
 from onadata.apps.fieldsight.models import Organization
 from onadata.apps.fieldsight.mixins import LoginRequiredMixin
+from .tasks import email_after_updating_plan
 
 
 MONTHLY_PLAN_NAME = {
@@ -122,7 +124,6 @@ def stripe_webhook(request):
 
     try:
         event_json = json.loads(request.body)
-        print('...........Event occurs..................', event_json['type'])
 
         # timestamp = int(event_json['data']['object']['period_start'])
         sub_obj = Subscription.objects.get(stripe_customer__stripe_cust_id=event_json['data']['object']['customer'])
@@ -131,6 +132,7 @@ def stripe_webhook(request):
         timestamp = int(time.mktime(now.timetuple()))
 
         if event_json['type'] == 'invoice.created':
+            print('...................Event invoice.created.............')
 
             def metered_usage_api(quantity):
                 """
@@ -263,25 +265,19 @@ def stripe_webhook(request):
 
                     invoice_obj(amount=package.total_charge, quantity=submission_count, overage=0, roll_over=0)
 
-        # elif event_json['type'] == 'invoice.payment_succeeded' and timestamp_to_date == datetime.now().strftime('%Y-%m-%d'):
-        #     """
-        #
-        #     First Payment after subscribed to plans in stripe, create invoice object
-        #     """
-        #     print('Firsttttttttttttttttt payment success')
-        #
-        #     # after payment succeeded, create Invoice object in first month or year
-        #     stripe_cust_id = Customer.objects.get(stripe_cust_id=event_json['data']['object']['customer'])
-        #     package = Subscription.objects.get(stripe_customer=stripe_cust_id).package
-        #     invoice_data = {
-        #         'customer': stripe_cust_id,
-        #         'created': datetime.utcfromtimestamp(int(event_json['data']['object']['date'])),
-        #         'amount': event_json['data']['object']['amount_paid']/100,
-        #         'quantity': package.submissions,
-        #         'overage': 0,
-        #         'roll_over': 0
-        #     }
-        #     Invoice.objects.create(**invoice_data)
+        elif event_json['type'] == 'charge.succeeded':
+            """
+                After stripe charged the customer
+            """
+            print('...................Event charge.succeeded.............')
+
+            receipt_url = event_json['data']['object']['receipt_url']
+            stripe_customer = event_json['data']['object']['customer']
+            user = Customer.objects.get(stripe_cust_id=stripe_customer).user
+            sub = Subscription.objects.get(stripe_customer__stripe_cust_id=stripe_customer)
+            plan_name = sub.package.get_plan_display()
+            submissions = sub.package.submissions
+            email_after_updating_plan.delay(user, receipt_url, plan_name, submissions)
 
         return HttpResponse(status=200)
 
@@ -341,7 +337,6 @@ def finish_subscription(request, org_id):
 
         )
         organization = get_object_or_404(Organization, id=org_id)
-
         sub_data = {
             'stripe_sub_id': sub.id,
             'is_active': True,
@@ -439,7 +434,3 @@ def update_card(request):
 
         messages.success(request, 'You have been successfully updated your card.')
     return HttpResponseRedirect(reverse("subscriptions:team_settings", kwargs={'org_id': request.user.organizations.all()[0].pk}))
-
-
-
-
