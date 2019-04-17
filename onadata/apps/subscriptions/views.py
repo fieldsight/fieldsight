@@ -358,7 +358,8 @@ def finish_subscription(request, org_id):
             return JsonResponse({'error': str(e)})
 
         user = request.user
-        email_after_updating_plan.delay(user, plan_name)
+
+        email_after_updating_plan.delay(user, plan_name, stripe_customer)
 
         return render(request, 'fieldsight/pricing_step_3.html', {'organization': organization,
                                                                   'submissions': package.submissions,
@@ -447,5 +448,9 @@ def update_card(request):
 def charge(request):
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
-    data=stripe.Charge.retrieve('ch_1EP6gyJK8rFIs6PIk0IFWOe1')
-    return JsonResponse({'receipt': data['receipt_url']})
+    # data=stripe.Charge.retrieve('ch_1EP6gyJK8rFIs6PIk0IFWOe1')
+    # return JsonResponse({'receipt': data['receipt_url']})
+    data = stripe.Charge.list(limit=3, customer=stripe.Customer.retrieve("cus_Eih0owwtt6W25U"))
+
+    return HttpResponse(data)
+
