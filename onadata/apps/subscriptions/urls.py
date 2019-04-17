@@ -1,6 +1,6 @@
 from django.conf.urls import url
 
-from .views import subscribe_view, stripe_webhook, TeamSettingsView, update_card, finish_subscription, get_package, charge
+from .views import subscribe_view, stripe_webhook, TeamSettingsView, update_card, finish_subscription, get_package
 
 urlpatterns = [
     # url(r'^thanks/(?P<org_id>\d+)/$', subscribe_view, name='subscribe_old'),
