@@ -10,7 +10,14 @@ from onadata.apps.api.urls import BriefcaseApi
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 
+from onadata.apps.users.forms import ValidatingPasswordChangeForm
+
 admin.autodiscover()
+
+
+urlpatterns += patterns('django.contrib.staticfiles.views',
+                        url(r'^static/(?P<path>.*)$', 'serve'))
+
 
 urlpatterns = patterns(
     '',
@@ -24,13 +31,32 @@ urlpatterns = patterns(
     url(r'^api/', RedirectView.as_view(url='/api/v1/')),
     url(r'^api/v1', RedirectView.as_view(url='/api/v1/')),
 
+    url(r'^fieldsight-api/docs/', include('rest_framework_docs.urls')),
+
+    url(r'^staff/', include('onadata.apps.staff.urls', namespace='staff')),
+    url(r'^users/', include('onadata.apps.users.urls', namespace='users')),
+    url(r'^fieldsight/', include('onadata.apps.fieldsight.urls', namespace='fieldsight')),
+    url(r'^fieldsight/export/', include('onadata.apps.fieldsight.fs_exports.urls', namespace='fieldsight_export')),
+    url(r'^userrole/', include('onadata.apps.userrole.urls', namespace='role')),
+    url(r'^forms/', include('onadata.apps.fsforms.urls', namespace='forms')),
+    url(r'^events/', include('onadata.apps.eventlog.urls', namespace='eventlog')),
+    url(r'^subscription/', include('onadata.apps.subscriptions.urls', namespace='subscriptions')),
+
     # django default stuff
-    url(r'^accounts/', include('onadata.apps.main.registration_urls')),
     # url(r'^admin/', include(admin.site.urls)),
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
+    url(r'^accounts/login/', RedirectView.as_view(url='/users/accounts/login/'), name='login'),
+    url(r'^accounts/logout/', 'django.contrib.auth.views.logout',
+        {'next_page': '/'}, name='auth_logout'),
+    url(r'^accounts/password/change/$', 'django.contrib.auth.views.password_change',
+        {'password_change_form': ValidatingPasswordChangeForm,
+         'post_change_redirect': '/accounts/password/change/done'}),
+    url(r'^accounts/', include('onadata.apps.main.registration_urls')),
+
     # oath2_provider
     url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
+    url(r'^oauth/', include('social_django.urls', namespace='social')),
 
     # google urls
     url(r'^gauthtest/$',
@@ -41,7 +67,9 @@ urlpatterns = patterns(
         name='google-auth-welcome'),
 
     # main website views
-    url(r'^$', 'onadata.apps.main.views.home'),
+    # url(r'^$', 'onadata.apps.main.views.home'),
+    url(r'^$', 'onadata.apps.fieldsight.views.dashboard', name='dashboard'),
+
     url(r'^tutorial/$', 'onadata.apps.main.views.tutorial', name='tutorial'),
     url(r'^about-us/$', 'onadata.apps.main.views.about_us', name='about-us'),
     url(r'^getting_started/$', 'onadata.apps.main.views.getting_started',
@@ -308,5 +336,13 @@ urlpatterns = patterns(
 
 )
 
-urlpatterns += patterns('django.contrib.staticfiles.views',
-                        url(r'^static/(?P<path>.*)$', 'serve'))
+if settings.DEBUG:
+    import debug_toolbar
+
+    urlpatterns += patterns(
+        '',
+        url(r'^__debug__/', include(debug_toolbar.urls)),
+
+    )
+
+
