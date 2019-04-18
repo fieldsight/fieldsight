@@ -15,16 +15,12 @@ import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
 
-from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
-from django.utils.log import AdminEmailHandler
 from pymongo import MongoClient
-
-
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 ONADATA_DIR = BASE_DIR
-PROJECT_ROOT= os.path.abspath(os.path.join(ONADATA_DIR, '..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(ONADATA_DIR, '..'))
 
 PRINT_EXCEPTION = False
 
@@ -51,15 +47,11 @@ TIME_ZONE = 'America/New_York'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGES = (
-    ('en-us', 'English'),
-)
 LANGUAGE_CODE = 'en-us'
-
 
 ugettext = lambda s: s
 
-SITE_ID = 1
+SITE_ID = os.environ.get('DJANGO_SITE_ID', '1')
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
@@ -87,15 +79,18 @@ STATIC_URL = '/static/'
 # Enketo URL.
 # Configurable settings.
 ENKETO_URL = os.environ.get('ENKETO_URL', 'https://enketo.kobotoolbox.org')
-ENKETO_URL= ENKETO_URL.rstrip('/')
+KOBOCAT_URL = os.environ.get('KOBOCAT_URL', 'https://kc.kobotoolbox.org')
+
+
+ENKETO_URL = ENKETO_URL.rstrip('/')
 ENKETO_API_TOKEN = os.environ.get('ENKETO_API_TOKEN', 'enketorules')
-ENKETO_VERSION= os.environ.get('ENKETO_VERSION', 'express').lower()
+ENKETO_VERSION = os.environ.get('ENKETO_VERSION', 'Legacy').lower()
 assert ENKETO_VERSION in ['legacy', 'express']
 # Constants.
 ENKETO_API_ENDPOINT_ONLINE_SURVEYS = '/survey'
 ENKETO_API_ENDPOINT_OFFLINE_SURVEYS = '/survey/offline'
-ENKETO_API_ENDPOINT_INSTANCE= '/instance'
-ENKETO_API_ENDPOINT_INSTANCE_IFRAME= '/instance/iframe'
+ENKETO_API_ENDPOINT_INSTANCE = '/instance'
+ENKETO_API_ENDPOINT_INSTANCE_IFRAME = '/instance/iframe'
 # Computed settings.
 if ENKETO_VERSION == 'express':
     ENKETO_API_ROOT= '/api/v2'
@@ -105,8 +100,8 @@ if ENKETO_VERSION == 'express':
             else ENKETO_API_ENDPOINT_ONLINE_SURVEYS
 else:
     ENKETO_API_ROOT= '/api_v1'
-    ENKETO_API_ENDPOINT_PREVIEW= '/webform/preview'
-    ENKETO_OFFLINE_SURVEYS= False
+    ENKETO_API_ENDPOINT_PREVIEW = '/webform/preview'
+    ENKETO_OFFLINE_SURVEYS = False
     ENKETO_API_ENDPOINT_SURVEYS= ENKETO_API_ENDPOINT_ONLINE_SURVEYS
 ENKETO_API_SURVEY_PATH = ENKETO_API_ROOT + ENKETO_API_ENDPOINT_SURVEYS
 ENKETO_API_INSTANCE_PATH = ENKETO_API_ROOT + ENKETO_API_ENDPOINT_INSTANCE
@@ -114,11 +109,28 @@ ENKETO_PREVIEW_URL = ENKETO_URL + ENKETO_API_ENDPOINT_PREVIEW
 ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + ENKETO_API_ROOT + ENKETO_API_ENDPOINT_INSTANCE_IFRAME
 
 KPI_URL = os.environ.get('KPI_URL', False)
+KPI_INTERNAL_URL = os.environ.get("KPI_INTERNAL_URL", KPI_URL)
 
 # specifically for site urls sent to enketo for form retrieval
+# `ENKETO_PROTOCOL` variable is overridden when internal domain name is used.
+# All internal communications between containers must be HTTP only.
 ENKETO_PROTOCOL = os.environ.get('ENKETO_PROTOCOL', 'https')
 
-LOGIN_URL = '/users/accounts/login/'
+# These 2 variables are needed to detect whether the ENKETO_PROTOCOL should overwritten or not.
+# See method `_get_form_url` in `onadata/libs/utils/viewer_tools.py`
+KOBOCAT_INTERNAL_HOSTNAME = "{}.{}".format(
+    os.environ.get("KOBOCAT_PUBLIC_SUBDOMAIN", "kc"),
+    os.environ.get("INTERNAL_DOMAIN_NAME", "docker.internal"))
+KOBOCAT_PUBLIC_HOSTNAME = "{}.{}".format(
+    os.environ.get("KOBOCAT_PUBLIC_SUBDOMAIN", "kc"),
+    os.environ.get("PUBLIC_DOMAIN_NAME", "kobotoolbox.org"))
+
+# Default value for the `UserProfile.require_auth` attribute. Even though it's
+# set in kc_environ, include it here as well to support legacy installations
+REQUIRE_AUTHENTICATION_TO_SEE_FORMS_AND_SUBMIT_DATA_DEFAULT = False
+
+# Login URLs
+LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/login_redirect/'
 
 # URL prefix for admin static files -- CSS, JavaScript and images.
@@ -159,8 +171,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'readonly.context_processors.readonly',
     'onadata.apps.main.context_processors.google_analytics',
     'onadata.apps.main.context_processors.site_name',
-    'onadata.apps.main.context_processors.base_url',
-    'onadata.apps.eventlog.context_processors.events'
+    'onadata.apps.main.context_processors.base_url'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -180,12 +191,6 @@ MIDDLEWARE_CLASSES = (
     #'django.middleware.transaction.TransactionMiddleware',
     'onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
     'readonly.middleware.DatabaseReadOnlyMiddleware',
-    'linaro_django_pagination.middleware.PaginationMiddleware',
-    'webstack_django_sorting.middleware.SortingMiddleware',
-    'onadata.apps.users.middleware.RoleMiddleware',
-    # 'onadata.apps.api.middleware.DisableCSRFOnDebug',
-    
-
 )
 
 
@@ -230,14 +235,6 @@ INSTALLED_APPS = (
     'onadata.apps.main',
     'onadata.apps.restservice',
     'onadata.apps.api',
-    'onadata.apps.fieldsight',
-    'onadata.apps.users',
-    'onadata.apps.userrole',
-    'onadata.apps.fsforms',
-    'onadata.apps.eventlog',
-    'onadata.apps.staff',
-    'onadata.apps.geo',
-    'onadata.apps.remote_app',
     'guardian',
     'onadata.apps.stats',
     'onadata.apps.sms_support',
@@ -245,10 +242,8 @@ INSTALLED_APPS = (
     'onadata.apps.survey_report',
     'onadata.apps.export',
     'pure_pagination',
-    'linaro_django_pagination',
-    'webstack_django_sorting',
-    'onadata.apps.subscriptions',
-
+    'django_celery_beat',
+    'django_extensions',
 )
 
 OAUTH2_PROVIDER = {
@@ -323,7 +318,10 @@ AUTHENTICATION_BACKENDS = (
     'guardian.backends.ObjectPermissionBackend',
 )
 
-# Settings for Django Registration
+# All registration should be done through KPI, so Django Registration should
+# never be enabled here. It'd be best to remove all references to the
+# `registration` app in the future.
+REGISTRATION_OPEN = False
 ACCOUNT_ACTIVATION_DAYS = 1
 
 
@@ -343,6 +341,7 @@ def skip_suspicious_operations(record):
         if isinstance(exc_value, SuspiciousOperation):
             return False
     return True
+
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
@@ -409,14 +408,6 @@ LOGGING = {
     }
 }
 
-
-def configure_logging(logger, **kwargs):
-    admin_email_handler = AdminEmailHandler()
-    admin_email_handler.setLevel(logging.ERROR)
-    logger.addHandler(admin_email_handler)
-
-after_setup_logger.connect(configure_logging)
-
 GOOGLE_STEP2_URI = 'http://ona.io/gwelcome'
 GOOGLE_CLIENT_ID = '617113120802.onadata.apps.googleusercontent.com'
 GOOGLE_CLIENT_SECRET = '9reM29qpGFPyI8TBuB54Z4fk'
@@ -430,31 +421,42 @@ THUMB_CONF = {
 THUMB_ORDER = ['large', 'medium', 'small']
 IMG_FILE_TYPE = 'jpg'
 
+# Number of times Celery retries to send data to external rest service
+REST_SERVICE_MAX_RETRIES = 3
+
 # celery
-BROKER_BACKEND = "librabbitmq"
-BROKER_URL = 'amqp://guest:guest@localhost:5672/'
-CELERY_RESULT_BACKEND = "amqp"  # telling Celery to report results to RabbitMQ
-CELERY_ALWAYS_EAGER = False
+CELERY_BROKER_URL = 'redis://localhost:6389/2'
+CELERY_RESULT_BACKEND = 'redis://localhost:6389/2'  # telling Celery to report results to Redis
+CELERY_TASK_ALWAYS_EAGER = False
 
 # Celery defaults to having as many workers as there are cores. To avoid
 # excessive resource consumption, don't spawn more than 6 workers by default
 # even if there more than 6 cores.
-CELERYD_MAX_CONCURRENCY = int(os.environ.get('CELERYD_MAX_CONCURRENCY', 6))
-if multiprocessing.cpu_count() > CELERYD_MAX_CONCURRENCY:
-    CELERYD_CONCURRENCY = CELERYD_MAX_CONCURRENCY
+CELERY_WORKER_MAX_CONCURRENCY = int(os.environ.get('CELERYD_MAX_CONCURRENCY', 6))
+if multiprocessing.cpu_count() > CELERY_WORKER_MAX_CONCURRENCY:
+    CELERY_WORKER_CONCURRENCY = CELERY_WORKER_MAX_CONCURRENCY
 
 # Replace a worker after it completes 7 tasks by default. This allows the OS to
 # reclaim memory allocated during large tasks
-CELERYD_MAX_TASKS_PER_CHILD = int(os.environ.get(
+CELERY_WORKER_MAX_TASKS_PER_CHILD = int(os.environ.get(
     'CELERYD_MAX_TASKS_PER_CHILD', 7))
 
 # Default to a 30-minute soft time limit and a 35-minute hard time limit
-CELERYD_TASK_TIME_LIMIT = int(os.environ.get('CELERYD_TASK_TIME_LIMIT', 2100))
-CELERYD_TASK_SOFT_TIME_LIMIT = int(os.environ.get(
+CELERY_TASK_TIME_LIMIT = int(os.environ.get('CELERY_TASK_TIME_LIMIT', 2100))
+CELERY_TASK_SOFT_TIME_LIMIT = int(os.environ.get(
     'CELERYD_TASK_SOFT_TIME_LIMIT', 1800))
 
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "fanout_patterns": True,
+    "fanout_prefix": True,
+    # http://docs.celeryproject.org/en/latest/getting-started/brokers/redis.html#redis-visibility-timeout
+    "visibility_timeout": 120 * (10 ** REST_SERVICE_MAX_RETRIES)  # Longest ETA for RestService
+}
+
+CELERY_TASK_DEFAULT_QUEUE = "kobocat_queue"
+
 # duration to keep zip exports before deletion (in seconds)
-ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour
+ZIP_EXPORT_COUNTDOWN = 24 * 60 * 60
 
 # default content length for submission requests
 DEFAULT_CONTENT_LENGTH = 10000000
@@ -488,6 +490,7 @@ os.environ['wsgi.url_scheme'] = 'https'
 SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'image/jpeg',
     'image/png',
+    'image/svg+xml',
     'audio/mpeg',
     'video/3gpp',
     'audio/wav',
@@ -531,7 +534,26 @@ SOUTH_MIGRATION_MODULES = {
     'onadata.apps.logger': 'onadata.apps.logger.south_migrations',
     'onadata.apps.viewer': 'onadata.apps.viewer.south_migrations',
 }
-SERIALIZATION_MODULES = {
-    "custom_geojson": "onadata.apps.fieldsight.serializers.GeoJSONSerializer",
-    "full_detail_geojson": "onadata.apps.fieldsight.serializers.FullDetailGeoJSONSerializer",
-}
+
+DEFAULT_VALIDATION_STATUSES = [
+    {
+        'uid': 'validation_status_not_approved',
+        'color': '#ff0000',
+        'label': 'Not Approved'
+    },
+    {
+        'uid': 'validation_status_approved',
+        'color': '#00ff00',
+        'label': 'Approved'
+    },
+    {
+        'uid': 'validation_status_on_hold',
+        'color': '#0000ff',
+        'label': 'On Hold'
+    },
+]
+
+# Make Django use NginX $host. Useful when running with ./manage.py runserver_plus
+# It avoids adding the debugger webserver port (i.e. `:8000`) at the end of urls.
+if os.getenv("USE_X_FORWARDED_HOST", "False") == "True":
+    USE_X_FORWARDED_HOST = True
