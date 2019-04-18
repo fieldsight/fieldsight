@@ -1,0 +1,110 @@
+form {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+form .header {
+    flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #e0e0e0;
+    padding-left: 8px;
+}
+
+form .header .title {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0;
+}
+
+form .header .btn {
+    display: inline;
+    padding: 8px;
+    margin: 0;
+    font-size: 14px;
+    font-weight: initial;
+    cursor: pointer;
+    border: 0;
+}
+
+form .header .btn i {
+    margin-right: 4px;
+    padding: 0;
+}
+
+form .left {
+    flex-basis: 20%;
+    padding-top: 16px;
+    background-color: #fafafa;
+    height: calc(100vh - 176px);
+    overflow-y: auto;
+}
+
+form .left #filters {
+    padding: 0 8px;
+}
+
+form .left p {
+    padding: 0 8px;
+}
+
+form .left .sites li {
+    padding: 4px 8px;
+}
+
+
+form .left .sites li:nth-child(odd) {
+    background-color: #f0f0f0;
+}
+
+form .left .sites input {
+    margin-right: 4px;
+}
+
+form .right {
+    flex-basis: 80%;
+    padding: 16px;
+    background-color: #fff;
+    height: calc(100vh - 176px);
+    overflow-y: auto;
+}
+
+form .right .attributes {
+    display: table;
+    margin: 0 0 16px 0;
+}
+
+form p {
+    font-weight: 200;
+    font-size: 14px;
+    color: #4a4a4a;
+    margin: 16px 0 8px 0;
+}
+
+form label {
+    font-weight: 400;
+    font-size: 14px;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+.form-group {
+    display: table-row;
+    align-items: center;
+}
+
+.form-group label {
+    display: table-cell;
+}
+
+.form-group .form-control {
+    display: table-cell;
+    margin: 4px 16px;
+}
+
+.form-group .select-attr {
+    display: table-cell;
+    margin: 0 4px;
+}

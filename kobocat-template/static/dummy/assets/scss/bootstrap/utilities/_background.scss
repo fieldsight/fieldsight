@@ -1,0 +1,12 @@
+@each $color, $value in $theme-colors {
+  @include bg-variant('.bg-#{$color}', $value);
+}
+
+.bg-white { background-color: $white !important; }
+.bg-transparent { background-color: transparent !important; }
+
+//for table cell
+
+@each $color, $value in $tbl-cell-colors {
+  @include bg-variant('.cell-#{$color}', $value);
+}
