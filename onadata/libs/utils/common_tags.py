@@ -5,15 +5,6 @@
 INSTANCE_DOC_NAME = u"_name"
 ID = u"_id"
 UUID = u"_uuid"
-SITE = u"fs_site"
-FS_STATUS = u"fs_status"
-FS_UUID = u"fs_uuid"
-FS_PROJECT_UUID = u"fs_project_uuid"
-FS_SITE_IDENTIFIER = u"identifier"
-FS_SITE_SUPERVISOR = u"_submitted_by"
-FS_SITE_NAME = u"site_name"
-FS_SITE_ADDRESS = u"address"
-FS_SITE_PHONE = u"phone"
 PICTURE = u"picture"
 GPS = u"location/gps"
 SURVEY_TYPE = u'_survey_type_slug'
@@ -44,6 +35,7 @@ SUBMISSION_TIME = u'_submission_time'
 DELETEDAT = u"_deleted_at"  # marker for delete surveys
 BAMBOO_DATASET_ID = u"_bamboo_dataset_id"
 SUBMITTED_BY = u"_submitted_by"
+VALIDATION_STATUS = u"_validation_status"
 
 INSTANCE_ID = u"instanceID"
 META_INSTANCE_ID = u"meta/instanceID"
@@ -69,3 +61,9 @@ MAX = u"max"
 RANGE = u"range"
 MEDIAN = u"median"
 MODE = u"mode"
+
+
+# List of nested attributes which bypass 'dots' encoding
+NESTED_RESERVED_ATTRIBUTES = [
+    VALIDATION_STATUS,
+]
