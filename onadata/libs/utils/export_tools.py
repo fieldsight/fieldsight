@@ -25,13 +25,10 @@ from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 from json2xlsclient.client import Client
 
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.api.mongo_helper import MongoHelper
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.models.parsed_instance import\
-    _is_invalid_for_mongo, _encode_for_mongo, dict_for_mongo,\
-    _decode_from_mongo
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
@@ -258,11 +255,11 @@ class ExportBuilder(object):
                             'type': child.bind.get(u"type")
                         })
 
-                        if _is_invalid_for_mongo(child_xpath):
+                        if MongoHelper.is_attribute_invalid(child_xpath):
                             if current_section_name not in encoded_fields:
                                 encoded_fields[current_section_name] = {}
                             encoded_fields[current_section_name].update(
-                                {child_xpath: _encode_for_mongo(child_xpath)})
+                                {child_xpath: MongoHelper.encode(child_xpath)})
 
                     # if its a select multiple, make columns out of its choices
                     if child.bind.get(u"type") == MULTIPLE_SELECT_BIND_TYPE\
@@ -371,7 +368,8 @@ class ExportBuilder(object):
 
     @classmethod
     def decode_mongo_encoded_section_names(cls, data):
-        return dict([(_decode_from_mongo(k), v) for k, v in data.iteritems()])
+        return dict([(MongoHelper.decode(k), v) for k, v in data.iteritems()])
+
 
     @classmethod
     def convert_type(cls, value, data_type):
