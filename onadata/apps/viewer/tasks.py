@@ -1,3 +1,7 @@
+from datetime import timedelta, datetime
+
+import logging
+import pytz
 import re
 import sys
 from celery import shared_task
@@ -395,3 +399,32 @@ def email_mongo_sync_status():
                 '\n\n'.join([before_report,
                              after_report,
                              SYNC_MONGO_MANUAL_INSTRUCTIONS]))
+
+
+@shared_task(soft_time_limit=60, time_limit=90)
+def log_stuck_exports_and_mark_failed():
+    # How long can an export possibly run, not including time spent waiting in
+    # the Celery queue?
+    max_export_run_time = getattr(settings, 'CELERY_TASK_TIME_LIMIT', 2100)
+    # Allow a generous grace period
+    max_allowed_export_age = timedelta(seconds=max_export_run_time * 4)
+    this_moment = datetime.now(tz=pytz.UTC)
+    oldest_allowed_timestamp = this_moment - max_allowed_export_age
+    stuck_exports = Export.objects.filter(
+        internal_status=Export.PENDING,
+        created_on__lt=oldest_allowed_timestamp
+    )
+    for stuck_export in stuck_exports:
+        logging.warning(
+            'Stuck export: pk {}, type {}, username {}, id_string {}, '
+            'age {}'.format(
+                stuck_export.pk,
+                stuck_export.export_type,
+                stuck_export.xform.user.username,
+                stuck_export.xform.id_string,
+                this_moment - stuck_export.created_on
+            )
+        )
+        # Export.save() is a busybody; bypass it with update()
+        stuck_exports.filter(pk=stuck_export.pk).update(
+            internal_status=Export.FAILED)
