@@ -26,8 +26,8 @@ urlpatterns = patterns(
 
     # django default stuff
     url(r'^accounts/', include('onadata.apps.main.registration_urls')),
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+    # url(r'^admin/', include(admin.site.urls)),
+    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # oath2_provider
     url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
