@@ -12,7 +12,7 @@ from zipfile import ZipFile
 
 from bson import json_util
 from django.conf import settings
-from django.core.files.base import File
+from django.core.files.base import File, ContentFile
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.storage import get_storage_class
 from django.contrib.auth.models import User
@@ -975,6 +975,42 @@ def increment_index_in_filename(filename):
     return new_filename
 
 
+# def generate_attachments_zip_export(
+#         export_type, extension, username, id_string, export_id=None,
+#         filter_query=None):
+#     xform = XForm.objects.get(user__username=username, id_string=id_string)
+#     attachments = Attachment.objects.filter(instance__xform=xform)
+#     basename = "%s_%s" % (id_string,
+#                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+#     filename = basename + "." + extension
+#     file_path = os.path.join(
+#         username,
+#         'exports',
+#         id_string,
+#         export_type,
+#         filename)
+#
+#     with NamedTemporaryFile('wb+', prefix='media_zip_export_', suffix='.zip') as temporary_file:
+#         create_attachments_zipfile(attachments, temporary_file=temporary_file)
+#         export_filename = get_storage_class()().save(
+#             file_path,
+#             File(temporary_file, file_path))
+#
+#     dir_name, basename = os.path.split(export_filename)
+#
+#     # get or create export object
+#     if(export_id):
+#         export = Export.objects.get(id=export_id)
+#     else:
+#         export = Export.objects.create(xform=xform, export_type=export_type)
+#
+#     export.filedir = dir_name
+#     export.filename = basename
+#     export.internal_status = Export.SUCCESSFUL
+#     export.save()
+#     return export
+
+
 def generate_attachments_zip_export(
         export_type, extension, username, id_string, export_id=None,
         filter_query=None):
@@ -990,11 +1026,13 @@ def generate_attachments_zip_export(
         export_type,
         filename)
 
-    with NamedTemporaryFile('wb+', prefix='media_zip_export_', suffix='.zip') as temporary_file:
-        create_attachments_zipfile(attachments, temporary_file=temporary_file)
-        export_filename = get_storage_class()().save(
-            file_path,
-            File(temporary_file, file_path))
+    export_filename = get_storage_class()().save(file_path, ContentFile(''))
+
+    with get_storage_class()().open(export_filename, 'wb') as destination_file:
+        create_attachments_zipfile(
+            attachments,
+            output_file=destination_file,
+        )
 
     dir_name, basename = os.path.split(export_filename)
 
@@ -1009,7 +1047,6 @@ def generate_attachments_zip_export(
     export.internal_status = Export.SUCCESSFUL
     export.save()
     return export
-
 
 def generate_kml_export(
         export_type, extension, username, id_string, export_id=None,
