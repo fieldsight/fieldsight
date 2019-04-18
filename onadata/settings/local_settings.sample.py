@@ -88,9 +88,7 @@ SOCIAL_AUTH_PIPELINE = (
 
 FCM_MAX_RECIPIENTS = 1000
 
-SERIALIZATION_MODULES = {
-        "custom_geojson": "onadata.apps.fieldsight.serializers.GeoJSONSerializer",
-}
+
 SEND_ACTIVATION_EMAIL = True
 ACCOUNT_ACTIVATION_DAYS = 30
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

@@ -53,7 +53,7 @@ from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.apps.fieldsight.mixins import group_required, LoginRequiredMixin, ProjectMixin, \
     CreateView, UpdateView, DeleteView, KoboFormsMixin, SiteMixin, SuperAdminMixin
-from onadata.libs.utils.viewer_tools import _get_form_url, enketo_url, enketo_view_url
+from onadata.libs.utils.viewer_tools import _get_form_url, enketo_url
 from .forms import AssignSettingsForm, FSFormForm, FormTypeForm, FormStageDetailsForm, FormScheduleDetailsForm, \
     StageForm, ScheduleForm, GroupForm, AddSubSTageForm, AssignFormToStageForm, AssignFormToScheduleForm, \
     AlterAnswerStatus, MainStageEditForm, SubStageEditForm, GeneralFSForm, GroupEditForm, GeneralForm, KoScheduleForm, \
@@ -1128,6 +1128,7 @@ def project_survey(request, project_id):
         return HttpResponseRedirect(reverse("forms:project-schedule-add", kwargs={'id': project_id}))
     return render(request, "fsforms/project/schedule_list.html", {'object_list': objlist, 'project': Project(id=project_id)})
 
+
 class AssignFormDefaultStatus(FormMixin, View):
     def post(self, request, fsxf_id, status_code):
         fsform = FieldSightXF.objects.get(pk=fsxf_id)
@@ -1139,6 +1140,7 @@ class AssignFormDefaultStatus(FormMixin, View):
                 childform.default_submission_status = status_code
                 childform.save()
         return HttpResponse({'responseJSON':'success'}, status=status.HTTP_200_OK)
+
 
 class Setup_forms(SPFmixin, View):
     def get(self, request, *args, **kwargs):
@@ -1169,6 +1171,7 @@ class FormPreviewView(View):
             if url:
                 return HttpResponseRedirect(url)
         return HttpResponse("This form cannot be viewed in enketo. Please Report")
+
 
 class FormFillView(FormMixin, View):
     def get(self, request, *args, **kwargs):
@@ -1325,116 +1328,6 @@ def download_xform(request, pk):
     response.content = fs_xform.xf.xml
 
     return response
-
-
-
-#awemulya dais code
-
-
-# @group_required('KoboForms')
-# def html_export(request, fsxf_id):
-
-#     limit = int(request.REQUEST.get('limit', 20))
-#     fsxf_id = int(fsxf_id)
-#     fsxf = FieldSightXF.objects.get(pk=fsxf_id)
-#     xform = fsxf.xf
-#     id_string = xform.id_string
-#     cursor = get_instances_for_field_sight_form(fsxf_id)
-#     cursor = list(cursor)
-#     for index, doc in enumerate(cursor):
-#         medias = []
-#         for media in cursor[index].get('_attachments', []):
-#             if media:
-#                 medias.append(media.get('download_url', ''))
-#         cursor[index].update({'medias': medias})
-#     paginator = Paginator(cursor, limit, request=request)
-
-#     try:
-#         page = paginator.page(request.REQUEST.get('page', 1))
-#     except (EmptyPage, PageNotAnInteger):
-#         try:
-#             page = paginator.page(1)
-#         except (EmptyPage, PageNotAnInteger):
-#             raise Http404('This report has no submissions')
-
-#     data = [("v1", page.object_list)]
-#     context = build_export_context(request, xform, id_string)
-
-#     context.update({
-#         'page': page,
-#         'table': [],
-#         'title': id,
-#     })
-
-#     export = context['export']
-#     sections = list(export.labels.items())
-#     section, labels = sections[0]
-#     id_index = labels.index('_id')
-
-#     # generator dublicating the "_id" to allow to make a link to each
-#     # submission
-#     def make_table(submissions):
-#         for chunk in export.parse_submissions(submissions):
-#             for section_name, rows in chunk.items():
-#                 if section == section_name:
-#                     for row in rows:
-#                         yield row[id_index], row
-
-#     context['labels'] = labels
-#     context['data'] = make_table(data)
-#     context['obj'] = fsxf
-#     # return JsonResponse({'data': cursor})
-#     return render(request, 'fsforms/fieldsight_export_html.html', context)
-
-
-# @group_required('KoboForms')
-# def project_html_export(request, fsxf_id):
-#     limit = int(request.REQUEST.get('limit', 20))
-#     fsxf_id = int(fsxf_id)
-#     fsxf = FieldSightXF.objects.get(pk=fsxf_id)
-#     xform = fsxf.xf
-#     id_string = xform.id_string
-#     cursor = get_instances_for_project_field_sight_form(fsxf_id)
-#     cursor = list(cursor)
-#     paginator = Paginator(cursor, limit, request=request)
-
-#     try:
-#         page = paginator.page(request.REQUEST.get('page', 1))
-#     except (EmptyPage, PageNotAnInteger):
-#         try:
-#             page = paginator.page(1)
-#         except (EmptyPage, PageNotAnInteger):
-#             raise Http404('This report has no submissions')
-
-#     data = [("v1", page.object_list)]
-#     context = build_export_context(request, xform, id_string)
-
-#     context.update({
-#         'page': page,
-#         'table': [],
-#         'title': id,
-#     })
-
-#     export = context['export']
-#     sections = list(export.labels.items())
-#     section, labels = sections[0]
-#     id_index = labels.index('_id')
-
-#     # generator dublicating the "_id" to allow to make a link to each
-#     # submission
-#     def make_table(submissions):
-#         for chunk in export.parse_submissions(submissions):
-#             for section_name, rows in chunk.items():
-#                 if section == section_name:
-#                     for row in rows:
-#                         yield row[id_index], row
-
-#     context['labels'] = labels
-#     context['data'] = make_table(data)
-#     context['obj'] = fsxf
-#     # return JsonResponse({'data': cursor})
-#     return render(request, 'fsforms/fieldsight_export_html.html', context)
-
 
 
 class FullResponseTable(ReadonlyFormMixin, View):

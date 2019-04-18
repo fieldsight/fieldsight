@@ -15,8 +15,6 @@ from onadata.apps.users.forms import ValidatingPasswordChangeForm
 admin.autodiscover()
 
 
-urlpatterns += patterns('django.contrib.staticfiles.views',
-                        url(r'^static/(?P<path>.*)$', 'serve'))
 
 
 urlpatterns = patterns(
@@ -335,6 +333,9 @@ urlpatterns = patterns(
         'onadata.apps.logger.views.retrieve_superuser_stats'),
 
 )
+
+urlpatterns += patterns('django.contrib.staticfiles.views',
+                        url(r'^static/(?P<path>.*)$', 'serve'))
 
 if settings.DEBUG:
     import debug_toolbar

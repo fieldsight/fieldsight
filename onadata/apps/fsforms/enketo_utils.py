@@ -2,6 +2,7 @@ import os
 import re
 import requests
 from django.conf import settings
+from rest_framework.authentication import SessionAuthentication
 
 from onadata.libs.utils.viewer_tools import EnketoError
 
@@ -113,3 +114,8 @@ def enketo_view_url(form_url, id_string, instance_xml=None,
             if 'message' in response:
                 raise EnketoError(response['message'])
     return False
+
+
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    def enforce_csrf(self, request):
+        return

@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
-from onadata.apps.api.viewsets.xform_viewset import CsrfExemptSessionAuthentication
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import Stage, FInstance
 from onadata.apps.fsforms.serializers.StageSerializer import StageSerializer, SubStageSerializer, StageSerializer1

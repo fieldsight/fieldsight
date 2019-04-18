@@ -1,19 +1,13 @@
 import json
 
 from rest_framework import viewsets
-from rest_framework.authentication import BasicAuthentication
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import BasePermission
-from django.http import HttpResponseRedirect, JsonResponse
 from channels import Group as ChannelGroup
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.authentication import BasicAuthentication
-from rest_framework.permissions import IsAuthenticated, BasePermission
-from onadata.apps.api.viewsets.xform_viewset import CsrfExemptSessionAuthentication
 
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import BasePermission
+
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.geo.serializers.GeoSerializer import GeoLayerSerializer
 
