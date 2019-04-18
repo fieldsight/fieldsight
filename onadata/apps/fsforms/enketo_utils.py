@@ -111,5 +111,5 @@ def enketo_view_url(form_url, id_string, instance_xml=None,
             pass
         else:
             if 'message' in response:
-                raise EnketoError   (response['message'])
+                raise EnketoError(response['message'])
     return False
