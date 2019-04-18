@@ -34,10 +34,12 @@ DATABASES = {
 }
 
 INSTALLED_APPS = list(INSTALLED_APPS)
-INSTALLED_APPS += ['fcm', 'channels', 'rest_framework_docs', 'social_django', 'onadata.apps.eventlog',
+INSTALLED_APPS += ['rest_framework_docs', 'social_django', 'onadata.apps.eventlog', #'channels', 'fcm',
                    'onadata.apps.fieldsight', 'onadata.apps.fsforms',
                    'onadata.apps.geo', 'onadata.apps.remote_app', 'onadata.apps.staff', 'onadata.apps.subscriptions',
-                   'onadata.apps.userrole', 'onadata.apps.users','linaro_django_pagination','webstack_django_sorting']
+                   'onadata.apps.userrole', 'onadata.apps.users','linaro_django_pagination',  'webstack_django_sorting',]
+
+# INSTALLED_APPS += ['debug_toolbar']
 
 TEMPLATE_CONTEXT_PROCESSORS = list(TEMPLATE_CONTEXT_PROCESSORS)
 
