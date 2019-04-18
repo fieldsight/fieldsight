@@ -272,12 +272,21 @@ def stripe_webhook(request):
             print('...................Event charge.succeeded.............')
 
             receipt_url = event_json['data']['object']['receipt_url']
+            amount = event_json['data']['object']['receipt_url']
             stripe_customer = event_json['data']['object']['customer']
             user = Customer.objects.get(stripe_cust_id=stripe_customer).user
             sub = Subscription.objects.get(stripe_customer__stripe_cust_id=stripe_customer)
             plan_name = sub.package.get_plan_display()
             submissions = sub.package.submissions
-            email_after_updating_plan.delay(user, receipt_url, plan_name, submissions)
+            period = sub.package.period_type
+            period_type = sub.package.get_period_type_diplay()
+            ending_date = {
+                1: datetime.now() + dateutil.relativedelta.relativedelta(months=1),
+                2: datetime.now() + dateutil.relativedelta.relativedelta(months=12)
+            }
+            start_date = datetime.now().strftime('%d-%m-%Y')
+            end_date = ending_date[period].strftime('%d-%m-%Y')
+            email_after_updating_plan.delay(user, receipt_url, plan_name, submissions, start_date, end_date, period_type, amount)
 
         return HttpResponse(status=200)
 

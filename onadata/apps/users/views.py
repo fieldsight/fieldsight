@@ -50,7 +50,9 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.views import password_reset
 
-
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import get_template
+from django.template import Context
 
 class ContactSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.username')
@@ -527,18 +529,20 @@ def web_signup(request):
             UserRole.objects.create(user=user, group=group)
 
             mail_subject = 'Activate your account.'
-            current_site = get_current_site(request)
             message = render_to_string('users/acc_active_email.html', {
                 'user': user,
                 'domain': settings.SITE_URL,
                 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                 'token': account_activation_token.make_token(user),
             })
+
             to_email = email
             email = EmailMessage(
                 mail_subject, message, to=[to_email]
             )
+            email.content_subtype = "html"
             email.send()
+
             return render(request, 'users/login.html', {
                 'signup_form':signup_form,
                 'valid_email':True,
@@ -897,3 +901,8 @@ def export_users_xls(request):
         writer.writerow([u.first_name, u.last_name, u.username, u.email, org_list])
 
     return response
+
+
+def email(request):
+
+    return render(request, 'users/email_base.html')
