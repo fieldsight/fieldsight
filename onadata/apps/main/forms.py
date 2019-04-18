@@ -9,7 +9,7 @@ from django.contrib.sites.models import Site
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
-from django.utils.encoding import smart_unicode
+from django.forms import ModelForm
 from django.utils.translation import ugettext as _, ugettext_lazy
 from django.conf import settings
 from recaptcha.client import captcha
@@ -18,7 +18,6 @@ from registration.models import RegistrationProfile
 
 from pyxform.xls2json_backends import csv_to_dict
 
-from onadata.apps.logger.models import XForm
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES
@@ -46,6 +45,7 @@ PERM_CHOICES = (
     ('view', ugettext_lazy('Can view')),
     ('edit', ugettext_lazy('Can edit')),
     ('report', ugettext_lazy('Can submit to')),
+    ('validate', ugettext_lazy('Can validate')),
     ('remove', ugettext_lazy('Remove permissions')),
 )
 
@@ -80,7 +80,7 @@ class PermissionForm(forms.Form):
         super(PermissionForm, self).__init__()
 
 
-class UserProfileForm(forms.ModelForm):
+class UserProfileForm(ModelForm):
     class Meta:
         model = UserProfile
         # Include only `require_auth` since others are now stored in KPI
