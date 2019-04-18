@@ -181,14 +181,31 @@ urlpatterns = patterns(
         "\d+)$", 'onadata.apps.logger.views.edit_data', name='edit_data'),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/view-data",
         'onadata.apps.viewer.views.data_view'),
-    url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+
+    # url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+    #     "/new$", 'onadata.apps.viewer.views.create_export'),
+    # url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+    #     "/delete$", 'onadata.apps.viewer.views.delete_export'),
+    # url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+    #     "/progress$", 'onadata.apps.viewer.views.export_progress'),
+    # url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+    #     "/$", 'onadata.apps.viewer.views.export_list'),
+
+    url(
+        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
         "/new$", 'onadata.apps.viewer.views.create_export'),
-    url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
-        "/delete$", 'onadata.apps.viewer.views.delete_export'),
-    url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+
+    url(
+        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
+        "/delete", 'onadata.apps.viewer.views.delete_export'),
+    url(
+        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
         "/progress$", 'onadata.apps.viewer.views.export_progress'),
-    url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+
+    url(
+        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
         "/$", 'onadata.apps.viewer.views.export_list'),
+
     url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
         "/(?P<filename>[^/]+)$",
         'onadata.apps.viewer.views.export_download'),
