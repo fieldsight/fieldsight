@@ -28,6 +28,7 @@ from django.views.decorators.http import require_POST
 import rest_framework.request
 from rest_framework.settings import api_settings
 
+from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.main.models import UserProfile, MetaData, TokenStorageModel
 from onadata.apps.logger.models import XForm, Attachment
 from onadata.apps.logger.views import download_jsonform
@@ -303,19 +304,31 @@ def data_export(request, username, id_string, export_type):
 
 @login_required
 @require_POST
-def create_export(request, username, id_string, export_type):
+def create_export(request, username, id_string, export_type, is_project=None, id=None, site_id=0, version="0"):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    if not has_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
-
     if export_type == Export.EXTERNAL_EXPORT:
         # check for template before trying to generate a report
         if not MetaData.external_export(xform=xform):
             return HttpResponseForbidden(_(u'No XLS Template set.'))
 
-    query = request.POST.get("query")
-    force_xlsx = request.POST.get('xls') != 'true'
+    if is_project == 1 or is_project == '1':
+        query = {"fs_project_uuid": str(id)}
+    else:
+        fsxf = FieldSightXF.objects.get(pk=id)
+        if fsxf.site:
+            query = {"fs_uuid": str(id)}
+        else:
+            query = {"fs_project_uuid": str(id), "fs_site": site_id}
+    force_xlsx = True
+    if version not in ["0", 0]:
+        query["__version__"] = version
+    deleted_at_query = {
+        "$or": [{"_deleted_at": {"$exists": False}},
+                {"_deleted_at": None}]}
+    # join existing query with deleted_at_query on an $and
+    query = {"$and": [query, deleted_at_query]}
+    print("query at excel generation", query)
 
     # export options
     group_delimiter = request.POST.get("options[group_delimiter]", '/')
@@ -340,7 +353,7 @@ def create_export(request, username, id_string, export_type):
     }
 
     try:
-        create_async_export(xform, export_type, query, force_xlsx, options)
+        create_async_export(xform, export_type, query, force_xlsx, options, is_project, id, site_id, version)
     except Export.ExportTypeError:
         return HttpResponseBadRequest(
             _("%s is not a valid export type" % export_type))
@@ -356,13 +369,19 @@ def create_export(request, username, id_string, export_type):
                 'export_type': export_type.upper(),
                 'id_string': xform.id_string,
             }, audit, request)
+        kwargs = {
+            "username": username,
+            "id_string": id_string,
+            "export_type": export_type,
+            "is_project": is_project,
+            "id": id,
+            "version":version
+        }
+
+        kwargs['site_id'] = site_id
         return HttpResponseRedirect(reverse(
             export_list,
-            kwargs={
-                "username": username,
-                "id_string": id_string,
-                "export_type": export_type
-            })
+            kwargs=kwargs)
         )
 
 
@@ -429,10 +448,10 @@ def export_list(request, username, id_string, export_type, is_project=0, id=0, s
 
     return render(request, 'export_list.html', data)
 
-def export_progress(request, username, id_string, export_type):
+def export_progress(request, username, id_string, export_type, is_project=0, id=0, site_id=0, version="0"):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    if not has_permission(xform, owner, request):
+    if not has_forms_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     # find the export entry in the db
@@ -493,8 +512,6 @@ def export_download(request, username, id_string, export_type, filename):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
     helper_auth_helper(request)
-    if not has_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
 
     # find the export entry in the db
     export = get_object_or_404(Export, xform=xform, filename=filename)
