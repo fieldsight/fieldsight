@@ -868,7 +868,8 @@ def attachment_url(request, size='medium'):
                 # protected_url = '/protected-s3/{}'.format(urlquote(media_url))
                 return redirect(media_url)
             else:
-                protected_url = media_url.replace(settings.MEDIA_URL, "/protected/")
+                return redirect(media_url)
+                # protected_url = media_url.replace(settings.MEDIA_URL, "/protected/")
 
             # Let nginx determine the correct content type
             response["Content-Type"] = ""
