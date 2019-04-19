@@ -383,22 +383,18 @@ def _get_google_token(request, redirect_to_url):
     return token
 
 
-def export_list(request, username, id_string, export_type):
+def export_list(request, username, id_string, export_type, is_project=0, id=0, site_id=0, version="0"):
+    site_id = int(site_id)
     if export_type == Export.GDOC_EXPORT:
-        redirect_url = reverse(
-            export_list,
-            kwargs={
-                'username': username, 'id_string': id_string,
-                'export_type': export_type})
+        return HttpResponseForbidden(_(u'Not shared.'))
         token = _get_google_token(request, redirect_url)
         if isinstance(token, HttpResponse):
             return token
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    if not has_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
 
     if export_type == Export.EXTERNAL_EXPORT:
+        return HttpResponseForbidden(_(u'Not shared.'))
         # check for template before trying to generate a report
         if not MetaData.external_export(xform=xform):
             return HttpResponseForbidden(_(u'No XLS Template set.'))
@@ -418,17 +414,20 @@ def export_list(request, username, id_string, export_type):
         m['data_value'] = m.get('data_value').split('|')[0]
 
     data = {
-        'username': owner.username,
+        'username': xform.user.username,
         'xform': xform,
         'export_type': export_type,
         'export_type_name': Export.EXPORT_TYPE_DICT[export_type],
         'exports': Export.objects.filter(
-            xform=xform, export_type=export_type).order_by('-created_on'),
-        'metas': metadata
-    }
+            xform=xform, export_type=export_type, fsxf=id, site=site_id, version=version).order_by('-created_on'),
+        'metas': metadata,
+        'is_project': is_project,
+        'id': id,
+        'version': version,
+            }
+    data['site_id'] = site_id
 
     return render(request, 'export_list.html', data)
-
 
 def export_progress(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
