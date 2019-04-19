@@ -58,6 +58,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
 from onadata.apps.users.signup_tokens import account_activation_token
+from onadata.apps.subscriptions.models import Subscription
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -2031,3 +2032,39 @@ def email_after_subscribed_plan(user, free_package):
     )
     email.content_subtype = "html"
     email.send()
+
+
+def warning_emails(usage_rates, email):
+
+    mail_subject = 'Warning'
+    message = render_to_string('subscriptions/warning_email.html', {
+        'usage_rates': usage_rates,
+    })
+    to_email = email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
+
+
+@shared_task()
+def check_usage_rates():
+    print(".......Checking Usage rates.......")
+    subscriptions = Subscription.objects.all().select_related('stripe_customer', 'organization', 'package')
+
+    for subscriber in subscriptions:
+        total_submissions = subscriber.package.submissions
+        usage_submission = subscriber.organization.get_total_submissions()
+        usage_rates = (usage_submission/total_submissions)*100
+        email = subscriber.stripe_customer.user.email
+
+        if 75 <= usage_rates < 76:
+            warning_emails(usage_rates, email)
+
+        elif 90 <= usage_rates < 91:
+            warning_emails(usage_rates, email)
+
+        elif 95 <= usage_rates < 96:
+            warning_emails(usage_rates, email)
+
