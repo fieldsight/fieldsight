@@ -44,6 +44,9 @@ from django.db.models import Sum, Case, When, IntegerField, Count
 from django.core.exceptions import MultipleObjectsReturned
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
@@ -54,7 +57,7 @@ from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
-from onadata.apps.fsforms.tasks import clone_form
+from onadata.apps.users.signup_tokens import account_activation_token
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -1994,6 +1997,24 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
 #     print('site createed')
 #     token = user.auth_token.key
 #     clone_form.delay(user, token, project)
+
+
+@shared_task(time_limit=120, soft_time_limit=120)
+def email_after_signup(user_id, to_email):
+    user = User.objects.get(id=user_id)
+    mail_subject = 'Activate your account.'
+    message = render_to_string('users/acc_active_email.html', {
+        'user': user,
+        'domain': settings.SITE_URL,
+        'uid': urlsafe_base64_encode(force_bytes(user_id)),
+        'token': account_activation_token.make_token(user),
+    })
+
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
 
 
 @shared_task(time_limit=120, soft_time_limit=120)
