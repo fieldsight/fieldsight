@@ -865,7 +865,8 @@ def attachment_url(request, size='medium'):
             if not isinstance(default_storage, FileSystemStorage):
                 # Double-encode the S3 URL to take advantage of NGINX's
                 # otherwise troublesome automatic decoding
-                protected_url = '/protected-s3/{}'.format(urlquote(media_url))
+                # protected_url = '/protected-s3/{}'.format(urlquote(media_url))
+                return redirect(media_url)
             else:
                 protected_url = media_url.replace(settings.MEDIA_URL, "/protected/")
 
