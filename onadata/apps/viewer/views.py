@@ -448,11 +448,12 @@ def export_list(request, username, id_string, export_type, is_project=0, id=0, s
 
     return render(request, 'export_list.html', data)
 
+
 def export_progress(request, username, id_string, export_type, is_project=0, id=0, site_id=0, version="0"):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    if not has_forms_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
+    # if not has_forms_permission(xform, owner, request):
+    #     return HttpResponseForbidden(_(u'Not shared.'))
 
     # find the export entry in the db
     export_ids = request.GET.getlist('export_ids')
@@ -550,12 +551,10 @@ def export_download(request, username, id_string, export_type, filename):
 
 @login_required
 @require_POST
-def delete_export(request, username, id_string, export_type):
+def delete_export(request, username, id_string, export_type, is_project=None, id=None, site_id=None, version="0"):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    if not has_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
-
+    
     export_id = request.POST.get('export_id')
 
     # find the export entry in the db
@@ -575,14 +574,20 @@ def delete_export(request, username, id_string, export_type):
             'filename': export.filename,
             'id_string': xform.id_string,
         }, audit, request)
-    return HttpResponseRedirect(reverse(
-        export_list,
-        kwargs={
+    kwargs =  {
             "username": username,
             "id_string": id_string,
-            "export_type": export_type
-        }))
+            "export_type": export_type,
+            "is_project": is_project,
+            "id": id,
+        "version":version
+            }
 
+    if site_id is not None:
+        kwargs['site_id'] = site_id
+    return HttpResponseRedirect(reverse(
+        export_list,
+        kwargs=kwargs))
 
 def kml_export(request, username, id_string):
     # read the locations from the database
