@@ -2489,7 +2489,7 @@ class AssignUsersToRegionsView(ProjectRoleMixin, TemplateView):
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=13)
 
         if task_obj:
-            task = multi_users_assign_regions.delay(task_obj.pk, user, pk, regions, users, group.id)
+            task = multi_users_assign_regions.delay(task_obj.pk, user.id, pk, regions, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('Success')
