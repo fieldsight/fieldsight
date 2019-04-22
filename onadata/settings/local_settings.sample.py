@@ -8,6 +8,8 @@ os.environ["KOBOFORM_SERVER"] = 'http://kpi.fieldsight.org'
 
 from onadata.settings.kc_environ import *
 #CORS_ORIGIN_ALLOW_ALL = True
+
+KOBOFORM_URL = os.environ.get("KOBOFORM_URL", "http://localhost:8000")
 KOBOCAT_INTERNAL_HOSTNAME = "localhost"
 os.environ["ENKETO_API_TOKEN"] = '*********************'
 ENKETO_API_TOKEN = "*********************"

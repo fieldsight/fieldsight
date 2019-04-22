@@ -13,11 +13,13 @@ from django.shortcuts import get_object_or_404
 
 from rest_framework import exceptions
 from rest_framework import status
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -725,6 +727,7 @@ data (instance/submission per row)
     lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [XFormPermissions, ]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
     # TODO: Figure out what `updatable_fields` does; if nothing, remove it
     updatable_fields = set(('description', 'downloadable', 'require_auth',
                             'shared', 'shared_data', 'title'))
