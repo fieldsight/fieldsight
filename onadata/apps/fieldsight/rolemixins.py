@@ -523,7 +523,7 @@ class ConditionalFormMixin(LoginRequiredMixin):
 
 
         if request.roles.filter(project_id=project_id, group__name__in=["Site Supervisor", "Region Supervisor"]).exists():
-            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id, *args,  is_read_only=True, **kwargs)
+            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id, *args,  is_read_only=True, is_doner=is_doner, **kwargs)
 
 
         # return super(ConditionalFormMixin, self).dispatch(request, fsxf_id, is_read_only=True, *args, **kwargs)
