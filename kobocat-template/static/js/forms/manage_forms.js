@@ -199,7 +199,8 @@ window.app = new Vue({
                 </div>
                 <div class="form-group">
                     <label for="inputSubStageWeight">Weight</label>
-                    <input type="number" min="0" max="100" v-model="substage_form_obj.weight" class="form-control" id="inputSubStageWeight">
+                    <input type="number" min="0" max="100"  step="1"
+                    onkeypress="return (event.charCode == 8 || event.charCode == 0 || event.charCode == 13) ? null : event.charCode >= 48 && event.charCode <= 57" v-model="substage_form_obj.weight" class="form-control" id="inputSubStageWeight">
                 </div>
                 <div class="form-group" v-show="is_project==1">
                     <label for="inputSubStageTags">Types</label>
@@ -316,7 +317,9 @@ window.app = new Vue({
                         </div>
                         <div class="form-group">
                             <label for="inputSubStageWeight">Weight</label>
-                            <input type="number" min="0" max="100" v-model="substage_detail.weight" class="form-control" id="inputSubStageWeight">
+                            <input type="number" min="0" max="100"  step="1"
+                            onkeypress="return (event.charCode == 8 || event.charCode == 0 || event.charCode == 13) ? null : event.charCode >= 48 && event.charCode <= 57" 
+                             v-model="substage_detail.weight" class="form-control" id="inputSubStageWeight">
                         </div>
                         <div class="form-group" v-show="is_project==1">
                             <label for="inputSubStageTags">Types</label>
