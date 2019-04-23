@@ -18,7 +18,6 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None, is_
     username = xform.user.username
     id_string = xform.id_string
 
-    print sync_to_gsuit, "TASKKKKKKK"
     def _create_export(xform, export_type):
         site_id_int = 0
         if site_id is not None:
@@ -33,6 +32,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None, is_
         'id_string': id_string,
         'export_id': export.id,
         'query': query,
+        'sync_to_gsuit': sync_to_gsuit
     }
     if export_type in [Export.XLS_EXPORT, Export.GDOC_EXPORT,
                        Export.CSV_EXPORT, Export.CSV_ZIP_EXPORT,
