@@ -348,8 +348,9 @@ def create_export(request, username, id_string, export_type, is_project=None, id
     }
 
     try:
+        print sync_to_gsuit, "INITIALLLL"
         sync_to_gsuit = True if sync_to_gsuit in ["1", 1] else False
-
+        print sync_to_gsuit, "FINALLLLLLL" 
         create_async_export(xform, export_type, query, force_xlsx, options, is_project, id, site_id, version, sync_to_gsuit)
     except Export.ExportTypeError:
         return HttpResponseBadRequest(
