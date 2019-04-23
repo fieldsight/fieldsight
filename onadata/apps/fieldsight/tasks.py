@@ -2048,6 +2048,20 @@ def warning_emails(usage_rates, email):
     email.send()
 
 
+def warning_overage_emails(extra_submissions_charge, email):
+
+    mail_subject = 'Warning'
+    message = render_to_string('subscriptions/warning_overage_email.html', {
+        'extra_submissions_charge': extra_submissions_charge,
+    })
+    to_email = email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
+
+
 @shared_task()
 def check_usage_rates():
     print(".......Checking Usage rates.......")
@@ -2067,4 +2081,9 @@ def check_usage_rates():
 
         elif 95 <= usage_rates < 96:
             warning_emails(usage_rates, email)
+
+        elif usage_submission >= total_submissions:
+            extra_submissions_charge = subscriber.package.extra_submissions_charge
+            warning_overage_emails(extra_submissions_charge, email)
+
 
