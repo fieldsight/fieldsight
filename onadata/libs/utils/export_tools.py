@@ -875,7 +875,7 @@ def generate_export(export_type, extension, username, id_string,
     storage = get_storage_class()()
     # seek to the beginning as required by storage classes
     
-    print 'file_url--------->', temp_file, filter_query
+    print sync_to_gsuit, 'file_url--------->', temp_file, filter_query
 
     try:
         if sync_to_gsuit == True and '__version__' not in filter_query['$and'][0]:
