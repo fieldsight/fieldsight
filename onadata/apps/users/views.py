@@ -54,6 +54,9 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
 
+from onadata.apps.fieldsight.tasks import email_after_signup
+
+
 class ContactSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.username')
     email = serializers.ReadOnlyField(source='user.email')
@@ -528,20 +531,10 @@ def web_signup(request):
             group = Group.objects.get(name="Unassigned")
             UserRole.objects.create(user=user, group=group)
 
-            mail_subject = 'Activate your account.'
-            message = render_to_string('users/acc_active_email.html', {
-                'user': user,
-                'domain': settings.SITE_URL,
-                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                'token': account_activation_token.make_token(user),
-            })
-
             to_email = email
-            email = EmailMessage(
-                mail_subject, message, to=[to_email]
-            )
-            email.content_subtype = "html"
-            email.send()
+            user_id = user.id
+
+            email_after_signup.delay(user_id, to_email)
 
             return render(request, 'users/login.html', {
                 'signup_form':signup_form,
