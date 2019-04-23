@@ -19,7 +19,7 @@ from django.contrib.auth.models import User
 from .models import Customer, Subscription, Invoice, Package
 from onadata.apps.fieldsight.models import Organization
 from onadata.apps.fieldsight.mixins import LoginRequiredMixin
-from .tasks import email_after_updating_plan
+from .tasks import email_after_updating_plan, notification_before_renewal
 
 
 MONTHLY_PLAN_NAME = {
@@ -284,6 +284,22 @@ def stripe_webhook(request):
                 user_id = user.id
 
                 email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount)
+
+        elif event_json['type'] == 'invoice.upcoming':
+            """
+                notification before renewal
+            """
+            print('...................Event invoice.upcoming.............')
+
+            stripe_customer = event_json['data']['object']['customer']
+            customer = Customer.objects.get(stripe_cust_id=stripe_customer).select_related('user')
+            sub_obj = Subscription.objects.get(stripe_customer=customer).select_related('stripe_customer', 'package',
+                                                                                        'organization')
+            period = sub_obj.package.period_type
+
+            if period == 2:
+                user_id = customer.user.id
+                notification_before_renewal(user_id)
 
         return HttpResponse(status=200)
 

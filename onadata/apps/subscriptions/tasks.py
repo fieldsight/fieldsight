@@ -4,14 +4,14 @@ import dateutil
 import stripe
 import time
 
-from celery import shared_task
+from celery import shared_task, task
 from django.conf import settings
-
+from django.utils import timezone
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.contrib.auth.models import User
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .models import Subscription
 
@@ -51,3 +51,48 @@ def email_after_updating_plan(user_id, receipt_url, sub_id, amount):
     email.content_subtype = "html"
 
     email.send()
+
+
+@shared_task()
+def notification_before_one_week_renewal(user_id):
+    user = User.objects.get(id=user_id)
+    mail_subject = 'Notification'
+    message = render_to_string('subscriptions/notification_before_renewal.html', {
+        'user': user,
+        'time': "week"
+
+    })
+    to_email = user.email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
+
+
+@shared_task()
+def notification_before_renewal(user_id):
+    """
+    Send email in week and month before renewal of annual plan.
+    Args:
+        user_id: user object
+
+    Returns:
+
+    """
+    user = User.objects.get(id=user_id)
+    mail_subject = 'Notification'
+    message = render_to_string('subscriptions/notification_before_renewal.html', {
+        'user': user,
+        'time': "month"
+    })
+    to_email = user.email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
+
+    week_before_renew = timezone.now() + timedelta(days=23)
+    notification_before_one_week_renewal.apply_async(args=[user_id], eta=week_before_renew)
+
