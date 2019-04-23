@@ -299,7 +299,7 @@ def stripe_webhook(request):
 
             if period == 2:
                 user_id = customer.user.id
-                notification_before_renewal(user_id)
+                notification_before_renewal.delay(user_id)
 
         return HttpResponse(status=200)
 
