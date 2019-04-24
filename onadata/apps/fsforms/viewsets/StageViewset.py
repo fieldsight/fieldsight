@@ -2,14 +2,19 @@ from __future__ import unicode_literals
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.vary import vary_on_cookie
 from rest_framework import viewsets
 from onadata.apps.fieldsight.models import Site
-from onadata.apps.fsforms.models import Stage, FInstance
+from onadata.apps.fsforms.models import Stage
 from onadata.apps.fsforms.serializers.StageSerializer import StageSerializer, SubStageSerializer, StageSerializer1
 from rest_framework.pagination import PageNumberPagination
+from django.views.decorators.cache import cache_page
+
 
 class LargeResultsSetPagination(PageNumberPagination):
     page_size = 5
+
 
 class StageViewSet(viewsets.ModelViewSet):
     """
@@ -17,6 +22,11 @@ class StageViewSet(viewsets.ModelViewSet):
     """
     queryset = Stage.objects.filter(stage_forms__isnull=True, stage__isnull=True).order_by('order', 'date_created')
     serializer_class = StageSerializer1
+
+    @method_decorator(cache_page(60 * 60 * 1))
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        return super(StageViewSet, self).list(request, *args, **kwargs)
 
     def filter_queryset(self, queryset):
         if self.request.user.is_anonymous():
