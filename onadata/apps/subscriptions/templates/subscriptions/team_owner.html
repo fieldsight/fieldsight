@@ -1,6 +1,7 @@
 {% extends "fieldsight/manage_base.html" %}
 {% load i18n staticfiles %}
 {% load filters %}
+{% load static %}
 {% block content %}
 
 {%block extracss %}
@@ -39,6 +40,277 @@
     <script src="https://js.stripe.com/v3/"></script>
 
 {% endblock %}
+        <!-- choose package popup -->
+        <!-- Modal -->
+
+                    <div class="modal fade" id="pricingModal1" tabindex="-1" role="dialog" aria-labelledby="pricingModalLabel" aria-hidden="true">
+                      <div class="modal-dialog modal-xl" role="document">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="pricingModalLabel">Choose a Plan</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                              <span aria-hidden="true">&times;</span>
+                            </button>
+                          </div>
+                          <div class="modal-body">
+                            <!--   ............pricing step 1...................       -->
+
+                                <div class="bg-primary p-4">
+        	                        <div class="bg-light p-4 m-4">
+                                        <div class="pb-2"></div>
+                                        <h4 class="text-center mt-4 mb-3"><strong>Fieldsight Plans & Pricing</strong></h4>
+                                        <p class="text-center mb-4 text-xlight">Fieldsight is provided open-source and under a non-profit model.<br/>
+                                        Fees for access to the system cover the costs of hosting data and providing support. <br/>Additional services are priced at our costs. Contact us more to discuss.</p>
+                                        <div class="pb-2 text-center">
+                                            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                              <label class="btn btn-pk btn-outline-primary active">
+                                                <input type="radio" name="pay-type" id="monthly" value="monthly" autocomplete="off" checked> Monthly
+                                              </label>
+                                              <label class="btn btn-pk btn-outline-primary">
+                                                <input type="radio" name="pay-type" id="yearly" value="yearly" autocomplete="off"> Yearly
+                                              </label>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="module-pricing mt-4" id="pk_starter">
+                                                    <div class="mp-head pbg-2">
+                                                        <h4>Starter</h4>
+                                                        <h3><strong>$20</strong><sub> /Mo</sub></h3>
+                                                        <div class="tri-wrap">
+                                                            <div class="tri-left"></div>
+                                                            <div class="tri-right"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mp-body">
+                                                        <ul>
+                                                            <li><strong>1,000</strong> Submissions</li>
+                                                            <li><strong>Unlimited</strong> Users, Projects, Sites</li>
+                                                            <li><strong>Unlimited</strong> Forms, Stages & Schedules</li>
+                                                            <li><strong>Unlimited</strong> Reports, Dashboards & Maps</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="mp-footer">
+                                                        <a data-toggle='collapse' href='#collapseEx1' title="" class="btn pbg-2 btn-block btn-lg plan" id="starter_plan">Select</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="module-pricing mt-4" id="pk_basic">
+                                                    <div class="mp-head pbg-3">
+                                                        <h4>Basic</h4>
+                                                        <h3><strong>$100</strong><sub> /Mo</sub></h3>
+                                                        <div class="tri-wrap">
+                                                            <div class="tri-left"></div>
+                                                            <div class="tri-right"></div>
+                                                        </div>
+
+                                                    </div>
+                                                    <div class="mp-body">
+                                                        <ul>
+                                                            <li><strong>5,000</strong> Submissions</li>
+                                                            <li><strong>Unlimited</strong> Users, Projects, Sites</li>
+                                                            <li><strong>Unlimited</strong> Forms, Stages & Schedules</li>
+                                                            <li><strong>Unlimited</strong> Reports, Dashboards & Maps</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="mp-footer">
+                                                        <!--<form action="{% url 'subscriptions:subscribe' obj.pk %}" method="post">-->
+                                                            <!--<input type="hidden" name="plan_name" value="basic_plan"/>-->
+                                                                <!--<input type="hidden" name="interval" value="monthly"/>-->
+
+                                                              <!--{% csrf_token %}-->
+                                                            <!--{% include 'subscriptions/stripe_checkout.html' %}-->
+
+                                                                <!--<button type="submit"  class="btn pbg-3 btn-block btn-lg">Select</button>-->
+                                                        <a data-toggle='collapse' disabled href='#collapseEx2' title="" class="btn pbg-3 btn-block btn-lg plan" id="basic_plan">Select</a>
+
+                                                        <!--</form>-->
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="module-pricing mt-4" id="pk_extended">
+                                                    <div class="mp-head pbg-4">
+                                                        <h4>Extended</h4>
+                                                        <h3><strong>$500</strong><sub> /Mo</sub></h3>
+                                                        <div class="tri-wrap">
+                                                            <div class="tri-left"></div>
+                                                            <div class="tri-right"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mp-body">
+                                                        <ul>
+                                                            <li><strong>20,000</strong> Submissions</li>
+                                                            <li><strong>Unlimited</strong> Users, Projects, Sites</li>
+                                                            <li><strong>Unlimited</strong> Forms, Stages & Schedules</li>
+                                                            <li><strong>Unlimited</strong> Reports, Dashboards & Maps</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="mp-footer">
+                                                        <!--<form action="{% url 'subscriptions:subscribe' obj.pk %}" method="post">-->
+                                                            <!--<input type="hidden" name="plan_name" value="extended_plan"/>-->
+                                                            <!--<input type="hidden" name="interval" value="monthly"/>-->
+
+                                                              <!--{% csrf_token %}-->
+                                                            <!--{% include 'subscriptions/stripe_checkout.html' %}-->
+                                                            <!--<button type="submit"  class="btn pbg-4 btn-block btn-lg">Select</button>-->
+                                                        <a data-toggle='collapse' href='#collapseEx3' title="" class="btn pbg-4 btn-block btn-lg plan" id="extended_plan">Select</a>
+
+                                                        <!--</form>-->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="module-pricing mt-4" id="pk_pro">
+                                                    <div class="mp-head pbg-5">
+                                                        <h4>Pro</h4>
+                                                        <h3><strong>$1,000</strong><sub> /Mo</sub></h3>
+                                                        <div class="tri-wrap">
+                                                            <div class="tri-left"></div>
+                                                            <div class="tri-right"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mp-body">
+                                                        <ul>
+                                                            <li><strong>50,000</strong> Submissions</li>
+                                                            <li><strong>Unlimited</strong> Users, Projects, Sites</li>
+                                                            <li><strong>Unlimited</strong> Forms, Stages & Schedules</li>
+                                                            <li><strong>Unlimited</strong> Reports, Dashboards & Maps</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="mp-footer">
+                                                        <!--<form action="{% url 'subscriptions:subscribe' obj.pk %}" method="post">-->
+                                                            <!--<input type="hidden" name="plan_name" value="pro_plan"/>-->
+                                                            <!--<input type="hidden" name="interval" value="monthly"/>-->
+                                                              <!--{% csrf_token %}-->
+                                                            <!--{% include 'subscriptions/stripe_checkout.html' %}-->
+                                                            <!--<button type="submit" class="btn pbg-5 btn-block btn-lg">Select</button>-->
+
+                                                        <!--</form>-->
+                                                        <a data-toggle='collapse' href='#collapseEx4' title="" class="btn pbg-5 btn-block btn-lg plan" id="pro_plan">Select</a>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="module-pricing mt-4" id="pk_scale">
+                                                    <div class="mp-head pbg-6">
+                                                        <h4>Scale</h4>
+                                                        <h3><strong>$3,000</strong><sub> /Mo</sub></h3>
+                                                        <div class="tri-wrap">
+                                                            <div class="tri-left"></div>
+                                                            <div class="tri-right"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mp-body">
+                                                        <ul>
+                                                            <li><strong>150,000</strong> Submissions</li>
+                                                            <li><strong>Unlimited</strong> Users, Projects, Sites</li>
+                                                            <li><strong>Unlimited</strong> Forms, Stages & Schedules</li>
+                                                            <li><strong>Unlimited</strong> Reports, Dashboards & Maps</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="mp-footer">
+                                                        <!--<form action="{% url 'subscriptions:subscribe' obj.pk %}" method="post">-->
+                                                            <!--<input type="hidden" name="plan_name" value="scale_plan"/>-->
+                                                            <!--<input type="hidden" name="interval" value="monthly"/>-->
+
+                                                              <!--{% csrf_token %}-->
+                                                            <!--{% include 'subscriptions/stripe_checkout.html' %}-->
+                                                            <!--<button type="submit"  class="btn btn-block pbg-6 btn-lg">Select</button>-->
+
+                                                        <!--</form>-->
+                                                        <a data-toggle='collapse' href='#collapseEx5' title="" class="btn btn-block pbg-6 btn-lg plan" id="scale_plan">Select</a>
+
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-center mt-4">
+                                            <a href="#" title="" class="btn btn-primary btn-next" id="first_next">Next <i class="la la-long-arrow-right"></i></a>
+                                        </div>
+                                    </div>
+		                        </div>
+
+
+                            <!--   .............end pricing step 1..........                                 -->
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="modal fade" id="pricingModal2"  tabindex="-1" role="dialog" aria-labelledby="pricingModalLabel" aria-hidden="true">
+                          <div class="modal-dialog modal-xl" role="document">
+                            <div class="modal-content">
+                              <div class="modal-header">
+                                <h5 class="modal-title" id="pricingModalLabel">Card Information</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                  <span aria-hidden="true">&times;</span>
+                                </button>
+                              </div>
+                              <div class="modal-body">
+                                    <!-- ............pricing step 2........ -->
+                                          <div class="bg-primary p-4">
+                                            <div class="bg-light p-4 m-4">
+                                            <form action="{% url 'subscriptions:finish_subscription' obj.pk %}" method="post">{% csrf_token %}
+
+                                                <div class="pb-2"></div>
+                                                <h5 class="text-center mt-2 mb-3"><strong>You have changed plan to <span id="plan"></span></strong></h5>
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6 class="mt-4"><strong>Plan Detail :</strong></h6>
+                                                        <ul class="list-icon mt-4 mb-4">
+                                                            <li><i class="la la-chevron-circle-right"></i><strong><span id="submissions"></span></strong> Submissions</li>
+                                                            <li><i class="la la-chevron-circle-right"></i><strong>Unlimited</strong> Users, Projects & Sites</li>
+                                                            <li><i class="la la-chevron-circle-right"></i><strong>Unlimited</strong> Forms, Stages & Schedules</li>
+                                                            <li><i class="la la-chevron-circle-right"></i><strong>Unlimited</strong> Reports, Dashboards & Maps</li>
+                                                            <li><i class="la la-chevron-circle-right"></i><strong>Access</strong> to our Android App</li>
+
+                                                        </ul>
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <h6 class="mt-4"><strong>Plan Period :</strong></h6>
+                                                        <ul class="list-icon mt-4 mb-4">
+                                                            <li>
+                                                                <i class="la la-calendar-check-o"></i>
+                                                                <strong>Starting Date</strong>
+                                                                <p><span id="starting_date"></span></p>
+                                                            </li>
+                                                            <li>
+                                                                <i class="la la-calendar-minus-o"></i>
+                                                                <strong>Ending Date</strong>
+                                                                <p><span id="ending_date"></span></p>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+
+                                                </div>
+                                                <div class="text-center">
+                                                    <a href="#" title="" class="btn btn-primary btn-prev" id="btn_previous"><i class="la la-long-arrow-left" ></i> Previous</a>
+                                                    <button type="submit" class="btn btn-primary">Finish<i class="la la-long-arrow-right"></i></button>
+                                                </div>
+                                            </form>
+
+                                            </div>
+
+                                    </div>
+
+
+                                  <!-- ............end of pricing step2.......-->
+
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+
+
+        <!-- end choose package !-->
 			<div class="padding">
 
 				<section class="panel">
@@ -57,16 +329,16 @@
 					<div class="panel-body">
 						<div class="">
                           <div class="row">
-                              <div class="col-md-6">
-                                <h6 class="mt-4"><strong>Subscribed Package:</strong></h6>
+                              <div class="col-md-4">
+                                <h6 class="mt-4"><strong>Current Plan:</strong></h6>
                                 <div class="sp-head mt-4 mb-4">
-                                    <h5>{{subscribed_package.get_plan_display}}</h5>
+                                    <h6>{{subscribed_package.get_plan_display}}</h6>
 
                                     {% if not has_user_free_package %}
 
-                                        <h4><strong>${{subscribed_package.total_charge}}</strong><sub> /{{subscribed_package.get_period_type_display}}</sub></h4>
+                                        <h6><strong>${{subscribed_package.total_charge}}</strong><sub> /{{subscribed_package.get_period_type_display}}</sub></h6>
                                         {% else %}
-                                        <h4><strong>${{subscribed_package.total_charge}}</strong><sub> /Yr</sub></h4>
+                                        <h6><strong>${{subscribed_package.total_charge}}</strong><sub> /Yr</sub></h6>
 
                                     {% endif %}
                                 </div>
@@ -83,9 +355,21 @@
 
                                 {% if has_user_free_package %}
                                     <a href="{% url 'fieldsight:organizations-dashboard' obj.id%}" class="btn btn-sm btn-primary mb-4">Upgrade Your Package</a>
-                                {% endif %}
+                                  {% else %}
+
+                                  <button type="button" class="btn btn-primary" id="change_plan">Change Plan</i></button>
+                                  {% endif %}
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                {% if not has_user_free_package %}
+                                <h6 class="mt-4"><strong>Current Usage:</strong></h6>
+
+                                       {{usage_submissions}} submissions
+
+                                {% endif %}
+
+                            </div>
+                              <div class="col-md-4">
                                 {% if not has_user_free_package %}
                                 <h6 class="mt-4"><strong>Account Information:</strong></h6>
                                 <ul class="list-icon mt-4 mb-2">
@@ -136,6 +420,80 @@
 {%block extrascript %}
 
 <script>
+
+    $(document).ready(function(){
+        $("#change_plan").click(function(){
+			$('#pricingModal1').modal('show');
+		});
+
+
+		$("#first_next").click(function(){
+			$('#pricingModal1').modal('hide');
+			$('#pricingModal2').modal('show');
+		});
+
+		//Add and remove modal-open class to-from body
+		$('#pricingModal2').on('shown.bs.modal', function () {
+		  $('body').addClass('modal-open');
+		});
+		$('#pricingModal2').on('hidden.bs.modal', function () {
+		  $('body').removeClass('modal-open');
+		});
+
+		$("#btn_previous").click(function(){
+			$('#pricingModal2').modal('hide');
+			$('#pricingModal1').modal('show');
+		});
+
+		//Add and remove modal-open class to-from body
+		$('#pricingModal1').on('shown.bs.modal', function () {
+		  $('body').addClass('modal-open');
+		});
+		$('#pricingModal1').on('hidden.bs.modal', function () {
+		  $('body').removeClass('modal-open');
+		});
+	});
+
+	//  Change yearly and monthly plan
+	            $('input[type=radio][name=pay-type]').change(function() {
+					fn_init_pack();
+				});
+
+	            function fn_init_pack(){
+					if($("input[name='pay-type']:checked").val() == 'monthly'){
+						fn_monthly_tier();
+					}else{
+						fn_yearly_tier();
+					}
+				}
+				function fn_yearly_tier(){
+					$("#pk_basic").find('.mp-head h3 strong').text('$1,000');
+					$("#pk_basic").find('.mp-body ul li:first strong').text('6,000');
+					$("#pk_extended").find('.mp-head h3 strong').text('$5,000');
+					$("#pk_extended").find('.mp-body ul li:first strong').text('30,000');
+					$("#pk_pro").find('.mp-head h3 strong').text('$10,000');
+					$("#pk_pro").find('.mp-body ul li:first strong').text('60,000');
+					$("#pk_scale").find('.mp-head h3 strong').text('$30,000');
+					$("#pk_scale").find('.mp-body ul li:first strong').text('1,80,000');
+
+					//
+					$(".module-pricing").find('.mp-head h3 sub').text('/Yr');
+				}
+
+				function fn_monthly_tier(){
+					$("#pk_basic").find('.mp-head h3 strong').text('$100');
+					$("#pk_basic").find('.mp-body ul li:first strong').text('500');
+					$("#pk_extended").find('.mp-head h3 strong').text('$500');
+					$("#pk_extended").find('.mp-body ul li:first strong').text('25000');
+					$("#pk_pro").find('.mp-head h3 strong').text('$1,000');
+					$("#pk_pro").find('.mp-body ul li:first strong').text('5,000');
+					$("#pk_scale").find('.mp-head h3 strong').text('$3,000');
+					$("#pk_scale").find('.mp-body ul li:first strong').text('15,000');
+
+					//
+					$(".module-pricing").find('.mp-head h3 sub').text('/Mo');
+					$("#pk_free").find('.mp-head h3 sub').text('/Yr');
+				}
 
     function toogleCard() {
           var stripe_card = document.getElementById("stripe_card");

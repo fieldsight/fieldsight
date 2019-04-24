@@ -445,6 +445,8 @@ class TeamSettingsView(LoginRequiredMixin, TemplateView):
                 context['card'] = stripe_customer.sources.data[0].last4
             context['subscribed_package'] = Subscription.objects.select_related().get(stripe_customer=customer).package
             context['has_user_free_package'] = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user).exists()
+            sub_obj = Subscription.objects.select_related().get(stripe_customer=customer)
+            context['usage_submissions'] = sub_obj.organization.get_total_submissions()
             context['key'] = settings.STRIPE_PUBLISHABLE_KEY
             context['level'] = "2"
 
