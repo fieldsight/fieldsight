@@ -703,10 +703,8 @@ window.app = new Vue({
                 total += parseInt(a.sub_stage_weight);
         });
         for(let i=0; i< self.stages.length; i++){
-        console.log("here");
-        console.log(self.stages[i].sub_stage_weight);
             self.stages[i].weight_calculated = Math.round((self.stages[i].sub_stage_weight) /
-                    (total)* Math.pow(10, 2));
+                    (total)* Math.pow(10, 3))/10;
              if(!self.stages[i].weight_calculated){
                     self.stages[i].weight_calculated = 0;
              }
@@ -834,7 +832,7 @@ window.app = new Vue({
         console.log(total);
         for(let i=0; i< self.stages.length; i++){
             self.stages[i].weight_calculated = Math.round((self.stages[i].sub_stage_weight) /
-                    (total)* Math.pow(10, 2));
+                    (total)* Math.pow(10, 3))/10;
             if(!self.stages[i].weight_calculated){
                     self.stages[i].weight_calculated = 0;
              }
@@ -977,7 +975,7 @@ window.app = new Vue({
                 });
                 for(let i=0; i< self.stages.length; i++){
                     self.stages[i].weight_calculated = Math.round((self.stages[i].sub_stage_weight) /
-                            (total)* Math.pow(10, 2));
+                            (total)* Math.pow(10, 3))/10;
 
                     if(!self.stages[i].weight_calculated){
                         self.stages[i].weight_calculated = 0;
@@ -1141,7 +1139,7 @@ window.app = new Vue({
         });
         for(let i=0; i< self.stages.length; i++){
             self.stages[i].weight_calculated = Math.round((self.stages[i].sub_stage_weight) /
-                    (total)* Math.pow(10, 2));
+                    (total)* Math.pow(10, 3))/10;
             if(!self.stages[i].weight_calculated){
                     self.stages[i].weight_calculated = 0;
              }
