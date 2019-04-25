@@ -46,6 +46,12 @@ class MySitesOnlyResultsSetPagination(PageNumberPagination):
     max_page_size = 1000
 
 
+class ExtremeLargeJsonResultsSetPagination(PageNumberPagination):
+    page_size = 5000
+    page_size_query_param = 'page_size'
+    max_page_size = 5000
+
+
 class AddPeoplePermission(BasePermission):
 
     def has_object_permission(self, request, view, obj):
@@ -278,7 +284,7 @@ class MySitesViewsetV2(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthenticated,)
     renderer_classes = [JSONRenderer]
     queryset = UserRole.objects.filter(ended_at=None, group__name__in=["Site Supervisor", "Region Supervisor"])
-    # pagination_class = MySitesResultsSetPagination
+    pagination_class = ExtremeLargeJsonResultsSetPagination
 
     @method_decorator(cache_page(60 * 5 * 1))
     @method_decorator(vary_on_cookie)
