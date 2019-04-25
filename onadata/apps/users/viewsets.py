@@ -47,9 +47,9 @@ class MySitesOnlyResultsSetPagination(PageNumberPagination):
 
 
 class ExtremeLargeJsonResultsSetPagination(PageNumberPagination):
-    page_size = 3500
+    page_size = 1500
     page_size_query_param = 'page_size'
-    max_page_size = 3500
+    max_page_size = 1500
 
 
 class AddPeoplePermission(BasePermission):
