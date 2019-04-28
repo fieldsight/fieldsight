@@ -1903,8 +1903,11 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
         wb = Workbook()
         ws = wb.active
         ws.append(["Date", "Day and Time", "User", "Log"])
-        offset_time = source_user.user_profile.timezone.offset_time if source_user.user_profile.timezone.offset_time else "UTC +05:45"
-        
+        try:
+            offset_time = source_user.user_profile.timezone.offset_time if source_user.user_profile.timezone.offset_time else "UTC +05:45"
+        except:
+            offset_time = "UTC +05:45"
+            
         operator = offset_time[4]
         time_offset = offset_time[5:]
         hour_offset = time_offset.split(':')[0]
