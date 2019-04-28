@@ -1907,7 +1907,7 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
             offset_time = source_user.user_profile.timezone.offset_time if source_user.user_profile.timezone.offset_time else "UTC +05:45"
         except:
             offset_time = "UTC +05:45"
-            
+
         operator = offset_time[4]
         time_offset = offset_time[5:]
         hour_offset = time_offset.split(':')[0]
@@ -2097,8 +2097,8 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
         wb = Workbook()
         ws = wb.active
         ws.title = "User Activity"
-
-        ws.extend(data)
+        for row in data:
+            ws.append(row)
         wb.save(buffer)
         buffer.seek(0)
         xls = buffer.getvalue()
