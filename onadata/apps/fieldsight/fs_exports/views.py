@@ -241,6 +241,24 @@ class StageStatus(DonorRoleMixin, View):
             data = {'status':'false','message':'Report cannot be generated a the moment.'}
         return JsonResponse(data, status=200)
 
+class UserActivityStats(DonorRoleMixin, View):
+    def post(self, request, *args, **kwargs):
+        obj = get_object_or_404(Project, pk=self.kwargs.get('pk'), is_active=True)
+        user = request.user
+        data = json.loads(self.request.body)
+        start_date = data.get('startdate')
+        end_date = data.get('enddate')
+        
+        task_obj=CeleryTaskProgress.objects.create(user=user, task_type=16, content_object = obj)
+        if task_obj:
+            task = exportProjectUserstatistics.delay(task_obj.pk, user, obj.id, start_date, end_date)
+            task_obj.task_id = task.id
+            task_obj.save()
+            data = {'status':'true','message':'User Activity report is being generated. You will be notified upon completion.'}
+        else:
+            data = {'status':'false','message':'Report cannot be generated a the moment.'}
+        return JsonResponse(data, status=200)
+
 class CloneProjectSites(ProjectRoleMixin, View):
     def post(self, *args, **kwargs):
         try:
