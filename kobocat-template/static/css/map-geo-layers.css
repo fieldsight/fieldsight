@@ -1,0 +1,16 @@
+.geo-layers .header {
+    margin: 8px 0 4px 0;
+}
+
+.geo-layers .content {
+}
+
+.geo-layers label {
+    cursor: pointer;
+    font-weight: normal;
+    font-size: 14px;
+    margin-right: 8px;
+}
+
+.geo-layers input {
+}

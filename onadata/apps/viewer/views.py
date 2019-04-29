@@ -1,6 +1,8 @@
 import json
 import os
 import re
+import logging
+
 from datetime import datetime
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
@@ -12,15 +14,21 @@ from django.core.files.storage import FileSystemStorage
 from django.core.files.storage import get_storage_class
 from django.core.servers.basehttp import FileWrapper
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.http import (
     HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound,
     HttpResponseBadRequest, HttpResponse)
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.utils.http import urlquote
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
 
+import rest_framework.request
+from rest_framework.settings import api_settings
+
+from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.main.models import UserProfile, MetaData, TokenStorageModel
 from onadata.apps.logger.models import XForm, Attachment
 from onadata.apps.logger.views import download_jsonform
@@ -42,11 +50,11 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     export_def_from_filename
 from onadata.libs.utils.user_auth import has_permission, get_xform_and_perms,\
-    helper_auth_helper, has_edit_permission, has_forms_permission
+    helper_auth_helper, has_edit_permission
 from xls_writer import XlsWriter
 from onadata.libs.utils.chart_tools import build_chart_data
 
-from onadata.apps.fsforms.models import FieldSightXF
+media_file_logger = logging.getLogger('media_files')
 
 
 def _set_submission_time_to_query(query, request):
@@ -226,7 +234,7 @@ def data_export(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
     helper_auth_helper(request)
-    if not has_forms_permission(xform, owner, request):
+    if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
     query = request.GET.get("query")
     extension = export_type
@@ -299,9 +307,6 @@ def data_export(request, username, id_string, export_type):
 def create_export(request, username, id_string, export_type, is_project=None, id=None, site_id=0, version="0"):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    if not has_forms_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
-
     if export_type == Export.EXTERNAL_EXPORT:
         # check for template before trying to generate a report
         if not MetaData.external_export(xform=xform):
@@ -419,31 +424,6 @@ def export_list(request, username, id_string, export_type, is_project=0, id=0, s
         'meta': export_meta,
         'token': export_token,
     }
-    if should_create_new_export(xform, export_type, id, site_id, version):
-
-        if is_project == 1 or is_project == '1':
-            query = {"fs_project_uuid": str(id)}
-        else:
-            fsxf = FieldSightXF.objects.get(pk=id)
-            if fsxf.site:
-                query = {"fs_uuid": str(id)}
-            else:
-                query = {"fs_project_uuid": str(id), "fs_site": site_id}
-        force_xlsx = True
-        if version not in ["0", 0]:
-            query["__version__"] = version
-        deleted_at_query = {
-            "$or": [{"_deleted_at": {"$exists": False}},
-                    {"_deleted_at": None}]}
-        # join existing query with deleted_at_query on an $and
-        query = {"$and": [query, deleted_at_query]}
-        print("query at excel generation", query)
-        try:
-            create_async_export(xform, export_type, query,
-                                force_xlsx, options, is_project, id, site_id, version)
-        except Export.ExportTypeError:
-            return HttpResponseBadRequest(
-                _("%s is not a valid export type" % export_type))
 
     metadata = MetaData.objects.filter(xform=xform,
                                        data_type="external_export")\
@@ -472,8 +452,8 @@ def export_list(request, username, id_string, export_type, is_project=0, id=0, s
 def export_progress(request, username, id_string, export_type, is_project=0, id=0, site_id=0, version="0"):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    if not has_forms_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
+    # if not has_forms_permission(xform, owner, request):
+    #     return HttpResponseForbidden(_(u'Not shared.'))
 
     # find the export entry in the db
     export_ids = request.GET.getlist('export_ids')
@@ -533,8 +513,6 @@ def export_download(request, username, id_string, export_type, filename):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
     helper_auth_helper(request)
-    if not has_forms_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
 
     # find the export entry in the db
     export = get_object_or_404(Export, xform=xform, filename=filename)
@@ -576,9 +554,7 @@ def export_download(request, username, id_string, export_type, filename):
 def delete_export(request, username, id_string, export_type, is_project=None, id=None, site_id=None, version="0"):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    if not has_forms_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
-
+    
     export_id = request.POST.get('export_id')
 
     # find the export entry in the db
@@ -612,52 +588,6 @@ def delete_export(request, username, id_string, export_type, is_project=None, id
     return HttpResponseRedirect(reverse(
         export_list,
         kwargs=kwargs))
-
-
-
-def zip_export(request, username, id_string):
-    owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    helper_auth_helper(request)
-    if not has_permission(xform, owner, request):
-        return HttpResponseForbidden(_(u'Not shared.'))
-    if request.GET.get('raw'):
-        id_string = None
-
-    attachments = Attachment.objects.filter(instance__xform=xform)
-    zip_file = None
-
-    try:
-        zip_file = create_attachments_zipfile(attachments)
-        audit = {
-            "xform": xform.id_string,
-            "export_type": Export.ZIP_EXPORT
-        }
-        audit_log(
-            Actions.EXPORT_CREATED, request.user, owner,
-            _("Created ZIP export on '%(id_string)s'.") %
-            {
-                'id_string': xform.id_string,
-            }, audit, request)
-        # log download as well
-        audit_log(
-            Actions.EXPORT_DOWNLOADED, request.user, owner,
-            _("Downloaded ZIP export on '%(id_string)s'.") %
-            {
-                'id_string': xform.id_string,
-            }, audit, request)
-        if request.GET.get('raw'):
-            id_string = None
-
-        response = response_with_mimetype_and_name('zip', id_string)
-        response.write(FileWrapper(zip_file))
-        response['Content-Length'] = zip_file.tell()
-        zip_file.seek(0)
-    finally:
-        zip_file and zip_file.close()
-
-    return response
-
 
 def kml_export(request, username, id_string):
     # read the locations from the database
@@ -745,7 +675,7 @@ def google_xls_export(request, username, id_string):
 def data_view(request, username, id_string):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
-    if not has_forms_permission(xform, owner, request):
+    if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     data = {
@@ -765,33 +695,186 @@ def data_view(request, username, id_string):
     return render(request, "data_view.html", data)
 
 
+# def attachment_url(request, size='medium'):
+#     media_file = request.GET.get('media_file')
+#     # TODO: how to make sure we have the right media file,
+#     # this assumes duplicates are the same file.
+#     #
+#     # Django seems to already handle that. It appends datetime to the filename.
+#     # It means duplicated would be only for the same user who uploaded two files
+#     # with same name at the same second.
+#     if media_file:
+#         mtch = re.search(r'^([^/]+)/attachments/([^/]+)$', media_file)
+#         if mtch:
+#             # in cases where the media_file url created by instance.html's
+#             # _attachment_url function is in the wrong format, this will
+#             # match attachments with the correct owner and the same file name
+#             (username, filename) = mtch.groups()
+#             result = Attachment.objects.filter(
+#                     instance__xform__user__username=username,
+#                 ).filter(
+#                     Q(media_file_basename=filename) | Q(
+#                         media_file_basename=None,
+#                         media_file__endswith='/' + filename
+#                     )
+#                 )[0:1]
+#         else:
+#             # search for media_file with exact matching name
+#             result = Attachment.objects.filter(media_file=media_file)[0:1]
+#
+#         try:
+#             attachment = result[0]
+#         except IndexError:
+#             media_file_logger.info('attachment not found')
+#             return HttpResponseNotFound(_(u'Attachment not found'))
+#
+#         # Checks whether users are allowed to see the media file before giving them
+#         # the url
+#         xform = attachment.instance.xform
+#
+#         if not request.user.is_authenticated():
+#             # This is not a DRF view, but we need to honor things like
+#             # `DigestAuthentication` (ODK Briefcase uses it!) and
+#             # `TokenAuthentication`. Let's try all the DRF authentication
+#             # classes before giving up
+#             drf_request = rest_framework.request.Request(request)
+#             for auth_class in api_settings.DEFAULT_AUTHENTICATION_CLASSES:
+#                 auth_tuple = auth_class().authenticate(drf_request)
+#                 if auth_tuple is not None:
+#                     # Is it kosher to modify `request`? Let's do it anyway
+#                     # since that's what `has_permission()` requires...
+#                     request.user = auth_tuple[0]
+#                     # `DEFAULT_AUTHENTICATION_CLASSES` are ordered and the
+#                     # first match wins; don't look any further
+#                     break
+#
+#         if not has_permission(xform, xform.user, request):
+#             return HttpResponseForbidden(_(u'Not shared.'))
+#
+#         media_url = None
+#
+#         if not attachment.mimetype.startswith('image'):
+#             media_url = attachment.media_file.url
+#         else:
+#             try:
+#                 media_url = image_url(attachment, size)
+#             except:
+#                 media_file_logger.error('could not get thumbnail for image', exc_info=True)
+#
+#         if media_url:
+#             # We want nginx to serve the media (instead of redirecting the media itself)
+#             # PROS:
+#             # - It avoids revealing the real location of the media.
+#             # - Full control on permission
+#             # CONS:
+#             # - When using S3 Storage, traffic is multiplied by 2.
+#             #    S3 -> Nginx -> User
+#             response = HttpResponse()
+#             default_storage = get_storage_class()()
+#             if not isinstance(default_storage, FileSystemStorage):
+#                 # Double-encode the S3 URL to take advantage of NGINX's
+#                 # otherwise troublesome automatic decoding
+#                 protected_url = '/protected-s3/{}'.format(urlquote(media_url))
+#             else:
+#                 protected_url = media_url.replace(settings.MEDIA_URL, "/protected/")
+#
+#             # Let nginx determine the correct content type
+#             response["Content-Type"] = ""
+#             response["X-Accel-Redirect"] = protected_url
+#             return response
+#
+#     return HttpResponseNotFound(_(u'Error: Attachment not found'))
+
+
 def attachment_url(request, size='medium'):
     media_file = request.GET.get('media_file')
     # TODO: how to make sure we have the right media file,
-    # this assumes duplicates are the same file
-    result = Attachment.objects.filter(media_file=media_file)[0:1]
-    if result.count() == 0:
-        pattern = re.compile('(.*)-(\d+)_(\d+)_(\d+)\.(.*)')
-        m = pattern.search(media_file)
-        if m:
-            pattern = re.compile('(.*)-(.*)\.(.*)')
-            m = pattern.search(media_file)
-            media_file = media_file.replace("-"+m.group(2), "")
-            result = Attachment.objects.filter(media_file=media_file)[0:1]
+    # this assumes duplicates are the same file.
+    #
+    # Django seems to already handle that. It appends datetime to the filename.
+    # It means duplicated would be only for the same user who uploaded two files
+    # with same name at the same second.
+    if media_file:
+        mtch = re.search(r'^([^/]+)/attachments/([^/]+)$', media_file)
+        if mtch:
+            # in cases where the media_file url created by instance.html's
+            # _attachment_url function is in the wrong format, this will
+            # match attachments with the correct owner and the same file name
+            (username, filename) = mtch.groups()
+            result = Attachment.objects.filter(
+                    instance__xform__user__username=username,
+                ).filter(
+                    Q(media_file_basename=filename) | Q(
+                        media_file_basename=None,
+                        media_file__endswith='/' + filename
+                    )
+                )[0:1]
         else:
+            # search for media_file with exact matching name
+            result = Attachment.objects.filter(media_file=media_file)[0:1]
+
+        try:
+            attachment = result[0]
+        except IndexError:
+            media_file_logger.info('attachment not found')
             return HttpResponseNotFound(_(u'Attachment not found'))
-    attachment = result[0]
-    if not attachment.mimetype.startswith('image'):
-        return redirect(attachment.media_file.url)
-    try:
-        media_url = image_url(attachment, size)
-    except:
-        # TODO: log this somewhere
-        # image not found, 404, S3ResponseError timeouts
-        pass
-    else:
+
+        # Checks whether users are allowed to see the media file before giving them
+        # the url
+        xform = attachment.instance.xform
+
+        if not request.user.is_authenticated():
+            # This is not a DRF view, but we need to honor things like
+            # `DigestAuthentication` (ODK Briefcase uses it!) and
+            # `TokenAuthentication`. Let's try all the DRF authentication
+            # classes before giving up
+            drf_request = rest_framework.request.Request(request)
+            for auth_class in api_settings.DEFAULT_AUTHENTICATION_CLASSES:
+                auth_tuple = auth_class().authenticate(drf_request)
+                if auth_tuple is not None:
+                    # Is it kosher to modify `request`? Let's do it anyway
+                    # since that's what `has_permission()` requires...
+                    request.user = auth_tuple[0]
+                    # `DEFAULT_AUTHENTICATION_CLASSES` are ordered and the
+                    # first match wins; don't look any further
+                    break
+
+        if not has_permission(xform, xform.user, request):
+            return HttpResponseForbidden(_(u'Not shared.'))
+
+        media_url = None
+
+        if not attachment.mimetype.startswith('image'):
+            media_url = attachment.media_file.url
+        else:
+            try:
+                media_url = image_url(attachment, size)
+            except:
+                media_file_logger.error('could not get thumbnail for image', exc_info=True)
+
         if media_url:
-            return redirect(media_url)
+            # We want nginx to serve the media (instead of redirecting the media itself)
+            # PROS:
+            # - It avoids revealing the real location of the media.
+            # - Full control on permission
+            # CONS:
+            # - When using S3 Storage, traffic is multiplied by 2.
+            #    S3 -> Nginx -> User
+            response = HttpResponse()
+            default_storage = get_storage_class()()
+            if not isinstance(default_storage, FileSystemStorage):
+                # Double-encode the S3 URL to take advantage of NGINX's
+                # otherwise troublesome automatic decoding
+                # protected_url = '/protected-s3/{}'.format(urlquote(media_url))
+                return redirect(media_url)
+            else:
+                return redirect(media_url)
+                # protected_url = media_url.replace(settings.MEDIA_URL, "/protected/")
+
+            # Let nginx determine the correct content type
+            response["Content-Type"] = ""
+            response["X-Accel-Redirect"] = protected_url
+            return response
 
     return HttpResponseNotFound(_(u'Error: Attachment not found'))
 

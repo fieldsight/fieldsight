@@ -2,22 +2,33 @@ from django.conf.urls import patterns, include, url
 from django.conf import settings
 from django.views.generic import RedirectView
 
-from onadata.apps.api.urls import router
+from onadata.apps.api.urls import router, router_with_patch_list
 from onadata.apps.api.urls import XFormListApi
 from onadata.apps.api.urls import XFormSubmissionApi
 from onadata.apps.api.urls import BriefcaseApi
-from onadata.apps.users.forms import ValidatingPasswordChangeForm
-from .views import (Error_404)
-from django.contrib import admin
-# admin.autodiscover()
 
-handler404 = Error_404.as_view()
-handler500 = Error_404.as_view()
+# Uncomment the next two lines to enable the admin:
+from django.contrib import admin
+
+from onadata.apps.users.forms import ValidatingPasswordChangeForm
+
+admin.autodiscover()
+
+
 
 
 urlpatterns = patterns(
     '',
-    # fieldsight
+    # change Language
+    (r'^i18n/', include('django.conf.urls.i18n')),
+    url('^api/v1/', include(router.urls)),
+    url('^api/v1/', include(router_with_patch_list.urls)),
+    url(r'^service_health/$',
+        'onadata.apps.main.service_health.service_health'),
+    url(r'^api-docs/', RedirectView.as_view(url='/api/v1/')),
+    url(r'^api/', RedirectView.as_view(url='/api/v1/')),
+    url(r'^api/v1', RedirectView.as_view(url='/api/v1/')),
+
     url(r'^fieldsight-api/docs/', include('rest_framework_docs.urls')),
 
     url(r'^staff/', include('onadata.apps.staff.urls', namespace='staff')),
@@ -27,16 +38,12 @@ urlpatterns = patterns(
     url(r'^userrole/', include('onadata.apps.userrole.urls', namespace='role')),
     url(r'^forms/', include('onadata.apps.fsforms.urls', namespace='forms')),
     url(r'^events/', include('onadata.apps.eventlog.urls', namespace='eventlog')),
-    # change Language
-    (r'^i18n/', include('django.conf.urls.i18n')),
-    url('^api/v1/', include(router.urls)),
-    url(r'^api-docs/', RedirectView.as_view(url='/api/v1/')),
-    url(r'^api/', RedirectView.as_view(url='/api/v1/')),
-    url(r'^api/v1', RedirectView.as_view(url='/api/v1/')),
+    url(r'^subscription/', include('onadata.apps.subscriptions.urls', namespace='subscriptions')),
 
-    #404 error page
-    url(r'^error/', Error_404.as_view(), name='error'),
     # django default stuff
+    # url(r'^admin/', include(admin.site.urls)),
+    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+
     url(r'^accounts/login/', RedirectView.as_view(url='/users/accounts/login/'), name='login'),
     url(r'^accounts/logout/', 'django.contrib.auth.views.logout',
         {'next_page': '/'}, name='auth_logout'),
@@ -44,9 +51,6 @@ urlpatterns = patterns(
         {'password_change_form': ValidatingPasswordChangeForm,
          'post_change_redirect': '/accounts/password/change/done'}),
     url(r'^accounts/', include('onadata.apps.main.registration_urls')),
-
-    # url(r'^admin/', include(admin.site.urls)),
-    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # oath2_provider
     url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
@@ -62,8 +66,8 @@ urlpatterns = patterns(
 
     # main website views
     # url(r'^$', 'onadata.apps.main.views.home'),
-
     url(r'^$', 'onadata.apps.fieldsight.views.dashboard', name='dashboard'),
+
     url(r'^tutorial/$', 'onadata.apps.main.views.tutorial', name='tutorial'),
     url(r'^about-us/$', 'onadata.apps.main.views.about_us', name='about-us'),
     url(r'^getting_started/$', 'onadata.apps.main.views.getting_started',
@@ -84,9 +88,15 @@ urlpatterns = patterns(
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/stats$',
         'onadata.apps.viewer.views.charts', name='form-stats'),
     url(r'^login_redirect/$', 'onadata.apps.main.views.login_redirect'),
+    # Bring back old url because it's still used by `kpi`
+    # ToDo Remove when `kpi#gallery-2` is merged into master
     url(r"^attachment/$", 'onadata.apps.viewer.views.attachment_url'),
     url(r"^attachment/(?P<size>[^/]+)$",
         'onadata.apps.viewer.views.attachment_url'),
+    url(r"^{}$".format(settings.MEDIA_URL.lstrip('/')), 'onadata.apps.viewer.views.attachment_url'),
+    url(r"^{}(?P<size>[^/]+)$".format(settings.MEDIA_URL.lstrip('/')),
+        'onadata.apps.viewer.views.attachment_url'),
+    url(r"^media-endpoint/$", 'onadata.apps.main.views.media_endpoint'),
     url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog',
         {'packages': ('main', 'viewer',)}),
     url(r'^typeahead_usernames', 'onadata.apps.main.views.username_list',
@@ -109,7 +119,6 @@ urlpatterns = patterns(
         'onadata.apps.main.views.api_token'),
 
     # form specific
-
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)$',
         'onadata.apps.main.views.show'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/qrcode$',
@@ -178,8 +187,6 @@ urlpatterns = patterns(
         kwargs={'export_type': 'sav_zip'}),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.kml$",
         'onadata.apps.viewer.views.kml_export'),
-    url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.zip",
-        'onadata.apps.viewer.views.zip_export'),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/gdocs$",
         'onadata.apps.viewer.views.google_xls_export'),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map_embed",
@@ -200,23 +207,34 @@ urlpatterns = patterns(
         "\d+)$", 'onadata.apps.logger.views.edit_data', name='edit_data'),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/view-data",
         'onadata.apps.viewer.views.data_view'),
+
+    # url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+    #     "/new$", 'onadata.apps.viewer.views.create_export'),
+    # url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+    #     "/delete$", 'onadata.apps.viewer.views.delete_export'),
+    # url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+    #     "/progress$", 'onadata.apps.viewer.views.export_progress'),
+    # url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
+    #     "/$", 'onadata.apps.viewer.views.export_list'),
+
     url(
         r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
         "/new$", 'onadata.apps.viewer.views.create_export'),
 
-    url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
+    url(
+        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
         "/delete", 'onadata.apps.viewer.views.delete_export'),
-    url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
+    url(
+        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
         "/progress$", 'onadata.apps.viewer.views.export_progress'),
 
-    url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
+    url(
+        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
         "/$", 'onadata.apps.viewer.views.export_list'),
 
     url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"
         "/(?P<filename>[^/]+)$",
         'onadata.apps.viewer.views.export_download'),
-    url(r'^(?P<username>\w+)/forms/(?P<form_id_string>[^/]+)/spss_labels\.zip$',
-        'onadata.apps.logger.views.download_spss_labels', name='download_spss_labels'),
     url(r'^(?P<username>\w+)/exports/', include('onadata.apps.export.urls')),
 
     url(r'^(?P<username>\w+)/reports/', include('onadata.apps.survey_report.urls')),
@@ -299,24 +317,25 @@ urlpatterns = patterns(
     url(r"^(?P<username>[^/]+)/form-submissions$",
         'onadata.apps.logger.views.ziggy_submissions'),
 
-    # subscriptions app
-    url(r'^subscription/', include('onadata.apps.subscriptions.urls', namespace='subscriptions')),
-
     # static media
-    url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
-        {'document_root': settings.MEDIA_ROOT}),
+    # Media are now served by NginX.
+    # url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
+    #    {'document_root': settings.MEDIA_ROOT}),
+
     url(r'^favicon\.ico',
         RedirectView.as_view(url='/static/images/favicon.ico')),
 
     # Statistics for superusers. The username is irrelevant, but leave it as
     # the first part of the path to avoid collisions
     url(r"^(?P<username>[^/]+)/superuser_stats/$",
-        'onadata.apps.logger.views.superuser_stats'))
+        'onadata.apps.logger.views.superuser_stats'),
+    url(r"^(?P<username>[^/]+)/superuser_stats/(?P<base_filename>[^/]+)$",
+        'onadata.apps.logger.views.retrieve_superuser_stats'),
+
+)
 
 urlpatterns += patterns('django.contrib.staticfiles.views',
                         url(r'^static/(?P<path>.*)$', 'serve'))
-
-
 
 if settings.DEBUG:
     import debug_toolbar
@@ -324,6 +343,9 @@ if settings.DEBUG:
     urlpatterns += patterns(
         '',
         url(r'^__debug__/', include(debug_toolbar.urls)),
+        url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
+            {'document_root': settings.MEDIA_ROOT}),
 
     )
+
 

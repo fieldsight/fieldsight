@@ -1491,7 +1491,8 @@ def multiuserassignregion(task_prog_obj_id, source_user, project_id, regions, us
 
 
 @shared_task()
-def multi_users_assign_regions(task_prog_obj_id, source_user, project_id, regions, users, group_id):
+def multi_users_assign_regions(task_prog_obj_id, source_user_id, project_id, regions, users, group_id):
+    source_user = User.objects.get(pk=source_user_id)
 
     time.sleep(2)
     project = Project.objects.get(pk=project_id)

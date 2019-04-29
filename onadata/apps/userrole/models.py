@@ -18,10 +18,10 @@ from onadata.apps.staff.models import StaffProject
 
 class UserRole(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="user_roles")
-    group = models.ForeignKey(Group)
+    group = models.ForeignKey(Group, db_index=True)
     started_at = models.DateTimeField(default=datetime.now)
-    ended_at = models.DateTimeField(blank=True, null=True)
-    site = models.ForeignKey(Site, null=True, blank=True, related_name='site_roles')
+    ended_at = models.DateTimeField(blank=True, null=True, db_index=True)
+    site = models.ForeignKey(Site, null=True, blank=True, related_name='site_roles', db_index=True,)
     project = models.ForeignKey(Project, null=True, blank=True, related_name='project_roles')
     organization = models.ForeignKey(Organization, null=True, blank=True, related_name='organization_roles')
     staff_project = models.ForeignKey(StaffProject, null=True, blank=True, related_name='staff_project_roles')

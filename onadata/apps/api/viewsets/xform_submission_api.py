@@ -56,6 +56,7 @@ def create_instance_from_xml(username, request):
     xml_file_list = request.FILES.pop('xml_submission_file', [])
     xml_file = xml_file_list[0] if len(xml_file_list) else None
     media_files = request.FILES.values()
+
     return safe_create_instance(username, xml_file, media_files, None, request)
 
 
@@ -79,12 +80,28 @@ def create_instance_from_json(username, request):
 
 
 def update_mongo(i):
+    """ Update the instance data to mongo database when a existing submission is submitted from enketo
+
+    Args:
+        i: Instance object
+
+    Returns: None
+
+    """
     d = i.parsed_instance.to_dict_for_mongo()
     try:
         x = i.fieldsight_instance
         d.update(
-            {'fs_project_uuid': str(x.project_fxf_id), 'fs_project': x.project_id, 'fs_status': 0, 'fs_site': str(x.site_id),
-             'fs_uuid': str(x.site_fxf_id)})
+            {'fs_project_uuid': str(x.project_fxf_id),
+             'fs_project': x.project_id,
+             'fs_status': 0,
+             'fs_site': x.site_id,
+            })
+        if x.project_fxf:
+            d['fs_project_uuid'] = str(x.project_fxf_id)
+
+        if x.site_fxf:
+            d['fs_uuid'] = str(x.site_fxf_id)
         try:
             synced = update_mongo_instance(d, i.id)
             print(synced, "updated in mongo success")
@@ -212,6 +229,7 @@ Here is some example JSON, it would replace `[the JSON]` above:
         update_mongo(instance)
         context = self.get_serializer_context()
         serializer = SubmissionSerializer(instance, context=context)
+
         return Response(serializer.data,
                         headers=self.get_openrosa_headers(request),
                         status=status.HTTP_201_CREATED,

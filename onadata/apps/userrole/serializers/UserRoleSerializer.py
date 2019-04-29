@@ -19,6 +19,7 @@ class UserRoleSerializer(serializers.ModelSerializer):
 class MySiteRolesSerializer(serializers.ModelSerializer):
     site = serializers.SerializerMethodField()
     project = serializers.SerializerMethodField()
+
     class Meta:
         model = UserRole
         fields = ('site', 'project')

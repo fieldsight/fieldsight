@@ -399,7 +399,7 @@ class SiteManager(GeoManager):
 
 class Site(models.Model):
     identifier = models.CharField("ID", max_length=255)
-    name = models.CharField(max_length=255)
+    name = models.CharField(db_index=True,max_length=255)
     type = models.ForeignKey(SiteType, verbose_name='Type of Site', related_name="sites", null=True, blank=True, on_delete=models.SET_NULL)
     phone = models.CharField(max_length=255, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
@@ -409,7 +409,7 @@ class Site(models.Model):
     project = models.ForeignKey(Project, related_name='sites')
     logo = models.ImageField(
         upload_to="logo", default="logo/default_site_image.png")
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(db_index=True, default=True)
     location = PointField(geography=True, srid=4326, blank=True, null=True)
     is_survey = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True, blank=True)

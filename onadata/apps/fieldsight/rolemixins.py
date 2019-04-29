@@ -477,12 +477,10 @@ class ReadonlyFormMixin(LoginRequiredMixin):
 #returns "is_readonly" attribute either True or False so make sure to use it to determine readonly features in view or template.
 class ConditionalFormMixin(LoginRequiredMixin):
     def dispatch(self, request, fsxf_id, *args, **kwargs):
-        #todo check region roles
         is_doner = False
         if request.group.name == "Super Admin":
             return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,*args, is_read_only= False,  **kwargs)
 
-        user_id = request.user.id
         form = get_object_or_404(FieldSightXF, pk=fsxf_id)
 
         if form.site is not None:
@@ -508,24 +506,24 @@ class ConditionalFormMixin(LoginRequiredMixin):
             return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args, is_read_only= False,**kwargs)
 
         if form.site is not None:
-            user_role = request.roles.filter(Q(site_id = form.site_id, group__name="Site Supervisor") | Q(project_id = form.site.project_id, group__name="Project Donor"))
-            if user_role and request.roles.filter(project_id = form.site.project_id, group__name="Project Donor"):
+            user_role = request.roles.filter(Q(site_id=form.site_id, group__name="Site Supervisor") |
+                                             Q(project_id=form.site.project_id, group__name="Project Donor"))
+            if user_role and request.roles.filter(project_id=form.site.project_id, group__name="Project Donor"):
                 is_doner = True
         else:
             user_role = request.roles.filter(project_id = form.project_id, group__name="Project Donor")
             if user_role:
                 is_doner = True
-        if user_role:
-            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args, is_read_only= True, is_doner=is_doner,  **kwargs)
-        # doner check first for dashboard for doner dashboard. then check reviewer
 
         if request.roles.filter(project_id=project_id, group__name__in=["Reviewer", "Region Reviewer"]).exists():
-            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args,  is_read_only=False, **kwargs)
+            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args,  is_read_only=False, is_doner=is_doner, **kwargs)
+
+        if user_role:
+            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,  *args, is_read_only= True, is_doner=is_doner,  **kwargs)
+
 
         if request.roles.filter(project_id=project_id, group__name__in=["Site Supervisor", "Region Supervisor"]).exists():
-            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id, *args,  is_read_only=True, **kwargs)
-
-
+            return super(ConditionalFormMixin, self).dispatch(request, fsxf_id, *args,  is_read_only=True, is_doner=is_doner, **kwargs)
 
 
         # return super(ConditionalFormMixin, self).dispatch(request, fsxf_id, is_read_only=True, *args, **kwargs)

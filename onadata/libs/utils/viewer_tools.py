@@ -13,7 +13,7 @@ from django.core.mail import mail_admins
 from django.utils.translation import ugettext as _
 
 from onadata.libs.utils import common_tags
-from onadata.apps.fsforms.enketo_utils import clean_xml_for_enketo
+
 
 SLASH = u"/"
 
@@ -38,16 +38,25 @@ def get_path(path, suffix):
 
 
 def image_urls(instance):
-    default_storage = get_storage_class()()
-    urls = []
-    suffix = settings.THUMB_CONF['medium']['suffix']
+    image_urls_dict_ = image_urls_dict(instance)
+    return image_urls_dict_.values()
+
+
+def image_urls_dict(instance):
+    """
+    Returns a dict of attachments with keys as base filename
+    and values link through `kobocat` redirector.
+    Only exposes `suffix` version of it. It will be created on the fly by the
+    redirector
+
+    :param instance: Instance
+    :return: dict
+    """
+    urls = dict()
+    # Remove leading dash from suffix
+    suffix = settings.THUMB_CONF['medium']['suffix'][1:]
     for a in instance.attachments.all():
-        if default_storage.exists(get_path(a.media_file.name, suffix)):
-            url = default_storage.url(
-                get_path(a.media_file.name, suffix))
-        else:
-            url = a.media_file.url
-        urls.append(url)
+        urls[a.filename] = a.secure_url(suffix=suffix)
     return urls
 
 
@@ -158,52 +167,9 @@ def get_client_ip(request):
     return ip
 
 
-def enketo_ur_oldl(form_url, id_string, instance_xml=None,
-               instance_id=None, return_url=None):
-    if not hasattr(settings, 'ENKETO_URL')\
-            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
-        return False
-
-    url = settings.ENKETO_URL + settings.ENKETO_API_SURVEY_PATH
-
-    values = {
-        'form_id': id_string,
-        'server_url': form_url
-    }
-    if instance_id is not None and instance_xml is not None:
-        url = settings.ENKETO_URL + settings.ENKETO_API_INSTANCE_PATH
-        values.update({
-            'instance': instance_xml,
-            'instance_id': instance_id,
-            'return_url': return_url
-        })
-    req = requests.post(url, data=values,
-                        auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
-    if req.status_code in [200, 201]:
-        try:
-            response = req.json()
-        except ValueError:
-            pass
-        else:
-            if 'edit_url' in response:
-                return response['edit_url']
-            if settings.ENKETO_OFFLINE_SURVEYS and ('offline_url' in response):
-                return response['offline_url']
-            if 'url' in response:
-                return response['url']
-    else:
-        try:
-            response = req.json()
-        except ValueError:
-            pass
-        else:
-            if 'message' in response:
-                raise EnketoError(response['message'])
-    return False
-
-
 def enketo_url(form_url, id_string, instance_xml=None,
                instance_id=None, return_url=None, instance_attachments=None):
+
     if not hasattr(settings, 'ENKETO_URL')\
             and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
         return False
@@ -217,12 +183,9 @@ def enketo_url(form_url, id_string, instance_xml=None,
         'form_id': id_string,
         'server_url': form_url
     }
+
     if instance_id is not None and instance_xml is not None:
-        # url = settings.ENKETO_URL + '/api/v2/instance'
-        # print(url)
-        # print(settings.KOBOCAT_URL)
         url = settings.ENKETO_URL + settings.ENKETO_API_INSTANCE_PATH
-        print(url, "cleaned url")
         values.update({
             'instance': instance_xml,
             'instance_id': instance_id,
@@ -232,23 +195,15 @@ def enketo_url(form_url, id_string, instance_xml=None,
             values.update({
                 'instance_attachments[' + key + ']': value
             })
-        print(values)
-        values['instance'] = clean_xml_for_enketo(
-            [k for k in values.keys() if "instance_attachments" in k],
-            values['instance'])
-        print("Tokennnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn" + settings.ENKETO_API_TOKEN, )
     req = requests.post(url, data=values,
                         auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
-    print(req.status_code, "status code")
     if req.status_code in [200, 201]:
         try:
             response = req.json()
-            print("enketo response ", response)
         except ValueError:
             pass
         else:
             if 'edit_url' in response:
-                print(response['edit_url'])
                 return response['edit_url']
             if settings.ENKETO_OFFLINE_SURVEYS and ('offline_url' in response):
                 return response['offline_url']
@@ -257,7 +212,6 @@ def enketo_url(form_url, id_string, instance_xml=None,
     else:
         try:
             response = req.json()
-            print(req.json(), "*******************************")
         except ValueError:
             pass
         else:
@@ -266,72 +220,12 @@ def enketo_url(form_url, id_string, instance_xml=None,
     return False
 
 
-def enketo_view_url(form_url, id_string, instance_xml=None,
-               instance_id=None, return_url=None, instance_attachments=None):
-    if not hasattr(settings, 'ENKETO_URL')\
-            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
-        return False
-
-    if instance_attachments is None:
-        instance_attachments = {}
-
-
-    values = {
-        'form_id': id_string,
-        'server_url': form_url
-    }
-    if instance_id is not None and instance_xml is not None:
-        # url = settings.ENKETO_URL + '/api/v2/instance'
-        # print(settings.KOBOCAT_URL)
-        url =  settings.ENKETO_URL + settings.ENKETO_API_INSTANCE_PATH + "/view"
-        values.update({
-            'instance': instance_xml,
-            'instance_id': instance_id,
-            'return_url': return_url
-        })
-        for key, value in instance_attachments.iteritems():
-            values.update({
-                'instance_attachments[' + key + ']': value
-            })
-        values['instance'] = clean_xml_for_enketo(
-            [k for k in values.keys() if "instance_attachments" in k],
-            values['instance'])
-        print("Tokennnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn" + settings.ENKETO_API_TOKEN, )
-    req = requests.post(url, data=values,
-                        auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
-    print(req.status_code, "status code")
-    if req.status_code in [200, 201]:
-        try:
-            response = req.json()
-            print("enketo response ", response)
-        except ValueError:
-            pass
-        else:
-            if 'view_url' in response:
-                print(response['view_url'])
-                return response['view_url']
-            if settings.ENKETO_OFFLINE_SURVEYS and ('offline_url' in response):
-                return response['offline_url']
-            if 'url' in response:
-                return response['url']
-    else:
-        try:
-            response = req.json()
-            print(req.json(), "*******************************")
-        except ValueError:
-            pass
-        else:
-            if 'message' in response:
-                raise EnketoError(response['message'])
-    return False
-
-
-def create_attachments_zipfile(attachments, temporary_file=None):
-    if not temporary_file:
-        temporary_file = NamedTemporaryFile()
+def create_attachments_zipfile(attachments, output_file=None):
+    if not output_file:
+        output_file = NamedTemporaryFile()
 
     storage = get_storage_class()()
-    with zipfile.ZipFile(temporary_file, 'w', zipfile.ZIP_STORED, allowZip64=True) as zip_file:
+    with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_STORED, allowZip64=True) as zip_file:
         for attachment in attachments:
             if storage.exists(attachment.media_file.name):
                 try:
@@ -340,10 +234,7 @@ def create_attachments_zipfile(attachments, temporary_file=None):
                 except Exception, e:
                     report_exception("Error adding file \"{}\" to archive.".format(attachment.media_file.name), e)
 
-    # Be kind; rewind.
-    temporary_file.seek(0)
-
-    return temporary_file
+    return output_file
 
 
 def _get_form_url(request, username, protocol='https'):
@@ -351,7 +242,7 @@ def _get_form_url(request, username, protocol='https'):
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
     else:
-        http_host = request.META.get('HTTP_HOST', 'ona.io')
+        http_host = request.get_host()
 
     # In case INTERNAL_DOMAIN_NAME is equal to PUBLIC_DOMAIN_NAME,
     # configuration doesn't use docker internal network.
@@ -361,14 +252,17 @@ def _get_form_url(request, username, protocol='https'):
 
     # Make sure protocol is enforced to `http` when calling `kc` internally
     protocol = "http" if is_call_internal else protocol
+
     return '%s://%s/%s' % (protocol, http_host, username)
 
 
 def get_enketo_edit_url(request, instance, return_url):
     form_url = _get_form_url(request,
-                             request.user.username,
+                             instance.xform.user.username,
                              settings.ENKETO_PROTOCOL)
+    instance_attachments = image_urls_dict(instance)
     url = enketo_url(
         form_url, instance.xform.id_string, instance_xml=instance.xml,
-        instance_id=instance.uuid, return_url=return_url)
+        instance_id=instance.uuid, return_url=return_url,
+        instance_attachments=instance_attachments)
     return url
