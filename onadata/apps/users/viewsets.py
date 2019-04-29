@@ -303,7 +303,7 @@ class MySitesViewsetV2(viewsets.ReadOnlyModelViewSet):
             # assume maximum recursion depth is 3
             region_sites = Site.objects.filter(
                 Q(region_id__in=regions_id) | Q(region_id__parent__in=regions_id) | Q(region_id__parent__parent__in=regions_id)).select_related('region', 'project', 'type', 'project__type', 'project__organization')
-            sites = list(chain(sites, region_sites))
+            sites = list(set(chain(sites, region_sites)))
         except:
             pass
 
@@ -322,7 +322,7 @@ class MySitesViewsetV2(viewsets.ReadOnlyModelViewSet):
             # assume maximum recursion depth is 3
             region_sites = Site.objects.filter(
                 Q(region_id__in=regions_id) | Q(region_id__parent__in=regions_id) | Q(region_id__parent__parent__in=regions_id)).select_related('region', 'project', 'type', 'project__type', 'project__organization')
-            sites = list(chain(sites, region_sites))
+            sites = list(set(chain(sites, region_sites)))
 
         blue_prints = BluePrints.objects.filter(site__in=sites)
         return {'request': self.request, 'blue_prints': blue_prints}

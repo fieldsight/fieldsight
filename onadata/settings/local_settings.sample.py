@@ -4,7 +4,7 @@ os.environ["DJANGO_SECRET_KEY"] = '*********************'
 os.environ["KOBOCAT_MONGO_HOST"] = "*********************"
 os.environ["KOBOFORM_URL"] = 'http://kpi.fieldsight.org'
 os.environ["KOBOFORM_SERVER"] = 'http://kpi.fieldsight.org'
-#os.environ["ENKETO_API_TOKEN"] = 'hellofield'
+#os.environ["ENKETO_API_TOKEN"] = '*********'
 
 from onadata.settings.kc_environ import *
 #CORS_ORIGIN_ALLOW_ALL = True
@@ -159,7 +159,7 @@ ENKETO_API_ENDPOINT_SURVEYS = '/survey'
 ENKETO_URL = os.environ.get('ENKETO_URL', 'https://enketo.fieldsight.org')
 
 
-#os.environ["ENKETO_API_TOKEN"] = 'hellofield'
+#os.environ["ENKETO_API_TOKEN"] = '*******'
 
 
 BROKER_BACKEND = "redis"
@@ -275,9 +275,19 @@ DEFAULT_FORM_3 = {
 }
 
 
+
 LOGIN_URL = '/users/accounts/login/'
 
 # +CELERY_BROKER_URL = 'redis://localhost:6389/2'
 # +CELERY_RESULT_BACKEND = 'redis://localhost:6389/2'  # telling Celery to report results to Redis
 # +CELERY_TASK_ALWAYS_EAGER = False
 #
+
+CELERYBEAT_SCHEDULE = {
+    "update-task-on-mathmod.org": {
+        "task": "onadata.apps.fieldsight.tasks.check_usage_rates",
+        "schedule": crontab(minute=0, hour=0),  # execute daily at midnight
+
+    }
+}
+

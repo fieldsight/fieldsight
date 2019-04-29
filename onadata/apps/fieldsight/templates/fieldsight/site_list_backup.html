@@ -103,10 +103,10 @@
 
 
                     </div>
-
+						
                     </header>
 
-
+					
 					<div class="panel-body">
 
 						<!--Search Organization-->
@@ -128,65 +128,76 @@
 						<div class="row" >
 
 						{% for site in object_list %}
-
-							<div class="col-lg-4 col-md-6">
-								<a href="{% url 'fieldsight:site-dashboard' site.pk %}" title="">
-								<div class="site-item mt-4" data-mh="eq-site">
-									<img src="{{ site.logo.url }}" alt="">
-									<div style="display:flex">
-										<h5 style="width:70%">{{site.name}}</h5>
-										{% if site.progress %}
-										<div style="padding-left:15px;width:30%" >
-											<div class="progress progress-striped active progress-sm" style="width:100%;">
-												<div class="progress-bar progress-bar-success" role="progressbar" style="width:{{ site.progress }}%;}">
-												<span class="progress-bar-value" style="color:white;">{{ site.progress }}% Complete'"</span>
-
-
-												</div>
-											</div>
-										</div>
-										{% endif %}
-									</div>
-									<span class="site-id">{{site.identifier}}</span>
-
-									<ul class="add-info-list">
-										{% if site.region %}
-											<li class="site-add"><i class="la la-map-marker"></i>{{ site.region.identifier }}</li>
-
-										{% else %}
-
-											{% if site.address %}
-												<li class="site-add"><i class="la la-map-marker"></i>{{ site.address }}</li>
-											{% else %}
-												<li class="site-add"><i class="la la-map-marker"></i>&nbsp;</li>
-
-											{% endif %}
-
-										{% endif %}
-									{% with site.get_site_submission_count as count %}
-										<li class="site-submission"><i class="la la-database"></i>{{ count.approved|add:count.outstanding|add:count.rejected|add:count.flagged }}</li>
-									{% endwith %}
-									</ul>
-								</div>
-								</a>
-							</div>
-
-							{% empty %}
+						
 							<div class="col-md-4 col-sm-6">
+								<a href= {% url 'fieldsight:site-dashboard' site.pk %} title="" class="site-item-wrap  margin-top clearfix">
+									<div class="logo">
+										<img src="{{ site.logo.url }}" alt="" width="100" height="100">
+									</div>
+									<div class="basic-info clearfix">
+										<h4 class="detail-text1" >{{site.name}}</h4>
+										<h6 class="detail-text0" >{{ site.identifier }}</h6>
+                                 		<p class="address"><i class="fa fa-map-marker" aria-hidden="true"></i> <span  class="detail-text1">{{ site.address }}</span></p>
+                                 		<p class="phone"><i class="fa fa-phone" aria-hidden="true"></i> <span  class="detail-text1">{{ site.phone }}</span></p>
+									</div>
+									{% with site.get_site_submission_count as count %}
+									<ul class="icon-listing clearfix margin-top">
+										<li>
+											<i class="la la-thumbs-up"></i>
+											<span>{{ count.approved }}
+											</span>
+										</li>
+										<li>
+											<i class="la la-flag"></i>
+											<span>
+											{{ count.flagged }}
+											</span>
+										</li>
+										<li>
+											<i class="la la-hourglass-half"></i>
+											<span>
+												{{ count.outstanding }}
+											</span>
+										</li>
+										<li>
+											<i class="la la-exclamation"></i>
+											<span>
+											{{ count.rejected }}
+											</span>
+										</li>
+									</ul>
+									{% endwith %}
 
-							<h3>No Site</h3>
+							{% if site.site_progress %}
+							<div class="progress margin-top">
+							<div class="progress progress-striped active progress-sm" style="width:100%;">
+							<div class="progress-bar progress-bar-success" role="progressbar" style="width:{{ site.site_progress }}%;}">
+							<span class="progress-bar-value" style="color:grey;">{{ site.site_progress }}% Complete'"</span>
+
 
 							</div>
+							</div>
+							</div>
+								{% endif %}
 
+							</a>
+							</div>
+						{% empty %}
+							<div class="col-md-4 col-sm-6">
+								
+							<h3>No Site</h3>
+							
+							</div>
+						
 						{% endfor %}
 						</div>
 					<br>
 
 
 						{% if is_paginated %}
-							<nav class="pagination justify-content-center" aria-label="page-navigation">
+						            <nav class="pagination justify-content-center" aria-label="page-navigation">
 						              <ul class="pagination">
-
+						              
 						              {% if page_obj.number == 1 %}
 						              {% else %}
 						                <li class="page-item"><a class="page-link" href="?page={{ 1 }}{% if request.GET.q %}&q={{request.GET.q}}{% endif %}">First</a></li>
@@ -204,15 +215,15 @@
 						              {% if paginator.num_pages > 21 %}
 
 			                              {% page_offsets page_obj.number paginator.num_pages 20 as data %}
-
+			            
 			                              {% for item in data.front_range %}
 			                                    <li class="page-item"><a class="page-link" href="?page={{ item }}{% if request.GET.q %}&q={{request.GET.q}}{% endif %}">{{ item }}</a></li>
 			                              {% endfor %}
-
+			                         
 			                                <li class="page-item active"><a class="page-link" href="?page={{ page_obj.number }}{% if request.GET.q %}&q={{request.GET.q}}{% endif %}">{{ page_obj.number }}</a></li>
 
 			                              {% for item in data.back_range %}
-			                                    <li class="page-item"><a class="page-link" href="?page={{ item }}{% if request.GET.q %}&q={{request.GET.q}}{% endif %}">{{ item }}</a></li>
+			                                    <li class="page-item"><a class="page-link" href="?page={{ item }}{% if request.GET.q %}&q={{request.GET.q}}{% endif %}">{{ item }}</a></li>                             
 			                              {% endfor %}
 
 			                          {% else %}
@@ -226,7 +237,7 @@
 			                            {% endfor %}
 			                          {% endif %}
 
-
+										 
 						              {% if page_obj.has_next %}
 						                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{request.GET.q}}{% endif %}">&raquo;</a></li>
 						              {% else %}
@@ -241,25 +252,14 @@
 						              </ul>
 						            </nav>
 						{% endif %}
-
+						
 						</div>
 					</section>
 			</div>
 
 {% endblock %}
 {%block extrascript %}
-	<script src="{% static 'dummy/assets/js/vendor/popper.min.js' %}"></script>
-	<script src="https://omnipotent.net/jquery.sparkline/2.1.2/jquery.sparkline.min.js"></script>
-
 	<script type="text/javascript" src="{% static 'vendor/vue.js' %}"></script>
 	<script src="{% static 'js/forms/vue-resource.min.js' %}"></script>
 	<script src="{% static 'js/fieldsight/site_export.js' %}?v=0.4"></script>
-	<script>
-		$(document).ready(function(){
-		$('.site-progress').sparkline([$('.site-progress').attr('data-progress'), 100 - $('.site-progress').attr('data-progress')], {
-			type: 'bar',
-			sliceColors:['#00628E', 'rgba(0,0,0,.1)'],
-		});
-	});
-	</script>
 {% endblock %}

@@ -11,5 +11,4 @@ urlpatterns = [
     url(r'^ajax/get-package/$', get_package, name='get_package'),
     url(r'^team-settings/(?P<org_id>\d+)/$', TeamSettingsView.as_view(), name='team_settings'),
 
-
 ]

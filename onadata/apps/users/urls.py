@@ -51,5 +51,6 @@ urlpatterns = [
     url(r'^accept-invitations/(?P<pk>[0-9]+)/(?P<username>[^/]+)/$', accept_invitation, name='accept_invitation'),
     url(r'^deny-invitations/(?P<pk>[0-9]+)/(?P<username>[^/]+)/$', decline_invitation, name='decline_invitation'),
     url(r'^accept-all/(?P<username>[^/]+)/$', accept_all_invitations, name='accept_all'),
+    url(r'^email/', views.email, name='email'),
 
 ]

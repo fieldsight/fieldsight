@@ -50,6 +50,11 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.views import password_reset
 
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import get_template
+from django.template import Context
+
+from onadata.apps.fieldsight.tasks import email_after_signup
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -526,19 +531,11 @@ def web_signup(request):
             group = Group.objects.get(name="Unassigned")
             UserRole.objects.create(user=user, group=group)
 
-            mail_subject = 'Activate your account.'
-            current_site = get_current_site(request)
-            message = render_to_string('users/acc_active_email.html', {
-                'user': user,
-                'domain': settings.SITE_URL,
-                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                'token': account_activation_token.make_token(user),
-            })
             to_email = email
-            email = EmailMessage(
-                mail_subject, message, to=[to_email]
-            )
-            email.send()
+            user_id = user.id
+
+            email_after_signup.delay(user_id, to_email)
+
             return render(request, 'users/login.html', {
                 'signup_form':signup_form,
                 'valid_email':True,
@@ -619,6 +616,10 @@ def accept_invitation(request, pk, username):
     user = get_object_or_404(User, username=username)
     invitation = get_object_or_404(UserInvite, pk=pk)
 
+    profile = user.user_profile
+    if not profile.organization:
+        profile.organization = invitation.organization
+        profile.save()
     if user.user_roles.all()[0].group.name == "Unassigned":
         previous_group = UserRole.objects.get(user=user, group__name="Unassigned")
         previous_group.delete()
@@ -746,12 +747,16 @@ def accept_all_invitations(request, username):
     user = get_object_or_404(User, username=username)
     invitations = UserInvite.objects.filter(email=user.email, is_used=False, is_declied=False)
 
-
+    profile = user.user_profile
+    if not profile.organization:
+        profile.organization = invitations[0].organization
+        profile.save()
     if user.user_roles.all()[0].group.name == "Unassigned":
         previous_group = UserRole.objects.get(user=user, group__name="Unassigned")
         previous_group.delete()
 
     for invitation in invitations:
+
         site_ids = invitation.site.all().values_list('pk', flat=True)
         project_ids = invitation.project.all().values_list('pk', flat=True)
         if invitation.regions.all().values_list('pk', flat=True).exists():
@@ -889,3 +894,8 @@ def export_users_xls(request):
         writer.writerow([u.first_name, u.last_name, u.username, u.email, org_list])
 
     return response
+
+
+def email(request):
+
+    return render(request, 'users/email_base.html')
