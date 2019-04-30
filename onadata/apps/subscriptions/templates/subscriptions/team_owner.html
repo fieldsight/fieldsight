@@ -58,7 +58,7 @@
                                 <div class="bg-primary p-4">
         	                        <div class="bg-light p-4 m-4">
                                         <div class="pb-2"></div>
-                                        <h4 class="text-center mt-4 mb-3"><strong>Fieldsight Plans & Pricing</strong></h4>
+                                        <h4 class="text-center mt-4 mb-3"><strong>Fieldsight Plans & Pricing {{plan}}</strong></h4>
                                         <p class="text-center mb-4 text-xlight">Fieldsight is provided open-source and under a non-profit model.<br/>
                                         Fees for access to the system cover the costs of hosting data and providing support. <br/>Additional services are priced at our costs. Contact us more to discuss.</p>
                                         <div class="pb-2 text-center">
@@ -256,7 +256,9 @@
                                     <!-- ............pricing step 2........ -->
                                           <div class="bg-primary p-4">
                                             <div class="bg-light p-4 m-4">
-                                            <form action="{% url 'subscriptions:finish_subscription' obj.pk %}" method="post">{% csrf_token %}
+                                            <form action="{% url 'subscriptions:update_plan' obj.pk %}" method="post">{% csrf_token %}
+                                                <input type="hidden" name="interval" value="monthly"/>
+                                                <input type="hidden" name="plan_name" value=""/>
 
                                                 <div class="pb-2"></div>
                                                 <h5 class="text-center mt-2 mb-3"><strong>You have changed plan to <span id="plan"></span></strong></h5>
@@ -292,7 +294,7 @@
                                                 </div>
                                                 <div class="text-center">
                                                     <a href="#" title="" class="btn btn-primary btn-prev" id="btn_previous"><i class="la la-long-arrow-left" ></i> Previous</a>
-                                                    <button type="submit" class="btn btn-primary">Finish<i class="la la-long-arrow-right"></i></button>
+                                                    <button type="submit" class="btn btn-primary">Update Your Plan<i class="la la-long-arrow-right"></i></button>
                                                 </div>
                                             </form>
 
@@ -341,6 +343,8 @@
                                         <h6><strong>${{subscribed_package.total_charge}}</strong><sub> /Yr</sub></h6>
 
                                     {% endif %}
+                                    Start Date: {{plan_start_date}} <br>
+                                    Renewal Date: {{renewal_date}}
                                 </div>
                                 <ul class="list-icon mt-4 mb-4">
                                     <li><i class="la la-chevron-circle-right"></i><strong>{{subscribed_package.submissions}}</strong> Submissions</li>
@@ -591,10 +595,235 @@
 	});
 
     $(document).ready(function(){
+        $('input[type=radio][name=pay-type]').change(function() {
+          $('input[name="interval"]').val(this.value);
+
+        });
 
         $("ul.nav li:nth-child(3) a" ).addClass("active");
 
+				$('#first_next').click(function(){
+
+            var selected_interval=$("input[name='pay-type']:checked").val();
+            $('input[name="plan_name"]').val(selected_plan);
+
+            // get package
+
+            $.ajax({
+              url: '{% url "subscriptions:get_package" %}',
+              data: {
+                'plan': selected_plan,
+                'interval': selected_interval,
+              },
+              dataType: 'json',
+              success: function (data) {
+                $('#submissions').html(data.submissions);
+                $('#starting_date').html(data.starting_date);
+                $('#plan').html(data.selected_plan);
+                $('#ending_date').html(data.ending_date);
+
+
+
+          }
+          });
+
+				});
+
+
+        var plan = [];
+
+					plan.push($(".plan").text().split('S'));
+						if (plan[0].includes("elected")){
+							$("#first_next").removeClass("disabled");
+
+						}
+						else {
+							$("#first_next").addClass("disabled");
+
+
+						}
+
+				function active_plan(el){
+					$(el).closest('.module-pricing').addClass('selected-plan');
+					$(el).closest('.module-pricing').find('.mp-head').addClass('bg-secondary');
+					$(el).addClass('bg-secondary');
+					$(el).addClass('border-secondary');
+				}
+
+				function deactive_plan(el){
+					$(el).closest('.module-pricing').removeClass('selected-plan');
+					$(el).closest('.module-pricing').find('.mp-head').removeClass('bg-secondary');
+					$(el).removeClass('bg-secondary');
+					$(el).removeClass('border-secondary');
+				}
+
+				//toogle
+				$(function() {
+					var btn = $("[href='#collapseEx1']");
+
+					var toggled = false;
+					btn.on("click", function() {
+
+						if(!toggled)
+						{
+						active_plan(this);
+						  toggled = true;
+						  btn.html("Selected <i class='la la-check-circle'></i>");
+						  $("[href='#collapseEx0']").text("Select");
+							selected_plan = 'starter_plan';
+							$("#basic_plan, #extended_plan, #pro_plan, #scale_plan").addClass("disabled");
+							$("#first_next").removeClass("disabled");
+
+						} else {
+						  toggled = false;
+						  btn.html("Select");
+						  deactive_plan(this);
+
+							selected_plan = '';
+							$("#basic_plan, #extended_plan, #pro_plan, #scale_plan").removeClass("disabled");
+							$("[href='#collapseEx0']").text("Subscribed");
+							$("#first_next").addClass("disabled");
+
+						}
+					});
+				});
+				$(function() {
+					var btn = $("[href='#collapseEx2']");
+					var toggled = false;
+					btn.on("click", function() {
+					$(this).closest('.module-pricing').addClass('selected-plan');
+
+						if(!toggled)
+						{
+						  toggled = true;
+						  active_plan(this);
+						  btn.html("Selected <i class='la la-check-circle'></i>");
+
+						   $("[href='#collapseEx0']").text("Select");
+							selected_plan = 'basic_plan';
+							$("#starter_plan, #extended_plan, #pro_plan, #scale_plan").addClass("disabled");
+							$("#first_next").removeClass("disabled");
+
+
+
+						} else {
+						  toggled = false;
+						  btn.html("Select");
+						  deactive_plan(this);
+						  // btn.css("backgroundColor", "");
+						  $(this).closest('.module-pricing').removeClass('selected-plan');
+							selected_plan = '';
+							$("#starter_plan, #extended_plan, #pro_plan, #scale_plan").removeClass("disabled");
+							$("[href='#collapseEx0']").text("Subscribed");
+							$("#first_next").addClass("disabled");
+
+
+						}
+					});
+				});
+
+				$(function() {
+					var btn = $("[href='#collapseEx3']");
+					var toggled = false;
+					btn.on("click", function() {
+					$(this).closest('.module-pricing').addClass('selected-plan');
+
+						if(!toggled)
+						{
+						  toggled = true;
+						  active_plan(this);
+						  btn.html("Selected <i class='la la-check-circle'></i>");
+						   $("[href='#collapseEx0']").text("Select");
+							selected_plan = 'extended_plan';
+							$("#starter_plan, #basic_plan, #pro_plan, #scale_plan").addClass("disabled");
+							$("#first_next").removeClass("disabled");
+
+
+
+						} else {
+						  toggled = false;
+						  btn.html("Select");
+						  deactive_plan(this);
+						  $(this).closest('.module-pricing').removeClass('selected-plan');
+							selected_plan = '';
+							$("#starter_plan, #basic_plan, #pro_plan, #scale_plan").removeClass("disabled");
+							$("[href='#collapseEx0']").text("Subscribed");
+							$("#first_next").addClass("disabled");
+
+
+						}
+					});
+				});
+
+				$(function() {
+					var btn = $("[href='#collapseEx4']");
+					var toggled = false;
+					btn.on("click", function() {
+					$(this).closest('.module-pricing').addClass('selected-plan');
+
+						if(!toggled)
+						{
+						  toggled = true;
+						  active_plan(this);
+						  btn.html("Selected <i class='la la-check-circle'></i>");
+						  	$("[href='#collapseEx0']").text("Select");
+							selected_plan = 'pro_plan';
+							$("#starter_plan, #basic_plan, #extended_plan, #scale_plan").addClass("disabled");
+							$("#first_next").removeClass("disabled");
+
+
+
+						} else {
+						  toggled = false;
+						  btn.html("Select");
+						  deactive_plan(this);
+						  $(this).closest('.module-pricing').removeClass('selected-plan');
+						  btn.css("backgroundColor", "");
+							selected_plan = '';
+							$("#starter_plan, #basic_plan, #extended_plan, #scale_plan").removeClass("disabled");
+							$("[href='#collapseEx0']").text("Subscribed");
+							$("#first_next").addClass("disabled");
+
+
+						}
+					});
+				});
+
+				$(function() {
+					var btn = $("[href='#collapseEx5']");
+					var toggled = false;
+					btn.on("click", function() {
+					$(this).closest('.module-pricing').addClass('selected-plan');
+
+						if(!toggled)
+						{
+						  toggled = true;
+						  active_plan(this);
+						  btn.html("Selected <i class='la la-check-circle'></i>");
+						  $("[href='#collapseEx0']").text("Select");
+
+							selected_plan = 'scale_plan';
+							$("#starter_plan, #basic_plan, #pro_plan, #extended_plan").addClass("disabled");
+							$("#first_next").removeClass("disabled");
+
+
+						} else {
+						  toggled = false;
+						  btn.html("Select");
+						  deactive_plan(this);
+						  $(this).closest('.module-pricing').removeClass('selected-plan');
+							selected_plan = '';
+							$("#starter_plan, #basic_plan, #pro_plan, #extended_plan").removeClass("disabled");
+							$("[href='#collapseEx0']").text("Subscribed");
+							$("#first_next").addClass("disabled");
+
+						}
+					});
+
     });
+
+  });
+
 
 </script>
 {% endblock %}

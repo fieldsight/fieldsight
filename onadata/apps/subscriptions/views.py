@@ -274,6 +274,7 @@ def stripe_webhook(request):
             stripe_customer = event_json['data']['object']['customer']
             user = Customer.objects.get(stripe_cust_id=stripe_customer).user
             sub = Subscription.objects.get(stripe_customer__stripe_cust_id=stripe_customer)
+            changed_plan = sub.updated_at
             customer_created = sub.initiated_on.strftime('%Y-%m-%d')
             today = datetime.now().strftime('%Y-%m-%d')
 
@@ -283,13 +284,14 @@ def stripe_webhook(request):
             user_id = user.id
 
             if customer_created == today:
-                template = "subscriptions/update_plan_email.html"
-                mail_subject = 'Subscribed Plan'
+
+                template = "subscriptions/plan_renew_email.html"
+                mail_subject = 'Renew Plan'
                 email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject)
 
             else:
-                template = "subscriptions/plan_renew_email.html"
-                mail_subject = 'Renew Plan'
+                template = "subscriptions/update_plan_email.html"
+                mail_subject = 'Subscribed Plan'
                 email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject)
 
         elif event_json['type'] == 'invoice.upcoming':
@@ -443,12 +445,19 @@ class TeamSettingsView(LoginRequiredMixin, TemplateView):
             if not customer.stripe_cust_id == 'free_cust_id':
                 stripe_customer = stripe.Customer.retrieve(customer.stripe_cust_id)
                 context['card'] = stripe_customer.sources.data[0].last4
-            context['subscribed_package'] = Subscription.objects.select_related().get(stripe_customer=customer).package
+            sub_obj = Subscription.objects.select_related().get(stripe_customer=customer)
+            context['subscribed_package'] = sub_obj.package
+            RENEWAL_DATE = {'1': 1, '2': 12}
+            plan_start_date = sub_obj.initiated_on.strftime('%A, %B %d, %Y')
+            renewal_date = sub_obj.initiated_on + dateutil.relativedelta.relativedelta(months=RENEWAL_DATE[str(sub_obj.package.period_type)])
             context['has_user_free_package'] = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user).exists()
             sub_obj = Subscription.objects.select_related().get(stripe_customer=customer)
             context['usage_submissions'] = sub_obj.organization.get_total_submissions()
             context['key'] = settings.STRIPE_PUBLISHABLE_KEY
             context['level'] = "2"
+            context['plan_start_date'] = plan_start_date
+            context['renewal_date'] = renewal_date.strftime('%A, %B %d, %Y')
+            context['plan'] = sub_obj.package.plan
 
         return context
 
@@ -469,4 +478,88 @@ def update_card(request):
 
         messages.success(request, 'You have been successfully updated your card.')
     return HttpResponseRedirect(reverse("subscriptions:team_settings", kwargs={'org_id': request.user.organizations.all()[0].pk}))
+
+
+@login_required
+def update_plan(request, org_id):
+    """
+
+    Args:
+        request:
+        org_id: organization id
+
+    Returns:
+
+    """
+
+    if request.method == 'POST':
+        stripe_sub_id = Subscription.objects.get(stripe_customer__user=request.user).stripe_sub_id
+        organization = get_object_or_404(Organization, id=org_id)
+
+        period = request.POST['interval']
+        starting_date = datetime.now().strftime('%A, %B %d, %Y')
+        if period == 'yearly':
+            overage_plan = settings.YEARLY_PLANS_OVERRAGE[request.POST['plan_name']]
+            selected_plan = settings.YEARLY_PLANS[request.POST['plan_name']]
+            package = Package.objects.get(plan=settings.PLANS[selected_plan], period_type=2)
+            ending_date = datetime.now() + dateutil.relativedelta.relativedelta(months=12)
+            plan_name = YEARLY_PLAN_NAME[request.POST['plan_name']]
+
+        elif period == 'monthly':
+            overage_plan = settings.MONTHLY_PLANS_OVERRAGE[request.POST['plan_name']]
+            selected_plan = settings.MONTHLY_PLANS[request.POST['plan_name']]
+            package = Package.objects.get(plan=settings.PLANS[selected_plan], period_type=1)
+            ending_date = datetime.now() + dateutil.relativedelta.relativedelta(months=1)
+            plan_name = MONTHLY_PLAN_NAME[request.POST['plan_name']]
+
+        subscription = stripe.Subscription.retrieve(stripe_sub_id)
+
+        sub = stripe.Subscription.modify(
+            stripe_sub_id,
+            cancel_at_period_end=False,
+            items=[
+                {
+                    'id': subscription['items']['data'][0].id,
+                    'plan': selected_plan,
+
+                 },
+                {
+                    'id': subscription['items']['data'][1].id,
+                    'plan': overage_plan,
+
+                }
+            ]
+        )
+        cust = Customer.objects.get(user=request.user)
+        stripe_customer = stripe.Customer.retrieve(cust.stripe_cust_id)
+        card = stripe_customer.sources.data[0].last4
+
+        sub_data = {
+            'stripe_sub_id': sub.id,
+            'is_active': True,
+            'initiated_on': datetime.now(),
+            'updated_on': datetime.now(),
+            'package': Package.objects.get(plan=settings.PLANS[selected_plan]),
+            'organization': organization
+
+        }
+        try:
+            # Subscription.objects.create(**sub_data)
+            Subscription.objects.filter(stripe_customer=cust, stripe_sub_id=stripe_sub_id).update(**sub_data)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+
+        return render(request, 'fieldsight/pricing_step_3.html', {'organization': organization,
+                                                                  'submissions': package.submissions,
+                                                                  'amount': package.total_charge,
+                                                                  'starting_date': starting_date,
+                                                                  'ending_date': ending_date.strftime('%A, %B %d, %Y'),
+                                                                  'card': card,
+                                                                  'plan_name': plan_name,
+                                                                  })
+
+    else:
+        return JsonResponse({'error': 'get method not allowed'})
+    # return HttpResponseRedirect(reverse("subscriptions:team_settings", kwargs={'org_id': org_id}))
 
