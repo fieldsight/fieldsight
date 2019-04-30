@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from onadata.apps.fieldsight.models import Project, Organization, Region
+from onadata.apps.fieldsight.models import Project, Organization, Region, Site
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -15,16 +15,24 @@ class RegionSerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
+class SiteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Site
+        fields = ('id', 'name', 'latitude', 'longitude', 'address', 'phone',
+                  'current_progress', 'identifier', 'type', 'region', 'project', 'date_modified', 'is_active', 'site_meta_attributes_ans'
+                                                                                                               ''
+                                                                                                               '')
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     organization = OrganizationSerializer()
     project_region = RegionSerializer(many=True)
     meta_attributes = serializers.SerializerMethodField()
-    has_unassigned_sites = serializers.SerializerMethodField()
+    has_site_role = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ('name', 'id', 'latitude', 'longitude', 'address', 'public_desc', 'type', 'phone',
-                  'organization', 'project_region', 'meta_attributes', 'has_unassigned_sites')
+        fields = ('name', 'id', 'address', 'organization', 'project_region', 'meta_attributes', 'has_site_role')
 
     def get_meta_attributes(self, obj):
         filtered_ma = []
@@ -33,5 +41,5 @@ class ProjectSerializer(serializers.ModelSerializer):
                 filtered_ma.append(ma)
         return filtered_ma
 
-    def get_has_unassigned_sites(self, obj):
-        return obj.has_unassigned_sites
+    def get_has_site_role(self, obj):
+        return obj.has_site_role
