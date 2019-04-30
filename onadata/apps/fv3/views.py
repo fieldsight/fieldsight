@@ -59,19 +59,21 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
         project_id = query_params.get('project_id')
         last_updated = query_params.get('last_updated')
 
-        if region_id:
-            sites = Site.objects.filter(region=region_id)
-        elif project_id:
-            sites = Site.objects.filter(project=project_id, site_roles__region__isnull=True,
+        if region_id:  # Region Reviewer Roles
+            sites = Site.all_objects.filter(region=region_id)
+        elif project_id:  # Site Supervisor Roles
+            sites = Site.all_objects.filter(project=project_id, site_roles__region__isnull=True,
                                         site_roles__group_name="Site Supervisor")
         else:
             sites = []
         if last_updated:
             try:
-                last_updated_date = datetime.fromtimestamp(last_updated)
+                last_updated_date = datetime.fromtimestamp(last_updated)#  Deleted and last updated sites.
                 sites = sites.filter(date_modified__gte=last_updated_date)
+
             except:
                 pass
+
         return sites
 
 
