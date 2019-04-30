@@ -413,6 +413,7 @@ class Site(models.Model):
     location = PointField(geography=True, srid=4326, blank=True, null=True)
     is_survey = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True, blank=True)
+    date_modified = models.DateTimeField(auto_now=True, blank=True)
     region = models.ForeignKey(
         Region, related_name='regions', blank=True, null=True)
     site_meta_attributes_ans = JSONField(default=dict)
