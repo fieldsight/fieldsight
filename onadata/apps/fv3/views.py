@@ -68,7 +68,7 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
             sites = []
         if last_updated:
             try:
-                last_updated_date = datetime.fromtimestamp(last_updated)#  Deleted and last updated sites.
+                last_updated_date = datetime.fromtimestamp(int(last_updated))#  Deleted and last updated sites.
                 sites = sites.filter(date_modified__gte=last_updated_date)
 
             except:
