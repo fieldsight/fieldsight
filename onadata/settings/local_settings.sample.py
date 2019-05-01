@@ -190,6 +190,7 @@ DEBUG = False
 STATIC_URL = '/static/'
 STATIC_ROOT= os.path.join(BASE_DIR,'static')
 SITE_URL = 'https://app.fieldsight.org'
+SITE_EMAIL = 'test@gmail.com'
 
 # ........STRIPE CONFIG...............
 

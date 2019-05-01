@@ -454,6 +454,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
                                        format(self.request.user, self.object.name))
 
         user = self.request.user
+        user_id = User.objects.get(username=user).id
         profile = user.user_profile
         if not profile.organization:
             profile.organization = self.object
@@ -465,8 +466,8 @@ class OrganizationCreateView(OrganizationView, CreateView):
             customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
             Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer, initiated_on=datetime.datetime.now(),
                                         package=free_package, organization=self.object)
-            user = self.request.user
-            email_after_subscribed_plan.delay(user, free_package)
+            user_id = user_id
+            email_after_subscribed_plan.delay(user_id)
 
         project = Project.objects.get(name="Example Project", organization_id=self.object.id)
         sites = Site.objects.filter(project=project)
@@ -475,7 +476,9 @@ class OrganizationCreateView(OrganizationView, CreateView):
                                                      description="Auto Clone and Deployment of Forms",
                                                      task_type=15, content_object=self.object)
         if task_obj:
-            clone_form.delay(user, project, task_obj.id)
+            project_id = Project.objects.get(name="Example Project", organization_id=self.object.id).id
+
+            clone_form.delay(user_id, project_id, task_obj.id)
         # result = {}
         # result['description'] = '{0} created a new organization named {1} '.format(noti.source.get_full_name(), self.object.name)
         # result['url'] = noti.get_absolute_url()
@@ -1720,6 +1723,21 @@ def sendmultiroleuserinvite(request):
 #         else:
 
 #     return HttpResponse("Failed")
+
+def delete_unassigned_group(user):
+    """
+
+    Args:
+        user: User object
+
+    Returns:
+
+    """
+    if UserRole.objects.filter(user=user).count() > 1:
+        unassigned_group = UserRole.objects.filter(user=user, group__name="Unassigned")
+        if unassigned_group.exists():
+            unassigned_group.delete()
+
    
 class ActivateRole(TemplateView):
     def dispatch(self, request, invite_idb64, token):
@@ -1802,19 +1820,24 @@ class ActivateRole(TemplateView):
                 userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
                                                                organization=invite.organization, project_id=project_id,
                                                                site_id=None, region_id=region_id)
-
+            delete_unassigned_group(user)
         else:
             for project_id in project_ids:
                 for site_id in site_ids:
                     userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project_id=project_id, site_id=site_id)
+                    delete_unassigned_group(user)
+
                 if not site_ids:
                     userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project_id=project_id, site=None)
+                    delete_unassigned_group(user)
 
         if not project_ids:
             userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project=None, site=None, region=None)
+            delete_unassigned_group(user)
             if invite.group_id == 1:
                 permission = Permission.objects.filter(codename='change_finstance')
                 user.user_permissions.add(permission[0])
+
 
         invite.is_used = True
         invite.save()
