@@ -536,7 +536,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
 
             </li>
             <li class="nav-item">
-              <a class="nav-link " data-toggle="tab" href="#tab003" role="tab">{% trans 'Assign' %} {% trans 'Donors' %}</a>
+              <a class="nav-link " data-toggle="tab" href="#tab003" role="tab">{% trans 'Assign' %} {% trans 'Partners' %}</a>
             </li>
           </ul>
           <!-- Tab panes -->
@@ -867,7 +867,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                     <div class="col-md-8">
                 <div class="widget-info margin-top bg-white padding">
                   <div class="widget-head">
-                    <h4>{% trans 'Invite' %} {% trans 'new' %} {% trans 'Donors' %}</h4>
+                    <h4>{% trans 'Invite' %} {% trans 'new' %} {% trans 'Partners' %}</h4>
                   </div>
                   <div class="widget-body">
                     <form>
@@ -888,7 +888,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                     <strong>{% trans 'OR' %}</strong>
                     </h4>
                     <div class="widget-head">
-                    <h4>{% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'Donors' %}</h4>
+                    <h4>{% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'Partners' %}</h4>
                     </div>
                    
                     <form class="margin-top">
@@ -899,7 +899,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                      <input type="button" value="Select All" class="btn btn-primary margin-top" data-bind=" click:$root.setAllAssignAsSelected">
                      <input type="button" class="btn btn-primary margin-top" value="Unselect All" data-bind="click:$root.setAllUnSelected">
 
-                    <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignDonor"><i class="la la-user-plus"></i> {% trans 'Assign' %} {% trans 'selected' %} {% trans 'as' %} {% trans 'Donors' %}</button>
+                    <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignDonor"><i class="la la-user-plus"></i> {% trans 'Assign' %} {% trans 'selected' %} {% trans 'as' %} {% trans 'Partners' %}</button>
                    
                     <ul class="row" data-bind="foreach:$root.users">
                       <li class="col-md-4">
@@ -933,7 +933,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
             <div class="col-md-4">
               <div class="widget-info margin-top bg-white padding">
                 <div class="widget-head">
-                  <h4>{% trans 'Current' %} {% trans 'Donors' %}</h4>
+                  <h4>{% trans 'Current' %} {% trans 'Partners' %}</h4>
                 </div>
 
                 <div class="widget-body" data-bind="foreach:projectDonors">
@@ -975,7 +975,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
       <div class="tabbing margin-top">
           <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item">
-              <a class="nav-link active" data-toggle="tab" href="#tab001" role="tab">{% trans 'Assign' %} {% trans 'Organization' %} {% trans 'Admins' %}</a>
+              <a class="nav-link active" data-toggle="tab" href="#tab001" role="tab">{% trans 'Assign' %} {% trans 'Team' %} {% trans 'Admins' %}</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" data-toggle="tab" href="#tab002" role="tab">{% trans 'Assign' %} {% trans 'Project' %} {% trans 'Managers' %}</a>
@@ -991,7 +991,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                   <div class="col-md-8">
             <div class="widget-info margin-top bg-white padding">
               <div class="widget-head">
-                <h4>{% trans 'Invite' %} {% trans 'new' %} {% trans 'organization' %} {% trans 'admins' %}</h4>
+                <h4>{% trans 'Invite' %} {% trans 'new' %} {% trans 'Team' %} {% trans 'admins' %}</h4>
               </div>
               <div class="widget-body">
                 <form>
@@ -1012,7 +1012,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                 <strong>{% trans 'OR' %}</strong>
                 </h4>
                  <div class="widget-head">
-                <h4>{% trans 'Select' %} {% trans 'users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'organization' %} {% trans 'admin' %}</h4>
+                <h4>{% trans 'Select' %} {% trans 'users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'Team' %} {% trans 'admin' %}</h4>
                 </div>
                   <form class="margin-top">
                     <div class="input-group">
@@ -1022,7 +1022,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                  <input type="button" class="btn btn-primary margin-top" value="Select All" data-bind=" click:$root.setAllAssignAsSelected">
                  <input type="button" class="btn btn-primary margin-top" value="Unselect All" data-bind="click:$root.setAllUnSelected">
 
-                  <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignOadmin"><i class="la la-user-plus"></i> {% trans 'Assign' %} {% trans 'Organization' %} {% trans 'Admin' %}</button>
+                  <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignOadmin"><i class="la la-user-plus"></i> {% trans 'Assign' %} {% trans 'Team' %} {% trans 'Admin' %}</button>
                   <ul class="row" data-bind="foreach:$root.users">
                   <li class="col-md-4">
                     <label class="custom-control margin-top user-checkbox custom-checkbox" >
@@ -1057,7 +1057,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
           <div class="col-md-4">
             <div class="widget-info margin-top bg-white padding">
               <div class="widget-head">
-                <h4>{% trans 'Current' %} {% trans 'Organization' %} {% trans 'Admins' %}</h4>
+                <h4>{% trans 'Current' %} {% trans 'Team' %} {% trans 'Admins' %}</h4>
               </div>
 
               <div class="widget-body" data-bind="foreach:admins">
@@ -1069,7 +1069,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                     <h4 data-bind="text:user().full_name"></h4>
                     <p data-bind="text:user().email"></p>
                   </div>
-                  <a href="#" title="" class="btn btn-danger btn-sm project-action" data-bind="confirmClick: { message: 'Are you sure to remove this Organization Admin?', click:rmrole }"><i class="la la-close"></i></a>
+                  <a href="#" title="" class="btn btn-danger btn-sm project-action" data-bind="confirmClick: { message: 'Are you sure to remove this Team Admin?', click:rmrole }"><i class="la la-close"></i></a>
 
 
 

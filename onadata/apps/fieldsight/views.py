@@ -1568,7 +1568,7 @@ def senduserinvite(request):
         msg.content_subtype = "html"
         msg.send()
         if group.name == "Unassigned":
-            response += "Sucessfully invited "+ email +" to join this organization.<br>"
+            response += "Sucessfully invited "+ email +" to join this Team.<br>"
         else:    
             response += "Sucessfully invited "+ email +" for "+ group.name +" role.<br>"
         continue
