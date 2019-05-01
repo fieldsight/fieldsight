@@ -29,10 +29,11 @@ class ProjectSerializer(serializers.ModelSerializer):
     project_region = RegionSerializer(many=True)
     meta_attributes = serializers.SerializerMethodField()
     has_site_role = serializers.SerializerMethodField()
+    url = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ('name', 'id', 'address', 'organization', 'project_region', 'meta_attributes', 'has_site_role')
+        fields = ('name', 'id', 'address', 'organization', 'project_region', 'meta_attributes', 'has_site_role', 'url')
 
     def get_meta_attributes(self, obj):
         filtered_ma = []
@@ -43,3 +44,6 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     def get_has_site_role(self, obj):
         return obj.has_site_role
+
+    def get_url(self, obj):
+        return obj.logo.url
