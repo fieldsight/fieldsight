@@ -6,6 +6,7 @@ from onadata.apps.fieldsight.templatetags.filters import FORM_STATUS
 
 from onadata.apps.logger.xform_instance_parser import get_uuid_from_xml, clean_and_parse_xml
 
+from onadata.settings.local_settings import XML_VERSION_MAX_ITER
 from onadata.apps.userrole.models import UserRole
 from django.core.files.storage import get_storage_class
 from django.conf import settings
@@ -15,8 +16,6 @@ from django.utils.translation import ugettext as _
 from xml.dom import Node
 
 FIELDSIGHT_XFORM_ID = u"_fieldsight_xform_id"
-from onadata.settings.local_settings import XML_VERSION_MAX_ITER
-
 
 
 def send_message_koboform_updated(xform):
@@ -28,7 +27,7 @@ def send_message_koboform_updated(xform):
     emails = UserRole.objects.filter(ended_at=None,
                                     group__name="Site Supervisor"
                                     ).filter(
-        Q(site__id__in=site_ids) | Q( site__project__id__in=project_ids)
+        Q(site__id__in=site_ids) | Q(site__project__id__in=project_ids)
                                     ).values_list('user__email', flat=True).distinct().order_by()
     Device = get_device_model()
     is_delete = False
