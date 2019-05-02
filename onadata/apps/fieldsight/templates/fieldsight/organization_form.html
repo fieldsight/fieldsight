@@ -83,10 +83,10 @@
 				<section class="panel">
                     <header class="panel-heading clearfix">
                         {% if form.instance.name %}
-                        <h3><i class="la la-building"></i>{% trans 'Edit' %} {% trans 'Organization' %}</h3>
+                        <h3><i class="la la-building"></i>{% trans 'Edit' %} {% trans 'Team' %}</h3>
                         <button type="button" class="btn btn-danger pull-right" style="display:none;" data-toggle="modal" data-target="#myModal"><i class="la la-trash"></i> {% trans 'Delete' %}</button>
                         {% else %}
-                        <h3><i class="la la-building"></i>{% trans 'New' %} {% trans 'Organization' %}</h3>
+                        <h3><i class="la la-building"></i>{% trans 'New' %} {% trans 'Team' %}</h3>
                         {% endif %}
                         
                     </header>
@@ -149,7 +149,7 @@
                             </div>
                             <div class="modal-body">
                               <h4 style="color:red; text-align: center;">{% trans 'Warning' %}</h4>
-                                <p>{% trans '"All the projects, sites, form submissions and user roles within this organization will be completely removed. Do you still want to continue?"' %}</p>
+                                <p>{% trans '"All the projects, sites, form submissions and user roles within this Team will be completely removed. Do you still want to continue?"' %}</p>
                             </div>
                             <div class="modal-footer">
                                 {% if form.instance.id %}

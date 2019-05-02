@@ -541,7 +541,8 @@ def web_signup(request):
                 'valid_email':True,
                 'email_error':False,
                 'success_signup':1,
-                'email':to_email,
+                'email': to_email,
+                'site_email': settings.SITE_EMAIL
                 })
 
             # user = authenticate(username=username,

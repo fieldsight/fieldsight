@@ -138,7 +138,7 @@ class UserRoleViewSet(viewsets.ModelViewSet):
                     role, created = UserRole.objects.get_or_create(user_id=user,
                                                                    organization_id=self.kwargs.get('pk'), project_id=None, site_id=None, group=group)
                     if created:
-                        description = "{0} was assigned  as Organization Admin in {1}".format(
+                        description = "{0} was assigned  as Team Admin in {1}".format(
                             role.user.get_full_name(), role.organization)
                         noti = role.logs.create(source=role.user, type=4, title=description, organization=organization, description=description,
                          content_object=organization, extra_object=self.request.user)
@@ -232,7 +232,7 @@ class MultiUserAssignRoleViewSet(View):
                             role, created = UserRole.objects.get_or_create(user_id=user, organization_id=project_id,
                                                                            group=group)
                             if created:
-                                description = "{0} was assigned  as Organization Admin in {1}".format(
+                                description = "{0} was assigned  as Team Admin in {1}".format(
                                     role.user.get_full_name(), role.project)
                                 noti = role.logs.create(source=role.user, type=7, title=description, description=description,
                                  content_type=organization, extra_object=self.request.user)
@@ -281,7 +281,7 @@ class MultiUserlistViewSet(viewsets.ModelViewSet):
                 organization = Organization.objects.get(pk=pk)
             except Exception as e:
                 raise ValidationError({
-                    "No such organizations exists ".format(str(e)),
+                    "No such Team exists ".format(str(e)),
                 })
             queryset = queryset.filter(organization__id=organization.id).distinct('user_id')
         return queryset

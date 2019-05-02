@@ -510,7 +510,7 @@ self.setSiteSelected = function(site){
                 App.hideProcessing();
 
                 App.notifyUser(
-                        'People Invited Sucess',
+                        'User Invited Sucess',
                         'success'
                     );
 
@@ -855,7 +855,7 @@ self.doAssignToEntireProject = function(){
               App.hideProcessing();
 
               App.notifyUser(
-                      'People Assigned Sucess',
+                      'User Assigned Sucess',
                       'success'
                   );
 
@@ -929,7 +929,7 @@ self.doAssignToEntireProject = function(){
                 App.hideProcessing();
 
                 App.notifyUser(
-                        'People Assigned Sucess',
+                        'User Assigned Sucess',
                         'success'
                     );
 
@@ -1108,7 +1108,7 @@ var OrgVM = function(level, pk){
                 App.hideProcessing();
 
                 App.notifyUser(
-                        'People Invited Sucess',
+                        'User Invited Sucess',
                         'success'
                     );
 
@@ -1222,7 +1222,7 @@ function multiemailvalidate(entry) {
                 App.hideProcessing();
 
                 App.notifyUser(
-                        'People Assigned Sucess',
+                        'User Assigned Sucess',
                         'success'
                     );
 
@@ -1469,7 +1469,7 @@ self.unAssignUserROle = function(role_id){
                 // }
 
                 App.notifyUser(
-                        'People Assigned Sucess',
+                        'User Assigned Sucess',
                         'success'
                     );
 

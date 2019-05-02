@@ -126,7 +126,10 @@ def post_update_xform(xform_id, user):
 
 
 @shared_task(max_retries=5)
-def clone_form(user, project, task_id):
+def clone_form(user_id, project_id, task_id):
+    user = User.objects.get(id=user_id)
+    project = Project.objects.get(id=project_id)
+
     token = user.auth_token.key
 
     #general clone

@@ -38,8 +38,17 @@
                             </tr>
                             <tr>
                               <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px;">
-                               	You have been invited to join FieldSight by {{ invite.by_user.first_name }} {{ invite.by_user.last_name }} {% if invite.group.name != "Unassigned" %} as {{ invite.group.name }} {% endif %} for {% if invite.regions.all %}{% if invite.regions.all|length == 1 %} for {{ invite.regions.all.0.name }} {% else %} {{ invite.regions.all|length }} regions {% endif %} in {{ invite.project.all.0.name }} of {{ invite.organization.name }}
-								  {% elif invite.site.all %}{% if invite.site.all|length == 1 %} for {{ invite.site.all.0.name }} {% else %} {{ invite.site.all|length }} sites {% endif %} in {{ invite.project.all.0.name }} of {{ invite.organization.name }} {% elif invite.project.all|length %} {% if invite.project.all|length == 1%} for {{ invite.project.all.0.name }}{% else %} for {{ invite.project.all|length }} projects {% endif %} of {{ invite.organization.name }}{% elif invite.organization %} in {{ invite.organization.name }}{% endif %}.
+                               	You have been invited to join FieldSight by {{ invite.by_user.first_name }} {{ invite.by_user.last_name }}
+                                  {% if invite.group.name != "Unassigned" %} as {% if invite.group.name == "Organization Admin" %} Team Admin
+                                  {% elif invite.group.name != "Project Donor" %} Project Partner {% else %}{{ invite.group.name }} {% endif %}  {% endif %}  {% if invite.regions.all %}
+                                  {% if invite.regions.all|length == 1 %} for {{ invite.regions.all.0.name }} {% else %}
+                                  {{ invite.regions.all|length }} regions {% endif %} in {{ invite.project.all.0.name }}
+                                  of {{ invite.organization.name }} {% elif invite.site.all %}{% if invite.site.all|length == 1 %}
+                                  for {{ invite.site.all.0.name }} {% else %} {{ invite.site.all|length }} sites {% endif %}
+                                  in {{ invite.project.all.0.name }} of {{ invite.organization.name }} {% elif invite.project.all|length %}
+                                  {% if invite.project.all|length == 1%} for {{ invite.project.all.0.name }}{% else %}
+                                  for {{ invite.project.all|length }} projects {% endif %} of {{ invite.organization.name }}
+                                  {% elif invite.organization %} in {{ invite.organization.name }}{% endif %}.
                               </td>
                             </tr>
                             <tr>
