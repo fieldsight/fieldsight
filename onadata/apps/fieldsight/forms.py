@@ -264,6 +264,14 @@ class ProjectForm(forms.ModelForm):
         #     organization__id=org_id
         # )
 
+    def clean_sub_sector(self):
+        if self.instance.id:
+            sub_sector = self.cleaned_data.get('sub_sector')
+            if not sub_sector.sector == self.instance.sector:
+                raise ValidationError('Select the sub sector that matches the selected sector')
+            else:
+                return sub_sector
+
     class Meta:
         model = Project
         exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers')
