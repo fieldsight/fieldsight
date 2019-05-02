@@ -4,8 +4,6 @@ from django.conf import settings
 from django.db.models import Q
 from fcm.utils import get_device_model
 
-from onadata.apps.userrole.models import UserRole
-
 noti = settings.MONGO_DB.notifications
 
 
