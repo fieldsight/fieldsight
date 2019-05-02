@@ -286,7 +286,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                         {% if level == "2" %}
               <li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' pk %}">{{ obj.name }}</a></li>
                         {% endif %}
-              <li class="breadcrumb-item active" aria-current="page">{% trans 'Manage' %} {% trans 'People' %}</li>
+              <li class="breadcrumb-item active" aria-current="page">{% trans 'Manage' %} {% trans 'User' %}</li>
              </ol>
                   {% endblock %}
            </nav>

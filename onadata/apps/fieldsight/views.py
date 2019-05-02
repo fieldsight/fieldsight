@@ -450,7 +450,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
         self.object.save()
         noti = self.object.logs.create(source=self.request.user, type=9, title="new Organization",
                                        organization=self.object, content_object=self.object,
-                                       description="{0} created a new organization named {1}".
+                                       description="{0} created a new Team named {1}".
                                        format(self.request.user, self.object.name))
 
         user = self.request.user
@@ -515,9 +515,9 @@ class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView
 
     def form_valid(self, form):
         self.object = form.save()
-        noti = self.object.logs.create(source=self.request.user, type=13, title="edit Organization",
+        noti = self.object.logs.create(source=self.request.user, type=13, title="edit Team",
                                        organization=self.object, content_object=self.object,
-                                       description="{0} changed the details of organization named {1}".
+                                       description="{0} changed the details of Team named {1}".
                                        format(self.request.user.get_full_name(), self.object.name))
         # result = {}
         # result['description'] = noti.description
@@ -586,7 +586,7 @@ class OrganizationadminCreateView(LoginRequiredMixin, OrganizationRoleMixin, Tem
             user_id = request.POST.get('user')
             role_obj.user_id = int(user_id)
             role_obj.save()
-            messages.add_message(request, messages.INFO, 'Organization Admin Added')
+            messages.add_message(request, messages.INFO, 'Team Admin Added')
             return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': id}))
 
 
@@ -1542,7 +1542,7 @@ def senduserinvite(request):
 
             if userrole:
                 if group.name == "Unassigned":
-                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' has already joined this organization.<br>'
+                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' has already joined this Team.<br>'
                 else:
                     response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' already has the role for '+group.name+'.<br>' 
                 continue
