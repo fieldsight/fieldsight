@@ -15,7 +15,7 @@ from registration import forms as registration_forms
 from onadata.apps.fieldsight.helpers import AdminImageWidget
 from .utils.forms import HTML5BootstrapModelForm, KOModelForm
 
-from .models import Organization, Project, Site, BluePrints, Region, SiteType
+from .models import Organization, Project, Site, BluePrints, Region, SiteType, Sector
 from onadata.apps.geo.models import GeoLayer
 
 from onadata.apps.userrole.models import UserRole
@@ -24,6 +24,8 @@ import StringIO
 import mimetypes
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.db.models import Q
+
 USERNAME_REGEX = r'^[a-z][a-z0-9_]+$'
 USERNAME_MAX_LENGTH = 30
 USERNAME_INVALID_MESSAGE = _(
@@ -237,6 +239,8 @@ class ProjectForm(forms.ModelForm):
     y = forms.FloatField(widget=forms.HiddenInput(), required=False)
     width = forms.FloatField(widget=forms.HiddenInput(), required=False)
     height = forms.FloatField(widget=forms.HiddenInput(), required=False)
+    sector = forms.ModelChoiceField(queryset=Sector.objects.filter(sector=None))
+    sub_sector = forms.ModelChoiceField(queryset=Sector.objects.filter(~Q(sector=None)))
 
     def __init__(self, *args, **kwargs):
         is_new = kwargs.pop('new', None)

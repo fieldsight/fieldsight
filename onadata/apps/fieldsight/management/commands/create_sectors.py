@@ -78,8 +78,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for item in SUB_SECTOR_LIST:
-            sector, created = Sector.objects.get_or_create(sector=None, name=item.keys())
-            sub_sector, created = Sector.objects.get_or_create(sector=sector, name=item.values())
+            sector, created = Sector.objects.get_or_create(sector=None, name=item.keys()[0])
+            sub_sector, created = Sector.objects.get_or_create(sector=sector, name=item.values()[0])
 
             self.stdout.write('Successfully created Sector .. "%s"' % sector)
 
