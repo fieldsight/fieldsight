@@ -256,13 +256,13 @@ class ProjectForm(forms.ModelForm):
 
         if not is_new:
             org_id = kwargs['instance'].organization.id
-        self.fields['geo_layers'].queryset = GeoLayer.objects.filter(
-            organization__id=org_id
-        )
+        # self.fields['geo_layers'].queryset = GeoLayer.objects.filter(
+        #     organization__id=org_id
+        # )
 
     class Meta:
         model = Project
-        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta')
+        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers')
         #organization_filters = ['organization']
         widgets = {
             'is_active': forms.HiddenInput(),
@@ -306,6 +306,22 @@ class ProjectForm(forms.ModelForm):
         p = Point(round(float(lat), 6), round(float(long), 6),srid=4326)
         self.cleaned_data["location"] = p
         super(ProjectForm, self).clean()
+
+
+class ProjectGeoLayerForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        org_id = kwargs.pop('organization_id', None)
+
+        super(ProjectGeoLayerForm, self).__init__(*args, **kwargs)
+
+        self.fields['geo_layers'].queryset = GeoLayer.objects.filter(
+            organization__id=org_id
+        )
+
+    class Meta:
+        model = Project
+        fields = ('geo_layers',)
 
 
 class SiteForm(HTML5BootstrapModelForm, KOModelForm):

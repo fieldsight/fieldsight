@@ -42,6 +42,10 @@ from .metaAttribsGenerator import get_form_answer, get_form_sub_status, get_form
 from django.conf import settings
 from django.db.models import Sum, Case, When, IntegerField, Count
 from django.core.exceptions import MultipleObjectsReturned
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
@@ -53,7 +57,8 @@ from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
-from onadata.apps.fsforms.tasks import clone_form
+from onadata.apps.users.signup_tokens import account_activation_token
+from onadata.apps.subscriptions.models import Subscription
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -1486,7 +1491,8 @@ def multiuserassignregion(task_prog_obj_id, source_user, project_id, regions, us
 
 
 @shared_task()
-def multi_users_assign_regions(task_prog_obj_id, source_user, project_id, regions, users, group_id):
+def multi_users_assign_regions(task_prog_obj_id, source_user_id, project_id, regions, users, group_id):
+    source_user = User.objects.get(pk=source_user_id)
 
     time.sleep(2)
     project = Project.objects.get(pk=project_id)
@@ -2134,3 +2140,92 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
 #     token = user.auth_token.key
 #     clone_form.delay(user, token, project)
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
+@shared_task(time_limit=120, soft_time_limit=120)
+def email_after_signup(user_id, to_email):
+    user = User.objects.get(id=user_id)
+    mail_subject = 'Activate your account.'
+    message = render_to_string('users/acc_active_email.html', {
+        'user': user,
+        'domain': settings.SITE_URL,
+        'uid': urlsafe_base64_encode(force_bytes(user_id)),
+        'token': account_activation_token.make_token(user),
+    })
+
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
+
+
+@shared_task(time_limit=120, soft_time_limit=120)
+def email_after_subscribed_plan(user, free_package):
+    mail_subject = 'Thank you'
+    message = render_to_string('subscriptions/subscribed_email.html', {
+        'user': user,
+        'plan': free_package,
+        'domain': settings.SITE_URL,
+    })
+    to_email = user.email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
+
+
+def warning_emails(usage_rates, email):
+
+    mail_subject = 'Warning'
+    message = render_to_string('subscriptions/warning_email.html', {
+        'usage_rates': usage_rates,
+    })
+    to_email = email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
+
+
+def warning_overage_emails(extra_submissions_charge, email):
+
+    mail_subject = 'Warning'
+    message = render_to_string('subscriptions/warning_overage_email.html', {
+        'extra_submissions_charge': extra_submissions_charge,
+    })
+    to_email = email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
+
+
+@shared_task()
+def check_usage_rates():
+    print(".......Checking Usage rates.......")
+    subscriptions = Subscription.objects.all().select_related('stripe_customer', 'organization', 'package')
+
+    for subscriber in subscriptions:
+        total_submissions = subscriber.package.submissions
+        usage_submission = subscriber.organization.get_total_submissions()
+        usage_rates = (usage_submission/total_submissions)*100
+        email = subscriber.stripe_customer.user.email
+
+        if 75 <= usage_rates < 76:
+            warning_emails(usage_rates, email)
+
+        elif 90 <= usage_rates < 91:
+            warning_emails(usage_rates, email)
+
+        elif 95 <= usage_rates < 96:
+            warning_emails(usage_rates, email)
+
+        elif usage_submission >= total_submissions:
+            extra_submissions_charge = subscriber.package.extra_submissions_charge
+            warning_overage_emails(extra_submissions_charge, email)

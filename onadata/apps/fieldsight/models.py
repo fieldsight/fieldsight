@@ -153,6 +153,19 @@ class Organization(models.Model):
 
         return outstanding, flagged, approved, rejected
 
+    def get_total_submissions(self):
+        from onadata.apps.fsforms.models import FInstance
+        outstanding = FInstance.objects.filter(
+            project__organization=self, project__is_active=True, form_status=0).count()
+        rejected = FInstance.objects.filter(
+            project__organization=self, project__is_active=True, form_status=1).count()
+        flagged = FInstance.objects.filter(
+            project__organization=self, project__is_active=True, form_status=2).count()
+        approved = FInstance.objects.filter(
+            project__organization=self, project__is_active=True, form_status=3).count()
+
+        return outstanding + flagged + approved + rejected
+
     def get_submissions_count_by_date(self, start_date):
         from onadata.apps.fsforms.models import FInstance
         outstanding = FInstance.objects.filter(
@@ -386,7 +399,7 @@ class SiteManager(GeoManager):
 
 class Site(models.Model):
     identifier = models.CharField("ID", max_length=255)
-    name = models.CharField(max_length=255)
+    name = models.CharField(db_index=True,max_length=255)
     type = models.ForeignKey(SiteType, verbose_name='Type of Site', related_name="sites", null=True, blank=True, on_delete=models.SET_NULL)
     phone = models.CharField(max_length=255, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
@@ -396,10 +409,11 @@ class Site(models.Model):
     project = models.ForeignKey(Project, related_name='sites')
     logo = models.ImageField(
         upload_to="logo", default="logo/default_site_image.png")
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(db_index=True, default=True)
     location = PointField(geography=True, srid=4326, blank=True, null=True)
     is_survey = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True, blank=True)
+    date_modified = models.DateTimeField(auto_now=True, blank=True)
     region = models.ForeignKey(
         Region, related_name='regions', blank=True, null=True)
     site_meta_attributes_ans = JSONField(default=dict)

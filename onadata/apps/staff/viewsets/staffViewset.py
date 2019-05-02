@@ -1,21 +1,15 @@
 from __future__ import unicode_literals
 import datetime
 import json
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework import permissions
 from rest_framework import viewsets
-from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated, BasePermission
+from rest_framework.permissions import BasePermission
 
-from django.db.models import Q
-from django.views.generic import View
 from django.http import HttpResponse
+
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.staff.models import Staff, Attendance, Team, STAFF_TYPES, GENDER_TYPES, Bank
 from onadata.apps.staff.serializers.staffSerializer import StaffSerializer, AttendanceSerializer, TeamSerializer, BankSerializer
 from rest_framework.authentication import BasicAuthentication
-from rest_framework.parsers import MultiPartParser, FormParser
-from onadata.apps.api.viewsets.xform_viewset import CsrfExemptSessionAuthentication
 SAFE_METHODS = ('GET', 'POST')
 
 

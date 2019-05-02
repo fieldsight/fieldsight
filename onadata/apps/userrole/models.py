@@ -20,7 +20,7 @@ class UserRole(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="user_roles")
     group = models.ForeignKey(Group)
     started_at = models.DateTimeField(default=datetime.now)
-    ended_at = models.DateTimeField(blank=True, null=True)
+    ended_at = models.DateTimeField(blank=True, null=True, db_index=True)
     site = models.ForeignKey(Site, null=True, blank=True, related_name='site_roles')
     project = models.ForeignKey(Project, null=True, blank=True, related_name='project_roles')
     organization = models.ForeignKey(Organization, null=True, blank=True, related_name='organization_roles')
@@ -67,7 +67,8 @@ class UserRole(models.Model):
                 'region': ValidationError(_('Missing Region.'), code='required'),
             })
 
-        if self.user and UserRole.objects.filter(user=self.user, group=self.group, project=self.project, site=self.site).exists():
+        if self.user and UserRole.objects.filter(user=self.user, group=self.group, project=self.project,
+                                                 region=self.region, site=self.site).exists():
             raise ValidationError({
                 'user': ValidationError(_('User Role Already Exists.')),
             })
@@ -98,9 +99,9 @@ class UserRole(models.Model):
             self.project = self.site.project
             self.organization = self.site.project.organization
 
-        # elif self.group.name in ['Region Supervisor', 'Region Reviewer']:
-        #     self.project = self.region.project
-        #     self.organization = self.region.project.organization
+        elif self.group.name in ['Region Supervisor', 'Region Reviewer']:
+            self.project = self.region.project
+            self.organization = self.project.organization
 
         elif self.group.name == 'Staff Project Manager':
             self.organization = None
@@ -131,9 +132,9 @@ class UserRole(models.Model):
             self.project = self.site.project
             self.organization = self.site.project.organization
 
-        # elif self.group.name in ['Region Supervisor', 'Region Reviewer']:
-        #     self.project = self.region.project
-        #     self.organization = self.region.project.organization
+        elif self.group.name in ['Region Supervisor', 'Region Reviewer']:
+            self.project = self.region.project
+            self.organization = self.project.organization
 
         super(UserRole, self).update(*args, **kwargs)
 

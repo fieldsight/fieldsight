@@ -12,7 +12,6 @@ from onadata.apps.fsforms.viewsets.ConfigureStageViewset import StageListViewSet
     SubStageDetailViewSet, EmViewSet, DeployViewset, FInstanceViewset
 from onadata.apps.fsforms.viewsets.XformsViewset import XFormViewSet
 from onadata.apps.fsforms.viewsets.InstanceListViewSet import InstanceListViewSet
-from onadata.libs.utils.viewer_tools import enketo_view_url
 from .views import (
     LibraryFormsListView,
     XformDetailView,

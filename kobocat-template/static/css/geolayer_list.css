@@ -1,0 +1,46 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+h2 {
+    font-weight: normal;
+    font-size: 18px;
+}
+
+a,
+a:link,
+a:visited,
+a:hover,
+a:active {
+    color: inherit;
+    text-decoration: inherit;
+    font-weight: inherit;
+}
+
+a.add-btn {
+    color: #00628e;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+.geo-layer-list {
+    border: 1px solid #c0c0c0;
+    margin: 4px 0;
+}
+
+.geo-layer {
+    display: flex;
+    padding: 4px;
+    background-color: #fff;
+}
+
+.geo-layer a {
+    color: #00628e;
+    font-size: 14px;
+}
+
+.geo-layer:nth-child(odd) {
+    background-color: #f0f0f0;
+}

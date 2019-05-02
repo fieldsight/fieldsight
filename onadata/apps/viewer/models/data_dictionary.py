@@ -13,7 +13,7 @@ from xml.dom import Node
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
-from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
+from onadata.apps.api.mongo_helper import MongoHelper
 from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES
 from onadata.libs.utils.export_tools import question_types_to_exclude,\
     DictOrganizer
@@ -148,6 +148,9 @@ class DataDictionary(XForm):
     def save(self, *args, **kwargs):
         if self.xls:
             survey = create_survey_from_xls(self.xls)
+            survey.update({
+                'name': survey.id_string,
+            })
             self.json = survey.to_json()
             self.xml = survey.to_xml()
             self._mark_start_time_boolean()
@@ -203,7 +206,7 @@ class DataDictionary(XForm):
         """
         names = {}
         for elem in self.get_survey_elements():
-            names[_encode_for_mongo(unicode(elem.get_abbreviated_xpath()))] = \
+            names[MongoHelper.encode(unicode(elem.get_abbreviated_xpath()))] = \
                 elem.get_abbreviated_xpath()
         return names
 

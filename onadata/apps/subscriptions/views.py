@@ -14,10 +14,12 @@ from django.shortcuts import get_object_or_404
 from django.core.urlresolvers import reverse
 from django.contrib import messages
 from django.views.generic import TemplateView
+from django.contrib.auth.models import User
 
 from .models import Customer, Subscription, Invoice, Package
 from onadata.apps.fieldsight.models import Organization
 from onadata.apps.fieldsight.mixins import LoginRequiredMixin
+from .tasks import email_after_updating_plan, notification_before_renewal
 
 
 MONTHLY_PLAN_NAME = {
@@ -122,7 +124,6 @@ def stripe_webhook(request):
 
     try:
         event_json = json.loads(request.body)
-        print('...........Event occurs..................', event_json['type'])
 
         # timestamp = int(event_json['data']['object']['period_start'])
         sub_obj = Subscription.objects.get(stripe_customer__stripe_cust_id=event_json['data']['object']['customer'])
@@ -131,6 +132,7 @@ def stripe_webhook(request):
         timestamp = int(time.mktime(now.timetuple()))
 
         if event_json['type'] == 'invoice.created':
+            print('...................Event invoice.created.............')
 
             def metered_usage_api(quantity):
                 """
@@ -263,25 +265,48 @@ def stripe_webhook(request):
 
                     invoice_obj(amount=package.total_charge, quantity=submission_count, overage=0, roll_over=0)
 
-        # elif event_json['type'] == 'invoice.payment_succeeded' and timestamp_to_date == datetime.now().strftime('%Y-%m-%d'):
-        #     """
-        #
-        #     First Payment after subscribed to plans in stripe, create invoice object
-        #     """
-        #     print('Firsttttttttttttttttt payment success')
-        #
-        #     # after payment succeeded, create Invoice object in first month or year
-        #     stripe_cust_id = Customer.objects.get(stripe_cust_id=event_json['data']['object']['customer'])
-        #     package = Subscription.objects.get(stripe_customer=stripe_cust_id).package
-        #     invoice_data = {
-        #         'customer': stripe_cust_id,
-        #         'created': datetime.utcfromtimestamp(int(event_json['data']['object']['date'])),
-        #         'amount': event_json['data']['object']['amount_paid']/100,
-        #         'quantity': package.submissions,
-        #         'overage': 0,
-        #         'roll_over': 0
-        #     }
-        #     Invoice.objects.create(**invoice_data)
+        elif event_json['type'] == 'charge.succeeded':
+            """
+                After stripe charged the customer
+            """
+            print('...................Event charge.succeeded.............')
+
+            stripe_customer = event_json['data']['object']['customer']
+            user = Customer.objects.get(stripe_cust_id=stripe_customer).user
+            sub = Subscription.objects.get(stripe_customer__stripe_cust_id=stripe_customer)
+            customer_created = sub.initiated_on.strftime('%Y-%m-%d')
+            today = datetime.now().strftime('%Y-%m-%d')
+
+            receipt_url = event_json['data']['object']['receipt_url']
+            amount = event_json['data']['object']['amount']
+            sub_id = sub.id
+            user_id = user.id
+
+            if customer_created == today:
+                template = "subscriptions/update_plan_email.html"
+                mail_subject = 'Subscribed Plan'
+                email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject)
+
+            else:
+                template = "subscriptions/plan_renew_email.html"
+                mail_subject = 'Renew Plan'
+                email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject)
+
+        elif event_json['type'] == 'invoice.upcoming':
+            """
+                notification before renewal
+            """
+            print('...................Event invoice.upcoming.............')
+
+            stripe_customer = event_json['data']['object']['customer']
+            customer = Customer.objects.get(stripe_cust_id=stripe_customer).select_related('user')
+            sub_obj = Subscription.objects.get(stripe_customer=customer).select_related('stripe_customer', 'package',
+                                                                                        'organization')
+            period = sub_obj.package.period_type
+
+            if period == 2:
+                user_id = customer.user.id
+                notification_before_renewal.delay(user_id)
 
         return HttpResponse(status=200)
 
@@ -326,22 +351,25 @@ def finish_subscription(request, org_id):
             ending_date = datetime.now() + dateutil.relativedelta.relativedelta(months=1)
             plan_name = MONTHLY_PLAN_NAME[request.POST['plan_name']]
 
-        sub = customer.subscriptions.create(
-            items=[
-                {
-                    'plan': selected_plan,
+        try:
 
-                },
+            sub = customer.subscriptions.create(
+                items=[
+                    {
+                        'plan': selected_plan,
 
-                {
-                    'plan': overage_plan,
-                },
+                    },
 
-            ],
+                    {
+                        'plan': overage_plan,
+                    },
 
-        )
+                ],
+
+            )
+        except Exception as e:
+            return JsonResponse({'error': 'No such plan in stripe.'})
         organization = get_object_or_404(Organization, id=org_id)
-
         sub_data = {
             'stripe_sub_id': sub.id,
             'is_active': True,
@@ -408,7 +436,7 @@ class TeamSettingsView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super(TeamSettingsView, self).get_context_data(**kwargs)
 
-        context['organization'] = get_object_or_404(Organization, id=self.kwargs['org_id'])
+        context['obj'] = get_object_or_404(Organization, id=self.kwargs['org_id'])
         if not self.request.user.is_superuser:
             customer = Customer.objects.get(user=self.request.user)
             context['customer'] = customer
@@ -418,6 +446,7 @@ class TeamSettingsView(LoginRequiredMixin, TemplateView):
             context['subscribed_package'] = Subscription.objects.select_related().get(stripe_customer=customer).package
             context['has_user_free_package'] = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user).exists()
             context['key'] = settings.STRIPE_PUBLISHABLE_KEY
+            context['level'] = "2"
 
         return context
 
@@ -438,7 +467,4 @@ def update_card(request):
 
         messages.success(request, 'You have been successfully updated your card.')
     return HttpResponseRedirect(reverse("subscriptions:team_settings", kwargs={'org_id': request.user.organizations.all()[0].pk}))
-
-
-
 

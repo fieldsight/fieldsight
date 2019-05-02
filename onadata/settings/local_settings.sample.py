@@ -4,10 +4,12 @@ os.environ["DJANGO_SECRET_KEY"] = '*********************'
 os.environ["KOBOCAT_MONGO_HOST"] = "*********************"
 os.environ["KOBOFORM_URL"] = 'http://kpi.fieldsight.org'
 os.environ["KOBOFORM_SERVER"] = 'http://kpi.fieldsight.org'
-#os.environ["ENKETO_API_TOKEN"] = 'hellofield'
+#os.environ["ENKETO_API_TOKEN"] = '*********'
 
 from onadata.settings.kc_environ import *
 #CORS_ORIGIN_ALLOW_ALL = True
+
+KOBOFORM_URL = os.environ.get("KOBOFORM_URL", "http://localhost:8000")
 KOBOCAT_INTERNAL_HOSTNAME = "localhost"
 os.environ["ENKETO_API_TOKEN"] = '*********************'
 ENKETO_API_TOKEN = "*********************"
@@ -34,7 +36,23 @@ DATABASES = {
 }
 
 INSTALLED_APPS = list(INSTALLED_APPS)
-INSTALLED_APPS += ['fcm', 'channels', 'rest_framework_docs', 'social_django']
+INSTALLED_APPS += ['rest_framework_docs', 'social_django', 'onadata.apps.eventlog', #'channels', 'fcm',
+                   'onadata.apps.fieldsight', 'onadata.apps.fsforms',  'onadata.apps.fv3',
+                   'onadata.apps.geo', 'onadata.apps.remote_app', 'onadata.apps.staff', 'onadata.apps.subscriptions',
+                   'onadata.apps.userrole', 'onadata.apps.users','linaro_django_pagination',  'webstack_django_sorting',]
+
+# INSTALLED_APPS += ['debug_toolbar']
+
+TEMPLATE_CONTEXT_PROCESSORS = list(TEMPLATE_CONTEXT_PROCESSORS)
+
+TEMPLATE_CONTEXT_PROCESSORS += ['onadata.apps.eventlog.context_processors.events']
+
+MIDDLEWARE_CLASSES = list(MIDDLEWARE_CLASSES)
+
+MIDDLEWARE_CLASSES += ['linaro_django_pagination.middleware.PaginationMiddleware',
+                       'webstack_django_sorting.middleware.SortingMiddleware',
+                       'onadata.apps.users.middleware.RoleMiddleware']
+
 FCM_APIKEY = "*********************"
 
 # ........Google login.......
@@ -45,6 +63,12 @@ AUTHENTICATION_BACKENDS += (
     'social_core.backends.facebook.FacebookOAuth2',
     'social_core.backends.google.GoogleOAuth2',
 )
+
+SERIALIZATION_MODULES = {
+    "custom_geojson": "onadata.apps.fieldsight.serializers.GeoJSONSerializer",
+    "full_detail_geojson": "onadata.apps.fieldsight.serializers.FullDetailGeoJSONSerializer",
+}
+
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "*********************"
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET ="*********************"
@@ -68,9 +92,7 @@ SOCIAL_AUTH_PIPELINE = (
 
 FCM_MAX_RECIPIENTS = 1000
 
-SERIALIZATION_MODULES = {
-        "custom_geojson": "onadata.apps.fieldsight.serializers.GeoJSONSerializer",
-}
+
 SEND_ACTIVATION_EMAIL = True
 ACCOUNT_ACTIVATION_DAYS = 30
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -137,7 +159,7 @@ ENKETO_API_ENDPOINT_SURVEYS = '/survey'
 ENKETO_URL = os.environ.get('ENKETO_URL', 'https://enketo.fieldsight.org')
 
 
-#os.environ["ENKETO_API_TOKEN"] = 'hellofield'
+#os.environ["ENKETO_API_TOKEN"] = '*******'
 
 
 BROKER_BACKEND = "redis"
@@ -251,3 +273,21 @@ DEFAULT_FORM_3 = {
     'type':'general'
 
 }
+
+
+
+LOGIN_URL = '/users/accounts/login/'
+
+# +CELERY_BROKER_URL = 'redis://localhost:6389/2'
+# +CELERY_RESULT_BACKEND = 'redis://localhost:6389/2'  # telling Celery to report results to Redis
+# +CELERY_TASK_ALWAYS_EAGER = False
+#
+
+CELERYBEAT_SCHEDULE = {
+    "update-task-on-mathmod.org": {
+        "task": "onadata.apps.fieldsight.tasks.check_usage_rates",
+        "schedule": crontab(minute=0, hour=0),  # execute daily at midnight
+
+    }
+}
+

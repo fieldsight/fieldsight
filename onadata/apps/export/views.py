@@ -1,5 +1,10 @@
 # coding: utf-8
 
+#################################################
+# THIS APP IS DEAD CODE AND SHOULD BE EXCISED   #
+# EVERY SINGLE ENDPOINT 500s EXCEPT export_menu #
+#################################################
+
 from __future__ import (unicode_literals, print_function, absolute_import,
                         division)
 
@@ -52,7 +57,9 @@ def build_formpack(username, id_string):
 
 def build_export(request, username, id_string):
 
-    hierarchy_in_labels = request.REQUEST.get('hierarchy_in_labels', None)
+    hierarchy_in_labels = request.REQUEST.get(
+        'hierarchy_in_labels', ''
+    ).lower() == 'true'
     group_sep = request.REQUEST.get('groupsep', '/')
     lang = request.REQUEST.get('lang', None)
 
@@ -135,7 +142,7 @@ def csv_export(request, username, id_string):
 def html_export(request, username, id_string):
 
     limit = request.REQUEST.get('limit', 100)
-    # get_instances_for site_form
+
     cursor = get_instances_for_user_and_form(username, id_string)
     paginator = Paginator(cursor, limit, request=request)
 
