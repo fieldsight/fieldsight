@@ -2140,10 +2140,6 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
 #     token = user.auth_token.key
 #     clone_form.delay(user, token, project)
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 @shared_task(time_limit=120, soft_time_limit=120)
 def email_after_signup(user_id, to_email):
     user = User.objects.get(id=user_id)

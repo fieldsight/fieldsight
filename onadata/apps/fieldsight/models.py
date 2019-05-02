@@ -213,9 +213,19 @@ class ProjectManager(GeoManager):
     def get_queryset(self):
         return super(ProjectManager, self).get_queryset().filter(is_active=True)
 
+
+class Sector(models.Model):
+    sector = models.ForeignKey('Sector', null=True, related_name='sectors')
+    name = models.CharField(max_length=100)
+
+    def __unicode__(self):
+        return u'{}'.format(self.name)
+
+
 class Project(models.Model):
     name = models.CharField(max_length=255)
     type = models.ForeignKey(ProjectType, verbose_name='Type of Project')
+    sector = models.ForeignKey(Sector, verbose_name='Sector', null=True, blank=True)
     phone = models.CharField(max_length=255, blank=True, null=True)
     fax = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
