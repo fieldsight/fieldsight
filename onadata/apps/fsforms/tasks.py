@@ -8,14 +8,14 @@ from django.conf import settings
 
 from onadata.apps.fieldsight.models import Site, Project
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, DeployEvent, XformHistory
+from onadata.apps.fsforms.notifications import notify_koboform_updated
 from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer
 from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import FSXFormListSerializer, StageFormSerializer
 from onadata.apps.fsforms.utils import send_sub_stage_deployed_project, send_bulk_message_stage_deployed_project, \
-    send_bulk_message_stages_deployed_project, send_message_un_deploy_project, send_message_koboform_updated
+    send_bulk_message_stages_deployed_project, send_message_un_deploy_project
 from onadata.apps.logger.models import XForm
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.libs.utils.fieldsight_tools import clone_kpi_form
-from django.core.mail import EmailMessage
 
 
 @shared_task(max_retries=10, soft_time_limit=60)
@@ -122,7 +122,7 @@ def post_update_xform(xform_id, user):
     existing_xform.logs.create(source=user, type=20, title="Kobo form Updated",
                                 description="update kobo form ")
 
-    send_message_koboform_updated(existing_xform)
+    notify_koboform_updated(existing_xform)
 
 
 @shared_task(max_retries=5)
