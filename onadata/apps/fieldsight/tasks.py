@@ -58,7 +58,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
 from onadata.apps.users.signup_tokens import account_activation_token
-from onadata.apps.subscriptions.models import Subscription
+from onadata.apps.subscriptions.models import Subscription, Package
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -2159,10 +2159,12 @@ def email_after_signup(user_id, to_email):
 
 
 @shared_task(time_limit=120, soft_time_limit=120)
-def email_after_subscribed_plan(user, free_package):
+def email_after_subscribed_plan(user_id):
+    free_package = Package.objects.get(plan=0)
+    user = User.objects.get(id=user_id)
     mail_subject = 'Thank you'
     message = render_to_string('subscriptions/subscribed_email.html', {
-        'user': user,
+        'user': user.username,
         'plan': free_package,
         'domain': settings.SITE_URL,
     })

@@ -85,7 +85,7 @@ class OrganizationForm(forms.ModelForm):
 
     class Meta:
         model = Organization
-        exclude = ['is_active', 'owner']
+        exclude = ['is_active', 'owner', 'fax', 'additional_desc']
         # exclude = ['organizaton']
         widgets = {
         'is_active': forms.HiddenInput(),
@@ -285,7 +285,8 @@ class ProjectForm(forms.ModelForm):
 
     class Meta:
         model = Project
-        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers', 'type')
+        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers', 'fax',
+                   'additional_desc', 'type')
         #organization_filters = ['organization']
         widgets = {
             'is_active': forms.HiddenInput(),

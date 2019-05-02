@@ -6,7 +6,7 @@ window.app = new Vue({
   template: `
     <div class="widget-info widget-scrolling-large-list margin-top bg-white padding" data-mh="eq111">
         <div class="widget-head">
-            <h4> People </h4>
+            <h4> User </h4>
             <a class="btn btn-xs btn-primary" :href="new_people_url"><i class="la la-plus"></i></a>
 
             <a class="btn btn-xs btn-primary" data-toggle="collapse" href="#searchProjectManager" aria-expanded="false" aria-controls="searchProjectManager"><i class="la la-search"></i></a>

@@ -125,7 +125,7 @@ var org = "{{obj.pk}}";
 						{% block breadcrumbs %}
 					<ol class="breadcrumb">
 						{% if request.user.is_superuser %}
-						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Organizations' %}</a></li>
+						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Teams' %}</a></li>
 						{% endif %}
 						<li class="breadcrumb-item active" aria-current="page">{{obj.name}}</li>
 					 </ol>
@@ -141,7 +141,7 @@ var org = "{{obj.pk}}";
 								<i class="la la-cogs"></i> {% trans 'Manage' %}
 							</a>
 							<div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButtonManage">
-								<a class="dropdown-item" href="{% url 'fieldsight:manage-people-organization' obj.pk %}"><i class="la la-user"></i>{% trans 'People' %}</a>
+								<a class="dropdown-item" href="{% url 'fieldsight:manage-people-organization' obj.pk %}"><i class="la la-user"></i>{% trans 'User' %}</a>
 								<a class="dropdown-item" href="{% url 'fieldsight:org-project-list' obj.id%}"><i class="la la-tasks"></i>{% trans 'Projects' %}</a>
 								<a class="dropdown-item" href="{% url 'fieldsight:organization-edit' obj.pk %}"><i class="la la-edit"></i>{% trans 'Settings' %}</a>
 
@@ -289,9 +289,9 @@ var org = "{{obj.pk}}";
 								<div class="widget-body">
 									<p>{{ obj.public_desc}}</p>
 									<br>
-									<p><strong>{% trans 'Additional Information' %}</strong></p>
-									<br><p>
-									{{ obj.additional_desc}}</p>
+<!--									<p><strong>{% trans 'Additional Information' %}</strong></p>-->
+<!--									<br><p>-->
+<!--									{{ obj.additional_desc}}</p>-->
 								</div>
 							</div>
 						</div>
