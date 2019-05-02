@@ -8,6 +8,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
 from onadata.apps.fieldsight.models import Project, Region, Site
+from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
@@ -83,4 +84,21 @@ def site_blueprints(request):
     query_params = request.query_params
     site_id = query_params.get('site_id')
     data = Site.objects.get(pk=site_id).blueprints.all()
-    return [m.image.url for m in data]
+    urls = [m.image.url for m in data]
+    return Response({'blueprints': urls})
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def supervisor_logs(request):
+    email = request.user.email
+    date = None
+    last_updated = request.query_params.get('last_updated')
+    if last_updated:
+        try:
+            date = datetime.fromtimestamp(int(last_updated))  # notifications newer than this date.
+        except:
+            pass
+    notifications = get_notifications_queryset(email, date)
+    return Response({'notifications': notifications})
+
