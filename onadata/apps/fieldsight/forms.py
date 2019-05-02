@@ -242,6 +242,24 @@ class ProjectForm(forms.ModelForm):
     sector = forms.ModelChoiceField(queryset=Sector.objects.filter(sector=None))
     sub_sector = forms.ModelChoiceField(queryset=Sector.objects.filter(~Q(sector=None)))
 
+    def clean_sub_sector(self):
+        cleaned_data = super(ProjectForm, self).clean()
+        if self.instance.id:
+            sub_sector = cleaned_data.get('sub_sector')
+            sector = cleaned_data.get('sector')
+            print(sub_sector.sector)
+            if sub_sector.sector == sector:
+                return sub_sector
+            elif not sub_sector.sector == self.instance.sector:
+                msg = 'Select the sub sector that matches the selected sector'
+                self.add_error('sub_sector', msg)
+            else:
+                msg = 'Select the sub sector that matches the selected sector'
+                self.add_error('sub_sector', msg)
+
+        else:
+            return cleaned_data.get('sub_sector')
+
     def __init__(self, *args, **kwargs):
         is_new = kwargs.pop('new', None)
         org_id = kwargs.pop('organization_id', None)
@@ -249,7 +267,7 @@ class ProjectForm(forms.ModelForm):
 
         if not self.fields['location'].initial:
             self.fields['location'].initial = Point(85.3240, 27.7172, srid=4326)
-        self.fields['type'].empty_label = None
+        # self.fields['type'].empty_label = None
         if self.instance.cluster_sites:
             self.fields.pop('cluster_sites')
 
@@ -264,17 +282,10 @@ class ProjectForm(forms.ModelForm):
         #     organization__id=org_id
         # )
 
-    def clean_sub_sector(self):
-        if self.instance.id:
-            sub_sector = self.cleaned_data.get('sub_sector')
-            if not sub_sector.sector == self.instance.sector:
-                raise ValidationError('Select the sub sector that matches the selected sector')
-            else:
-                return sub_sector
 
     class Meta:
         model = Project
-        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers')
+        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers', 'type')
         #organization_filters = ['organization']
         widgets = {
             'is_active': forms.HiddenInput(),

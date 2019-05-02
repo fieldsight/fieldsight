@@ -224,7 +224,7 @@ class Sector(models.Model):
 
 class Project(models.Model):
     name = models.CharField(max_length=255)
-    type = models.ForeignKey(ProjectType, verbose_name='Type of Project')
+    type = models.ForeignKey(ProjectType, verbose_name='Type of Project', null=True, blank=True)
     sector = models.ForeignKey(Sector, verbose_name='Sector', null=True, blank=True, related_name='project_sector')
     sub_sector = models.ForeignKey(Sector, verbose_name='Sub-Sector', null=True, blank=True, related_name='project_sub_sector')
     phone = models.CharField(max_length=255, blank=True, null=True)

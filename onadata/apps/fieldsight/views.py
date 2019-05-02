@@ -731,6 +731,20 @@ class ProjectCreateView(ProjectView, OrganizationRoleMixin, CreateView):
         context['org'] = Organization.objects.get(pk=self.kwargs.get('pk'))
         context['pk'] = self.kwargs.get('pk')
         context['base_template'] = "fieldsight/fieldsight_base.html"
+
+        sectors = Sector.objects.filter(sector=None)
+        sector_list = []
+        for sect in sectors:
+            sector_dict = {}
+            sub_sector_list = []
+            sub_sectors = Sector.objects.filter(sector=sect)
+            for item in sub_sectors:
+                sub_sector_list.append({item.id: str(item.name)})
+            sector_dict[str(sect.name)] = sub_sector_list
+            sector_list.append(dict(sector_dict))
+
+        context['sub_sectors'] = sector_list
+
         return context
 
     def get_form_kwargs(self):
