@@ -804,7 +804,8 @@ def build_survey_from_history(xform, __version__):
 def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
-                    binary_select_multiples=False):
+                    binary_select_multiples=False,
+                    sync_to_gsuit=False):
     """
     Create appropriate export object given the export type
     """
@@ -872,10 +873,10 @@ def generate_export(export_type, extension, username, id_string,
     storage = get_storage_class()()
     # seek to the beginning as required by storage classes
     
-    print 'file_url--------->', temp_file, filter_query
+    print sync_to_gsuit, 'file_url--------->', temp_file, filter_query
 
     try:
-        if '__version__' not in filter_query['$and'][0]:
+        if sync_to_gsuit == True and '__version__' not in filter_query['$and'][0]:
             if not os.path.exists("media/forms/"):
                 os.makedirs("media/forms/")
 

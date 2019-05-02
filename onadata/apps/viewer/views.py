@@ -304,7 +304,7 @@ def data_export(request, username, id_string, export_type):
 
 @login_required
 @require_POST
-def create_export(request, username, id_string, export_type, is_project=None, id=None, site_id=0, version="0"):
+def create_export(request, username, id_string, export_type, is_project=None, id=None, site_id=0, version="0", sync_to_gsuit="0"):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__exact=id_string, user=owner)
     if export_type == Export.EXTERNAL_EXPORT:
@@ -353,7 +353,8 @@ def create_export(request, username, id_string, export_type, is_project=None, id
     }
 
     try:
-        create_async_export(xform, export_type, query, force_xlsx, options, is_project, id, site_id, version)
+        sync_to_gsuit = True if sync_to_gsuit in ["1", 1] else False
+        create_async_export(xform, export_type, query, force_xlsx, options, is_project, id, site_id, version, sync_to_gsuit)
     except Export.ExportTypeError:
         return HttpResponseBadRequest(
             _("%s is not a valid export type" % export_type))
