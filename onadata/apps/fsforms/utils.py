@@ -3,6 +3,7 @@ from django.db.models import Q
 
 from fcm.utils import get_device_model
 from onadata.apps.fieldsight.templatetags.filters import FORM_STATUS
+from onadata.apps.fsforms.notifications import save_notification
 
 from onadata.apps.logger.xform_instance_parser import get_uuid_from_xml, clean_and_parse_xml
 
@@ -16,6 +17,31 @@ from django.utils.translation import ugettext as _
 from xml.dom import Node
 
 FIELDSIGHT_XFORM_ID = u"_fieldsight_xform_id"
+
+
+def notify_koboform_updated(xform):
+    from onadata.apps.fsforms.models import FieldSightXF
+    project_ids = FieldSightXF.objects.filter(xf=xform).values_list('project_id', flat=True).distinct().order_by()
+    site_ids = FieldSightXF.objects.filter(xf=xform).values_list('site_id', flat=True).distinct().order_by()
+    project_ids = [v for v in project_ids if v]
+    site_ids = [v for v in site_ids if v]
+    emails = UserRole.objects.filter(ended_at=None,
+                                    group__name__in=["Site Supervisor", "Region Supervisor"]
+                                     ).filter(
+        Q(site__id__in=site_ids) | Q(site__project__id__in=project_ids)
+                                    ).values_list('user__email', flat=True).distinct().order_by()
+    Device = get_device_model()
+    is_delete = False
+    message = {'notify_type': 'Form',
+               'is_delete': is_delete,
+               'form_name': xform.title,
+               'xfid': xform.id_string,
+               'form_type': "", 'form_type_id':"",
+               'status': "Form Updated",
+               'site': {}}
+    save_notification(message, emails)
+    Device.objects.filter(name__in=emails).send_message(message)
+
 
 def send_message(fxf, status=None, comment=None, comment_url=None):
     roles = UserRole.objects.filter(site=fxf.site, ended_at=None, group__name="Site Supervisor")
@@ -32,6 +58,7 @@ def send_message(fxf, status=None, comment=None, comment_url=None):
                'status': FORM_STATUS.get(status,"New Form"),
                'comment_url': comment_url,
                'site': {'name': fxf.site.name, 'id': fxf.site.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -56,7 +83,7 @@ def send_message_project_form(fxf, status=None, comment=None, comment_url=None):
                'comment_url': comment_url,
                'site': {},
                'project': {'name': fxf.project.name, 'id': fxf.project.id}}
-    print(message)
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -87,7 +114,9 @@ def send_message_flagged(fi=None, comment=None, comment_url=None):
             message['site_level_form'] = True
         else:
             message['site_level_form'] = False
+        save_notification(message, emails)
         Device.objects.filter(name__in=emails).send_message(message)
+
 
 def send_bulk_message_stages(site_ids):
     return
@@ -99,6 +128,7 @@ def send_bulk_message_stages(site_ids):
                'site':{'name': site.name, 'id': site.id}}
     Device.objects.filter(name__in=emails).send_message(message)
 
+
 def send_message_stages(site):
     roles = UserRole.objects.filter(site=site, ended_at=None, group__name="Site Supervisor")
     emails = [r.user.email for r in roles]
@@ -106,6 +136,7 @@ def send_message_stages(site):
     message = {'notify_type': 'Stages Ready',
                'is_delete':True,
                'site':{'name': site.name, 'id': site.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -118,6 +149,7 @@ def send_bulk_message_stages_deployed_project(project):
                'is_project':1,
                'description':"Stages Ready in Project {}".format(project.name),
                'project':{'name': project.name, 'id': project.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -130,6 +162,7 @@ def send_bulk_message_stages_deployed_site(site):
                'is_project':0,
                'description':"Stages Ready in Site {}".format(site.name),
                'site':{'name': site.name, 'id': site.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -143,6 +176,7 @@ def send_bulk_message_stage_deployed_project(project, main_stage, deploy_id):
                'deploy_id':deploy_id,
                'description':"Main Stage Ready in Project {}".format(project.name),
                'project':{'name': project.name, 'id': project.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -156,6 +190,7 @@ def send_bulk_message_stage_deployed_site(site, main_stage, deploy_id):
                'deploy_id':deploy_id,
                'description':"Main Stage Ready in Site {}".format(site.name),
                'site':{'name': site.name, 'id': site.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -169,6 +204,7 @@ def send_sub_stage_deployed_project(project, sub_stage, deploy_id):
                'deploy_id':deploy_id,
                'description':"Sub Stage Ready in Project {}".format(project.name),
                'project':{'name': project.name, 'id': project.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -182,6 +218,7 @@ def send_sub_stage_deployed_site(site, sub_stage, deploy_id):
                'deploy_id':deploy_id,
                'description':"Sub Stage Ready in Site {}".format(site.name),
                'site':{'name': site.name, 'id': site.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -198,6 +235,7 @@ def send_message_un_deploy(fxf):
                'xfid': fxf.xf.id_string,
                'form_type':fxf.form_type(), 'form_type_id':fxf.form_type_id(),
                'site': {'name': fxf.site.name, 'id': fxf.site.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -214,6 +252,7 @@ def send_message_un_deploy_project(fxf):
                'form_type':fxf.form_type(), 'form_type_id':fxf.form_type_id(),
                'site': {},
                'project': {'name': fxf.project.name, 'id': fxf.project.id}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 
@@ -226,6 +265,7 @@ def send_message_xf_changed(fxf=None, form_type=None, id=None):
                'site':{'name': fxf.site.name, 'id': fxf.site.id},
                'form':{'xfid': fxf.xf.id_string, 'form_id': fxf.id,
                        'form_type':form_type,'form_source_id':id,'form_name':fxf.xf.title}}
+    save_notification(message, emails)
     Device.objects.filter(name__in=emails).send_message(message)
 
 

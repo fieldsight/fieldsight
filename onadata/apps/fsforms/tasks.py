@@ -6,13 +6,12 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.conf import settings
 
-from onadata.apps.fieldsight.models import Site, Project
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, DeployEvent, XformHistory
-from onadata.apps.fsforms.notifications import notify_koboform_updated
+from onadata.apps.fieldsight.models import  Project
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, DeployEvent
 from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer
-from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import FSXFormListSerializer, StageFormSerializer
+from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import StageFormSerializer
 from onadata.apps.fsforms.utils import send_sub_stage_deployed_project, send_bulk_message_stage_deployed_project, \
-    send_bulk_message_stages_deployed_project, send_message_un_deploy_project
+    send_bulk_message_stages_deployed_project, send_message_un_deploy_project, notify_koboform_updated
 from onadata.apps.logger.models import XForm
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.libs.utils.fieldsight_tools import clone_kpi_form
@@ -63,6 +62,7 @@ def copy_stage_to_sites(main_stage, pk):
         # First countdown will be 1.0, then 2.0, 4.0, etc.
         raise copy_stage_to_sites.retry(countdown=seconds_to_wait)
 
+
 @shared_task(max_retries=10, soft_time_limit=60)
 def copy_sub_stage_to_sites(sub_stage, pk):
     try:
@@ -92,6 +92,7 @@ def copy_sub_stage_to_sites(sub_stage, pk):
         seconds_to_wait = 2.0 ** num_retries
         # First countdown will be 1.0, then 2.0, 4.0, etc.
         raise copy_sub_stage_to_sites.retry(countdown=seconds_to_wait)
+
 
 @shared_task(max_retries=10, soft_time_limit=60)
 def copy_schedule_to_sites(schedule, fxf_status, pk):
