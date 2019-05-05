@@ -1755,7 +1755,9 @@ class ActivateRole(TemplateView):
         if user:
             return render(request, 'fieldsight/invite_action.html',{'invite':invite, 'is_used': False, 'status':'',})
         else:
-            return render(request, 'fieldsight/invited_user_reg.html',{'invite':invite, 'is_used': False, 'status':'',})
+            # return render(request, 'fieldsight/invited_user_reg.html',{'invite':invite, 'is_used': False, 'status':'',})
+            return render(request, 'users/register_with_google.html',{'invite':invite, 'is_used': False, 'status':'',})
+
         
 
     def post(self, request, invite, *args, **kwargs):
