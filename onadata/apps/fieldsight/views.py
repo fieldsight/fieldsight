@@ -1873,7 +1873,7 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         return render(request, 'fieldsight/project_summary_report.html', dashboard_data)
 
 
-class UserSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
+class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
     def get(self, request, pk):
         user = User.objects.get(pk=self.kwargs.get('pk'))
         start_date=self.kwargs.get('start_date')
@@ -1900,9 +1900,8 @@ class UserSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                         "start": { 
                                 '$gte' : new_startdate.isoformat(),
                                 '$lte' : end.isoformat() 
-                        }
-                        "_geolocation":
-                            {
+                        },
+                        "_geolocation": {
                                 "$not":{ "$elemMatch": { "$eq": None }}
                             }
                     }
