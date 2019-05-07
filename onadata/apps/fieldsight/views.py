@@ -3651,9 +3651,9 @@ def project_managers(request, pk):
 
     user_data = []
     for user in users:
-        user_data.append(dict(label=role.user.get_full_name(),
-                              email=role.user.email,
-                              value=role.user_id))
+        user_data.append(dict(label=user.user.get_full_name(),
+                              email=user.user.email,
+                              value=user.user_id))
 
 
     return Response(user_data)
