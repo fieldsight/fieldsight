@@ -52,6 +52,7 @@ from .views import (
     RegionCreateView,
     RegionUpdateView,
     RegionDeleteView,
+    project_managers,
     # RegionDeactivateView,
     RegionListView,
     UserListView, site_images, FilterUserView, UploadSitesView, BluePrintsView, add_project_role, ManagePeopleSiteView,
