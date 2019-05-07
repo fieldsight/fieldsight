@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import datetime
 import json
-import xlwt, csv
+import xlwt, csv, requests
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -51,6 +51,7 @@ from django.contrib.auth.views import password_reset
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
+from social_django.models import UserSocialAuth
 
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
@@ -900,11 +901,6 @@ def export_users_xls(request):
     return response
 
 
-def email(request):
-
-    return render(request, 'users/email_base.html')
-
-
 class SocialSerializer(serializers.Serializer):
     """
     Serializer which accepts an OAuth2 access token.
@@ -913,6 +909,8 @@ class SocialSerializer(serializers.Serializer):
         allow_blank=False,
         trim_whitespace=True,
     )
+
+from django.views.decorators.csrf import csrf_exempt
 
 
 @api_view(http_method_names=['POST'])
@@ -952,7 +950,7 @@ def exchange_token(request, backend):
             # this line, plus the psa decorator above, are all that's necessary to
             # get and populate a user object for any properly enabled/configured backend
             # which python-social-auth can handle.
-            user = request.backend.do_auth(serializer.validated_data['access_token'])
+            user_req = request.backend.do_auth(serializer.validated_data['access_token'])
 
         except Exception as e:
             # An HTTPError bubbled up from the request to the social auth provider.
@@ -966,9 +964,15 @@ def exchange_token(request, backend):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if user:
-            if user.is_active:
-                token = Token.objects.get(user=user)
+        if user_req:
+            user_info = requests.get(url="https://www.googleapis.com/oauth2/v1/userinfo?access_token=" + serializer.validated_data['access_token'])
+            data = user_info.json()
+            email = data['email']
+            django_user = User.objects.get(email=email)
+
+            user = UserSocialAuth.objects.get(user=django_user)
+            if user and django_user.is_active:
+                token = Token.objects.get(user=django_user)
                 return Response({'token': token.key})
             else:
                 # user is not active; at some point they deleted their account,
@@ -986,4 +990,3 @@ def exchange_token(request, backend):
             return Response(
                 {'errors': {nfe: "Authentication Failed"}},
                 status=status.HTTP_400_BAD_REQUEST,)
-

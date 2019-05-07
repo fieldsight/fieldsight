@@ -468,3 +468,7 @@ def update_card(request):
         messages.success(request, 'You have been successfully updated your card.')
     return HttpResponseRedirect(reverse("subscriptions:team_settings", kwargs={'org_id': request.user.organizations.all()[0].pk}))
 
+
+
+def email(request):
+    return render(request, 'users/acc_active_email.html')
