@@ -1873,6 +1873,131 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         return render(request, 'fieldsight/project_summary_report.html', dashboard_data)
 
 
+class UserSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
+    def get(self, request, pk):
+        user = User.objects.get(pk=self.kwargs.get('pk'))
+        start_date=self.kwargs.get('start_date')
+        end_date=self.kwargs.get('end_date')
+        split_startdate = start_date.split('-')
+        split_enddate = end_date.split('-')
+
+        new_startdate = date(int(split_startdate[0]), int(split_startdate[1]), int(split_startdate[2]))
+        end = date(int(split_enddate[0]), int(split_enddate[1]), int(split_enddate[2]))
+
+        new_enddate = end + datetime.timedelta(days=1)
+
+        roles = user.roles.filter(ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
+        # recent_images = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": "santoshkhatri"}, "start": { 
+        #                     '$gte' : new_startdate.isoformat(),
+        #                     '$lte' : end.isoformat() 
+        #                 }
+        #                 }, {"$unwind":"$_attachments"},{"$match":{"_attachments.mimetype" : "image/jpeg"}},  {"$project" : {"_attachments.download_url":1, }},{ "$sort" : { "_id": -1 }}, { "$limit": 3 }])
+        response_cords = settings.MONGO_DB.instances.aggregate([
+            {
+                "$match":
+                    {
+                        "_submitted_by": user.username,
+                        "start": { 
+                                '$gte' : new_startdate.isoformat(),
+                                '$lte' : end.isoformat() 
+                        }
+                        "_geolocation":
+                            {
+                                "$not":{ "$elemMatch": { "$eq": None }}
+                            }
+                    }
+            },
+            {
+                "$project" :
+                    {
+                        "_id":0, "type": {"$literal": "Feature"},
+                        "geometry":{
+                            "type": {"$literal": "Point"},
+                            "coordinates": "$_geolocation"
+                        },
+                        "properties": {
+                            "id":"$_id",
+                            "fs_uuid":"$fs_uuid",
+                            "submitted_by":"$_submitted_by"
+                        }
+                    }
+            }])
+        submission_queryset = user.supervisor.filter(instance__date_created__range=[last_month, new_enddate])
+        approved = submission_queryset.filter(status=3).count()
+        rejected = submission_queryset.filter(status=1).count()
+        pending = submission_queryset.filter(status=0).count()
+        flagged = submission_queryset.filter(status=2).count()
+             
+
+        total_submissions = submission_queryset.count()
+        submissions = submission_queryset.values_list(
+            'project_fxf__xf__title',
+            'instance__date_created',
+            'site__name'
+        )
+        visits_and_worked = settings.MONGO_DB.instances.aggregate(
+            [
+                {
+                    "$match":{
+                        "fs_project": {
+                            "$in":[project_id, int(project_id)]
+                        },
+                        "_submitted_by": user.username,
+                        "start": { 
+                            '$gte' : new_startdate.isoformat(),
+                            '$lte' : new_enddate.isoformat() 
+                        }
+                    }
+                },
+                { 
+                    "$group" : { 
+                        "_id" :  { 
+                            "user": "$_submitted_by",
+                            "fs_site": "$fs_site",
+                            "date": { 
+                                "$substr": [ "$start", 0, 10 ]
+                            }
+                        },
+                            "submissions": {'$sum':1}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "_user":"$_id.user",
+                            "_fs_site": "$_id.fs_site"
+                        },
+                        "submissions": {'$sum': '$submissions'},
+                        "visits": { '$sum': 1}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$_id._user",
+                        "total_worked_days": {'$sum': '$visits'},
+                        "submissions": {'$sum': '$submissions'},
+                        "sites_visited": {'$sum': 1}
+                    }
+                }
+            ]
+        )['result']
+        dashboard_data = {
+            'user': obj,
+            'roles': roles,
+            # 'recent_images': recent_images,
+            'data': response_cords,
+            'submissions': submission,
+            'visits_and_worked': visits_and_worked,
+            'total_submissions': total_submissions,
+            'approved': approved,
+            'pending': pending,
+            'rejected': rejected,
+            'flagged': flagged,
+            'approved': approved
+        }
+        return render(request, 'fieldsight/user_activity_report.html', dashboard_data)
+
+
 class SiteSummaryReport(LoginRequiredMixin, TemplateView):
 
     def get(self, request, **kwargs):
@@ -3521,6 +3646,20 @@ def project_dashboard_peoples(request, pk):
 
 
 @api_view(["GET"])
+def project_managers(request, pk):
+
+    users = User.objects.filter(site__isnull=True, user_roles__project_id=project_id, user_roles__group_id__in=[4, 9], ended_at__isnull=True).distinct('id')
+
+    user_data = []
+    for user in users:
+        user_data.append(dict(label=role.user.get_full_name(),
+                              email=role.user.email,
+                              value=role.user_id))
+
+
+    return Response(user_data)
+
+@api_view(["GET"])
 def project_dashboard_map(request, pk):
     sites = Site.objects.filter(project__id=pk)[:100]
     data = serialize('custom_geojson', sites, geometry_field='location', fields=('location', 'id', 'name'))
@@ -3795,7 +3934,6 @@ class UnassignUserRegionAndSites(View):
                 request_usr_project_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=2).order_by('project_id').distinct('project_id').values_list('project_id', flat=True)
                 if not request_usr_project_role:
                     return JsonResponse(data, status=status)
-
                 if projects:
                     project_ids = [k[1:] for k in projects]
                     if not set(project_ids).issubset(set(request_usr_project_role)):

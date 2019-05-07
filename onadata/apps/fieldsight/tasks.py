@@ -2021,7 +2021,7 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
                         },
                         "start": { 
                             '$gte' : new_startdate.isoformat(),
-                            '$lte' : new_enddate.isoformat() 
+                            '$lte' : end.isoformat() 
                         }
                     }
                 },
