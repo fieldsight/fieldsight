@@ -3653,7 +3653,7 @@ def project_managers(request, pk):
     for user in users:
         user_data.append(dict(label=user.get_full_name(),
                               email=user.email,
-                              value=user.id))
+                              id=user.id))
 
 
     return Response(user_data)
