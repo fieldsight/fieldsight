@@ -1874,7 +1874,7 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
 
 
 class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
-    def get(self, request, pk):
+    def get(self, request, pk, *args, **kwargs):
         user = User.objects.get(pk=self.kwargs.get('pk'))
         start_date=self.kwargs.get('start_date')
         end_date=self.kwargs.get('end_date')
