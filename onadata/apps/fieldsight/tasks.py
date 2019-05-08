@@ -22,7 +22,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Prefetch
 from .generatereport import PDFReport
-import os, tempfile, zipfile
+import os, tempfile, zipfile, dateutil
 from django.conf import settings
 
 from django.http import HttpResponse
@@ -2037,11 +2037,17 @@ def email_after_subscribed_plan(user_id):
     email.send()
 
 
-def warning_emails(usage_rates, email):
+def warning_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, period_type, usage_rates, renewal_date, email):
 
     mail_subject = 'Warning'
     message = render_to_string('subscriptions/warning_email.html', {
+        'user': subscriber.stripe_customer.user.first_name,
+        'plan_name': plan_name,
+        'total_submissions': total_submissions,
+        'extra_submissions_charge': extra_submissions_charge,
         'usage_rates': usage_rates,
+        'period_type': period_type,
+        'renewal_date': renewal_date
     })
     to_email = email
     email = EmailMessage(
@@ -2051,11 +2057,16 @@ def warning_emails(usage_rates, email):
     email.send()
 
 
-def warning_overage_emails(extra_submissions_charge, email):
+def warning_overage_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email):
 
     mail_subject = 'Warning'
     message = render_to_string('subscriptions/warning_overage_email.html', {
+        'user': subscriber.stripe_customer.user.first_name,
+        'plan_name': plan_name,
+        'total_submissions': total_submissions,
         'extra_submissions_charge': extra_submissions_charge,
+        'renewal_date': renewal_date
+
     })
     to_email = email
     email = EmailMessage(
@@ -2075,18 +2086,27 @@ def check_usage_rates():
         usage_submission = subscriber.organization.get_total_submissions()
         usage_rates = (usage_submission/total_submissions)*100
         email = subscriber.stripe_customer.user.email
+        plan_name = subscriber.package.get_plan_display()
+        extra_submissions_charge = subscriber.package.extra_submissions_charge
+        period_type = subscriber.package.get_period_type_display()
+        started_data = subscriber.initiated_on
+
+        if period_type == "Month":
+            renewal_date = started_data + dateutil.relativedelta.relativedelta(months=1).strftime('%B-%d-%Y')
+
+        elif period_type == "Year":
+            renewal_date = started_data + dateutil.relativedelta.relativedelta(months=12).strftime('%B-%d-%Y')
 
         if 75 <= usage_rates < 76:
-            warning_emails(usage_rates, email)
+            warning_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, period_type, usage_rates, renewal_date, email)
 
         elif 90 <= usage_rates < 91:
-            warning_emails(usage_rates, email)
+            warning_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, period_type, usage_rates, renewal_date, email)
 
         elif 95 <= usage_rates < 96:
-            warning_emails(usage_rates, email)
+            warning_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, period_type, usage_rates, renewal_date, email)
 
-        elif usage_submission >= total_submissions:
-            extra_submissions_charge = subscriber.package.extra_submissions_charge
-            warning_overage_emails(extra_submissions_charge, email)
+        elif usage_submission == total_submissions:
+            warning_overage_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email)
 
 
