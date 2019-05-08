@@ -364,7 +364,7 @@ class SiteForm(HTML5BootstrapModelForm, KOModelForm):
 
     class Meta:
         model = Site
-        exclude = ('project', 'is_survey', 'is_active', 'region', 'current_status', 'current_progress',)
+        exclude = ('project', 'is_survey', 'is_active', 'region', 'current_status', 'current_progress', 'additional_desc')
        
         project_filters = ['type']
         widgets = {
