@@ -119,9 +119,9 @@ def copy_schedule_to_sites(schedule, fxf_status, pk):
 @shared_task(max_retries=5)
 def post_update_xform(xform_id, user):
     existing_xform = XForm.objects.get(pk=xform_id)
-    user = User.objects.get(pk=user)
-    existing_xform.logs.create(source=user, type=20, title="Kobo form Updated",
-                                description="update kobo form ")
+    # user = User.objects.get(pk=user)
+    # existing_xform.logs.create(source=user, type=20, title="Kobo form Updated",
+    #                             description="update kobo form ", ) #event_name = ??
 
     notify_koboform_updated(existing_xform)
 
