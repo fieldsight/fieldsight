@@ -19,9 +19,7 @@ class SiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = ('id', 'name', 'latitude', 'longitude', 'address', 'phone',
-                  'current_progress', 'identifier', 'type', 'region', 'project', 'date_modified', 'is_active', 'site_meta_attributes_ans'
-                                                                                                               ''
-                                                                                                               '')
+                  'current_progress', 'identifier', 'type', 'region', 'project', 'date_modified', 'is_active', 'site_meta_attributes_ans')
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -46,4 +44,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         return obj.has_site_role
 
     def get_url(self, obj):
-        return obj.logo.url
+        if obj.logo:
+            return obj.logo.url
+        return None
