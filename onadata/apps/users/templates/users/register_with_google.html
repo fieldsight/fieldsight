@@ -1,15 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-<ul class="list-inline">
+{% extends 'fieldsight/fieldsight_not_user_base.html' %}
 
-    <li class="list-inline-item">
-        <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-secondary"><i class="la la-google"></i>Sign Up with Google </a>
-        Using {{invite.email}}
-    </li>
-</ul></body>
-</html>
+{% block content %}
+<div id="main-content" class="padding">
+
+    <ul class="list-inline">
+
+        <li class="list-inline-item">
+            <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-secondary"><i class="la la-google"></i>Sign Up with Google </a>
+            Using {{invite.email}}
+        </li>
+    </ul>
+</div>
+{% endblock %}

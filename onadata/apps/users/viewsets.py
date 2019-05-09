@@ -237,8 +237,8 @@ class MySitesViewset(viewsets.ReadOnlyModelViewSet):
     queryset = UserRole.objects.filter(ended_at=None, group__name__in=["Site Supervisor", "Region Supervisor"])
     pagination_class = MySitesResultsSetPagination
 
-    @method_decorator(cache_page(60 * 60 * 1))
-    @method_decorator(vary_on_cookie)
+    # @method_decorator(cache_page(60 * 60 * 1))
+    # @method_decorator(vary_on_cookie)
     def list(self, request, *args, **kwargs):
         return super(MySitesViewset, self).list(request, *args, **kwargs)
 
@@ -286,8 +286,8 @@ class MySitesViewsetV2(viewsets.ReadOnlyModelViewSet):
     queryset = UserRole.objects.filter(ended_at=None, group__name__in=["Site Supervisor", "Region Supervisor"])
     pagination_class = ExtremeLargeJsonResultsSetPagination
 
-    @method_decorator(cache_page(60 * 5 * 1))
-    @method_decorator(vary_on_cookie)
+    # @method_decorator(cache_page(60 * 5 * 1))
+    # @method_decorator(vary_on_cookie)
     def list(self, request, *args, **kwargs):
         return super(MySitesViewsetV2, self).list(request, *args, **kwargs)
 
