@@ -17,7 +17,7 @@ from .models import Subscription
 
 
 @shared_task()
-def email_after_updating_plan(user_id, receipt_url, sub_id, amount, template, mail_subject):
+def email_after_updating_plan(user_id, receipt_url, sub_id, amount, template, mail_subject, brand):
     time.sleep(10)
     user = User.objects.get(id=user_id)
     stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -45,6 +45,7 @@ def email_after_updating_plan(user_id, receipt_url, sub_id, amount, template, ma
         'amount': amount/100,
         'domain': settings.SITE_URL,
         'usage_submissions': usage_submissions,
+        'brand': brand
     })
     to_email = user.email
     email = EmailMessage(

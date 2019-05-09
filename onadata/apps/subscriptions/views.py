@@ -279,18 +279,20 @@ def stripe_webhook(request):
 
             receipt_url = event_json['data']['object']['receipt_url']
             amount = event_json['data']['object']['amount']
+            brand = event_json['data']['object']['payment_method_details']['card']['brand']
+
             sub_id = sub.id
             user_id = user.id
 
             if customer_created == today:
                 template = "subscriptions/update_plan_email.html"
                 mail_subject = 'Subscribed Plan'
-                email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject)
+                email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject, brand)
 
             else:
                 template = "subscriptions/plan_renew_email.html"
                 mail_subject = 'Renew Plan'
-                email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject)
+                email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject, brand)
 
         elif event_json['type'] == 'invoice.upcoming':
             """
@@ -467,4 +469,9 @@ def update_card(request):
 
         messages.success(request, 'You have been successfully updated your card.')
     return HttpResponseRedirect(reverse("subscriptions:team_settings", kwargs={'org_id': request.user.organizations.all()[0].pk}))
+
+
+
+def email(request):
+    return render(request, 'subscriptions/warning_email.html')
 
