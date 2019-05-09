@@ -10,6 +10,7 @@ urlpatterns = [
     url(r'^xls/project/responses/(?P<pk>[0-9]+)/$', views.ExportProjectFormsForSites.as_view(), name='export_xls_project_sites'),
     url(r'^zip/site-images/(?P<pk>[0-9]+)/(?P<size_code>[0-9]+)/$', views.ImageZipSites.as_view(), name='image_zip_sites'),
     url(r'^project/statstics/(?P<pk>[0-9]+)/$', views.ProjectStatsticsReport.as_view(), name='project_stats_report'),
+    url(r'^project/userstatstics/(?P<pk>[0-9]+)/$', views.UserActivityStats.as_view(), name='user_activity_report'),
     url(r'^logs/(?P<pk>[0-9]+)/$', views.LogsReport.as_view(), name='logs_report'),
     url(r'^xls/project/stages_status_report/(?P<pk>\d+)/$', views.StageStatus.as_view(), name='download-stages'),
     ]

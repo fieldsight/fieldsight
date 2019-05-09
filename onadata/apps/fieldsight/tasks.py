@@ -1909,8 +1909,11 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
         wb = Workbook()
         ws = wb.active
         ws.append(["Date", "Day and Time", "User", "Log"])
-        offset_time = source_user.user_profile.timezone.offset_time if source_user.user_profile.timezone.offset_time else "UTC +05:45"
-        
+        try:
+            offset_time = source_user.user_profile.timezone.offset_time if source_user.user_profile.timezone.offset_time else "UTC +05:45"
+        except:
+            offset_time = "UTC +05:45"
+
         operator = offset_time[4]
         time_offset = offset_time[5:]
         hour_offset = time_offset.split(':')[0]
@@ -1989,6 +1992,143 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
 
+
+@shared_task(time_limit=120, soft_time_limit=120)
+def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start_date, end_date):
+    # time.sleep(5)
+    task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
+    task.status = 1
+    project=get_object_or_404(Project, pk=project_id)
+    task.content_object = project
+    task.save()
+
+    try:  
+        buffer = BytesIO()
+        sites = project.sites.filter(is_active=True)
+        data = []
+        index = {}
+        split_startdate = start_date.split('-')
+        split_enddate = end_date.split('-')
+
+        new_startdate = date(int(split_startdate[0]), int(split_startdate[1]), int(split_startdate[2]))
+        end = date(int(split_enddate[0]), int(split_enddate[1]), int(split_enddate[2]))
+
+        new_enddate = end + datetime.timedelta(days=1)
+
+       
+        data.insert(0, ["UserName", "Full name", "Email", "Total Submssions", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today"])
+
+        site_visits = settings.MONGO_DB.instances.aggregate(
+            [
+                {
+                    "$match":{
+                        "fs_project": {
+                            "$in":[project_id, int(project_id)]
+                        },
+                        "start": { 
+                            '$gte' : new_startdate.isoformat(),
+                            '$lte' : new_enddate.isoformat() 
+                        }
+                    }
+                },
+                { 
+                    "$group" : { 
+                        "_id" :  { 
+                            "user": "$_submitted_by",
+                            "fs_site": "$fs_site",
+                            "date": { 
+                                "$substr": [ "$start", 0, 10 ]
+                            }
+                        },
+                            "submissions": {'$sum':1}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "_user":"$_id.user",
+                            "_fs_site": "$_id.fs_site"
+                        },
+                        "submissions": {'$sum': '$submissions'},
+                        "visits": { '$sum': 1}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$_id._user",
+                        "total_worked_days": {'$sum': '$visits'},
+                        "submissions": {'$sum': '$submissions'},
+                        "sites_visited": {'$sum': 1}
+                    }
+                }
+            ]
+        )['result']
+
+        user_stats = {}
+
+        for visit in site_visits:
+            user_stats[visit['_id']] = visit
+        
+        query={}
+        last_month = new_enddate - datetime.timedelta(days=30)
+        query['monthly'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[last_month, new_enddate], then=1),
+                default=0, output_field=IntegerField()
+            ))
+        last_week = new_enddate - datetime.timedelta(days=7)
+        query['weekly'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[last_week, new_enddate], then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['daily'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[end, new_enddate], then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        dumb_visits = {
+            "total_worked_days": 0,
+            "submissions": 0,
+            "sites_visited": 0
+        }
+
+        users=User.objects.filter(user_roles__project_id=project_id, user_roles__group_id__in=[4, 9]).distinct('id').values('id')
+
+        for user in User.objects.filter(pk__in=users).annotate(**query):
+            data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily])
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "User Activity"
+        for row in data:
+            ws.append(row)
+        wb.save(buffer)
+        buffer.seek(0)
+        xls = buffer.getvalue()
+        xls_url = default_storage.save(project.name + '/xls/'+project.name+'-User statistics.xls', ContentFile(xls))
+        buffer.close()
+
+        task.status = 2
+        task.file.name = xls_url
+        task.save()
+        noti = task.logs.create(source=source_user, type=32, title="Xls Project User stastics Report generation in project",
+                                 recipient=source_user, content_object=task, extra_object=project,
+                                 extra_message=" <a href='"+ task.file.url +"'>Xls project user statistics report</a> generation in project")
+
+    except Exception as e:
+        task.description = "ERROR: " + str(e.message) 
+        task.status = 3
+        task.save()
+        print 'Report Gen Unsuccesfull. %s' % e
+        print e.__dict__
+        noti = task.logs.create(source=source_user, type=432, title="Xls project user statistics report generation in project",
+                                       content_object=project, recipient=source_user,
+                                       extra_message="@error " + u'{}'.format(e.message))
+        buffer.close()
+
 #
 # @shared_task(max_retries=5)
 # def auto_create_default_project_site(user, organization_id):
@@ -1999,7 +2139,6 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
 #     print('site createed')
 #     token = user.auth_token.key
 #     clone_form.delay(user, token, project)
-
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def email_after_signup(user_id, to_email):
@@ -2108,5 +2247,3 @@ def check_usage_rates():
 
         elif usage_submission == total_submissions:
             warning_overage_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email)
-
-

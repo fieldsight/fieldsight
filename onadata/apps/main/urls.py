@@ -221,6 +221,9 @@ urlpatterns = patterns(
     url(
         r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"
         "/new$", 'onadata.apps.viewer.views.create_export'),
+    url(
+        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)/(?P<sync_to_gsuit>\d)"
+        "/new$", 'onadata.apps.viewer.views.create_export'),
 
     url(
         r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<is_project>\d)/(?P<id>\d+)/(?P<site_id>\d+)/(?P<version>[^/]+)"

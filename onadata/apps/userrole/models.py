@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
 from onadata.apps.fieldsight.models import Site, Project, Organization, Region
+from onadata.apps.fsforms.notifications import save_notification
 from onadata.apps.staff.models import StaffProject
 
 
@@ -197,7 +198,9 @@ def create_messages(sender, instance, created,  **kwargs):
         if Device.objects.filter(name=instance.user.email).exists():
             message = {'notify_type':'Assign Site', 'site':{'name': instance.site.name, 'id': instance.site.id}, 'project':{'name': instance.project.name, 'id': instance.project.id}}
             try:
-                Device.objects.filter(name=instance.user.email).send_message(message)
+                email = instance.user.email
+                save_notification(message, [str(email)])
+                Device.objects.filter(name=email).send_message(message)
             except:
                 pass
 
