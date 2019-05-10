@@ -1264,7 +1264,8 @@ def importSites(task_prog_obj_id, source_user, f_project, t_project, meta_attrib
         
 
 @shared_task()
-def multiuserassignproject(task_prog_obj_id, source_user, org_id, projects, users, group_id):
+def multiuserassignproject(task_prog_obj_id, source_user_id, org_id, projects, users, group_id):
+    source_user = User.objects.get(id=source_user_id)
     time.sleep(2)
     org = Organization.objects.get(pk=org_id)
     projects_count = len(projects)

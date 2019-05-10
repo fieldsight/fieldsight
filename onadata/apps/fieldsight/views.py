@@ -2138,10 +2138,10 @@ class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
         org = get_object_or_404(Organization, pk=pk)
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object = org, task_type=1)
         if task_obj:
-            task = multiuserassignproject.delay(task_obj.pk, user, pk, projects, users, group_id)
+            task = multiuserassignproject.delay(task_obj.pk, user.id, pk, projects, users, group_id)
             task_obj.task_id=task.id
             task_obj.save()
-            return HttpResponse("Sucess")
+            return HttpResponse("Success")
         else:
             return HttpResponse("Failed")
 
