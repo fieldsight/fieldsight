@@ -786,13 +786,13 @@ data (instance/submission per row)
                 else:
                     # Something odd; hopefully it can be coerced into a string
                     raise exceptions.ParseError(detail=survey)
+            XformHistory.objects.get_or_create(xform=existing_xform, xls=existing_xform.xls,
+                 json=existing_xform.json,
+                 description=existing_xform.description, xml=existing_xform.xml,
+                 id_string=existing_xform.id_string, title=existing_xform.title,
+                 uuid=existing_xform.uuid)
+            post_update_xform.apply_async((), {'xform_id': pk, 'user': request.user.id}, countdown=2)
         # Let the superclass handle updates to the other fields
-        XformHistory.objects.get_or_create(xform=existing_xform, xls=existing_xform.xls,
-             json=existing_xform.json,
-             description=existing_xform.description, xml=existing_xform.xml,
-             id_string=existing_xform.id_string, title=existing_xform.title,
-             uuid=existing_xform.uuid)
-        post_update_xform.apply_async((), {'xform_id': pk, 'user': request.user.id}, countdown=2)
         return super(XFormViewSet, self).update(request, pk, *args, **kwargs)
 
     @detail_route(methods=['GET'])
