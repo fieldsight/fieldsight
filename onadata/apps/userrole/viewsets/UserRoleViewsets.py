@@ -140,7 +140,7 @@ class UserRoleViewSet(viewsets.ModelViewSet):
                     if created:
                         description = "{0} was assigned  as Team Admin in {1}".format(
                             role.user.get_full_name(), role.organization)
-                        noti = role.logs.create(source=role.user, type=4, title=description, organization=organization, description=description,
+                        noti = role.logs.create(source=role.user, type=5, title=description, organization=organization, description=description,
                          content_object=organization, extra_object=self.request.user)
                         result = {}
                         result['description'] = description

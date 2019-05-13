@@ -56,11 +56,11 @@
 
 //notification message list builder with ahref links
 function type0(data){
-    content = '<b><a href="'+ data.get_source_url +'">' + data.source_name +'</a></b> joined <b><a href="' +  data.get_event_url + '">' + data.event_name + '</a></b> as an Organization Admin.';
+    content = '<b><a href="'+ data.get_source_url +'">' + data.source_name +'</a></b> joined <b><a href="' +  data.get_event_url + '">' + data.event_name + '</a></b> as an Team Admin.';
     return content;
 }
 function type1(data){
-    content = '<b><a href="'+ data.get_source_url +'">' + data.source_name +'</a></b> joined <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> as an Organization Admin.';
+    content = '<b><a href="'+ data.get_source_url +'">' + data.source_name +'</a></b> joined <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> as an Team Admin.';
     return content;
 }
 
@@ -80,7 +80,7 @@ function type4(data){
 
 }
 function type5(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was assigned as an Organization Admin in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was assigned as an Team Admin in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
     return content;
 }
 function type6(data){
@@ -97,7 +97,7 @@ function type8(data){
 }
 
 function type9(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created a new organization named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created a new Team named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
     return content;
 }
 
@@ -124,7 +124,7 @@ function type12(data){
 
 
 function type13(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> changed the details of organization named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> changed the details of Team named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
     return content;
 }       
 
@@ -180,9 +180,9 @@ function type20(data){
 
 function type21(data){
     if(data.source_uid == user_id){
-        content = "<b>TASK INFO : </b>"+data.extra_message + ' of organization <a href="' +  data.get_event_url + '"><b>' + data.get_event_name + '</a></b> were created.';
+        content = "<b>TASK INFO : </b>"+data.extra_message + ' of Team <a href="' +  data.get_event_url + '"><b>' + data.get_event_name + '</a></b> were created.';
     }else{
-        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created '+ data.extra_message +' of organization <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created '+ data.extra_message +' of Team <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
     }
     return content;
 }
@@ -208,7 +208,7 @@ function type24(data){
 }
 
 function type25(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as <b>Donor</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as <b>Partner</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
     return content;
 
 }
@@ -334,7 +334,7 @@ function type412(data){
 }
 
 function type421(data){
-    content = 'Multi Role assign for ' + data.extra_message + ' has <span style="color:maroon;"><b>failed</b></span> in organization <a href="' +  data.get_event_url + '"><b>' + data.get_event_name + '</a></b>.';
+    content = 'Multi Role assign for ' + data.extra_message + ' has <span style="color:maroon;"><b>failed</b></span> in Team <a href="' +  data.get_event_url + '"><b>' + data.get_event_name + '</a></b>.';
     return content;
 }
 
