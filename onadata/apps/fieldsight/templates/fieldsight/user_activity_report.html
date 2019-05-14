@@ -40,7 +40,7 @@
     <div class="frontcover">
       <img src="{{ STATIC_URL }}dummy/assets/img/bg-report-cover.png">
       <div class="cover-text">
-        <h5>{{ user.get_full_name() }}</h5>
+        <h5>{{ user.get_full_name }}</h5>
         <p>
           {{ User.email }}
         </p>
@@ -57,7 +57,7 @@
         <div class="org-intro margin-top clearfix">
           <img src="{{ user.profile.profile_picture.url }}" class="org-intro-logo" width="130" height="130">
           <div class="org-intro-head">
-            <h3><strong>{{ user.get_full_name() }}</strong></h3>
+            <h3><strong>{{ user.get_full_name }}</strong></h3>
             <p>
             {{ user.email }}, {{ user.username }}
 
