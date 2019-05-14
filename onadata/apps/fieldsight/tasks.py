@@ -2096,7 +2096,12 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
 
         wb = Workbook()
         ws = wb.active
-        ws.title = "Report:"+start_date+"-"+end_date
+        sheet_name = "Report "+start_date+"-"+end_date
+        sheet_name = form_name[:30]
+        for ch in ["[", "]", "*", "?", ":", "/"]:
+            if ch in sheet_name:
+                sheet_name=sheet_name.replace(ch,"_")
+        ws.title=sheet_name
         for row in data:
             ws.append(row)
         wb.save(buffer)
