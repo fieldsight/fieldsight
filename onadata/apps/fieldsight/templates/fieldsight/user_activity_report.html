@@ -113,14 +113,14 @@
               <div class="col-sm-6">
                 <p class="org-info-item">
                   <strong>Total Days worker :</strong>
-                  <span>{{ visits_and_worked['total_worked_days'] }}</span>
+                  <span>{{ visits_and_worked.total_worked_days }}</span>
                 </p>
               </div>
               
               <div class="col-sm-6">
                 <p class="org-info-item">
                   <strong>Total Sites visited :</strong>
-                  <span>{{ visits_and_worked['sites_visited'] }}</span>
+                  <span>{{ visits_and_worked.sites_visited }}</span>
                 </p>
               </div>
               
@@ -194,11 +194,11 @@
                         {% for instance in submissions %}
                             <tr>
                               <td class="align-middle">
-                                <strong>{{ instance[0] }}</strong>
+                                <strong>{{ instance.0 }}</strong>
                                 <br/>
-                                <a href="{% url 'users:profile' instance.submitted_by.id %}" title="View details of user"><small><i class="la la-user"></i>{{ instance[3] }}</small></a>
+                                <a href="{% url 'users:profile' instance.submitted_by.id %}" title="View details of user"><small><i class="la la-user"></i>{{ instance.3 }}</small></a>
                                 &nbsp;
-                                <small class="site_icon_float" style=""><i class="la la-clock-o" aria-hidden="true"></i> {{ instance[1]|timesince }}{% trans ' ago' %}</small>
+                                <small class="site_icon_float" style=""><i class="la la-clock-o" aria-hidden="true"></i> {{ instance.1|timesince }}{% trans ' ago' %}</small>
                               </td>
                             </tr>
                             {% empty %}
