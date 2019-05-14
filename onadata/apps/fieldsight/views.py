@@ -1939,9 +1939,6 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
             [
                 {
                     "$match":{
-                        "fs_project": {
-                            "$in":[project_id, int(project_id)]
-                        },
                         "_submitted_by": user.username,
                         "start": { 
                             '$gte' : new_startdate.isoformat(),
@@ -1980,14 +1977,24 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                     }
                 }
             ]
-        )['result'][0]
+        )['result']
+        try:
+            vac = visits_and_worked[0]
+        except:
+            vac = {
+                '_id': user.username,
+                'sites_visited': 0,
+                'submissions': 0,
+                'total_worked_days': 0
+            }
+
         dashboard_data = {
             'user': user,
             'roles': roles,
             # 'recent_images': recent_images,
             'data': response_cords,
             'submissions': submissions,
-            'visits_and_worked': visits_and_worked,
+            'visits_and_worked': vac,
             'total_submissions': total_submissions,
             'approved': approved,
             'pending': pending,
