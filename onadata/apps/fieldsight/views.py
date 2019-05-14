@@ -1886,7 +1886,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
 
         new_enddate = end + datetime.timedelta(days=1)
 
-        roles = user.roles.filter(ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
+        roles = user.user_roles.filter(ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
         # recent_images = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": "santoshkhatri"}, "start": { 
         #                     '$gte' : new_startdate.isoformat(),
         #                     '$lte' : end.isoformat() 
