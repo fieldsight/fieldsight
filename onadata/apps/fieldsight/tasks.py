@@ -2010,7 +2010,7 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
         new_enddate = end + datetime.timedelta(days=1)
 
        
-        data.insert(0, ["UserName", "Full name", "Email", "Total Submssions", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today"])
+        data.insert(0, ["UserName", "Full name", "Email", "Submssions made", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today"])
 
         site_visits = settings.MONGO_DB.instances.aggregate(
             [
