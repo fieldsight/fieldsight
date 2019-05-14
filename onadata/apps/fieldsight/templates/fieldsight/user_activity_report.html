@@ -112,8 +112,15 @@
               </div>
               <div class="col-sm-6">
                 <p class="org-info-item">
-                  <strong>Total Supervisors :</strong>
-                  <span>10</span>
+                  <strong>Total Days worker :</strong>
+                  <span>{{ visits_and_worked['total_worked_days'] }}</span>
+                </p>
+              </div>
+              
+              <div class="col-sm-6">
+                <p class="org-info-item">
+                  <strong>Total Sites visited :</strong>
+                  <span>{{ visits_and_worked['sites_visited'] }}</span>
                 </p>
               </div>
               
@@ -175,7 +182,35 @@
             <h5><strong>{% trans 'Form' %} {% trans 'Submissions' %}</strong></h5>
           </div>
           <div class="mod-sec-body">
-             <canvas id="myChart" width="500px" height="250"></canvas>
+             <div class="row">
+              <div class="col-sm-12">
+                <div class="panel panel-default">
+                    
+                  <div class="table-responsive">
+                    <table class="table table-striped table-hover" style="width:100%;">
+                      
+                      
+                      <tbody>
+                        {% for instance in submissions %}
+                            <tr>
+                              <td class="align-middle">
+                                <strong>{{ instance[0] }}</strong>
+                                <br/>
+                                <a href="{% url 'users:profile' instance.submitted_by.id %}" title="View details of user"><small><i class="la la-user"></i>{{ instance[3] }}</small></a>
+                                &nbsp;
+                                <small class="site_icon_float" style=""><i class="la la-clock-o" aria-hidden="true"></i> {{ instance[1]|timesince }}{% trans ' ago' %}</small>
+                              </td>
+                            </tr>
+                            {% empty %}
+                            {% trans 'No' %} {% trans 'data' %}
+                          {% endfor %}
+                      
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         

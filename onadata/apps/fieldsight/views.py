@@ -1881,8 +1881,8 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         split_startdate = start_date.split('-')
         split_enddate = end_date.split('-')
 
-        new_startdate = date(int(split_startdate[0]), int(split_startdate[1]), int(split_startdate[2]))
-        end = date(int(split_enddate[0]), int(split_enddate[1]), int(split_enddate[2]))
+        new_startdate = datetime.date(int(split_startdate[0]), int(split_startdate[1]), int(split_startdate[2]))
+        end = datetime.date(int(split_enddate[0]), int(split_enddate[1]), int(split_enddate[2]))
 
         new_enddate = end + datetime.timedelta(days=1)
 
@@ -1920,7 +1920,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                             "submitted_by":"$_submitted_by"
                         }
                     }
-            }])
+            }])['result']
         submission_queryset = user.supervisor.filter(instance__date_created__range=[last_month, new_enddate])
         approved = submission_queryset.filter(status=3).count()
         rejected = submission_queryset.filter(status=1).count()
@@ -1932,7 +1932,8 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         submissions = submission_queryset.values_list(
             'project_fxf__xf__title',
             'instance__date_created',
-            'site__name'
+            'site__name',
+            'submitted_by__username'
         )
         visits_and_worked = settings.MONGO_DB.instances.aggregate(
             [
@@ -1979,7 +1980,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                     }
                 }
             ]
-        )['result']
+        )['result'][0]
         dashboard_data = {
             'user': obj,
             'roles': roles,
