@@ -55,6 +55,7 @@ from .views import (
     project_managers,
     # RegionDeactivateView,
     RegionListView,
+    UserActivityReport,
     UserListView, site_images, FilterUserView, UploadSitesView, BluePrintsView, add_project_role, ManagePeopleSiteView,
     ManagePeopleProjectView, ManagePeopleOrganizationView, SiteSurveyListView, ajax_upload_sites, ajax_save_site,
     ajax_save_project, RolesView, OrgProjectList, OrgUserList, ProjUserList, SiteUserList, ProjSiteList, OrgSiteList,
@@ -85,6 +86,8 @@ from onadata.apps.remote_app.views import RemoteProjectView
 urlpatterns = [
     url(r'^accounts/create/$', CreateUserView.as_view(
         form_class=RegistrationForm), name='user-create'),
+
+    url(r'^user/report/activity/(?P<pk>[0-9]+)/(?P<start_date>\d{4}-\d{2})/(?P<end_date>\d{4}-\d{2})/$', UserActivityReport.as_view(), name="user-activity-report"),
 
     url(r'^organization/$', OrganizationListView.as_view(), name='organizations-list'),
     url(r'^organization/$', OrganizationListView.as_view(), name='organization-list'),
