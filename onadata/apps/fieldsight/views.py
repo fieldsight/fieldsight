@@ -1921,11 +1921,11 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                         }
                     }
             }])['result']
-        submission_queryset = user.supervisor.filter(instance__date_created__range=[last_month, new_enddate])
-        approved = submission_queryset.filter(status=3).count()
-        rejected = submission_queryset.filter(status=1).count()
-        pending = submission_queryset.filter(status=0).count()
-        flagged = submission_queryset.filter(status=2).count()
+        submission_queryset = user.supervisor.filter(instance__date_created__range=[new_startdate, new_enddate])
+        approved = submission_queryset.filter(form_status=3).count()
+        rejected = submission_queryset.filter(form_status=1).count()
+        pending = submission_queryset.filter(form_status=0).count()
+        flagged = submission_queryset.filter(form_status=2).count()
              
 
         total_submissions = submission_queryset.count()
@@ -1982,11 +1982,11 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
             ]
         )['result'][0]
         dashboard_data = {
-            'user': obj,
+            'user': user,
             'roles': roles,
             # 'recent_images': recent_images,
             'data': response_cords,
-            'submissions': submission,
+            'submissions': submissions,
             'visits_and_worked': visits_and_worked,
             'total_submissions': total_submissions,
             'approved': approved,
