@@ -1892,7 +1892,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         #                     '$lte' : end.isoformat() 
         #                 }
         #                 }, {"$unwind":"$_attachments"},{"$match":{"_attachments.mimetype" : "image/jpeg"}},  {"$project" : {"_attachments.download_url":1, }},{ "$sort" : { "_id": -1 }}, { "$limit": 3 }])
-        response_coords = settings.MONGO_DB.instances.aggregate([
+        coords = settings.MONGO_DB.instances.aggregate([
             {
                 "$match":
                     {
@@ -1921,6 +1921,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                         }
                     }
             }])['result']
+        response_coords = {'features': coords, 'type':'FeatureCollection'}
         submission_queryset = user.supervisor.filter(instance__date_created__range=[new_startdate, new_enddate])
         approved = submission_queryset.filter(form_status=3).count()
         rejected = submission_queryset.filter(form_status=1).count()
