@@ -50,23 +50,24 @@ class RoleMiddleware(object):
                 request.__class__.organization = role.organization
                 request.__class__.project = role.project
                 request.__class__.site = role.site
+                request.__class__.group = role.group
                 
 
-                if "Super Admin" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
-                    request.__class__.group = Group.objects.get(name="Super Admin")
-                elif "Organization Admin" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
-                    request.__class__.group = Group.objects.get(name="Organization Admin")
-                elif "Project Manage" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
-                    request.__class__.group = Group.objects.get(name="Project Manage")
-                elif "Region Reviewer" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
-                    request.__class__.group = Group.objects.get(name="Region Reviewer")
-                elif "Reviewer" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
-                    request.__class__.group = Group.objects.get(name="Reviewer")
-                else:
-                    request.__class__.group = role.group
+                # if "Super Admin" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
+                #     request.__class__.group = Group.objects.get(name="Super Admin")
+                # elif "Organization Admin" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
+                #     request.__class__.group = Group.objects.get(name="Organization Admin")
+                # elif "Project Manage" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
+                #     request.__class__.group = Group.objects.get(name="Project Manage")
+                # elif "Region Reviewer" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
+                #     request.__class__.group = Group.objects.get(name="Region Reviewer")
+                # elif "Reviewer" in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True):
+                #     request.__class__.group = Group.objects.get(name="Reviewer")
+                # else:
+                #     request.__class__.group = role.group
                 # request.__class__.roles = Role.objects.filter(user=request.user, organization=role.organization)
                 request.__class__.roles = Role.get_active_roles(request.user)
-                request.__class__.is_super_admin = 'Super Admin' in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True)
+                # request.__class__.is_super_admin = 'Super Admin' in request.user.user_roles.all().distinct('group__name').values_list('group__name', flat = True)
                 #     for role in request.roles:
                 #         groups.append(role.group)
                 #     request.__class__.groups = groups
