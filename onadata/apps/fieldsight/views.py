@@ -1897,7 +1897,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                 "$match":
                     {
                         "_submitted_by": user.username,
-                        "start": { 
+                        "_submission_time": { 
                                 '$gte' : new_startdate.isoformat(),
                                 '$lte' : end.isoformat() 
                         },
