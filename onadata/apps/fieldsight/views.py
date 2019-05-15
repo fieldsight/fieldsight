@@ -1892,7 +1892,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         #                     '$lte' : end.isoformat() 
         #                 }
         #                 }, {"$unwind":"$_attachments"},{"$match":{"_attachments.mimetype" : "image/jpeg"}},  {"$project" : {"_attachments.download_url":1, }},{ "$sort" : { "_id": -1 }}, { "$limit": 3 }])
-        response_cords = settings.MONGO_DB.instances.aggregate([
+        response_coords = settings.MONGO_DB.instances.aggregate([
             {
                 "$match":
                     {
@@ -1992,7 +1992,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
             'user': user,
             'roles': roles,
             # 'recent_images': recent_images,
-            'data': response_cords,
+            'data': json.dumps(response_coords, cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8'),
             'submissions': submissions,
             'visits_and_worked': vac,
             'total_submissions': total_submissions,

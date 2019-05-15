@@ -55,7 +55,7 @@
       <div class="page">
         <span id="pageNum"></span>
         <div class="org-intro margin-top clearfix">
-          <img src="{{ user.profile.profile_picture.url }}" class="org-intro-logo" width="130" height="130">
+          <img src="{% if user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% else %}{% static 'dummy/assets/img/default_user.png' %}{% endif %}" class="org-intro-logo" width="130" height="130">
           <div class="org-intro-head">
             <h3><strong>{{ user.get_full_name }}</strong></h3>
             <p>
@@ -112,7 +112,7 @@
               </div>
               <div class="col-sm-6">
                 <p class="org-info-item">
-                  <strong>Total Days worker :</strong>
+                  <strong>Total Days worked :</strong>
                   <span>{{ visits_and_worked.total_worked_days }}</span>
                 </p>
               </div>
@@ -237,7 +237,7 @@
       <script src="https://maps.google.com/maps/api/js?v=3&key=AIzaSyC8uXN1u5FYIaGOUnVK90Rh3wR2Gmyw1uU"></script>
       <script type="text/javascript">
       var static_url ="{{ STATIC_URL }}";
-      var data = {{ data|safe}};
+      var data = {{ data|safe }};
       </script>
       <script type="text/javascript" src="{{ STATIC_URL }}js/geo-layers.js"></script>    
       <script type="text/javascript" src="{{ STATIC_URL }}js/map.js"></script>
