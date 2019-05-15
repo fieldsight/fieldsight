@@ -55,7 +55,7 @@
       <div class="page">
         <span id="pageNum"></span>
         <div class="org-intro margin-top clearfix">
-          <img src="{% if user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% else %}{% static 'dummy/assets/img/default_user.png' %}{% endif %}" class="org-intro-logo" width="130" height="130">
+          <img src="{% if user.user_profile.profile_picture %}{{ user.user_profile.profile_picture.url }}{% else %}{% static 'images/default_user.png' %}{% endif %}" class="org-intro-logo" width="130" height="130">
           <div class="org-intro-head">
             <h3><strong>{{ user.get_full_name }}</strong></h3>
             <p>
