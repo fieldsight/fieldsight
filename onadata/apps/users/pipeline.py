@@ -1,18 +1,16 @@
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from onadata.apps.userrole.models import UserRole
 from .models import UserProfile
-from social_core.exceptions import AuthException
 from social_django.models import UserSocialAuth
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse_lazy, reverse
-from django.shortcuts import redirect
 from django.contrib.auth import login
 import urllib
 from urlparse import urlparse
 from django.core.files import File
 
 
-#check if the email already exists for the user trying to login through gmail
+# check if the email already exists for the user trying to login through gmail
 def email_validate(strategy, backend, uid, user, response, *args, **kwargs):
     email = response.get('email')
 
@@ -32,7 +30,8 @@ def email_validate(strategy, backend, uid, user, response, *args, **kwargs):
             'user':user
         }
 
-#create a role as unassigned for the logged in user if the role is not created
+
+# create a role as unassigned for the logged in user if the role is not created
 def create_role(backend, uid, user, response, social=None, *args, **kwargs):
     email = response.get('email')
 
@@ -40,6 +39,14 @@ def create_role(backend, uid, user, response, social=None, *args, **kwargs):
         social = backend.strategy.storage.user.create_social_auth(user, uid, backend.name)
    
     u = User.objects.get(email=email)
+
+    codenames = ['add_asset', 'change_asset', 'delete_asset', 'view_asset', 'share_asset', 'add_finstance',
+                 'change_finstance', 'add_instance', 'change_instance']
+    permissions = Permission.objects.filter(codename__in=codenames)
+
+    for permission in permissions:
+        u.user_permissions.add(permission)
+
     group = Group.objects.get(name="Unassigned")
     userrole = UserRole.objects.filter(user=u)
     if not userrole:
@@ -51,7 +58,7 @@ def create_role(backend, uid, user, response, social=None, *args, **kwargs):
     }
 
 
-#create a profile for the logged in user if profile doesnot exist
+# create a profile for the logged in user if profile doesnot exist
 def create_profile(strategy, backend, uid, user, response, social=None, *args, **kwargs):
     email = response.get('email')
     request = strategy.request
@@ -82,4 +89,3 @@ def create_profile(strategy, backend, uid, user, response, social=None, *args, *
         user.backend = 'django.contrib.auth.backends.ModelBackend'
         login(request, user)
         return redirect(reverse_lazy('users:view_invitations', kwargs={'pk':u.pk}))
-        
