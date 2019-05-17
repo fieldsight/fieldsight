@@ -89,7 +89,6 @@ class Command(BaseCommand):
                     copy_filelike_to_filelike(bytes_io, f)
                     f.close()
                 xls_file = open(xls_directory + '' + filename.replace('.csv', '.xls'), 'r')
-                print('open file', xls_file)
 
             survey = create_survey_from_xls(xls_file)
             xml = survey.to_xml()
