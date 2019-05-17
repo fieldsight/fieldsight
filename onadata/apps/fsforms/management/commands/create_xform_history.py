@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import os
 import glob
-import shutil
 
 from django.core.files import File
 
@@ -12,13 +11,18 @@ from onadata.apps.logger.models import XForm
 
 from pyxform.builder import create_survey_from_xls
 
-
-import os
-import glob
 import csv
 from xlsxwriter.workbook import Workbook
 
 from onadata.koboform.pyxform_utils import convert_csv_to_xls
+
+
+def copy_filelike_to_filelike(src, dst, bufsize=16384):
+    while True:
+        buf = src.read(bufsize)
+        if not buf:
+            break
+        dst.write(buf)
 
 
 def csv_to_xls(dir_name):
@@ -31,7 +35,6 @@ def csv_to_xls(dir_name):
                 for c, col in enumerate(row):
                     worksheet.write(r, c, col)
         workbook.close()
-
 
 
 def get_version(xml):
@@ -76,20 +79,24 @@ class Command(BaseCommand):
                     print("##########################")
                     print("##########################")
                     continue
+
             xls_file = open(os.path.join(xls_directory, filename))
             print("creating survey for ", xls_file)
-            try:
-                survey = create_survey_from_xls(xls_file)
-                xml = survey.to_xml()
-                version = get_version(xml)
-                id_string = get_id_string(xml)
-            
-            except Exception as e:
-                error_file_list.append(filename)
-                pass
-            
-            else:
-                xls_file.close()
+            if filename.endswith(".csv"):
+                csv_file = open(os.path.join(xls_directory, filename))
+                bytes_io = convert_csv_to_xls(csv_file)
+                with open(xls_directory + '' + filename.replace('.csv', '.xls'), 'wb') as f:
+                    copy_filelike_to_filelike(bytes_io, f)
+                    f.close()
+                xls_file = open(xls_directory + '' + filename.replace('.csv', '.xls'), 'r')
+                print('open file', xls_file)
+
+            survey = create_survey_from_xls(xls_file)
+            xml = survey.to_xml()
+            version = get_version(xml)
+            id_string = get_id_string(xml)
+
+            xls_file.close()
             
             # print("version =  ======", version)
             if not XForm.objects.filter(id_string=id_string).exists():
