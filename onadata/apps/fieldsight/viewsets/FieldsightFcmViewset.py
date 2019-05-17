@@ -28,18 +28,9 @@ class FcmDeviceViewSet(viewsets.ModelViewSet):
 
         except Device.DoesNotExist:
             device = Device(dev_id=serializer.data["dev_id"])
-            device.is_active = True
-
-            device.reg_id = serializer.data["reg_id"]
-        user = User.objects.filter(email__iexact=serializer.data["name"])
-        if user:
-            device.name = user[0].email
-        else:
-            user = User.objects.filter(username__iexact=serializer.data["name"])
-            if user:
-                device.name = user[0].email
-            else:
-                return response.Response(status=status.HTTP_404_NOT_FOUND)    
+        device.is_active = True
+        device.reg_id = serializer.data["reg_id"]
+        device.name = serializer.data["name"]
         device.save()
 
     def destroy(self, request, *args, **kwargs):
@@ -52,15 +43,13 @@ class FcmDeviceViewSet(viewsets.ModelViewSet):
 
     def inactivate(self, request, *args, **kwargs):
         try:
-            instance = Device.objects.get(dev_id = request.data.get("dev_id"))
+            instance = Device.objects.get(dev_id=request.data.get("dev_id"))
             self.perform_destroy(instance)
             return response.Response(status=status.HTTP_200_OK)
         except Device.DoesNotExist:
             # return response.Response(status=status.HTTP_404_NOT_FOUND)
             return response.Response(status=status.HTTP_200_OK)
 
-
     def perform_destroy(self, instance):
-        # instance.is_active = False
-        instance.delete()
-        # instance.save()
+        instance.is_active = False
+        instance.save()
