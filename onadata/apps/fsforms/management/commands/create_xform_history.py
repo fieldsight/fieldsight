@@ -113,7 +113,10 @@ class Command(BaseCommand):
                 continue
             if not XformHistory.objects.filter(xform=xform, version=version).exists():
                 print("creating history from file ", filename)
-                file_obj = open(os.path.join(xls_directory, filename))
+                if filename.endswith('.csv'):
+                    file_obj = open(xls_directory + '' + filename.replace('.csv', '.xls'), 'r')
+                else:
+                    file_obj = open(os.path.join(xls_directory, filename))
                 history = XformHistory(xform=xform, xls=File(file_obj))
                 history.save()
             else:
