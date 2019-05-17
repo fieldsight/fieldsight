@@ -214,7 +214,7 @@ assigntoken(csrf_token);
 					{% block breadcrumbs %}
 					<ol class="breadcrumb">
 						{% ifrole "Organization" %}
-						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Organization' %} {% trans 'List' %}</a></li>
+						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Teams' %}</a></li>
 						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' obj.organization.pk %}">{{obj.organization.name}}</a></li>
 						{% endrole %}
 						<li class="breadcrumb-item active" aria-current="page">{{obj.name}}</li>
@@ -260,23 +260,22 @@ assigntoken(csrf_token);
 								<i class="la la-cogs"></i> {% trans 'Manage' %}
 							</a>
 							<div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButtonManage">
-								<a class="dropdown-item" href="{% url 'fieldsight:manage-people-project' obj.pk %}"><i class="la la-user"></i>{% trans ' People' %}</a>
+								<a class="dropdown-item" href="{% url 'fieldsight:manage-people-project' obj.pk %}"><i class="la la-user"></i>{% trans ' User' %}</a>
 								<a class="dropdown-item" href="{% url 'forms:setup-forms' 1 obj.pk %}"><i class="la la-clipboard"></i>{% trans ' Forms' %}</a>
 
-								<a class="dropdown-item" href="{% url 'fieldsight:site-types'  obj.pk %}"><i class="la la-clipboard"></i>{% trans ' Site Types' %}</a>
-
-								<a class="dropdown-item" href="{% url 'fieldsight:project-edit' obj.pk %}"><i class="la la-clipboard"></i> {% trans 'Edit Project' %}</a>
 								{% if request.group.name == "Super Admin" %}
 								<button class="dropdown-item"  data-toggle="modal" data-target="#importModal"><i class="la la-clipboard"></i> {% trans 'Import Sites' %}</button>
 								{% endif %}
 								{% if obj.cluster_sites %}
-								<a class="dropdown-item" href="{% url 'fieldsight:multi_site_region_assign' obj.id%}"><i class="la la-map-marker"></i>{% trans 'Assign' %} {% trans 'sites' %} {% trans 'to' %} {% trans 'regions' %}</a>
+<!--									<a class="dropdown-item" href="{% url 'fieldsight:multi_site_region_assign' obj.id%}"><i class="la la-map-marker"></i>{% trans 'Assign' %} {% trans 'sites' %} {% trans 'to' %} {% trans 'regions' %}</a>-->
+									<a class="dropdown-item" href="{% url 'fieldsight:project_region_sites' obj.id %}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
+
 								{% else %}
-								<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
+									<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
 								{% endif %}
-								<a href="{% url 'fieldsight:define-site-meta' obj.pk %}" title="" class="dropdown-item"><i class="la la-info"></i>  {% trans 'Meta' %} {% trans 'Attributes' %}</a>
-								<a class="dropdown-item" href="{% url 'fieldsight:region-list' obj.pk %}"><i class="la la-map-marker"></i>{% trans 'Manage Regions' %}</a>
-								
+								<a class="dropdown-item" href="{% url 'fieldsight:project-edit' obj.pk %}"><i class="la la-clipboard"></i> {% trans 'Settings' %}</a>
+
+
 								
 							</div>
 						</span>
@@ -496,13 +495,6 @@ assigntoken(csrf_token);
 						</div>
 					</div>
 					
-					{% verbatim %}
-					<div class="row" id="logdatas">
-						
-					</div>
-					{% endverbatim %}
-					
-					
 					<div class="row">
 						<div class="col-lg-3 col-md-6 col-sm-12">
 							<a href="{% url 'fieldsight:proj-submission-data' obj.pk 2 %}" class="mini-stat padding-large margin-top clearfix">
@@ -549,6 +541,7 @@ assigntoken(csrf_token);
 						</div>
 					{% endverbatim %}
 
+
 					<div class="row">
 						<div class="col-lg-8 col-md-12">
 							<div class="widget-info widget-scrolling-list margin-top bg-white padding" data-mh="row-1">
@@ -561,9 +554,9 @@ assigntoken(csrf_token);
                                     </p>
 
 									<br>
-									<h8><b>{% trans 'Additional Information' %}</b></h8>
-									<br><p>
-									{{ obj.additional_desc}}</p>
+<!--									<h8><b>{% trans 'Additional Information' %}</b></h8>-->
+<!--									<br><p>-->
+<!--									{{ obj.additional_desc}}</p>-->
 								</div>
 							</div>
 						</div>
@@ -581,8 +574,8 @@ assigntoken(csrf_token);
 											{% endif %}
 										</li>
 										<li>
-										{% if obj.fax %}
-											<i class="la la-fax"></i>{{ obj.fax}}
+										{% if obj. %}
+											<i class="la la-"></i>{{ obj.}}
 										{% else %}
 											{% endif %}
 										</li>
@@ -604,6 +597,12 @@ assigntoken(csrf_token);
 							</div>
 						</div>
 					</div>
+					
+					{% verbatim %}
+					<div class="row" id="logdatas">
+
+					</div>
+					{% endverbatim %}
 
 
 					<!--<div class="row">-->

@@ -94,7 +94,7 @@
                                     {% for field in form.visible_fields %}
 
 
-									<div class="form-group col-md-6">
+									<div class="form-group col-md-6 {% if field.errors %} alert alert-danger {% endif %}">
 
 									  <label class="col-form-label">{{ field.label }}</label>
                                         {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
@@ -150,6 +150,8 @@
 <script src="{{ STATIC_URL }}js/cropper.min.js"></script>
 <script>
           $('input.required').closest('.form-group').find('label').addClass('required');
+          $("#id_profile_picture").closest(".form-group").find(".text-danger").hide();
+
 
           type = "{{type}}";
           if (type == 'create_profile'){
@@ -159,6 +161,8 @@
 
 
           }
+          $('#id_timezone').prop('required', true);
+          $('#id_timezone').closest('.form-group').find('label:first-child').append('<span class="text-danger"> *</span>')
 
 
 

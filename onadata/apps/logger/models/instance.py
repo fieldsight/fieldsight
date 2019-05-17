@@ -1,8 +1,11 @@
-import reversion
-
+# -*- coding: utf-8 -*-
 from datetime import datetime
 from hashlib import sha256
 
+import reversion
+
+from django.db.models import F
+from django.db import transaction
 from django.contrib.gis.db import models
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
@@ -13,7 +16,6 @@ from django.utils.translation import ugettext as _
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
 
-from onadata.apps.logger.fields import LazyDefaultBooleanField
 from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
@@ -22,14 +24,8 @@ from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
     UUID, XFORM_ID_STRING, SUBMITTED_BY
 from onadata.libs.utils.model_tools import set_uuid
-
-
-class FormInactiveError(Exception):
-    def __unicode__(self):
-        return _("Form is inactive")
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
+from onadata.apps.logger.fields import LazyDefaultBooleanField
+from onadata.apps.logger.exceptions import DuplicateUUIDError, FormInactiveError
 
 
 # need to establish id_string of the xform before we run get_dict since
@@ -61,21 +57,28 @@ def submission_time():
 
 
 def update_xform_submission_count(sender, instance, created, **kwargs):
-    if created:
-        xform = XForm.objects.select_related().select_for_update()\
-            .get(pk=instance.xform.pk)
-        xform.num_of_submissions += 1
-        xform.last_submission_time = instance.date_created
-        xform.save()
-        profile_qs = User.profile.get_queryset()
-        try:
-            profile = profile_qs.select_for_update()\
-                .get(pk=xform.user.profile.pk)
-        except profile_qs.model.DoesNotExist:
-            pass
-        else:
-            profile.num_of_submissions += 1
-            profile.save()
+    if not created:
+        return
+    # `defer_counting` is a Python-only attribute
+    if getattr(instance, 'defer_counting', False):
+        return
+    with transaction.atomic():
+        xform = XForm.objects.only('user_id').get(pk=instance.xform_id)
+        # Update with `F` expression instead of `select_for_update` to avoid
+        # locks, which were mysteriously piling up during periods of high
+        # traffic
+        XForm.objects.filter(pk=instance.xform_id).update(
+            num_of_submissions=F('num_of_submissions') + 1,
+            last_submission_time=instance.date_created,
+        )
+        # Hack to avoid circular imports
+        UserProfile = User.profile.related.related_model
+        profile, created = UserProfile.objects.only('pk').get_or_create(
+            user_id=xform.user_id
+        )
+        UserProfile.objects.filter(pk=profile.pk).update(
+            num_of_submissions=F('num_of_submissions') + 1,
+        )
 
 
 def update_xform_submission_count_delete(sender, instance, **kwargs):
@@ -105,6 +108,7 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 class Instance(models.Model):
     XML_HASH_LENGTH = 64
     DEFAULT_XML_HASH = None
+
     json = JSONField(default={}, null=False)
     xml = models.TextField()
     xml_hash = models.CharField(max_length=XML_HASH_LENGTH, db_index=True, null=True,
@@ -127,17 +131,36 @@ class Instance(models.Model):
     # we add a fourth status: submitted_via_web
     status = models.CharField(max_length=20,
                               default=u'submitted_via_web')
-    uuid = models.CharField(max_length=249, default=u'')
+    uuid = models.CharField(max_length=249, default=u'', db_index=True)
 
     # store an geographic objects associated with this instance
     geom = models.GeometryCollectionField(null=True)
-    is_synced_with_mongo = LazyDefaultBooleanField(default=False)
     objects = models.GeoManager()
 
     tags = TaggableManager()
 
+    validation_status = JSONField(null=True, default=None)
+
+    # TODO Don't forget to update all records with command `update_is_sync_with_mongo`.
+    is_synced_with_mongo = LazyDefaultBooleanField(default=False)
+
+    # If XForm.has_kpi_hooks` is True, this field should be True either.
+    # It tells whether the instance has been successfully sent to KPI.
+    posted_to_kpi = LazyDefaultBooleanField(default=False)
+
     class Meta:
         app_label = 'logger'
+
+    @property
+    def asset(self):
+        """
+        The goal of this property is to make the code future proof.
+        We can run the tests on kpi backend or kobocat backend.
+        Instance.asset will exist for both
+        It's used for validation_statuses.
+        :return: XForm
+        """
+        return self.xform
 
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
@@ -217,6 +240,65 @@ class Instance(models.Model):
         '''
         self.xml_hash = self.get_hash(self.xml)
 
+    @classmethod
+    def populate_xml_hashes_for_instances(cls, usernames=None, pk__in=None, repopulate=False):
+        '''
+        Populate the `xml_hash` field for `Instance` instances limited to the specified users
+        and/or DB primary keys.
+
+        :param list[str] usernames: Optional list of usernames for whom `Instance`s will be
+        populated with hashes.
+        :param list[int] pk__in: Optional list of primary keys for `Instance`s that should be
+        populated with hashes.
+        :param bool repopulate: Optional argument to force repopulation of existing hashes.
+        :returns: Total number of `Instance`s updated.
+        :rtype: int
+        '''
+
+        filter_kwargs = dict()
+        if usernames:
+            filter_kwargs['xform__user__username__in'] = usernames
+        if pk__in:
+            filter_kwargs['pk__in'] = pk__in
+        # By default, skip over instances previously populated with hashes.
+        if not repopulate:
+            filter_kwargs['xml_hash'] = cls.DEFAULT_XML_HASH
+
+        # Query for the target `Instance`s.
+        target_instances_queryset = cls.objects.filter(**filter_kwargs)
+
+        # Exit quickly if there's nothing to do.
+        if not target_instances_queryset.exists():
+            return 0
+
+        # Limit our queryset result content since we'll only need the `pk` and `xml` attributes.
+        target_instances_queryset = target_instances_queryset.only('pk', 'xml')
+        instances_updated_total = 0
+
+        # Break the potentially large `target_instances_queryset` into chunks to avoid memory
+        # exhaustion.
+        chunk_size = 2000
+        target_instances_queryset = target_instances_queryset.order_by('pk')
+        target_instances_qs_chunk = target_instances_queryset
+        while target_instances_qs_chunk.exists():
+            # Take a chunk of the target `Instance`s.
+            target_instances_qs_chunk = target_instances_qs_chunk[0:chunk_size]
+
+            for instance in target_instances_qs_chunk:
+                pk = instance.pk
+                xml = instance.xml
+                # Do a `Queryset.update()` on this individual instance to avoid signals triggering
+                # things like `Reversion` versioning.
+                instances_updated_count = Instance.objects.filter(pk=pk).update(
+                    xml_hash=cls.get_hash(xml))
+                instances_updated_total += instances_updated_count
+
+            # Set up the next chunk
+            target_instances_qs_chunk = target_instances_queryset.filter(
+                pk__gt=instance.pk)
+
+        return instances_updated_total
+
     def get(self, abbreviated_xpath):
         self._set_parser()
         return self._parser.get(abbreviated_xpath)
@@ -284,10 +366,7 @@ class Instance(models.Model):
             return gc[0]
 
     def save(self, *args, **kwargs):
-        force = kwargs.get('force')
-
-        if force:
-            del kwargs['force']
+        force = kwargs.pop("force", False)
 
         self._check_active(force)
 
@@ -296,6 +375,11 @@ class Instance(models.Model):
         self._set_survey_type()
         self._set_uuid()
         self._populate_xml_hash()
+
+        # Force validation_status to be dict
+        if self.validation_status is None:
+            self.validation_status = {}
+
         super(Instance, self).save(*args, **kwargs)
 
     def set_deleted(self, deleted_at=timezone.now()):
@@ -305,12 +389,28 @@ class Instance(models.Model):
         self.xform.submission_count(force_update=True)
         self.parsed_instance.save()
 
+    def get_validation_status(self):
+        """
+        Returns instance validation status.
+
+        :return: object
+        """
+        # This method can be tweaked to implement default validation status
+        # For example:
+        # if not self.validation_status:
+        #    self.validation_status = self.asset.settings.get("validation_statuses")[0]
+        return self.validation_status
+
 
 post_save.connect(update_xform_submission_count, sender=Instance,
                   dispatch_uid='update_xform_submission_count')
 
 post_delete.connect(update_xform_submission_count_delete, sender=Instance,
                     dispatch_uid='update_xform_submission_count_delete')
+
+if Instance.XML_HASH_LENGTH / 2 != sha256().digest_size:
+    raise AssertionError('SHA256 hash `digest_size` expected to be `{}`, not `{}`'.format(
+        Instance.XML_HASH_LENGTH, sha256().digest_size))
 
 
 class InstanceHistory(models.Model):

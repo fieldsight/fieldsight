@@ -1,0 +1,13 @@
+.form-container {
+    display: flex;
+    justify-content: center;
+}
+
+form {
+    max-width: 700px;
+}
+
+form .footer {
+    display: flex;
+    justify-content: flex-end;
+}

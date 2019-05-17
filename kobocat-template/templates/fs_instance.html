@@ -1,0 +1,446 @@
+{% extends "fieldsight/fieldsight_base.html" %}
+{% load i18n staticfiles %}
+{% load fs_filters %}
+{% block page-title %}{% trans 'Form Data' %}{% endblock %}
+{% load filters %}
+{% block extracss %}
+{% load pagination_tags %}
+
+    
+
+{% endblock %}
+{% block content %}
+<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<div id="main-content" class="padding">
+
+  <nav aria-label="breadcrumb" role="navigation">
+    {% block breadcrumbs %}
+    <ol class="breadcrumb">
+     {% if site_id %}
+              {% if is_doner %}
+                    {% if fxf.project %}
+                          <li class="breadcrumb-item"><a href="{% url 'fieldsight:donor_project_dashboard_lite' fxf.project.pk %}">{{ fxf.project.name }}</a></li>
+                    {% else %}
+                          <li class="breadcrumb-item"><a href="{% url 'fieldsight:donor_project_dashboard_lite' fxf.site.project.pk %}">{{ fxf.site.project.name }}</a></li>
+                    {% endif %}
+              {% else %}
+              <li class="breadcrumb-item"><a href="{% url 'fieldsight:site-dashboard' site_id %}">Site Dashboard</a></li>
+              {% endif %}
+              <li class="breadcrumb-item"><a href="{% url 'forms:site-responses' site_id %}">Responses</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'forms:html_export' fxf.pk site_id %}">{{ fxf.xf.title }} All Submissions</a></li>
+              <li class="breadcrumb-item active">Detailed Response</li>
+        {% else %}
+        {% if fxf.project %}
+              {% if is_doner %}
+             <li class="breadcrumb-item"><a href="{% url 'fieldsight:donor_project_dashboard_lite' fxf.project.pk %}">{{ fxf.project.name }}</a></li>
+              {% else %}
+              <li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' fxf.project.pk %}">{{ fxf.project.name }}</a></li>
+              {% endif %}
+              <li class="breadcrumb-item"><a href="{% url 'forms:project-responses' fxf.project.pk %}">Responses</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'forms:project_html_export' fxf.pk %}">{{ fxf.xf.title }} All Submissions</a>
+              <li class="breadcrumb-item active">Detailed Response</li>
+              
+        {% endif %} 
+        {% endif %}
+
+    </ol>
+    {% endblock %}
+  </nav>
+
+
+<section class="panel">
+    <header class="panel-heading clearfix">
+
+      <h3><i class="la la-home"></i> <span id="sitename"></span> | Response of {{ fxf.xf.title }} </h3>
+
+      <div id="buttonholder" class="panel-heading-right"  data-bind="with:model">
+          <a href="javascript:void(0)" data-bind="click:repair" class="btn btn-primary">{% trans 'Repair' %}</a>
+        <a href="javascript:void(0)" id="removeNullData" class="btn btn-primary" onclick="removeNullData()">{% trans 'Hide Null Values' %}</a>
+        <a href="javascript:void(0)" class="btn btn-primary" data-bind="click:history">{% trans 'View History ' %}</a>
+        <a class="btn btn-primary status-icon" href="javascript:void(0)">{% trans "current-status:" %} 
+        <span class="approved" style="display:none;"><i class="fa fa-check-square-o" aria-hidden="true"></i></span>
+        <span class="rejected" style="display:none;"><i class="fa fa-window-close" aria-hidden="true"></i></span>
+        <span class="pending" style="display:none;"><i class="fa fa-hourglass-half" aria-hidden="true"></i></span>
+        <span class="flagged" style="display:none;"><i class="fa fa-flag-checkered" aria-hidden="true"></i></span>
+        </a>
+        
+      </div>
+    </header>
+  <div class="panel-body">
+
+
+  {% load i18n %}
+  <div id="loading">
+    <p> {% trans "Loading..." %} </p>
+    <img id="loading-image" src="{{STATIC_URL}}images/ajax-loader.gif" alt="Loading..." />
+  </div>
+  {% if messages %}
+  <div>{{messages}}</div>
+  {% endif %}
+
+  <div id="data"></div>
+
+       <div id="delete-modal" class="modal hide fade">
+        <div class="modal-header">
+          <a data-dismiss="modal" class="close">&times;</a>
+          <h3>{% trans "Delete Confirmation" %}</h3>
+        </div>
+        <div class="modal-body">
+          <p>{% trans "Are you sure you want to delete this record. If you are unsure about deleting this record press 'Cancel'." %}</p>
+        </div>
+        <div class="modal-footer">
+          <a href="#" onclick="$('#delete-modal').modal('hide');" class="btn btn-danger">{% trans "Delete" %}</a>
+          <a href="#" onclick="$('#delete-modal').modal('hide');" class="btn">{% trans "Cancel" %}</a>
+        </div>
+      </div>
+
+
+      <div classs="row margin-top" data-bind="with:model">
+
+        <div data-bind="with:current_history">
+          <div class="modal" tabindex="-1" role="dialog" data-bind="modal:$parent.modal_visibility">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header" style="text-align: center !important;padding-top: 18px important;">
+                  <h5 class="modal-title">{% trans 'Submission Log' %}</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close" data-bind="click:$parent.close"><span aria-hidden="true">&times;</span></button>
+                  
+                </div>
+                <div class="modal-body">
+                  <div class="row" style="margin-left: 10px;">
+
+                      
+                      <div class="col-md-12" data-bind="foreach:$parent.historyList">
+                            <div class="line">
+                              <span> 
+                                <i class="fa fa-user" aria-hidden="true" style="padding-right:4px !important;"></i>
+                                <a href="#">
+                                  <span data-bind="text:user"></span>
+                                </a>
+                                  changed status from <span data-bind="text:old_status"></span> to <span data-bind="text:new_status"></span>
+                               <span style="float:right;"><i class="fa fa-clock-o" aria-hidden="true" ></i>
+                                    <span data-bind="fieldsightFormatDate: date"></span></span></span>
+                            </div>
+                            <div id="comment" class="collapse1">
+                              <i class="fa fa-comments" aria-hidden="true" style="font-size: 16px;
+              margin-right: 12px;"></i><td><span data-bind="text:message"></span></td> 
+                            </div>
+                            <div data-bind="visible:images.length">
+                                <div data-bind="foreach:images">
+                                    <img style="height: 100px; margin: 5px;" class="img-rounded  thumb" data-bind="attr: { src: image }, visible: image">
+                                </div>
+                            </div>
+                            <hr class="color:black;">
+                      </div>
+
+                  </div>
+
+                  
+                  <!-- <button class="btn btn-primary registration__action round" type="submit" data-bind="click:$parent.close" > -->
+                      <!-- {% trans 'Close' %}</button> -->
+                        <div class="gap"></div>
+
+
+
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+  {% if not is_readonly %}
+    <br>
+    <hr>
+    <br>
+    <h5>{% trans 'Review submission' %} </h5>
+    {% csrf_token %}
+    
+      <div class="form-group">
+        <textarea class="form-control" rows="7" type="text" data-bind="value:message" placeholder="comment"></textarea>
+      </div>
+
+      <h4>Attach images</h4>
+            <div class="well" data-bind="fileDrag: multiFileData">
+                <div class="form-group row">
+                    <div class="col-md-6">
+                              <!-- ko foreach: {data: multiFileData().dataURLArray, as: 'dataURL'} -->
+                              <img style="height: 100px; margin: 5px;" class="img-rounded  thumb" data-bind="attr: { src: dataURL }, visible: dataURL">
+                              <!-- /ko -->
+                        <div data-bind="ifnot: multiFileData().fileArray">
+                            <label class="drag-label">Drag files here</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="file" multiple data-bind="fileInput: multiFileData, customFileInput: {
+                          buttonClass: 'btn btn-success',
+                          fileNameClass: 'disabled form-control',
+                          onClear: onClear,
+                        }" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+      <div class="gap"></div>
+
+
+
+
+
+
+  <!--     <div class="inline">
+        <button type="button" class="btn pending" data-bind="click: function () { saveStatus(0); }"><i class="fa fa-hourglass-half space" aria-hidden="true"></i> Pending </button>
+      </div>
+   -->    
+      
+        <button type="button" class="btn btn-danger" data-bind="click: function () { saveStatus(1); }"><i class="fa fa-window-close space" aria-hidden="true"></i> Reject </button>
+
+     
+
+        <button type="button" class="btn btn-warning" data-bind="click: function () { saveStatus(2); }"><i class="fa fa-flag-checkered space " aria-hidden="true"></i> Flag </button>
+
+
+        <button type="button" class="btn btn-success" data-bind="click: function () { saveStatus(3); }"><i class="fa fa-check-square-o space" aria-hidden="true"></i> Approve  </button>
+
+    
+      
+      <div class="gap"></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+<script type="text/javascript" src="/jsi18n/"></script>
+<script src="/static/js/jquery.min.js"></script>
+<script src="/static/js/jquery-migrate.min.js"></script>
+<script src="/static/js/jquery.tablesorter.min.js"></script>
+<script src="/static/bootstrap/js/bootstrap.js"></script>
+<script src="/static/bootstrap/js/bootstrapx-clickover.js"></script>
+<script src="/static/bootstrap/js/bootstrapx-clickover-btns.js"></script>
+<script src="/static/js/application.js?v=201307251039"></script>
+<script src="/static/js/vex.combined.min.js"></script>
+<script>vex.defaultOptions.className = 'vex-theme-kobo';</script>
+<script src="/static/js/footable.min.js"></script>
+<!--  -->
+<script src="/static/js/kobo-branding.js"></script>
+<script src="/static/lightbox2/dist/js/lightbox.js"></script>
+<link href="{{STATIC_URL}}css/toastr.css" rel="stylesheet">
+<link href="{{STATIC_URL}}lightbox2/dist/css/lightbox.css" rel="stylesheet">
+<script type="text/javascript" src="{{ STATIC_URL }}js/libs/knockout.js" ></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/ko_lib.js" ></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/plugin/toastr.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.blockUI.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/App.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/forms/alter_status.js?v=2.3donor_project_dashboard_lite"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/knockout-file-bindings.js"></script>
+
+</div>
+
+
+<script type="text/javascript">
+  function redirectto(url){
+    console.log(url)
+    window.location.href = url
+  }
+ 
+</script>
+
+<script>
+var fxf = "{{fxf.pk}}";
+var ins = location.hash.split("#/")[1];
+
+
+
+
+$(document).ready(function() {
+var url = "/fieldsight/response/report/"+location.hash.split("#/")[1]+"/0/";
+var pdfbutton = '<a href="'+url+'" id="download_response_pdf" target="_blank"  class="btn btn-primary">Download as PDF</a>';
+
+$(pdfbutton).prependTo("#buttonholder");
+
+ vm = new StatusViewModel(fxf, ins);
+
+ ko.applyBindings(vm);
+
+});
+
+
+
+function removeNullData(){
+  $("td").each(function(key, value) {
+     if (value.innerHTML == "" ){
+      value.parentElement.remove();
+      }
+  });
+  $("#removeNullData").remove();
+  $("#download_response_pdf").attr("href", "/fieldsight/response/report/"+location.hash.split("#/")[1]+"/1/");
+ }
+
+</script>
+
+<script>
+
+function locationHashChanged() {
+  $("#download_response_pdf").attr("href", "/fieldsight/response/report/"+location.hash.split("#/")[1]+"/")
+  var new_ins = location.hash.split("#/")[1];
+  if (typeof vm !== 'undefined') {
+    vm.model(new ChangeStatus(new_ins, 0, ""));
+}
+}
+
+window.onhashchange = locationHashChanged;
+</script>
+
+
+
+<script type="text/javascript" src="{{STATIC_URL}}js/jquery.dataTables.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}js/jquery.dataTables.pagination.js"></script>
+<script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/sammy-0.7.1.min.js"></script>
+<script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/sammy-plugins/sammy.meld-0.7.1.min.js"></script>
+
+<script type="text/javascript">
+var ins_id  = window.location.hash.substring(2);
+var formJSONUrl = "{% url 'forms:download_jsonform' fxf.pk %}/"+ins_id;
+{% if site_id %}
+var mongoAPIUrl = "{% url 'forms:mongo_view_api'  fxf.pk site_id %}";
+{% else %}
+var mongoAPIUrl = "{% url 'forms:mongo_view_api'  fxf.pk %}";
+{% endif %}
+var deleteAPIUrl = "{% url 'forms:delete_data'  fxf.pk %}";
+var app; // sammy app
+var questions = {};
+var languages = [];
+// TODO: this re should only accept valid js variable names so numbers/letter/underscore
+var cleanRe = /[\[\]\/]/g; // regular expression used to clean names with slashes
+var cleanReplacement = '_';
+var positionTpl = "";
+var numRecords = null;
+var browsePos = null;
+
+var canEdit = false;
+
+(function($) {
+
+  var _isFirstLoad = true
+
+  app = $.sammy('#data', function() {
+      this.use('Meld');
+
+      // index route
+      this.get('#/', function(context) {
+          /// get the first response object
+          // only re-direct if this is the first time
+          if(_isFirstLoad)
+              redirectToFirstId(context)
+          else
+              history.go(-2)// we first load instance, then redirect to instance#/ then to instance#/:id s we need to go back 2
+          _isFirstLoad = false
+      });
+
+      // #/id route
+      this.get('#/:id', function(context) {
+          var id = this.params['id'];
+          var query = '{"_id": ' + id + '}';
+          _isFirstLoad = false
+          loadData(context, query, canEdit);
+      });
+
+      // #uuid/uuid route
+      this.get('#uuid/:uuid', function(context) {
+          var uuid = this.params['uuid'];
+          var query = '{"_uuid": "' + uuid + '"}';
+          _isFirstLoad = false
+          loadData(context, query, canEdit);
+      });
+
+
+      // Delete modal
+      this.get('#del/:id', function(context) { with(this) {
+
+            $("#delete-modal").modal("show");
+
+      }
+      });
+
+
+      // Delete route
+      this.get('#delete/:id', function(context) {
+
+          var id = this.params['id'];
+          var next = $('li.next').children('a').attr('href');
+          next = next.replace("#/", "");
+
+          var prev = $('li.prev').children('a').attr('href');
+          prev = prev.replace("#/", "");
+          var redirect_route = '#/';
+
+          if(next > 0 && next != id ){
+              redirect_route = '#/'  + next;
+          }
+          else if(prev > 0 && prev != id ){
+              redirect_route = '#/'  + prev;
+          }
+          else {
+              // Deleting the last instance
+              redirect_route ='#data-view/';
+          }
+
+          deleteData(context, id, redirect_route);
+      });
+      this.bind('error', {}, function(){
+          //alert('Invalid route requested')
+          //app.setLocation('#/');
+      })
+
+      // Redirect to Data View route
+     
+  });
+
+  /// load form structure
+  $.getJSON(formJSONUrl)
+      .success(function(data){
+              parseQuestions(data.children);
+              parseLanguages(data.children);
+              // load count
+              $.getJSON(mongoAPIUrl, {'count': 1})
+                  .success(function(data){
+                          //todo: count num records before and num records after so we know our starting point
+                          numRecords = data[0]["count"];
+                          // load id of first record
+                          app.run('#/');
+                      })
+          });
+
+})(jQuery);
+
+
+// $.getJSON('/fieldsight/api/response-site/'+ins+'/')
+//       .success(function(data){
+//               if ('name' in data){
+//                 $('#sitename').html('<a href="/fieldsight/site-dashboard/'+data.pk+'/">'+data.name+'</a>');
+//               }
+//           });
+
+function _attachment_url(name, size)
+{
+    return '{% url "onadata.apps.viewer.views.attachment_url" %}' + size + '?media_file=' + '{{ username }}/attachments/' + name;
+}
+
+</script>
+
+<script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/instance.js?v=2.0"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){
+    $('#loading')
+        .ajaxStart(function() {
+            $(this).show();
+        })
+        .ajaxStop(function() {
+            $(this).hide();
+        });
+
+
+
+});
+</script>
+{% endblock %}

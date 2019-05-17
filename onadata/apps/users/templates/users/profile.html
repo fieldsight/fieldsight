@@ -74,7 +74,7 @@
 							{% if roles_org %}
 							<div class="widget-info margin-top bg-white padding">
 								<div class="widget-head">
-									<h4>{% trans 'Organization Admin At :' %}</h4>
+									<h4>{% trans 'Team Admin At :' %}</h4>
 								</div>
 								<div class="widget-body">
 									<div class="max-260-scroll">
@@ -147,7 +147,7 @@
 							{% if roles_project_doner %}
 							<div class="widget-info margin-top bg-white padding" >
 								<div class="widget-head">
-									<h4>{% trans 'Project Donor  At:' %}</h4>
+									<h4>{% trans 'Project Partner  At:' %}</h4>
 								</div>
 								<div class="widget-body">
 									<div class="max-260-scroll">
@@ -155,7 +155,7 @@
 										{% for role in roles_project_doner %}
 
 											<div class="col-lg-6 col-md-6 margin-top">
-												<a href="{% url 'fieldsight:project-dashboard' role.project.pk %}" title="">
+												<a href="{% url 'fieldsight:donor_project_dashboard_lite' role.project.pk %}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
 														<img src="{% if role.project.logo %}{{ role.project.logo.url }}{% else %}{% static 'dummy/assets/img/default_image.png' %}{% endif %}" alt="" width="50" height="50">

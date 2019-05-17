@@ -60,7 +60,6 @@
 <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.blockUI.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/App.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/organization_projects.js"></script>
-<script src="https://js.stripe.com/v3/"></script>
 
     <script>
 
@@ -126,7 +125,7 @@ var org = "{{obj.pk}}";
 						{% block breadcrumbs %}
 					<ol class="breadcrumb">
 						{% if request.user.is_superuser %}
-						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Organizations' %}</a></li>
+						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Teams' %}</a></li>
 						{% endif %}
 						<li class="breadcrumb-item active" aria-current="page">{{obj.name}}</li>
 					 </ol>
@@ -142,16 +141,10 @@ var org = "{{obj.pk}}";
 								<i class="la la-cogs"></i> {% trans 'Manage' %}
 							</a>
 							<div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButtonManage">
-								<a class="dropdown-item" href="{% url 'fieldsight:manage-people-organization' obj.pk %}"><i class="la la-user"></i>{% trans 'People' %}</a>
+								<a class="dropdown-item" href="{% url 'fieldsight:manage-people-organization' obj.pk %}"><i class="la la-user"></i>{% trans 'User' %}</a>
 								<a class="dropdown-item" href="{% url 'fieldsight:org-project-list' obj.id%}"><i class="la la-tasks"></i>{% trans 'Projects' %}</a>
+								<a class="dropdown-item" href="{% url 'fieldsight:organization-edit' obj.pk %}"><i class="la la-edit"></i>{% trans 'Settings' %}</a>
 
-								<a class="dropdown-item" href="{% url 'fieldsight:organization-edit' obj.pk %}"><i class="la la-edit"></i>{% trans 'Organization' %}</a>
-
-								<a class="dropdown-item" href="{% url 'fieldsight:geo-layers' obj.id%}"><i class="la la-tasks"></i>{% trans 'Geo layers' %}</a>
-
-								{% if is_owner and not request.user.is_superuser %}
-									<a class="dropdown-item" href="{% url 'subscriptions:team_settings' obj.id %}"><i class="la la-tasks"></i>{% trans 'Team settings' %}</a>
-								{% endif %}
 							</div>
 						</span>
 					</div>
@@ -296,9 +289,9 @@ var org = "{{obj.pk}}";
 								<div class="widget-body">
 									<p>{{ obj.public_desc}}</p>
 									<br>
-									<p><strong>{% trans 'Additional Information' %}</strong></p>
-									<br><p>
-									{{ obj.additional_desc}}</p>
+<!--									<p><strong>{% trans 'Additional Information' %}</strong></p>-->
+<!--									<br><p>-->
+<!--									{{ obj.additional_desc}}</p>-->
 								</div>
 							</div>
 						</div>
@@ -470,6 +463,7 @@ var org = "{{obj.pk}}";
 {% endblock %}
 {%block extrascript %}
 
+	<script src="https://js.stripe.com/v3/"></script>
 
 	<script type="text/javascript" src="{{ STATIC_URL }}js/geo-layers.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js" type="text/javascript"></script>
@@ -586,6 +580,7 @@ var org = "{{obj.pk}}";
  	$('#pricingModal1').modal('show');
 
     </script>
+
 	<script>
 	$(document).ready(function(){
 		$("#first_next").click(function(){

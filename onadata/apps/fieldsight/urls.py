@@ -71,7 +71,7 @@ from .views import (
     SiteSearchView, ProjectDashboardStageResponsesStatus, GeoJSONContent, DonorFullMap, ProjectSiteListGeoJSON,
     SiteBulkEditView, site_refrenced_metas, UnassignUserRegionAndSites, MainRegionsAndSitesAPI, redirectToSite,
     municipality_data, FormResponseSite, DonorRegionalSitelist, SubRegionAndSitesAPI, SiteSearchLiteView,
-    EditSitesTypeView, DeleteSitesTypeView)
+    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites)
 
 
 from onadata.apps.geo.views import (
@@ -122,6 +122,8 @@ urlpatterns = [
 
     url(r'^proj-users/(?P<pk>\d+)/$', ProjUserList.as_view(), name='proj-user-list'),
     url(r'^proj-sites/(?P<pk>\d+)/$', ProjSiteList.as_view(), name='proj-site-list'),
+    url(r'^manage-project-sites/(?P<pk>\d+)/$', ManageProjectSites.as_view(), name='manage_project_sites'),
+
     url(r'^donor-proj-sites/(?P<pk>\d+)/$', DonorProjSiteList.as_view(), name='donor-proj-site-list'),
 
     url(r'^site-users/(?P<pk>\d+)/$', SiteUserList.as_view(), name='site-user-list'),
@@ -179,7 +181,7 @@ urlpatterns = [
 
     url(r'^accounts/create/$', CreateUserView.as_view(form_class=RegistrationForm), name='user-create'),
     url(r'^userlist/$', UserListView.as_view(), name='user-list'),
-    url(r'sendmultiusermultilevelinvite^filter-users/$', FilterUserView.as_view(), name='filter-users'),
+    # url(r'sendmultiusermultilevelinvite^filter-users/$', FilterUserView.as_view(), name='filter-users'),
     url(r'fcm/v1/devices/$', DeviceViewSet.as_view({'get': 'list'})),
     url(r'fcm/add/', FcmDeviceViewSet.as_view({'post': 'create'})),
     url(r'fcm/logout/', FcmDeviceViewSet.as_view({'post': 'inactivate'})),
@@ -219,6 +221,8 @@ urlpatterns = [
 
     url(r'^region/(?P<pk>[0-9]+)/$', RegionUpdateView.as_view(), name='region-update'),
     url(r'^region-list/(?P<pk>\d+)/$', RegionListView.as_view(), name='region-list'),
+    url(r'^project-region-sites/(?P<pk>\d+)/$', ProjectRegionSitesView().as_view(), name='project_region_sites'),
+    url(r'^project-geo-layer/(?P<pk>\d+)/$', ProjectGeoLayerView().as_view(), name='project_geo_layer'),
 
     url(r'^api/project-regions/(?P<pk>\d+)/$', RegionViewSet.as_view({'get': 'list'}), name='project_regions_api'),
     
