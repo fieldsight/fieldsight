@@ -1,11 +1,9 @@
 from datetime import datetime
-
-from django.contrib.auth import logout
 from django.contrib.contenttypes.models import ContentType
 import os
 import json
 from bson import json_util
-from django.views.generic import ListView, TemplateView
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.files.storage import default_storage
@@ -21,7 +19,7 @@ from django.http import HttpResponseForbidden
 from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect
 from django.http import HttpResponseServerError
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.template import loader, RequestContext
 from django.utils.translation import ugettext as _
@@ -78,9 +76,6 @@ def login_redirect(request):
     return HttpResponseRedirect(reverse(profile,
                                 kwargs={'username': request.user.username}))
 
-def logout_view(request):
-    logout(request)
-    return redirect('kpi-logout')
 
 @require_POST
 @login_required
@@ -160,10 +155,6 @@ def clone_xlsform(request, username):
     else:
         return HttpResponse(message['text'])
 
-
-class Error_404(TemplateView):
-    def get(self, request):
-        return render(request, 'main/404_error.html')
 
 def profile(request, username):
     content_user = get_object_or_404(User, username__iexact=username)
@@ -291,8 +282,11 @@ def profile_settings(request, username):
         if form.is_valid():
             # get user
             # user.email = cleaned_email
+            '''
+            The email field has been removed from the profile form.
             form.instance.user.email = form.cleaned_data['email']
             form.instance.user.save()
+            '''
             form.save()
             # todo: add string rep. of settings to see what changed
             audit = {}
@@ -328,11 +322,6 @@ def public_profile(request, username):
 
 @login_required
 def dashboard(request):
-    """
-
-    Returns:
-        object:
-    """
     content_user = request.user
     data = {
         'form': QuickConverter(),
@@ -388,17 +377,18 @@ def set_xform_owner_data(data, xform, request, username, id_string):
             has_perm.append(_(u"Can View"))
         if 'report_xform' in perm[1]:
             has_perm.append(_(u"Can submit to"))
+        if 'validate_xform' in perm[1]:
+            has_perm.append(_(u"Can Validate"))
         users_with_perms.append((perm[0], u" | ".join(has_perm)))
     data['users_with_perms'] = users_with_perms
     data['permission_form'] = PermissionForm(username)
 
-from onadata.apps.fieldsight.views import dashboard as fieldsight_dashboard
 
 @require_GET
 def show(request, username=None, id_string=None, uuid=None):
-    return fieldsight_dashboard(request)
     if uuid:
         return redirect_to_public_link(request, uuid)
+
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
     # no access
@@ -424,7 +414,6 @@ def show(request, username=None, id_string=None, uuid=None):
     data['media_upload'] = MetaData.media_upload(xform)
     data['mapbox_layer'] = MetaData.mapbox_layer_upload(xform)
     data['external_export'] = MetaData.external_export(xform)
-
 
     if is_owner:
         set_xform_owner_data(data, xform, request, username, id_string)
@@ -810,6 +799,9 @@ def edit(request, username, id_string):
         if request.is_ajax():
             return HttpResponse(_(u'Updated succeeded.'))
         else:
+            if 'HTTP_REFERER' in request.META and request.META['HTTP_REFERER'].strip(): 
+                return HttpResponseRedirect(request.META['HTTP_REFERER'])               
+
             return HttpResponseRedirect(reverse(show, kwargs={
                 'username': username,
                 'id_string': id_string
@@ -1020,6 +1012,9 @@ def download_media_data(request, username, id_string, data_id):
                         'id_string': xform.id_string,
                         'filename': os.path.basename(data.data_file.name)
                     }, audit, request)
+                if 'HTTP_REFERER' in request.META and request.META['HTTP_REFERER'].strip(): 
+                    return HttpResponseRedirect(request.META['HTTP_REFERER'])               
+
                 return HttpResponseRedirect(reverse(show, kwargs={
                     'username': username,
                     'id_string': id_string
@@ -1106,7 +1101,7 @@ def set_perm(request, username, id_string):
     except KeyError:
         return HttpResponseBadRequest()
 
-    if perm_type in ['edit', 'view', 'report', 'remove']:
+    if perm_type in ['edit', 'view', 'report', 'validate', 'remove']:
         try:
             user = User.objects.get(username=for_user)
         except User.DoesNotExist:
@@ -1157,6 +1152,20 @@ def set_perm(request, username, id_string):
                         'for_user': for_user
                     }, audit, request)
                 assign_perm('report_xform', user, xform)
+            elif perm_type == 'validate' and\
+                    not user.has_perm('validate_xform', xform):
+                audit = {
+                    'xform': xform.id_string
+                }
+                audit_log(
+                    Actions.FORM_PERMISSIONS_UPDATED, request.user, owner,
+                    _("Validate permissions on '%(id_string)s' assigned to "
+                        "'%(for_user)s'.") %
+                    {
+                        'id_string': xform.id_string,
+                        'for_user': for_user
+                    }, audit, request)
+                assign_perm('validate_xform', user, xform)
             elif perm_type == 'remove':
                 audit = {
                     'xform': xform.id_string
@@ -1172,6 +1181,7 @@ def set_perm(request, username, id_string):
                 remove_perm('change_xform', user, xform)
                 remove_perm('view_xform', user, xform)
                 remove_perm('report_xform', user, xform)
+                remove_perm('validate_xform', user, xform)
     elif perm_type == 'link':
         current = MetaData.public_link(xform)
         if for_user == 'all':
@@ -1197,6 +1207,8 @@ def set_perm(request, username, id_string):
         return HttpResponse(
             json.dumps(
                 {'status': 'success'}), content_type='application/json')
+    if 'HTTP_REFERER' in request.META and request.META['HTTP_REFERER'].strip(): 
+        return HttpResponseRedirect(request.META['HTTP_REFERER'])               
 
     return HttpResponseRedirect(reverse(show, kwargs={
         'username': username,
@@ -1403,7 +1415,7 @@ def activity_api(request, username):
 
 def qrcode(request, username, id_string):
     try:
-        formhub_url = "http://%s/" % request.META['HTTP_HOST']
+        formhub_url = "http://%s/" % request.get_host()
     except:
         formhub_url = "http://formhub.org/"
     formhub_url = formhub_url + username
@@ -1458,4 +1470,14 @@ def username_list(request):
             .filter(username__startswith=query, is_active=True, pk__gte=0)
         data = [user['username'] for user in users]
 
+    return HttpResponse(json.dumps(data), content_type='application/json')
+
+@require_GET
+def media_endpoint(request):
+    """
+    Returns medias endpoint prefix.
+    :param request:
+    :return: dict
+    """
+    data = {"result": settings.MEDIA_URL}
     return HttpResponse(json.dumps(data), content_type='application/json')

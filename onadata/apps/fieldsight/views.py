@@ -56,7 +56,7 @@ from .rolemixins import FullMapViewMixin, SuperUserRoleMixin, ReadonlyProjectLev
     DonorRoleMixin, DonorSiteViewRoleMixin, SiteDeleteRoleMixin, SiteRoleMixin, ProjectRoleView, ReviewerRoleMixin, ProjectRoleMixin,\
     OrganizationRoleMixin, ReviewerRoleMixinDeleteView, ProjectRoleMixinDeleteView, RegionRoleMixin, RegionSupervisorReviewerMixin
 
-from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, ProjectType
+from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, ProjectType, Sector
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
                     SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm)
@@ -450,10 +450,11 @@ class OrganizationCreateView(OrganizationView, CreateView):
         self.object.save()
         noti = self.object.logs.create(source=self.request.user, type=9, title="new Organization",
                                        organization=self.object, content_object=self.object,
-                                       description="{0} created a new organization named {1}".
+                                       description="{0} created a new Team named {1}".
                                        format(self.request.user, self.object.name))
 
         user = self.request.user
+        user_id = User.objects.get(username=user).id
         profile = user.user_profile
         if not profile.organization:
             profile.organization = self.object
@@ -465,8 +466,8 @@ class OrganizationCreateView(OrganizationView, CreateView):
             customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id", initiated_at=datetime.datetime.now())
             Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer, initiated_on=datetime.datetime.now(),
                                         package=free_package, organization=self.object)
-            user = self.request.user
-            email_after_subscribed_plan.delay(user, free_package)
+            user_id = user_id
+            email_after_subscribed_plan.delay(user_id)
 
         project = Project.objects.get(name="Example Project", organization_id=self.object.id)
         sites = Site.objects.filter(project=project)
@@ -475,7 +476,9 @@ class OrganizationCreateView(OrganizationView, CreateView):
                                                      description="Auto Clone and Deployment of Forms",
                                                      task_type=15, content_object=self.object)
         if task_obj:
-            clone_form.delay(user, project, task_obj.id)
+            project_id = Project.objects.get(name="Example Project", organization_id=self.object.id).id
+
+            clone_form.delay(user_id, project_id, task_obj.id)
         # result = {}
         # result['description'] = '{0} created a new organization named {1} '.format(noti.source.get_full_name(), self.object.name)
         # result['url'] = noti.get_absolute_url()
@@ -512,9 +515,9 @@ class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView
 
     def form_valid(self, form):
         self.object = form.save()
-        noti = self.object.logs.create(source=self.request.user, type=13, title="edit Organization",
+        noti = self.object.logs.create(source=self.request.user, type=13, title="edit Team",
                                        organization=self.object, content_object=self.object,
-                                       description="{0} changed the details of organization named {1}".
+                                       description="{0} changed the details of Team named {1}".
                                        format(self.request.user.get_full_name(), self.object.name))
         # result = {}
         # result['description'] = noti.description
@@ -583,7 +586,7 @@ class OrganizationadminCreateView(LoginRequiredMixin, OrganizationRoleMixin, Tem
             user_id = request.POST.get('user')
             role_obj.user_id = int(user_id)
             role_obj.save()
-            messages.add_message(request, messages.INFO, 'Organization Admin Added')
+            messages.add_message(request, messages.INFO, 'Team Admin Added')
             return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': id}))
 
 
@@ -731,6 +734,20 @@ class ProjectCreateView(ProjectView, OrganizationRoleMixin, CreateView):
         context['org'] = Organization.objects.get(pk=self.kwargs.get('pk'))
         context['pk'] = self.kwargs.get('pk')
         context['base_template'] = "fieldsight/fieldsight_base.html"
+
+        sectors = Sector.objects.filter(sector=None)
+        sector_list = []
+        for sect in sectors:
+            sector_dict = {}
+            sub_sector_list = []
+            sub_sectors = Sector.objects.filter(sector=sect)
+            for item in sub_sectors:
+                sub_sector_list.append({item.id: str(item.name)})
+            sector_dict[str(sect.name)] = sub_sector_list
+            sector_list.append(dict(sector_dict))
+
+        context['sub_sectors'] = sector_list
+
         return context
 
     def get_form_kwargs(self):
@@ -768,6 +785,18 @@ class ProjectUpdateView(ProjectView, ProjectRoleMixin, UpdateView):
         context['obj'] = self.object
         context['base_template'] = "fieldsight/manage_base.html"
 
+        sectors = Sector.objects.filter(sector=None)
+        sector_list = []
+        for sect in sectors:
+            sector_dict = {}
+            sub_sector_list = []
+            sub_sectors = Sector.objects.filter(sector=sect)
+            for item in sub_sectors:
+                sub_sector_list.append({item.id: str(item.name)})
+            sector_dict[str(sect.name)] = sub_sector_list
+            sector_list.append(dict(sector_dict))
+
+        context['sub_sectors'] = sector_list
 
         return context
 
@@ -1539,7 +1568,7 @@ def senduserinvite(request):
 
             if userrole:
                 if group.name == "Unassigned":
-                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' has already joined this organization.<br>'
+                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' has already joined this Team.<br>'
                 else:
                     response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' already has the role for '+group.name+'.<br>' 
                 continue
@@ -1565,7 +1594,7 @@ def senduserinvite(request):
         msg.content_subtype = "html"
         msg.send()
         if group.name == "Unassigned":
-            response += "Sucessfully invited "+ email +" to join this organization.<br>"
+            response += "Sucessfully invited "+ email +" to join this Team.<br>"
         else:    
             response += "Sucessfully invited "+ email +" for "+ group.name +" role.<br>"
         continue
@@ -1682,8 +1711,7 @@ def sendmultiroleuserinvite(request):
         current_site = get_current_site(request)
         subject = 'Invitation for Role'
         data = {
-            'email': invite.email,
-            # 'domain': current_site.domain,
+            'user': User.objects.get(email=invite.email),
             'domain': settings.SITE_URL,
             'invite_id': urlsafe_base64_encode(force_bytes(invite.pk)),
             'token': invite.token,
@@ -1720,6 +1748,21 @@ def sendmultiroleuserinvite(request):
 #         else:
 
 #     return HttpResponse("Failed")
+
+def delete_unassigned_group(user):
+    """
+
+    Args:
+        user: User object
+
+    Returns:
+
+    """
+    if UserRole.objects.filter(user=user).count() > 1:
+        unassigned_group = UserRole.objects.filter(user=user, group__name="Unassigned")
+        if unassigned_group.exists():
+            unassigned_group.delete()
+
    
 class ActivateRole(TemplateView):
     def dispatch(self, request, invite_idb64, token):
@@ -1737,7 +1780,9 @@ class ActivateRole(TemplateView):
         if user:
             return render(request, 'fieldsight/invite_action.html',{'invite':invite, 'is_used': False, 'status':'',})
         else:
-            return render(request, 'fieldsight/invited_user_reg.html',{'invite':invite, 'is_used': False, 'status':'',})
+            # return render(request, 'fieldsight/invited_user_reg.html',{'invite':invite, 'is_used': False, 'status':'',})
+            return render(request, 'users/register_with_google.html',{'invite':invite, 'is_used': False, 'status':'',})
+
         
 
     def post(self, request, invite, *args, **kwargs):
@@ -1802,19 +1847,24 @@ class ActivateRole(TemplateView):
                 userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
                                                                organization=invite.organization, project_id=project_id,
                                                                site_id=None, region_id=region_id)
-
+            delete_unassigned_group(user)
         else:
             for project_id in project_ids:
                 for site_id in site_ids:
                     userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project_id=project_id, site_id=site_id)
+                    delete_unassigned_group(user)
+
                 if not site_ids:
                     userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project_id=project_id, site=None)
+                    delete_unassigned_group(user)
 
         if not project_ids:
             userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project=None, site=None, region=None)
+            delete_unassigned_group(user)
             if invite.group_id == 1:
                 permission = Permission.objects.filter(codename='change_finstance')
                 user.user_permissions.add(permission[0])
+
 
         invite.is_used = True
         invite.save()
@@ -2088,10 +2138,10 @@ class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
         org = get_object_or_404(Organization, pk=pk)
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object = org, task_type=1)
         if task_obj:
-            task = multiuserassignproject.delay(task_obj.pk, user, pk, projects, users, group_id)
+            task = multiuserassignproject.delay(task_obj.pk, user.id, pk, projects, users, group_id)
             task_obj.task_id=task.id
             task_obj.save()
-            return HttpResponse("Sucess")
+            return HttpResponse("Success")
         else:
             return HttpResponse("Failed")
 
@@ -2603,7 +2653,7 @@ class AssignUsersToRegionsView(ProjectRoleMixin, TemplateView):
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=13)
 
         if task_obj:
-            task = multi_users_assign_regions.delay(task_obj.pk, user, pk, regions, users, group.id)
+            task = multi_users_assign_regions.delay(task_obj.pk, user.id, pk, regions, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('Success')

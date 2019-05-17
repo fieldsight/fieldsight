@@ -71,9 +71,9 @@ class ProjectType(models.Model):
 
 
 class Organization(models.Model):
-    name = models.CharField("Organization Name", max_length=255)
+    name = models.CharField("Team Name", max_length=255)
     type = models.ForeignKey(
-        OrganizationType, verbose_name='Type of Organization', on_delete=models.SET_NULL, blank=True, null=True)
+        OrganizationType, verbose_name='Type of Team', on_delete=models.SET_NULL, blank=True, null=True)
     phone = models.CharField(
         "Contact Number", max_length=255, blank=True, null=True)
     fax = models.CharField(max_length=255, blank=True, null=True)
@@ -213,9 +213,20 @@ class ProjectManager(GeoManager):
     def get_queryset(self):
         return super(ProjectManager, self).get_queryset().filter(is_active=True)
 
+
+class Sector(models.Model):
+    sector = models.ForeignKey('Sector', null=True, related_name='sectors')
+    name = models.CharField(max_length=100)
+
+    def __unicode__(self):
+        return u'{}'.format(self.name)
+
+
 class Project(models.Model):
     name = models.CharField(max_length=255)
-    type = models.ForeignKey(ProjectType, verbose_name='Type of Project')
+    type = models.ForeignKey(ProjectType, verbose_name='Type of Project', null=True, blank=True)
+    sector = models.ForeignKey(Sector, verbose_name='Sector', null=True, blank=True, related_name='project_sector')
+    sub_sector = models.ForeignKey(Sector, verbose_name='Sub-Sector', null=True, blank=True, related_name='project_sub_sector')
     phone = models.CharField(max_length=255, blank=True, null=True)
     fax = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
@@ -399,7 +410,7 @@ class SiteManager(GeoManager):
 
 class Site(models.Model):
     identifier = models.CharField("ID", max_length=255)
-    name = models.CharField(max_length=255)
+    name = models.CharField(db_index=True,max_length=255)
     type = models.ForeignKey(SiteType, verbose_name='Type of Site', related_name="sites", null=True, blank=True, on_delete=models.SET_NULL)
     phone = models.CharField(max_length=255, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
@@ -409,10 +420,11 @@ class Site(models.Model):
     project = models.ForeignKey(Project, related_name='sites')
     logo = models.ImageField(
         upload_to="logo", default="logo/default_site_image.png")
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(db_index=True, default=True)
     location = PointField(geography=True, srid=4326, blank=True, null=True)
     is_survey = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True, blank=True)
+    date_modified = models.DateTimeField(auto_now=True, blank=True)
     region = models.ForeignKey(
         Region, related_name='regions', blank=True, null=True)
     site_meta_attributes_ans = JSONField(default=dict)

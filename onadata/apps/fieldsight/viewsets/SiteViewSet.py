@@ -8,11 +8,11 @@ from rest_framework.permissions import BasePermission
 from channels import Group as ChannelGroup
 
 
-from onadata.apps.api.viewsets.xform_viewset import CsrfExemptSessionAuthentication
 from onadata.apps.fieldsight.models import Site, ProjectType, Project, Region, SiteType
 from onadata.apps.fieldsight.serializers.SiteSerializer import SuperMinimalSiteSerializer, MinimalSiteSerializer, SiteSerializer, SiteCreationSurveySerializer, \
     SiteReviewSerializer, ProjectTypeSerializer, SiteUpdateSerializer, ProjectUpdateSerializer, RegionSerializer, \
     SiteTypeSerializer
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.userrole.models import UserRole
 from django.contrib.auth.models import Group
 from django.db import transaction

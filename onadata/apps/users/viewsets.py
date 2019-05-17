@@ -1,4 +1,5 @@
 import json
+from itertools import chain
 
 from channels import Group as ChannelGroup
 from django.contrib.sites.shortcuts import get_current_site
@@ -7,22 +8,23 @@ from django.db.models import Q
 from registration import signals
 from registration.models import RegistrationProfile
 from registration.views import RegistrationView
+from django.utils.decorators import method_decorator
+from django.views.decorators.vary import vary_on_cookie
 from rest_framework import viewsets
 from rest_framework.authentication import BasicAuthentication
-from rest_framework.decorators import detail_route
-from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework.exceptions import ValidationError
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework import views
+from django.views.decorators.cache import cache_page
 
-from onadata.apps.api.viewsets.xform_viewset import CsrfExemptSessionAuthentication
-from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.fieldsight.mixins import USURPERS
 from onadata.apps.fieldsight.models import BluePrints, Region, Site
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.userrole.serializers.UserRoleSerializer import MySiteRolesSerializer, MyProjectRolesSerializer, \
     MySiteOnlyRolesSerializer
@@ -30,8 +32,6 @@ from onadata.apps.users.models import User, UserProfile
 from onadata.apps.users.serializers import UserSerializer, UserSerializerProfile, SearchableUserSerializer
 
 SAFE_METHODS = ('GET', 'POST')
-
-from itertools import chain
 
 
 class MySitesResultsSetPagination(PageNumberPagination):
@@ -44,6 +44,12 @@ class MySitesOnlyResultsSetPagination(PageNumberPagination):
     page_size = 1000
     page_size_query_param = 'page_size'
     max_page_size = 1000
+
+
+class ExtremeLargeJsonResultsSetPagination(PageNumberPagination):
+    page_size = 1500
+    page_size_query_param = 'page_size'
+    max_page_size = 1500
 
 
 class AddPeoplePermission(BasePermission):
@@ -231,6 +237,60 @@ class MySitesViewset(viewsets.ReadOnlyModelViewSet):
     queryset = UserRole.objects.filter(ended_at=None, group__name__in=["Site Supervisor", "Region Supervisor"])
     pagination_class = MySitesResultsSetPagination
 
+    # @method_decorator(cache_page(60 * 60 * 1))
+    # @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        return super(MySitesViewset, self).list(request, *args, **kwargs)
+
+    def get_queryset(self):
+        sites = Site.objects.filter(site_roles__user=self.request.user, site_roles__ended_at=None, id__isnull=False, is_active=True, site_roles__group__name="Site Supervisor")\
+            .select_related('region', 'project', 'type', 'project__type', 'project__organization')
+        # if self.queryset.filter(user=self.request.user, ended_at=None, region__isnull=False, region__is_active=True,
+        #                      group__name="Region Supervisor").values_list('region', flat=True).exists():
+        try:
+            regions_id = self.queryset.filter(user=self.request.user, ended_at=None, region__isnull=False, region__is_active=True,
+                                 group__name="Region Supervisor").values_list('region', flat=True)
+
+            # assume maximum recursion depth is 3
+            region_sites = Site.objects.filter(
+                Q(region_id__in=regions_id) | Q(region_id__parent__in=regions_id) | Q(region_id__parent__parent__in=regions_id)).select_related('region', 'project', 'type', 'project__type', 'project__organization')
+            sites = list(chain(sites, region_sites))
+        except:
+            pass
+
+        return sites
+
+    def get_serializer_context(self):
+
+        sites = Site.objects.filter(site_roles__user=self.request.user, site_roles__ended_at=None, id__isnull=False,
+                                    is_active=True, site_roles__group__name="Site Supervisor") \
+            .select_related('region', 'project', 'type', 'project__type', 'project__organization')
+        if self.queryset.filter(user=self.request.user, ended_at=None, region__isnull=False, region__is_active=True,
+                             group__name="Region Supervisor").values_list('region', flat=True).exists():
+            regions_id = self.queryset.filter(user=self.request.user, ended_at=None, region__isnull=False, region__is_active=True,
+                                 group__name="Region Supervisor").values_list('region', flat=True)
+
+            # assume maximum recursion depth is 3
+            region_sites = Site.objects.filter(
+                Q(region_id__in=regions_id) | Q(region_id__parent__in=regions_id) | Q(region_id__parent__parent__in=regions_id)).select_related('region', 'project', 'type', 'project__type', 'project__organization')
+            sites = list(chain(sites, region_sites))
+
+        blue_prints = BluePrints.objects.filter(site__in=sites)
+        return {'request': self.request, 'blue_prints': blue_prints}
+
+
+class MySitesViewsetV2(viewsets.ReadOnlyModelViewSet):
+    serializer_class = MySiteRolesSerializer
+    permission_classes = (IsAuthenticated,)
+    renderer_classes = [JSONRenderer]
+    queryset = UserRole.objects.filter(ended_at=None, group__name__in=["Site Supervisor", "Region Supervisor"])
+    pagination_class = ExtremeLargeJsonResultsSetPagination
+
+    # @method_decorator(cache_page(60 * 5 * 1))
+    # @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        return super(MySitesViewsetV2, self).list(request, *args, **kwargs)
+
     def get_queryset(self):
         sites = Site.objects.filter(site_roles__user=self.request.user, site_roles__ended_at=None, id__isnull=False, is_active=True, site_roles__group__name="Site Supervisor")\
             .select_related('region', 'project', 'type', 'project__type', 'project__organization')
@@ -330,7 +390,6 @@ class MyRegionSitesViewset(viewsets.ReadOnlyModelViewSet):
 
         blue_prints = BluePrints.objects.filter(site__in=sites)
         return {'request': self.request, 'blue_prints': blue_prints}
-#no project info
 
 
 class MySitesOnlyViewset(viewsets.ReadOnlyModelViewSet):

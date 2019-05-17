@@ -344,7 +344,11 @@
 
                                     {% endif %}
                                     Start Date: {{plan_start_date}} <br>
-                                    Renewal Date: {{renewal_date}}
+
+                                    {% if not has_user_free_package %}
+
+                                        Renewal Date: {{renewal_date}}
+                                    {% endif %}
                                 </div>
                                 <ul class="list-icon mt-4 mb-4">
                                     <li><i class="la la-chevron-circle-right"></i><strong>{{subscribed_package.submissions}}</strong> Submissions</li>

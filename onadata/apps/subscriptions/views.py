@@ -14,12 +14,11 @@ from django.shortcuts import get_object_or_404
 from django.core.urlresolvers import reverse
 from django.contrib import messages
 from django.views.generic import TemplateView
-from django.contrib.auth.models import User
 
 from .models import Customer, Subscription, Invoice, Package
 from onadata.apps.fieldsight.models import Organization
 from onadata.apps.fieldsight.mixins import LoginRequiredMixin
-from .tasks import email_after_updating_plan, notification_before_renewal
+from .tasks import notification_before_renewal, email_after_package_change, email_after_payment_success, email_after_proration_adjustment
 
 
 MONTHLY_PLAN_NAME = {
@@ -265,34 +264,49 @@ def stripe_webhook(request):
 
                     invoice_obj(amount=package.total_charge, quantity=submission_count, overage=0, roll_over=0)
 
-        elif event_json['type'] == 'charge.succeeded':
+        elif event_json['type'] == 'customer.subscription.created':
             """
-                After stripe charged the customer
+               Send Email after Subscribed Package
             """
-            print('...................Event charge.succeeded.............')
+            print('...................Event customer.subscription.created............')
+
+            stripe_customer = event_json['data']['object']['customer']
+            user = Customer.objects.get(stripe_cust_id=stripe_customer).user
+            brand = stripe.Customer.retrieve(stripe_customer)['sources']['data'][0]['brand']
+            mail_subject = "Subscribed Plan"
+
+            email_after_package_change.delay(user.id, stripe_customer, brand, mail_subject)
+
+        elif event_json['type'] == 'customer.subscription.updated':
+            """
+                Send Email after Plan Changed
+            """
+            print('...................Event customer.subscription.updated............')
+
+            stripe_customer = event_json['data']['object']['customer']
+            user = Customer.objects.get(stripe_cust_id=stripe_customer).user
+            brand = stripe.Customer.retrieve(stripe_customer)['sources']['data'][0]['brand']
+            mail_subject = "Change Plan"
+
+            email_after_package_change.delay(user.id, stripe_customer, brand, mail_subject)
+
+        elif event_json['type'] == 'payment_intent.succeeded':
+            """
+                After Payment Success
+            """
+            print('..............Event payment_intent.succeeded...........')
 
             stripe_customer = event_json['data']['object']['customer']
             user = Customer.objects.get(stripe_cust_id=stripe_customer).user
             sub = Subscription.objects.get(stripe_customer__stripe_cust_id=stripe_customer)
-            changed_plan = sub.updated_at
-            customer_created = sub.initiated_on.strftime('%Y-%m-%d')
-            today = datetime.now().strftime('%Y-%m-%d')
 
-            receipt_url = event_json['data']['object']['receipt_url']
+            receipt_url = event_json['data']['object']['charges']['data'][0]['receipt_url']
             amount = event_json['data']['object']['amount']
+            brand = event_json['data']['object']['charges']['data'][0]['payment_method_details']['card']['brand']
             sub_id = sub.id
             user_id = user.id
 
-            if customer_created == today:
-
-                template = "subscriptions/plan_renew_email.html"
-                mail_subject = 'Renew Plan'
-                email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject)
-
-            else:
-                template = "subscriptions/update_plan_email.html"
-                mail_subject = 'Subscribed Plan'
-                email_after_updating_plan.delay(user_id, receipt_url, sub_id, amount, template, mail_subject)
+            email_after_payment_success.delay(user_id, receipt_url, sub_id, amount, brand)
 
         elif event_json['type'] == 'invoice.upcoming':
             """
@@ -309,6 +323,24 @@ def stripe_webhook(request):
             if period == 2:
                 user_id = customer.user.id
                 notification_before_renewal.delay(user_id)
+
+        elif event_json['type'] == 'invoiceitem.created':
+            """
+                Proration Adjustment before renewal
+            """
+            print('...................Event invoiceitem.created.............')
+
+            proration = event_json['data']['object']['proration']
+
+            if proration == "True" or proration == "true":
+                stripe_customer = event_json['data']['object']['customer']
+                user = Customer.objects.get(stripe_cust_id=stripe_customer).user
+                sub = Subscription.objects.get(stripe_customer__stripe_cust_id=stripe_customer)
+                amount = event_json['data']['object']['amount']
+                sub_id = sub.id
+                user_id = user.id
+
+                email_after_proration_adjustment.delay(user_id, sub_id, amount)
 
         return HttpResponse(status=200)
 
@@ -389,7 +421,7 @@ def finish_subscription(request, org_id):
 
         return render(request, 'fieldsight/pricing_step_3.html', {'organization': organization,
                                                                   'submissions': package.submissions,
-                                                                  'amount': package.total_charge,
+                                                                   'amount': package.total_charge,
                                                                   'starting_date': starting_date,
                                                                   'ending_date': ending_date.strftime('%A, %B %d, %Y'),
                                                                   'card': card,
@@ -447,7 +479,7 @@ class TeamSettingsView(LoginRequiredMixin, TemplateView):
                 context['card'] = stripe_customer.sources.data[0].last4
             sub_obj = Subscription.objects.select_related().get(stripe_customer=customer)
             context['subscribed_package'] = sub_obj.package
-            RENEWAL_DATE = {'1': 1, '2': 12}
+            RENEWAL_DATE = {'0': 0, '1': 1, '2': 12}
             plan_start_date = sub_obj.initiated_on.strftime('%A, %B %d, %Y')
             renewal_date = sub_obj.initiated_on + dateutil.relativedelta.relativedelta(months=RENEWAL_DATE[str(sub_obj.package.period_type)])
             context['has_user_free_package'] = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user).exists()

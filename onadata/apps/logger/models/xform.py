@@ -1,12 +1,12 @@
+# -*- coding: utf-8 -*-
 import json
 import os
 import pytz
 import re
 import io
+from django.contrib.contenttypes.fields import GenericRelation
 
 from hashlib import md5
-
-from django.contrib.contenttypes.fields import GenericRelation
 from django.utils import timezone
 from datetime import datetime
 from django.conf import settings
@@ -22,11 +22,14 @@ from guardian.shortcuts import \
     get_perms_for_model
 from cStringIO import StringIO
 from taggit.managers import TaggableManager
+from xml.sax import saxutils
 
-# from onadata.apps.fieldsight.models import Site
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
 from ....koboform.pyxform_utils import convert_csv_to_xls
+from onadata.apps.logger.fields import LazyDefaultBooleanField
+from onadata.apps.logger.exceptions import DuplicateUUIDError
+
 
 try:
     from formpack.utils.xls_to_ss_structure import xls_to_dicts
@@ -45,10 +48,6 @@ def upload_to(instance, filename):
         os.path.split(filename)[1])
 
 
-class DuplicateUUIDError(Exception):
-    pass
-
-
 class XForm(BaseModel):
     CLONED_SUFFIX = '_cloned'
     MAX_ID_LENGTH = 100
@@ -57,6 +56,7 @@ class XForm(BaseModel):
     json = models.TextField(default=u'')
     description = models.TextField(default=u'', null=True)
     xml = models.TextField()
+
     user = models.ForeignKey(User, related_name='xforms', null=True)
     require_auth = models.BooleanField(default=False)
     shared = models.BooleanField(default=False)
@@ -82,7 +82,7 @@ class XForm(BaseModel):
     date_modified = models.DateTimeField(auto_now=True)
     last_submission_time = models.DateTimeField(blank=True, null=True)
     has_start_time = models.BooleanField(default=False)
-    uuid = models.CharField(max_length=32, default=u'')
+    uuid = models.CharField(max_length=32, default=u'', db_index=True)
 
     uuid_regex = re.compile(r'(<instance>.*?id="[^"]+">)(.*</instance>)(.*)',
                             re.DOTALL)
@@ -96,6 +96,7 @@ class XForm(BaseModel):
 
     tags = TaggableManager()
     logs = GenericRelation('eventlog.FieldSightLog')
+    has_kpi_hooks = LazyDefaultBooleanField(default=False)
 
     class Meta:
         app_label = 'logger'
@@ -108,13 +109,11 @@ class XForm(BaseModel):
             ("report_xform", _("Can make submissions to the form")),
             ("move_xform", _(u"Can move form between projects")),
             ("transfer_xform", _(u"Can transfer form ownership.")),
+            ("validate_xform", _(u"Can validate submissions.")),
         )
 
     def file_name(self):
         return self.id_string + ".xml"
-
-    def getname(self):
-        return self.title
 
     def url(self):
         return reverse(
@@ -134,6 +133,14 @@ class XForm(BaseModel):
     def has_instances_with_geopoints(self):
         return self.instances_with_geopoints
 
+    @property
+    def kpi_hook_service(self):
+        """
+        Returns kpi hook service if it exists. XForm should have only one occurrence in any case.
+        :return: RestService
+        """
+        return self.restservices.filter(name="kpi_hook").first()
+
     def _set_id_string(self):
         matches = self.instance_id_regex.findall(self.xml)
         if len(matches) != 1:
@@ -150,6 +157,7 @@ class XForm(BaseModel):
 
         if self.title and title_xml != self.title:
             title_xml = self.title[:XFORM_TITLE_LENGTH]
+            title_xml = saxutils.escape(title_xml)
             if isinstance(self.xml, str):
                 self.xml = self.xml.decode('utf-8')
             self.xml = title_pattern.sub(
@@ -205,9 +213,6 @@ class XForm(BaseModel):
 
     def __unicode__(self):
         return getattr(self, "id_string", "")
-
-    def get_absolute_url(self):
-        return reverse('forms:xform-detail', kwargs={'pk': self.pk})
 
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:
@@ -310,11 +315,29 @@ class XForm(BaseModel):
                 if file_path.endswith('.csv'):
                     xlsform_io = convert_csv_to_xls(xlsform_file.read())
                 else:
-                    xlsform_io = io.BytesIO(xlsform_file.read())
+                    xlsform_io= io.BytesIO(xlsform_file.read())
             return xlsform_io
         else:
             return None
 
+    @property
+    def settings(self):
+        """
+        Mimic Asset settings.
+        :return: Object
+        """
+        # As soon as we need to add custom validation statuses in Asset settings,
+        # validation in add_validation_status_to_instance
+        # (kobocat/onadata/apps/api/tools.py) should still work
+        default_validation_statuses = getattr(settings, "DEFAULT_VALIDATION_STATUSES", [])
+
+        # Later purpose, default_validation_statuses could be merged with a custom validation statuses dict
+        # for example:
+        #   self._validation_statuses.update(default_validation_statuses)
+
+        return {
+            "validation_statuses": default_validation_statuses
+        }
 
 def update_profile_num_submissions(sender, instance, **kwargs):
     profile_qs = User.profile.get_queryset()

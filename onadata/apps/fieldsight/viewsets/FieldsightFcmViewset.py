@@ -4,7 +4,7 @@ from fcm.serializers import DeviceSerializer
 from rest_framework.authentication import BasicAuthentication
 from django.contrib.auth.models import User
 
-from onadata.apps.api.viewsets.xform_viewset import CsrfExemptSessionAuthentication
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 Device = get_device_model()
 
