@@ -287,7 +287,7 @@
 			body = {}
 			
 			console.log(body)
-			this.$http.post('/'+ username +'/exports/'+ id_string +'/xls/1/'+ form_id +'/0/0/new', body, options).then(successCallback, errorCallback);     
+			this.$http.post('/'+ username +'/exports/'+ id_string +'/xls/1/'+ form_id +'/0/0/1/new', body, options).then(successCallback, errorCallback);     
 
 			},
 		

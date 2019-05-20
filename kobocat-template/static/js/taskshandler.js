@@ -9,7 +9,7 @@
 //notification message list builder with ahref links
 function type0(data, status){
     var additional_content = "";
-    if (data.task_type in [3,6,8,9,10,11, 12]){
+    if (data.task_type in [3,6,8,9,10,11, 12, 16]){
         if (data.status == 2){
             status = " is ready to download. "
             additional_content = "<br><a href='"+ data.file +"'>Download File</a>";
