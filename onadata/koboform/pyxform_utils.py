@@ -13,7 +13,7 @@ def convert_csv_to_xls(csv_repr):
     # otherwise, `convert_csv_to_xls()` will raise an
     # `invalid worksheet name u''` exception
     csv_repr = ''.join([
-        line for line in csv_repr if line.strip().strip('"')
+        line for line in csv_repr.splitlines(True) if line.strip().strip('"')
     ])
     def _add_contents_to_sheet(sheet, contents):
         cols = []
