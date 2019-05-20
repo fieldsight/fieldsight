@@ -433,7 +433,7 @@
                             <td>
                                 {% if count > 0 %}
                                 <a class="badge badge-success" target="_blank"
-                                   href="{% url 'onadata.apps.viewer.views.export_list' obj.xf.user.username obj.xf.id_string 'xls' 1 obj.schedule_forms.id 0 0 %}">
+                                   href="{% url 'onadata.apps.viewer.views.export_list' obj.xf.user.username obj.xf.id_string 'xls' 1 obj.id 0 0 %}">
                                     <i class="la la-download" aria-hidden="true"></i> Download</a>
                                     {% endif %}
                                     {% endwith %}
