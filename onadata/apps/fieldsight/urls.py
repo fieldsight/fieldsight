@@ -3,9 +3,6 @@ from . import views
 from django.views.decorators.csrf import csrf_exempt
 from fcm.views import DeviceViewSet
 from onadata.apps.fieldsight.viewsets.FieldsightFcmViewset import FcmDeviceViewSet
-from onadata.apps.fieldsight.viewsets.ProjectViewSet import OrganizationsProjectViewSet
-
-from onadata.apps.fieldsight.viewsets.OrganizationViewset import OrganizationTypeViewSet, OrganizationViewSet
 from onadata.apps.fieldsight.viewsets.ProjectViewSet import OrganizationProjects, IndividualProject, OrganizationProjectsLayers, ProjectLayers, ProjectTypeViewSet, ProjectCreationViewSet, ProjectRegionslistViewSet, UserProjectlistMinimalViewset
 from onadata.apps.fieldsight.viewsets.ProjectViewSet import DonorMyProjectsLayers, DonorMyProjects, MyOrgProjectlistViewSet, ProjectMetas, ProjectForms, OrganizationsProjectViewSet, MyProjectlistViewSet
 from onadata.apps.fieldsight.viewsets.RegionViewSet import RegionViewSet, RegionPagignatedViewSet, RegionSearchViewSet, UserMainRegionViewSet
@@ -69,7 +66,9 @@ from .views import (
     SiteSearchView, ProjectDashboardStageResponsesStatus, GeoJSONContent, DonorFullMap, ProjectSiteListGeoJSON,
     SiteBulkEditView, site_refrenced_metas, UnassignUserRegionAndSites, MainRegionsAndSitesAPI, redirectToSite,
     municipality_data, FormResponseSite, DonorRegionalSitelist, SubRegionAndSitesAPI, SiteSearchLiteView,
-    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites)
+    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites,
+    ProjectTermsAndLabelView, project_terms_label_create, ProjectTermsLabelUpdate
+)
 
 
 from onadata.apps.geo.views import (
@@ -218,6 +217,10 @@ urlpatterns = [
     url(r'^region-list/(?P<pk>\d+)/$', RegionListView.as_view(), name='region-list'),
     url(r'^project-region-sites/(?P<pk>\d+)/$', ProjectRegionSitesView().as_view(), name='project_region_sites'),
     url(r'^project-geo-layer/(?P<pk>\d+)/$', ProjectGeoLayerView().as_view(), name='project_geo_layer'),
+    url(r'^project_terms_label_create/(?P<pk>\d+)/$', project_terms_label_create, name='project_terms_label_create'),
+    url(r'^project_terms_label_update/(?P<pk>\d+)/$', ProjectTermsLabelUpdate.as_view(), name='project_terms_label_update'),
+
+    url(r'^terms-and-labels/(?P<pk>\d+)/$', ProjectTermsAndLabelView.as_view(), name='terms_and_labels'),
 
     url(r'^api/project-regions/(?P<pk>\d+)/$', RegionViewSet.as_view({'get': 'list'}), name='project_regions_api'),
     

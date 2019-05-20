@@ -88,10 +88,28 @@
 				<section class="panel">
                     <header class="panel-heading clearfix">
 						{% if form.instance.name %}
-                        <h3><i class="la la-building"></i>{% trans 'Edit' %} {% trans 'Site' %} </h3>
+                        <h3><i class="la la-building"></i>
+
+							{% if terms_and_labels %}
+								Edit {{obj.terms_and_labels.site}}
+
+							{% else %}
+							{% trans 'Edit' %} {% trans 'Site' %}
+
+							{% endif %}
+						</h3>
                         <button type="button" class="btn btn-danger pull-right" data-toggle="modal" data-target="#myModal"><i class="la la-trash"></i> {% trans 'Delete' %}</button>
 						{% else %}
-						<h3><i class="la la-building"></i>{% trans 'New' %} {% trans 'Site' %} </h3>
+						<h3><i class="la la-building"></i>
+						{% if terms_and_labels %}
+							New {{obj.terms_and_labels.site}}
+
+						{% else %}
+							{% trans 'New' %} {% trans 'Site' %}
+
+						{% endif %}
+
+						</h3>
 						{% endif %}
                          
                     </header>
@@ -123,15 +141,16 @@
 									{% if not field.label == 'Project' %}
 									<div class="form-group col-md-6 {% if field.errors %} alert alert-danger {% endif %}">
 									  <label class="col-form-label">{{ field.label }}</label>
+
 										{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
 
 									 {{ field|add_class:"form-control" }}
 									 {{ field.errors }}
                    
-                  </div>
+                 				 </div>
 									{% endif %}
 									{% endif %}
-                  {% endif %}
+                 					 {% endif %}
 									{% endfor %}
 									{% for field in form.hidden_fields %}
 									     <div style="display:none;">{{ field }}</div>
@@ -195,7 +214,16 @@
                             </div>
                             <div class="modal-body">
 								<h4 style="color:red; text-align: center;">{% trans 'Warning' %}</h4>
-                                <p>{% trans '"All the form submissions and user roles within this site will be completely removed. Do you still want to continue?"' %}</p>
+                                <p>{% trans '"All the form submissions and user roles within this
+									{% if terms_and_labels %}
+											{{obj.terms_and_labels.site}}
+
+										{% else %}
+											site
+
+									{% endif %}
+
+									will be completely removed. Do you still want to continue?"' %}</p>
 							</div>
                             <div class="modal-footer">
                                 {% if form.instance.id %}

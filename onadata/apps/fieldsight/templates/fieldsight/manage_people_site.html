@@ -528,10 +528,25 @@ vm = new ManagePeopleViewModel(pk, level, organization);
               <a class="nav-link active" data-toggle="tab" href="#tab001" role="tab">{% trans 'Assign' %} {% trans 'Project' %} {% trans 'Managers' %}</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" data-toggle="tab" href="#tab002" role="tab">{% if obj.cluster_sites %}
-                {% trans 'Assign' %} {% trans 'Region' %} {% trans 'Users' %}
+              <a class="nav-link" data-toggle="tab" href="#tab002" role="tab">
+                  {% if obj.cluster_sites %}
+
+                    {% if terms_and_labels %}
+                        Assign {{obj.terms_and_labels.region}} Users
+
+                    {% else %}
+                        {% trans 'Assign' %} {% trans 'Region' %} {% trans 'Users' %}
+
+                    {% endif %}
+
                   {% else %}
-                {% trans 'Assign' %} {% trans 'Site' %} {% trans 'Users' %}
+                    {% if terms_and_labels %}
+                        Assign {{obj.terms_and_labels.site}} Users
+
+                        {% else %}
+                            {% trans 'Assign' %} {% trans 'Site' %} {% trans 'Users' %}
+
+                        {% endif %}
                   {% endif %}</a>
 
             </li>

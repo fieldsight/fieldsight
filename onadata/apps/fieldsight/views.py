@@ -56,7 +56,8 @@ from .rolemixins import FullMapViewMixin, SuperUserRoleMixin, ReadonlyProjectLev
     DonorRoleMixin, DonorSiteViewRoleMixin, SiteDeleteRoleMixin, SiteRoleMixin, ProjectRoleView, ReviewerRoleMixin, ProjectRoleMixin,\
     OrganizationRoleMixin, ReviewerRoleMixinDeleteView, ProjectRoleMixinDeleteView, RegionRoleMixin, RegionSupervisorReviewerMixin
 
-from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, ProjectType, Sector
+from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, \
+    ProjectType, Sector, ProjectLevelTermsAndLabels
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
                     SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm)
@@ -244,28 +245,17 @@ class Project_dashboard(ProjectRoleMixin, TemplateView):
     template_name = "fieldsight/project_dashboard.html"
     
     def get_context_data(self, **kwargs):
-        # dashboard_data = super(Project_dashboard, self).get_context_data(**kwargs)
         obj = get_object_or_404(Project, pk=self.kwargs.get('pk'), is_active=True)
-        # import ipdb;ipdb.set_trace()
-        # [o for o in objs]
-        # obj = objs[0]
-
         peoples_involved = obj.project_roles.filter(ended_at__isnull=True).distinct('user').count()
-        # total_sites = obj.sites.filter(is_active=True, is_survey=False).count()
-
-
         total_sites = obj.sites.filter(is_active=True, is_survey=False).count()
         total_survey_sites = obj.sites.filter(is_survey=True)
         outstanding, flagged, approved, rejected = obj.get_submissions_count()
-
         one_week_ago = datetime.datetime.today() - datetime.timedelta(days=7)
-        # finstances = FInstance.objects.filter(project_id=obj.id, date__gte=one_week_ago)
-        # new_submissions = finstances.count()
-        # site_visits = finstances.filter(site_id__isnull=False).distinct('site_id').count()
-        # active_supervisors = finstances.distinct('submitted_by').count()
         instances = Instance.objects.filter(fieldsight_instance__project_id=obj.id, date_created__gte=one_week_ago)
         new_submissions = instances.count()
         active_supervisors = instances.distinct('user').count()
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=obj).exists()
+
         try:
             site_visits_query = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": obj.id, "start": { '$gte' : one_week_ago.isoformat() } } },  { "$group" : { 
                   "_id" :  {        
@@ -317,6 +307,7 @@ class Project_dashboard(ProjectRoleMixin, TemplateView):
             'active_supervisors' : active_supervisors,
             'new_submissions' : new_submissions,
             'gsuit_meta_json': json.dumps(obj.gsuit_meta),
+            'terms_and_labels': terms_and_labels
             
     }
 
@@ -361,6 +352,8 @@ class SiteDashboardView(SiteRoleMixin, TemplateView):
             total_count = 0
         outstanding, flagged, approved, rejected = obj.get_site_submission()
         response = obj.get_site_submission_count()
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=obj.project).exists()
+
         dashboard_data = {
             'obj': obj,
             'peoples_involved': peoples_involved,
@@ -378,6 +371,7 @@ class SiteDashboardView(SiteRoleMixin, TemplateView):
             'is_supervisor_only': is_supervisor_only,
             'next_photos_count':total_count - 5 if total_count > 5 else 0,
             'total_photos': total_count,
+            'terms_and_labels': terms_and_labels,
             'total_submissions': response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
             
         }
@@ -784,6 +778,8 @@ class ProjectUpdateView(ProjectView, ProjectRoleMixin, UpdateView):
         context['level'] = "1"
         context['obj'] = self.object
         context['base_template'] = "fieldsight/manage_base.html"
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=self.object).exists()
+
 
         sectors = Sector.objects.filter(sector=None)
         sector_list = []
@@ -874,6 +870,58 @@ class ProjectGeoLayerView(ProjectRoleMixin, UpdateView):
         # return HttpResponseRedirect(self.get_success_url())
 
 
+def project_terms_label_create(request, pk):
+
+    if request.method == 'POST':
+        donor = request.POST.get('donor')
+        site = request.POST.get('site')
+        site_supervisor = request.POST.get('site_supervisor')
+        site_reviewer = request.POST.get('site_reviewer')
+        region = request.POST.get('region')
+        region_supervisor = request.POST.get('region_supervisor')
+        region_reviewer = request.POST.get('region_reviewer')
+        project = get_object_or_404(Project, id=pk)
+
+        ProjectLevelTermsAndLabels.objects.create(project=project, donor=donor, site=site, site_supervisor=site_supervisor,
+                                                  site_reviewer=site_reviewer, region=region, region_supervisor=region_supervisor,
+                                                  region_reviewer=region_reviewer)
+        return HttpResponseRedirect(reverse("fieldsight:terms_and_labels", kwargs={'pk': project.id}))
+    else:
+        return JsonResponse({'error': 'Not Allowed'})
+
+
+class ProjectTermsLabelUpdate(UpdateView):
+
+    model = ProjectLevelTermsAndLabels
+    template_name = 'fieldsight/project_terms_and_label_update.html'
+    fields = ('donor', 'site', 'site_supervisor', 'site_reviewer', 'region', 'region_supervisor', 'region_reviewer',)
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectTermsLabelUpdate, self).get_context_data(**kwargs)
+        context['obj'] = self.object
+        context['level'] = "1"
+
+        return context
+
+    def get_success_url(self):
+        return reverse('fieldsight:terms_and_labels', kwargs={'pk': self.object.project.id})
+
+
+class ProjectTermsAndLabelView(ProjectRoleMixin, TemplateView):
+    template_name = "fieldsight/project_terms_and_label.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectTermsAndLabelView, self).get_context_data(**kwargs)
+        terms = ProjectLevelTermsAndLabels.objects.filter(project_id=self.kwargs['pk']).exists()
+        if terms:
+            context['term'] = ProjectLevelTermsAndLabels.objects.filter(project_id=self.kwargs['pk']).get()
+        context['terms_exists'] = terms
+        context['obj'] = Project.objects.get(pk=self.kwargs['pk'])
+        context['level'] = "1"
+
+        return context
+
+
 class SiteView(object):
     model = Site
     # success_url = reverse_lazy('fieldsight:org-site-list')
@@ -890,10 +938,13 @@ class SiteListView(SiteView, ReviewerRoleMixin, ListView):
 class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super(SiteCreateView, self).get_context_data(**kwargs)
-        project=Project.objects.get(pk=self.kwargs.get('pk'))
+        project = Project.objects.get(pk=self.kwargs.get('pk'))
         context['project'] = project
         context['pk'] = self.kwargs.get('pk')
         context['json_questions'] = json.dumps(project.site_meta_attributes)
+        context['obj'] = project
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
         return context
         
     def get_success_url(self):
@@ -1319,12 +1370,16 @@ class ManagePeopleProjectView(LoginRequiredMixin, ProjectRoleMixin, TemplateView
         organization=project.organization_id
         regional_supervisor = UserRole.objects.filter(organization_id=organization, group__name="Regional Supervisor")
         regional_reviewer = UserRole.objects.filter(organization_id=organization, group__name="Regional Reviewer")
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
 
         return render(request, 'fieldsight/manage_people_site.html', {'obj': obj, 'pk': pk, 'level': "1",
                                                                       'category':"Project Manager", 'organization': organization,
                                                                       'project': pk, 'type':'project', 'obj':project,
                                                                       'regional_supervisor': regional_supervisor,
-                                                                      'regional_reviewer': regional_reviewer})
+                                                                      'regional_reviewer': regional_reviewer,
+                                                                      'terms_and_labels': terms_and_labels,
+
+                                                                      })
 
 
 class ManagePeopleOrganizationView(LoginRequiredMixin, OrganizationRoleMixin, TemplateView):
@@ -1411,11 +1466,14 @@ class ProjSiteList(ProjectRoleMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super(ProjSiteList, self).get_context_data(**kwargs)
+        project = get_object_or_404(Project, id=self.kwargs.get('pk'))
         context['pk'] = self.kwargs.get('pk')
         context['region_id'] = None
         context['type'] = "project"
-        context['obj'] = get_object_or_404(Project, id=self.kwargs.get('pk'))
+        context['obj'] = project
         context['level'] = "1"
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
         return context
 
     def get_queryset(self):
@@ -2209,9 +2267,12 @@ class ProjFullmap(ReadonlyProjectLevelRoleMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         obj = Project.objects.get(pk=self.kwargs.get('pk'))
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=obj).exists()
+
         dashboard_data = {
             'obj': obj,
-            'mapfor': "project"
+            'mapfor': "project",
+            'terms_and_labels': terms_and_labels
             }
         return dashboard_data
 
