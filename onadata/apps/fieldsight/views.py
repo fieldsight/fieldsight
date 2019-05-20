@@ -463,7 +463,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
         # subscribed to free plan
         if not user.is_superuser:
             free_package = Package.objects.get(plan=0)
-            customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
+            customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id", initiated_at=datetime.datetime.now())
             Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer, initiated_on=datetime.datetime.now(),
                                         package=free_package, organization=self.object)
             user_id = user_id

@@ -38,6 +38,7 @@ class Customer(models.Model):
     user = models.OneToOneField(User, related_name="customer")
     stripe_cust_id = models.CharField(max_length=300)
     is_deleted = models.BooleanField(default=False)
+    initiated_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
 
@@ -47,6 +48,7 @@ class Subscription(models.Model):
     is_active = models.BooleanField(default=False)
     initiated_on = models.DateTimeField()
     terminated_on = models.DateTimeField(null=True, blank=True)
+    updated_on = models.DateTimeField(null=True, blank=True)
     package = models.ForeignKey(Package, related_name="subscriptions", null=True, blank=True)
     organization = models.OneToOneField(Organization, related_name="subscription", null=True, blank=True)
 
