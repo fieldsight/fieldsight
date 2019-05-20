@@ -82,20 +82,25 @@ class Command(BaseCommand):
 
             xls_file = open(os.path.join(xls_directory, filename))
             print("creating survey for ", xls_file)
-            if filename.endswith(".csv"):
-                csv_file = open(os.path.join(xls_directory, filename))
-                bytes_io = convert_csv_to_xls(csv_file)
-                with open(xls_directory + '' + filename.replace('.csv', '.xls'), 'wb') as f:
-                    copy_filelike_to_filelike(bytes_io, f)
-                    f.close()
-                xls_file = open(xls_directory + '' + filename.replace('.csv', '.xls'), 'r')
+            try:
+                if filename.endswith(".csv"):
+                    csv_file = open(os.path.join(xls_directory, filename))
+                    bytes_io = convert_csv_to_xls(csv_file)
+                    with open(xls_directory + '' + filename.replace('.csv', '.xls'), 'wb') as f:
+                        copy_filelike_to_filelike(bytes_io, f)
+                        f.close()
+                    xls_file = open(xls_directory + '' + filename.replace('.csv', '.xls'), 'r')
 
-            survey = create_survey_from_xls(xls_file)
-            xml = survey.to_xml()
-            version = get_version(xml)
-            id_string = get_id_string(xml)
+                survey = create_survey_from_xls(xls_file)
+                xml = survey.to_xml()
+                version = get_version(xml)
+                id_string = get_id_string(xml)
+            except Exception as e:
+                error_file_list.append(filename)
+                pass
 
-            xls_file.close()
+            else:
+                xls_file.close()
             
             # print("version =  ======", version)
             if not XForm.objects.filter(id_string=id_string).exists():
