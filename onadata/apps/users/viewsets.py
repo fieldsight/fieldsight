@@ -8,8 +8,7 @@ from django.db.models import Q
 from registration import signals
 from registration.models import RegistrationProfile
 from registration.views import RegistrationView
-from django.utils.decorators import method_decorator
-from django.views.decorators.vary import vary_on_cookie
+
 from rest_framework import viewsets
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.generics import get_object_or_404
@@ -20,7 +19,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework import views
-from django.views.decorators.cache import cache_page
+
 
 from onadata.apps.fieldsight.mixins import USURPERS
 from onadata.apps.fieldsight.models import BluePrints, Region, Site

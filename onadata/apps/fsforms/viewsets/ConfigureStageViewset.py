@@ -2,6 +2,9 @@ from __future__ import unicode_literals
 
 from django.db.models import Sum, F, Q
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
 from rest_framework import viewsets, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
@@ -11,7 +14,6 @@ from onadata.apps.fsforms.models import Stage, EducationMaterial, DeployEvent, F
 from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer, SubStageSerializer, \
     SubStageDetailSerializer, EMSerializer, DeploySerializer, FinstanceDataOnlySerializer, \
     InstanceSerializer
-from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
 
 
@@ -158,5 +160,10 @@ class FInstanceViewset(viewsets.ReadOnlyModelViewSet):
 
 
 class InstanceDetailViewSet(viewsets.ModelViewSet):
-    queryset = Instance.objects.all()
+    queryset = FInstance.objects.all().select_related("instance", "project_fxf", "project_fxf__xf", "site_fxf__xf")
     serializer_class = InstanceSerializer
+
+    @method_decorator(cache_page(60 * 60 * 24 * 30))
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        return super(InstanceDetailViewSet, self).retrieve(request, *args, **kwargs)
