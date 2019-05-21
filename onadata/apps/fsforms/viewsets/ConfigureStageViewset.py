@@ -10,7 +10,9 @@ import rest_framework.status
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import Stage, EducationMaterial, DeployEvent, FInstance
 from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer, SubStageSerializer, \
-    SubStageDetailSerializer, EMSerializer, DeploySerializer, FinstanceSerializer, FinstanceDataOnlySerializer
+    SubStageDetailSerializer, EMSerializer, DeploySerializer, FinstanceSerializer, FinstanceDataOnlySerializer, \
+    InstanceSerializer
+from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.fieldsight.models import Region
 
@@ -135,6 +137,12 @@ class LargeResultsSetPagination(PageNumberPagination):
     # max_page_size = 10000
 
 
+class SmallResultsSetPagination(PageNumberPagination):
+    page_size = 2
+    # page_size_query_param = 'page_size'
+    # max_page_size = 10000
+
+
 class FInstanceViewset(viewsets.ReadOnlyModelViewSet):
     queryset = FInstance.objects.all()
     serializer_class = FinstanceDataOnlySerializer
@@ -154,3 +162,9 @@ class FInstanceViewset(viewsets.ReadOnlyModelViewSet):
             pass
 
         return self.queryset.filter(site__in=sites).select_related('submitted_by', 'site_fxf',  'project_fxf').order_by("-date")
+
+
+class InstanceDetailViewSet(viewsets.ModelViewSet):
+    queryset = Instance.objects.all()
+    serializer_class = InstanceSerializer
+    pagination_class = SmallResultsSetPagination

@@ -9,7 +9,7 @@ from onadata.apps.fsforms.viewsets.SiteFormsViewset import SiteFormViewSet
 from onadata.apps.fsforms.viewsets.StageViewset import SiteMainStageViewSet, \
         SubStageViewSet, StageViewSet
 from onadata.apps.fsforms.viewsets.ConfigureStageViewset import StageListViewSet, SubStageListViewSet, \
-    SubStageDetailViewSet, EmViewSet, DeployViewset, FInstanceViewset
+    SubStageDetailViewSet, EmViewSet, DeployViewset, FInstanceViewset, InstanceDetailViewSet
 from onadata.apps.fsforms.viewsets.XformsViewset import XFormViewSet
 from onadata.apps.fsforms.viewsets.InstanceListViewSet import InstanceListViewSet
 from .views import (
@@ -210,6 +210,7 @@ urlpatterns = urlpatterns + [
 
     url(r'^api/days/', DayViewset.as_view({'get': 'list'}), name='days'),
     url(r'^instance/status/(?P<instance>\d+)$', instance_status, name='instance_status'),
+    url(r'^api/instance$', InstanceDetailViewSet.as_view({'get': 'list'}), name='id'),
     url(r'^edit/(?P<id_string>[^/]+)/(?P<data_id>\d+)$', edit_data, name='edit_data'),
     url(r'^view/(?P<id_string>[^/]+)/(?P<data_id>\d+)$', view_data, name='view_data'),
     url(r'^api/instance/repair_mongo/(?P<instance>\d+)$', repair_mongo, name='repair_mongo'),
