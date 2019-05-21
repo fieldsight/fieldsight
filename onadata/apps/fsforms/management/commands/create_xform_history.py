@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import os
 import glob
-import shutil
 
 from django.core.files import File
 
@@ -12,26 +11,51 @@ from onadata.apps.logger.models import XForm
 
 from pyxform.builder import create_survey_from_xls
 
+from pyxform import xls2json_backends
+import xlwt
+import re
+import StringIO
 
-import os
-import glob
-import csv
-from xlsxwriter.workbook import Workbook
+def copy_filelike_to_filelike(src, dst, bufsize=16384):
+    while True:
+        buf = src.read(bufsize)
+        if not buf:
+            break
+        dst.write(buf)
 
-from onadata.koboform.pyxform_utils import convert_csv_to_xls
 
+def csv_to_xls(csv_repr):
+    csv_repr = ''.join([
+        line for line in csv_repr if line.strip().strip('"')
+    ])
 
-def csv_to_xls(dir_name):
-    for csvfile in glob.glob(os.path.join(dir_name, '*.csv')):
-        workbook = Workbook(csvfile[:-4] + '.xlsx')
-        worksheet = workbook.add_worksheet()
-        with open(csvfile, 'rt', encoding='utf8') as f:
-            reader = csv.reader(f)
-            for r, row in enumerate(reader):
-                for c, col in enumerate(row):
-                    worksheet.write(r, c, col)
-        workbook.close()
+    def _add_contents_to_sheet(sheet, contents):
+        cols = []
+        for row in contents:
+            for key in row.keys():
+                if key not in cols:
+                    cols.append(key)
+        for ci, col in enumerate(cols):
+            sheet.write(0, ci, col)
+        for ri, row in enumerate(contents):
+            for ci, col in enumerate(cols):
+                val = row.get(col, None)
+                if val:
+                    sheet.write(ri + 1, ci, val)
 
+    encoded_csv = csv_repr.decode("utf-8").encode("utf-8")
+    dict_repr = xls2json_backends.csv_to_dict(StringIO.StringIO(encoded_csv))
+    workbook = xlwt.Workbook()
+    for sheet_name in dict_repr.keys():
+        # pyxform.xls2json_backends adds "_header" items for each sheet.....
+        if not re.match(r".*_header$", sheet_name):
+            cur_sheet = workbook.add_sheet(sheet_name)
+            _add_contents_to_sheet(cur_sheet, dict_repr[sheet_name])
+    # TODO: As XLS files are binary, I believe this should be `io.BytesIO()`.
+    string_io = StringIO.StringIO()
+    workbook.save(string_io)
+    string_io.seek(0)
+    return string_io
 
 
 def get_version(xml):
@@ -76,18 +100,26 @@ class Command(BaseCommand):
                     print("##########################")
                     print("##########################")
                     continue
+
             xls_file = open(os.path.join(xls_directory, filename))
             print("creating survey for ", xls_file)
             try:
+                if filename.endswith(".csv"):
+                    csv_file = open(os.path.join(xls_directory, filename))
+                    bytes_io = csv_to_xls(csv_file)
+                    with open(xls_directory + '' + filename.replace('.csv', '.xls'), 'wb') as f:
+                        copy_filelike_to_filelike(bytes_io, f)
+                        f.close()
+                    xls_file = open(xls_directory + '' + filename.replace('.csv', '.xls'), 'r')
+
                 survey = create_survey_from_xls(xls_file)
                 xml = survey.to_xml()
                 version = get_version(xml)
                 id_string = get_id_string(xml)
-            
             except Exception as e:
                 error_file_list.append(filename)
                 pass
-            
+
             else:
                 xls_file.close()
             
@@ -106,7 +138,10 @@ class Command(BaseCommand):
                 continue
             if not XformHistory.objects.filter(xform=xform, version=version).exists():
                 print("creating history from file ", filename)
-                file_obj = open(os.path.join(xls_directory, filename))
+                if filename.endswith('.csv'):
+                    file_obj = open(xls_directory + '' + filename.replace('.csv', '.xls'), 'r')
+                else:
+                    file_obj = open(os.path.join(xls_directory, filename))
                 history = XformHistory(xform=xform, xls=File(file_obj))
                 history.save()
             else:
