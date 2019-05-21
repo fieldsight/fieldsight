@@ -688,13 +688,13 @@ class RequestOrganizationStatus(models.Model):
 
 class ProjectLevelTermsAndLabels(models.Model):
     project = models.OneToOneField(Project, related_name="terms_and_labels", on_delete=models.CASCADE)
-    donor = models.CharField(max_length=255, blank=True, null=True)
-    site = models.CharField(max_length=255, null=True, blank=True)
-    site_supervisor = models.CharField(max_length=255, blank=True, null=True)
-    site_reviewer = models.CharField(max_length=255, blank=True, null=True)
-    region = models.CharField(max_length=255, blank=True, null=True)
-    region_supervisor = models.CharField(max_length=255, blank=True, null=True)
-    region_reviewer = models.CharField(max_length=255, blank=True, null=True)
+    donor = models.CharField(max_length=255)
+    site = models.CharField(max_length=255)
+    site_supervisor = models.CharField(max_length=255)
+    site_reviewer = models.CharField(max_length=255)
+    region = models.CharField(max_length=255)
+    region_supervisor = models.CharField(max_length=255)
+    region_reviewer = models.CharField(max_length=255)
 
     def __str__(self):
         return self.project.name
