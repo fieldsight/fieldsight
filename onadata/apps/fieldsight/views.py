@@ -1000,6 +1000,8 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
         context['pk'] = self.kwargs.get('pk')
         context['json_questions'] = json.dumps(site.project.site_meta_attributes)
         context['json_answers'] = json.dumps(site.site_meta_attributes_ans)
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=site.project).exists()
+
         return context
 
     def get_success_url(self):
@@ -1361,7 +1363,13 @@ class ManagePeopleSiteView(LoginRequiredMixin, ReviewerRoleMixin, TemplateView):
     def get(self, request, pk):
         obj = get_object_or_404(Site, id=self.kwargs.get('pk'), is_active=True)
         project = Site.objects.get(pk=pk).project
-        return render(request, 'fieldsight/manage_people_site.html', {'obj': obj, 'pk':pk, 'level': "0", 'category':"site", 'organization': project.organization.id, 'project':project.id, 'site':pk})
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
+        return render(request, 'fieldsight/manage_people_site.html', {'obj': obj, 'pk': pk, 'level': "0",
+                                                                      'category': "site", 'organization': project.organization.id,
+                                                                      'project': project.id, 'site': pk,
+                                                                      'terms_and_labels': terms_and_labels
+                                                                      })
 
 
 class ManagePeopleProjectView(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
@@ -2373,6 +2381,7 @@ class ProjectRegionSitesView(ProjectRoleMixin, ListView):
         context = super(ProjectRegionSitesView, self).get_context_data(**kwargs)
         project = Project.objects.get(pk=self.kwargs.get('pk'))
         context['project'] = project
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
 
         return context
 
@@ -2557,11 +2566,13 @@ class RegionalSitelist(RegionSupervisorReviewerMixin, ListView):
     template_name = 'fieldsight/site_list.html'
     paginate_by = 90
 
-
     def get_context_data(self, **kwargs):
         context = super(RegionalSitelist, self).get_context_data(**kwargs)
         context['pk'] = self.kwargs.get('pk')
         context['region_id'] = self.kwargs.get('region_id')
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project_id=self.kwargs.get('pk')).exists()
+        context['project'] = get_object_or_404(Project, id=self.kwargs.get('pk'))
+
         if self.kwargs.get('region_id') == "0":
             context['type'] = "Unregioned"
             context['project_id'] = self.kwargs.get('pk')
@@ -2569,6 +2580,7 @@ class RegionalSitelist(RegionSupervisorReviewerMixin, ListView):
             context['type'] = "region"
             context['obj'] = get_object_or_404(Region, id=self.kwargs.get('region_id'))
         return context
+
     def get_queryset(self, **kwargs):
         queryset = Site.objects.filter(project_id=self.kwargs.get('pk'), is_survey=False, is_active=True).select_related('project')
         
@@ -2577,6 +2589,7 @@ class RegionalSitelist(RegionSupervisorReviewerMixin, ListView):
         else:    
             object_list = queryset.filter(region_id=self.kwargs.get('region_id'))
         return object_list
+
 
 class DonorRegionalSitelist(ReadonlyProjectLevelRoleMixin, ListView):
     model = Site
@@ -2637,6 +2650,8 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
         context['project'] = project
         context['json_questions'] = json.dumps(project.site_meta_attributes)
         context['pk'] = self.kwargs.get('pk')
+        context['labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
         return context
 
     def get_success_url(self):

@@ -91,7 +91,7 @@
                         <h3><i class="la la-building"></i>
 
 							{% if terms_and_labels %}
-								Edit {{obj.terms_and_labels.site}}
+								Edit {{project.terms_and_labels.site}}
 
 							{% else %}
 							{% trans 'Edit' %} {% trans 'Site' %}
@@ -103,6 +103,8 @@
 						<h3><i class="la la-building"></i>
 						{% if terms_and_labels %}
 							New {{obj.terms_and_labels.site}}
+						{% elif labels %}
+							New {{project.terms_and_labels.site}}
 
 						{% else %}
 							{% trans 'New' %} {% trans 'Site' %}
@@ -217,6 +219,7 @@
                                 <p>{% trans '"All the form submissions and user roles within this
 									{% if terms_and_labels %}
 											{{obj.terms_and_labels.site}}
+
 
 										{% else %}
 											site

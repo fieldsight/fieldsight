@@ -295,10 +295,29 @@ vm = new ManagePeopleViewModel(pk, level, organization);
           <div class="tabbing margin-top">
           <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item">
-              <a class="nav-link active" data-toggle="tab" href="#tab001" role="tab">{% trans 'Assign' %} {% trans 'Site' %} {% trans 'Supervisors' %}</a>
+              <a class="nav-link active" data-toggle="tab" href="#tab001" role="tab">
+                    {% if terms_and_labels %}
+                        Assign {{obj.project.terms_and_labels.site_supervisor}}
+
+                    {% else %}
+                        {% trans 'Assign' %} {% trans 'Site' %} {% trans 'Supervisors' %}
+
+                    {% endif %}
+
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" data-toggle="tab" href="#tab002" role="tab">{% trans 'Assign' %} {% trans 'Site' %} {% trans 'Reviewers' %}</a>
+              <a class="nav-link" data-toggle="tab" href="#tab002" role="tab">
+
+                    {% if terms_and_labels %}
+                        Assign {{obj.project.terms_and_labels.site_reviewer}}
+
+                    {% else %}
+                        {% trans 'Assign' %} {% trans 'Site' %} {% trans 'Reviewers' %}
+
+                    {% endif %}
+
+              </a>
             </li>
           </ul>
           <!-- Tab panes -->
@@ -310,7 +329,14 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                       <div class="col-md-4">
             <div class="widget-info margin-top bg-white padding">
               <div class="widget-head">
-                <h4>{% trans 'Current' %} {% trans 'Supervisors' %}</h4>
+
+                {% if terms_and_labels %}
+                    <h4>Current {{obj.project.terms_and_labels.site_supervisor}}</h4>
+
+                {% else %}
+                  <h4>{% trans 'Current' %} {% trans 'Supervisors' %}</h4>
+
+                {% endif %}
               </div>
 
               <div class="widget-body" data-bind="foreach:allSupervisors">
@@ -330,7 +356,13 @@ vm = new ManagePeopleViewModel(pk, level, organization);
             <div class="col-md-8">
             <div class="widget-info margin-top bg-white padding">
               <div class="widget-head">
-                <h4>{% trans 'Invite' %} {% trans 'new' %} {% trans 'Supervisors' %}</h4>
+                {% if terms_and_labels %}
+                    <h4>Invite new {{obj.project.terms_and_labels.site_supervisor}}</h4>
+
+                {% else %}
+                  <h4>{% trans 'Invite' %} {% trans 'new' %} {% trans 'Supervisors' %}</h4>
+
+                {% endif %}
               </div>
               <div class="widget-body">
                 <form>
@@ -351,7 +383,13 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                 <strong>{% trans 'OR' %}</strong>
                 </h4>
                 <div class="widget-head">
-                <h4>{% trans 'Select' %} {% trans 'users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'supervisor' %}</h4>
+                    {% if terms_and_labels %}
+                        <h4>Select users to assign as {{obj.project.terms_and_labels.site_supervisor}}</h4>
+
+                    {% else %}
+                        <h4>{% trans 'Select' %} {% trans 'users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'supervisor' %}</h4>
+
+                    {% endif %}
                 </div>
                 <form class="margin-top">
                   <div class="input-group">
@@ -360,7 +398,14 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                 </form>
                  <input type="button" value="Select All" class="btn btn-primary margin-top" data-bind=" click:$root.setAllAssignAsSelected">
                  <input type="button" value="Unselect All" class="btn btn-primary margin-top" data-bind="click:$root.setAllUnSelected">
-                  <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignsupervisors"><i class="la la-user-plus"></i>{% trans 'Assign' %} {% trans 'selected' %} {% trans 'as' %} {% trans 'Supervisors' %}</button>
+                  <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignsupervisors"><i class="la la-user-plus"></i>
+                    {% if terms_and_labels %}
+                       Assign Select as {{obj.project.terms_and_labels.site_supervisor}}
+                    {% else %}
+                      {% trans 'Assign' %} {% trans 'selected' %} {% trans 'as' %} {% trans 'Supervisors' %}
+
+                    {% endif %}
+                  </button>
 
                 <ul class="row" data-bind="foreach:$root.users">
                   <li class="col-md-4">
@@ -409,7 +454,14 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                       <div class="col-md-4">
             <div class="widget-info margin-top bg-white padding">
               <div class="widget-head">
-                <h4>{% trans 'Current' %} {% trans 'Reviewers' %}</h4>
+                    {% if terms_and_labels %}
+                        <h4>Current {{obj.project.terms_and_labels.site_reviewer}}</h4>
+
+                    {% else %}
+                        <h4>{% trans 'Current' %} {% trans 'Reviewers' %}</h4>
+
+                    {% endif %}
+
               </div>
 
               <div class="widget-body" data-bind="foreach:allReviewers">
@@ -431,7 +483,13 @@ vm = new ManagePeopleViewModel(pk, level, organization);
           <div class="col-md-8">
             <div class="widget-info margin-top bg-white padding">
               <div class="widget-head">
-                <h4>{% trans 'Invite' %} {% trans 'New' %} {% trans 'Reviewers' %}</h4>
+                   {% if terms_and_labels %}
+                        <h4>Invite New {{obj.project.terms_and_labels.site_reviewer}}</h4>
+                    {% else %}
+                        <h4>{% trans 'Invite' %} {% trans 'New' %} {% trans 'Reviewers' %}</h4>
+
+                    {% endif %}
+
               </div>
               <div class="widget-body">
                 <form>
@@ -451,7 +509,14 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                 <strong>{% trans 'OR' %}</strong>
                 </h4>
                 <div class="widget-head">
-                <h4>{% trans 'Select' %} {% trans 'users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'reviewer' %}</h4>
+
+                    {% if terms_and_labels %}
+                        <h4>Select users to assign as {{obj.project.terms_and_labels.site_reviewer}}</h4>
+                    {% else %}
+                        <h4>{% trans 'Select' %} {% trans 'users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'reviewer' %}</h4>
+
+                    {% endif %}
+
                 </div>
                 <form class="margin-top">
                   <div class="input-group">
@@ -460,7 +525,16 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                 </form>
                  <input type="button" value="Select All" class="btn btn-primary margin-top" data-bind=" click:$root.setAllAssignAsSelected">
                  <input type="button" value="Unselect All" class="btn btn-primary margin-top" data-bind="click:$root.setAllUnSelected">
-                <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignreviewers"><i class="la la-user-plus"></i> {% trans 'Assign' %} {% trans 'selected' %} {% trans 'as' %} {% trans 'Reviewers' %}</button>
+                <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignreviewers"><i class="la la-user-plus"></i>
+
+                    {% if terms_and_labels %}
+                       Assign Select as {{obj.project.terms_and_labels.site_reviewer}}
+                    {% else %}
+                        {% trans 'Assign' %} {% trans 'selected' %} {% trans 'as' %} {% trans 'Reviewers' %}
+
+                    {% endif %}
+
+                </button>
                 <ul class="row" data-bind="foreach:$root.users">
                   <li class="col-md-4">
                     <label class="custom-control margin-top user-checkbox custom-checkbox" >
