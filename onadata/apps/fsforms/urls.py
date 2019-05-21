@@ -210,7 +210,7 @@ urlpatterns = urlpatterns + [
 
     url(r'^api/days/', DayViewset.as_view({'get': 'list'}), name='days'),
     url(r'^instance/status/(?P<instance>\d+)$', instance_status, name='instance_status'),
-    url(r'^api/instance$', InstanceDetailViewSet.as_view({'get': 'list'}), name='id'),
+    url(r'^api/instance/(?P<pk>\d+)$', InstanceDetailViewSet.as_view({'get': 'retrieve'}), name='instance-detail-api'),
     url(r'^edit/(?P<id_string>[^/]+)/(?P<data_id>\d+)$', edit_data, name='edit_data'),
     url(r'^view/(?P<id_string>[^/]+)/(?P<data_id>\d+)$', view_data, name='view_data'),
     url(r'^api/instance/repair_mongo/(?P<instance>\d+)$', repair_mongo, name='repair_mongo'),

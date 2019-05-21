@@ -190,10 +190,20 @@ class DeploySerializer(serializers.ModelSerializer):
     def get_clean_data(self, obj):
         return dict(obj.data)
 
+
 class InstanceSerializer(serializers.ModelSerializer):
+    question = serializers.SerializerMethodField()
+    answer = serializers.SerializerMethodField()
+
     class Meta:
         model = Instance
-        fields = ('json',)
+        fields = ('answer', 'question')
+
+    def get_answer(self, obj):
+        return obj.json
+
+    def get_question(self, obj):
+        return json.loads(obj.xform.json)
 
 
 class FinstanceSerializer(serializers.ModelSerializer):

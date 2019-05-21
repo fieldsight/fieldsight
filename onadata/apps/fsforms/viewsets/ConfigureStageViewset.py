@@ -5,16 +5,14 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-import rest_framework.status
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import Stage, EducationMaterial, DeployEvent, FInstance
 from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer, SubStageSerializer, \
-    SubStageDetailSerializer, EMSerializer, DeploySerializer, FinstanceSerializer, FinstanceDataOnlySerializer, \
+    SubStageDetailSerializer, EMSerializer, DeploySerializer, FinstanceDataOnlySerializer, \
     InstanceSerializer
 from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fieldsight.models import Region
 
 
 class StageListViewSet(viewsets.ModelViewSet):
@@ -131,14 +129,9 @@ class DeployViewset(viewsets.ModelViewSet):
     queryset = DeployEvent.objects.all()
     serializer_class = DeploySerializer
 
+
 class LargeResultsSetPagination(PageNumberPagination):
     page_size = 100
-    # page_size_query_param = 'page_size'
-    # max_page_size = 10000
-
-
-class SmallResultsSetPagination(PageNumberPagination):
-    page_size = 2
     # page_size_query_param = 'page_size'
     # max_page_size = 10000
 
@@ -167,4 +160,3 @@ class FInstanceViewset(viewsets.ReadOnlyModelViewSet):
 class InstanceDetailViewSet(viewsets.ModelViewSet):
     queryset = Instance.objects.all()
     serializer_class = InstanceSerializer
-    pagination_class = SmallResultsSetPagination
