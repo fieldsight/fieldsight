@@ -390,7 +390,16 @@
 
 									{% if obj.cluster_sites %}
 										<li class="nav-item">
-											<a class="nav-link" href="{% url 'fieldsight:region-list' obj.pk %}" data-load="org-manage-detail.html">Manage Regions</a>
+											<a class="nav-link" href="{% url 'fieldsight:region-list' obj.pk %}" data-load="org-manage-detail.html">
+												{% if terms_and_labels %}
+													Manage {{obj.terms_and_labels.region}}
+
+													{% else %}
+														Manage Regions
+
+												{% endif %}
+
+											</a>
 										</li>
 										{% else %}
 										<li class="nav-item">

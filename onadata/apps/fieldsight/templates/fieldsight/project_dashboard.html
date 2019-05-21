@@ -400,7 +400,16 @@ assigntoken(csrf_token);
 								<div class="col-md-6 col-sm-12">
 									<div class="widget-info widget-scrolling-large-list margin-top bg-white padding" data-mh="eq111">
 										<div class="widget-head">
-											<h4>{% trans 'Regions' %}</h4>
+
+											{% if terms_and_labels %}
+											<h4>{{obj.terms_and_labels.region}}</h4>
+
+											{% else %}
+												<h4>{% trans 'Regions' %}</h4>
+
+
+											{% endif %}
+
 											<!-- <a class="btn btn-xs btn-primary" href="{% url 'fieldsight:region-add' obj.pk %} "><i class="la la-plus"></i></a> -->
 											<a class="btn btn-xs btn-primary" href="{% url 'fieldsight:region-list' obj.pk %}"><i class="la la-cog"></i></a>
 											<a class="btn btn-xs btn-primary" data-toggle="collapse" href="#searchSite" aria-expanded="false" aria-controls="searchSite"><i class="la la-search"></i></a>

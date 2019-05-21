@@ -847,6 +847,7 @@ class ProjectGeoLayerView(ProjectRoleMixin, UpdateView):
         context['level'] = "1"
         context['obj'] = self.object
         context['base_template'] = "fieldsight/manage_base.html"
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=self.object).exists()
 
         return context
 
@@ -914,7 +915,7 @@ class ProjectTermsAndLabelView(ProjectRoleMixin, TemplateView):
         context = super(ProjectTermsAndLabelView, self).get_context_data(**kwargs)
         terms = ProjectLevelTermsAndLabels.objects.filter(project_id=self.kwargs['pk']).exists()
         if terms:
-            context['term'] = ProjectLevelTermsAndLabels.objects.filter(project_id=self.kwargs['pk']).get()
+            context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project_id=self.kwargs['pk']).get()
         context['terms_exists'] = terms
         context['obj'] = Project.objects.get(pk=self.kwargs['pk'])
         context['level'] = "1"
@@ -1488,11 +1489,14 @@ class ManageProjectSites(ProjectRoleMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super(ManageProjectSites, self).get_context_data(**kwargs)
+        project = get_object_or_404(Project, id=self.kwargs.get('pk'))
         context['pk'] = self.kwargs.get('pk')
         context['region_id'] = None
         context['type'] = "project"
-        context['obj'] = get_object_or_404(Project, id=self.kwargs.get('pk'))
+        context['obj'] = project
         context['level'] = "1"
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
         return context
 
     def get_queryset(self):
@@ -2351,6 +2355,8 @@ class RegionListView(RegionView, ProjectRoleMixin, ListView):
         context['pk'] = self.kwargs.get('pk')
         context['type'] = "region"
         context["level"] = "1"
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
         return context
 
     def get_queryset(self):
@@ -2387,6 +2393,7 @@ class RegionCreateView(RegionView, ProjectRoleMixin, CreateView):
         context['obj'] = project
         context['pk'] = self.kwargs.get('pk')
         context['level'] = "1"
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
 
         if self.kwargs.get('parent_pk'):
             context['parent_identifier'] = Region.objects.get(pk=self.kwargs.get('parent_pk')).get_concat_identifier()
@@ -2423,7 +2430,12 @@ class RegionCreateView(RegionView, ProjectRoleMixin, CreateView):
         else:
             self.object.identifier = form.cleaned_data.get('identifier')
             self.object.save()
-            messages.add_message(self.request, messages.INFO, 'Sucessfully new region is created')
+            if ProjectLevelTermsAndLabels.objects.filter(project=self.object.project).exists():
+                region = ProjectLevelTermsAndLabels.objects.filter(project=self.object.project)[0].region
+                messages.add_message(self.request, messages.INFO, 'Sucessfully new' + region + ' is created')
+            else:
+                messages.add_message(self.request, messages.INFO, 'Sucessfully new region is created')
+
             return HttpResponseRedirect(self.get_success_url())
         return HttpResponseRedirect(self.get_success_url())
 
@@ -2476,6 +2488,8 @@ class RegionUpdateView(RegionView, RegionRoleMixin, UpdateView):
         context['obj'] = region.project
         context['pk'] = self.kwargs.get('pk')
         context['level'] = "1"
+        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=region.project).exists()
+
         context['subregion_list'] = Region.objects.filter(
             parent__pk=self.kwargs.get('pk')
         )
@@ -2869,8 +2883,10 @@ class DefineProjectSiteMeta(RegionSupervisorReviewerMixin, TemplateView):
         project_obj = Project.objects.get(pk=pk)
         level = "1"
         json_questions = json.dumps(project_obj.site_meta_attributes)
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project_obj).exists()
+
         return render(request, 'fieldsight/project_define_site_meta.html', {'obj': project_obj, 'json_questions':
-            json_questions, 'level': level})
+            json_questions, 'level': level, 'terms_and_labels': terms_and_labels})
 
     def post(self, request, pk, *args, **kwargs):
         project = Project.objects.get(pk=pk)
@@ -3613,6 +3629,7 @@ class SitesTypeView(ProjectRoleMixin, TemplateView):
         data['types'] = types
         data['obj'] = project
         data['level'] = "1"
+        data['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
 
         return data
 
@@ -3626,6 +3643,8 @@ class AddSitesTypeView(ProjectRoleMixin, CreateView):
         project = Project.objects.get(pk=self.kwargs.get('pk'))
         data['obj'] = project
         data['level'] = "1"
+        data['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
         return data
 
     def get_success_url(self):
@@ -3712,6 +3731,8 @@ class EditSitesTypeView(UpdateView):
         project = self.object.project
         data['obj'] = project
         data['level'] = "1"
+        data['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
         return data
 
     def get_success_url(self):

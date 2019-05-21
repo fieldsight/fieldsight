@@ -28,56 +28,56 @@
 								<div class="form-row">
                                     <div class="form-group col-md-6 ">
 
-									  <label class="col-form-label">Donor</label>
+									  <label class="col-form-label">Donor <span class="text-danger">*</span></label>
 
-                                        <input class=" form-control" id="id_donor" maxlength="255" name="donor" type="text">
+                                        <input class=" form-control" id="id_donor" maxlength="255" name="donor" type="text" required>
 
 									 </div>
 
                                     <div class="form-group col-md-6 ">
 
-									  <label class="col-form-label">Site</label>
+									  <label class="col-form-label">Site <span class="text-danger">*</span></label>
 
-                                        <input class=" form-control" id="id_site" maxlength="255" name="site" type="text">
-
-									 </div>
-                                    <div class="form-group col-md-6 ">
-
-									  <label class="col-form-label">Site Supervisor</label>
-
-                                        <input class=" form-control" id="id_site_supervisor" maxlength="255" name="site_supervisor" type="text">
+                                        <input class=" form-control" id="id_site" maxlength="255" name="site" type="text" required>
 
 									 </div>
                                     <div class="form-group col-md-6 ">
 
-									  <label class="col-form-label">Site Reviewer</label>
+									  <label class="col-form-label">Site Supervisor <span class="text-danger">*</span></label>
 
-                                        <input class=" form-control" id="id_site_reviewer" maxlength="255" name="site_reviewer" type="text">
+                                        <input class=" form-control" id="id_site_supervisor" maxlength="255" name="site_supervisor" type="text" required>
+
+									 </div>
+                                    <div class="form-group col-md-6 ">
+
+									  <label class="col-form-label">Site Reviewer <span class="text-danger">*</span></label>
+
+                                        <input class=" form-control" id="id_site_reviewer" maxlength="255" name="site_reviewer" type="text" required>
 
 									 </div>
 
                                      <div class="form-group col-md-6 ">
 
-									  <label class="col-form-label">Region</label>
+									  <label class="col-form-label">Region <span class="text-danger">*</span></label>
 
-                                        <input class=" form-control" id="id_region" maxlength="255" name="region" type="text">
+                                        <input class=" form-control" id="id_region" maxlength="255" name="region" type="text" required>
 
 									 </div>
 
 
                                      <div class="form-group col-md-6 ">
 
-									  <label class="col-form-label">Region Supervisor</label>
+									  <label class="col-form-label">Region Supervisor <span class="text-danger">*</span></label>
 
-                                        <input class="form-control" id="id_region_supervisor" maxlength="255" name="region_supervisor" type="text">
+                                        <input class="form-control" id="id_region_supervisor" maxlength="255" name="region_supervisor" type="text" required>
 
 									 </div>
 
                                    <div class="form-group col-md-6 ">
 
-									  <label class="col-form-label">Region Reviewer</label>
+									  <label class="col-form-label">Region Reviewer <span class="text-danger">*</span></label>
 
-                                        <input class=" form-control" id="id_region_reviewer" maxlength="255" name="region_reviewer" type="text">
+                                        <input class=" form-control" id="id_region_reviewer" maxlength="255" name="region_reviewer" type="text" required>
 
 									 </div>
 
@@ -100,42 +100,42 @@
 
                                     <tr>
                                       <td>Donor</td>
-                                      <td>{{term.donor}}</td>
+                                      <td>{{terms_and_labels.donor}}</td>
                                     </tr>
                                    <tr>
                                       <td>Site</td>
-                                      <td>{{term.site}}</td>
+                                      <td>{{terms_and_labels.site}}</td>
                                     </tr>
 
                                    <tr>
                                       <td>Site Supervisor</td>
-                                      <td>{{term.site_supervisor}}</td>
+                                      <td>{{terms_and_labels.site_supervisor}}</td>
                                     </tr>
 
                                    <tr>
                                       <td>Site Reviewer</td>
-                                      <td>{{term.site_reviewer}}</td>
+                                      <td>{{terms_and_labels.site_reviewer}}</td>
                                     </tr>
 
                                    <tr>
                                       <td>Region</td>
-                                      <td>{{term.region}}</td>
+                                      <td>{{terms_and_labels.region}}</td>
                                     </tr>
 
                                    <tr>
                                       <td>Region Supervisor</td>
-                                      <td>{{term.region_supervisor}}</td>
+                                      <td>{{terms_and_labels.region_supervisor}}</td>
                                     </tr>
 
                                    <tr>
                                       <td>Region Reviewer</td>
-                                      <td>{{term.region_reviewer}}</td>
+                                      <td>{{terms_and_labels.region_reviewer}}</td>
                                     </tr>
 
 
                                   </tbody>
                                 </table>
-                            <a href="{% url 'fieldsight:project_terms_label_update' term.pk %}"><button type="submit" class="btn btn-primary"><i class="la la-floppy-o"></i> {% trans ' Update' %}</button></a>
+                            <a href="{% url 'fieldsight:project_terms_label_update' terms_and_labels.pk %}"><button type="submit" class="btn btn-primary"><i class="la la-floppy-o"></i> {% trans ' Update' %}</button></a>
 
                             {% endif %}
 
