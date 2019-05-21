@@ -11,7 +11,7 @@ def events(request):
     else:
         messages = FieldSightMessage.inbox(request.user)
     oid = 0
-    if hasattr(request, "organization"):
+    if hasattr(request, "organization") and request.organization:
         oid = request.organization.id
     pid = 0
     sid = 0
