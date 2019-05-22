@@ -625,7 +625,13 @@ vm = new ManagePeopleViewModel(pk, level, organization);
 
             </li>
             <li class="nav-item">
-              <a class="nav-link " data-toggle="tab" href="#tab003" role="tab">{% trans 'Assign' %} {% trans 'Partners' %}</a>
+                    {% if terms_and_labels %}
+                        <a class="nav-link " data-toggle="tab" href="#tab003" role="tab">Assign {{obj.terms_and_labels.donor}}</a>
+
+                    {% else %}
+                        <a class="nav-link " data-toggle="tab" href="#tab003" role="tab">{% trans 'Assign' %} {% trans 'Partners' %}</a>
+
+                    {% endif %}
             </li>
           </ul>
           <!-- Tab panes -->
@@ -758,12 +764,25 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButtonManage" x-placement="bottom-end" style="background-color: #00628E; position: absolute; transform: translate3d(74px, 24px, 0px); top: 0px; left: 0px; will-change: transform;">
 
                     {% if obj.cluster_sites %}
-                      <a class="dropdown-item" href="#" data-bind="click:invite_supervisors_regions"><i class="la la-user"></i>{% trans 'As' %} {% trans 'Region' %} {% trans 'Supervisor' %}</a>
-                      <a class="dropdown-item" href="#" data-bind="click:invite_reviewers_regions"><i class="la la-clipboard"></i>{% trans 'As' %} {% trans 'Region' %} {% trans 'Reviewer' %}</a>
+                         {% if terms_and_labels %}
+                            <a class="dropdown-item" href="#" data-bind="click:invite_supervisors_regions"><i class="la la-user"></i>{% trans 'As' %} {{obj.terms_and_labels.region_supervisor}}</a>
+                            <a class="dropdown-item" href="#" data-bind="click:invite_reviewers_regions"><i class="la la-clipboard"></i>{% trans 'As' %} {{obj.terms_and_labels.region_reviewer}}</a>
+                         {% else %}
+
+                          <a class="dropdown-item" href="#" data-bind="click:invite_supervisors_regions"><i class="la la-user"></i>{% trans 'As' %} {% trans 'Region' %} {% trans 'Supervisor' %}</a>
+                          <a class="dropdown-item" href="#" data-bind="click:invite_reviewers_regions"><i class="la la-clipboard"></i>{% trans 'As' %} {% trans 'Region' %} {% trans 'Reviewer' %}</a>
+                         {% endif %}
+
 
                     {% else %}
-                      <a class="dropdown-item" href="#" data-bind="click:invitesupervisorsSites"><i class="la la-user"></i>{% trans 'As' %} {% trans 'Site' %} {% trans 'Supervisor' %}</a>
-                      <a class="dropdown-item" href="#" data-bind="click:invitereviewersSites"><i class="la la-clipboard"></i>{% trans 'As' %} {% trans 'Reviewer' %}</a>
+                        {% if terms_and_labels %}
+                            <a class="dropdown-item" href="#" data-bind="click:invitesupervisorsSites"><i class="la la-user"></i>{% trans 'As' %} {{obj.terms_and_labels.site_supervisor}}</a>
+                            <a class="dropdown-item" href="#" data-bind="click:invitereviewersSites"><i class="la la-clipboard"></i>{% trans 'As' %} {{obj.terms_and_labels.site_reviewer}}</a>
+                        {% else %}
+                            <a class="dropdown-item" href="#" data-bind="click:invitesupervisorsSites"><i class="la la-user"></i>{% trans 'As' %} {% trans 'Site' %} {% trans 'Supervisor' %}</a>
+                            <a class="dropdown-item" href="#" data-bind="click:invitereviewersSites"><i class="la la-clipboard"></i>{% trans 'As' %} {% trans 'Reviewer' %}</a>
+                        {% endif %}
+
                     {% endif %}
 
 
@@ -783,10 +802,15 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                 <div class="widget-head">
                 <h4>
                     {% if obj.cluster_sites %}
-                {% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'to' %} {% trans 'all' %} {% trans 'sites' %} {% trans 'in' %} {% trans 'regions.' %}
-                  {% else %}
-                {% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'to' %} {% trans 'sites' %}
-                  {% endif %}
+                        {% if terms_and_labels %}
+
+                            {% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'to' %} {{obj.terms_and_labels.region}}
+                        {% else %}
+                            {% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'to' %} {% trans 'region' %}
+                        {% endif %}
+                    {% else %}
+                            {% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'to' %} {% trans 'site' %}
+                    {% endif %}
                 </h4>
                 </div>
                   <input type="text" class="form-control" data-bind="value:$root.search_key, valueUpdate:'afterkeydown'" placeholder="Search users..." aria-label="Search...">
@@ -798,14 +822,26 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                             </a>
 
                             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButtonManage" x-placement="bottom-end" style="background-color: #00628E; position: absolute; transform: translate3d(74px, 24px, 0px); top: 0px; left: 0px; will-change: transform;">
-                                                     {% if obj.cluster_sites %}
+                            {% if obj.cluster_sites %}
 
-                              <a class="dropdown-item" href="#"  data-bind="click:assign_selected_region_supervisor"><i class="la la-user"></i>{% trans 'As' %} {% trans 'Region' %} {% trans 'Supervisor' %}</a>
-                              <a class="dropdown-item" href="#"  data-bind="click:assign_selected_reviewer"><i class="la la-clipboard"></i>{% trans 'As' %} {% trans 'Region' %} {% trans 'Reviewer' %}</a>
-                                                    {% else %}
-                                <a class="dropdown-item" href="#"  data-bind="click:assignselectedsupervisor"><i class="la la-user"></i>{% trans 'As' %} {% trans 'Site' %} {% trans 'Supervisor' %}</a>
-                              <a class="dropdown-item" href="#"  data-bind="click:assignselectedreviewer"><i class="la la-clipboard"></i>{% trans 'As' %} {% trans 'Reviewer' %}</a>
-                      {% endif %}
+                                {% if terms_and_labels %}
+                                    <a class="dropdown-item" href="#"  data-bind="click:assign_selected_region_supervisor"><i class="la la-user"></i>As {{obj.terms_and_labels.region_supervisor}}</a>
+                                    <a class="dropdown-item" href="#"  data-bind="click:assign_selected_reviewer"><i class="la la-clipboard"></i>As {{obj.terms_and_labels.region_reviewer}}</a>
+                                {% else %}
+                                    <a class="dropdown-item" href="#"  data-bind="click:assign_selected_region_supervisor"><i class="la la-user"></i>{% trans 'As' %} {% trans 'Region' %} {% trans 'Supervisor' %}</a>
+                                    <a class="dropdown-item" href="#"  data-bind="click:assign_selected_reviewer"><i class="la la-clipboard"></i>{% trans 'As' %} {% trans 'Region' %} {% trans 'Reviewer' %}</a>
+                                {% endif %}
+
+                            {% else %}
+                                 {% if terms_and_labels %}
+                                    <a class="dropdown-item" href="#"  data-bind="click:assign_selected_region_supervisor"><i class="la la-user"></i>As {{obj.terms_and_labels.site_supervisor}}</a>
+                                    <a class="dropdown-item" href="#"  data-bind="click:assign_selected_reviewer"><i class="la la-clipboard"></i>As {{obj.terms_and_labels.site_reviewer}}</a>
+
+                                {% else %}
+                                    <a class="dropdown-item" href="#"  data-bind="click:assignselectedsupervisor"><i class="la la-user"></i>{% trans 'As' %} {% trans 'Site' %} {% trans 'Supervisor' %}</a>
+                                    <a class="dropdown-item" href="#"  data-bind="click:assignselectedreviewer"><i class="la la-clipboard"></i>{% trans 'As' %} {% trans 'Reviewer' %}</a>
+                                {% endif %}
+                            {% endif %}
 
 
                             </div>
@@ -849,9 +885,14 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                   {% if obj.cluster_sites %}
                   <!--<p><input type="button" value="Assign selected users to this Project" class="btn btn-primary margin-top" data-bind="click:assign_selected_to_project"></p>-->
                   <br>
-                  {% trans 'Select' %} {% trans 'Regions' %}
-                  {% else %}
-                  {% trans 'Select' %} {% trans 'Sites' %}
+                    {% if terms_and_labels %}
+                        {% trans 'Select' %} {{obj.terms_and_labels.region}}
+                    {% else %}
+                        {% trans 'Select' %} {% trans 'Regions' %}
+                    {% endif %}
+                   {% else %}
+                        {% trans 'Select' %} {% trans 'Sites' %}
+
                   {% endif %}
                 </h4>
 
@@ -956,7 +997,13 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                     <div class="col-md-8">
                 <div class="widget-info margin-top bg-white padding">
                   <div class="widget-head">
-                    <h4>{% trans 'Invite' %} {% trans 'new' %} {% trans 'Partners' %}</h4>
+                        {% if terms_and_labels %}
+                            <h4>Invite new {{obj.terms_and_labels.donor}}</h4>
+
+                        {% else %}
+                            <h4>{% trans 'Invite' %} {% trans 'new' %} {% trans 'Partners' %}</h4>
+
+                        {% endif %}
                   </div>
                   <div class="widget-body">
                     <form>
@@ -977,7 +1024,13 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                     <strong>{% trans 'OR' %}</strong>
                     </h4>
                     <div class="widget-head">
-                    <h4>{% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'Partners' %}</h4>
+                    {% if terms_and_labels %}
+                        <h4>{% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {{obj.terms_and_labels.donor}}</h4>
+
+                    {% else %}
+                        <h4>{% trans 'Select' %} {% trans 'Users' %} {% trans 'to' %} {% trans 'assign' %} {% trans 'as' %} {% trans 'Partners' %}</h4>
+
+                    {% endif %}
                     </div>
                    
                     <form class="margin-top">
@@ -988,8 +1041,16 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                      <input type="button" value="Select All" class="btn btn-primary margin-top" data-bind=" click:$root.setAllAssignAsSelected">
                      <input type="button" class="btn btn-primary margin-top" value="Unselect All" data-bind="click:$root.setAllUnSelected">
 
-                    <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignDonor"><i class="la la-user-plus"></i> {% trans 'Assign' %} {% trans 'selected' %} {% trans 'as' %} {% trans 'Partners' %}</button>
-                   
+                    <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignDonor"><i class="la la-user-plus"></i>
+
+                        {% if terms_and_labels %}
+                            {% trans 'Assign' %} {% trans 'selected' %} {% trans 'as' %} {{obj.terms_and_labels.donor}}</button>
+                        {% else %}
+                            {% trans 'Assign' %} {% trans 'selected' %} {% trans 'as' %} {% trans 'Partners' %}</button>
+
+                        {% endif %}
+
+
                     <ul class="row" data-bind="foreach:$root.users">
                       <li class="col-md-4">
                         <label class="custom-control margin-top user-checkbox custom-checkbox" >
@@ -1022,7 +1083,13 @@ vm = new ManagePeopleViewModel(pk, level, organization);
             <div class="col-md-4">
               <div class="widget-info margin-top bg-white padding">
                 <div class="widget-head">
-                  <h4>{% trans 'Current' %} {% trans 'Partners' %}</h4>
+                     {% if terms_and_labels %}
+                        <h4>{% trans 'Current' %} {{obj.terms_and_labels.donor}}</h4>
+
+                    {% else %}
+                        <h4>{% trans 'Current' %} {% trans 'Partners' %}</h4>
+
+                    {% endif %}
                 </div>
 
                 <div class="widget-body" data-bind="foreach:projectDonors">
@@ -1044,12 +1111,6 @@ vm = new ManagePeopleViewModel(pk, level, organization);
           </div>
          <!--  <button type="submit" class="btn btn-primary btn-block"><i class="la la-user-plus"></i> Assign Users</button> -->
         </div>
-
-
-
-          
-
-
 
           <span class="closebtn-cu"><i class="fa fa-times" aria-hidden="true"></i></span>
         </div>

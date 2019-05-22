@@ -1373,6 +1373,7 @@ class ManagePeopleSiteView(LoginRequiredMixin, ReviewerRoleMixin, TemplateView):
 
 
 class ManagePeopleProjectView(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
+
     def get(self, request, pk):
         obj = get_object_or_404(Project, id=self.kwargs.get('pk'), is_active=True)
         project = Project.objects.get(pk=pk)
@@ -1665,8 +1666,21 @@ def senduserinvite(request):
         msg.send()
         if group.name == "Unassigned":
             response += "Sucessfully invited "+ email +" to join this Team.<br>"
-        else:    
-            response += "Sucessfully invited "+ email +" for "+ group.name +" role.<br>"
+        else:
+            project = get_object_or_404(Project, id=invite.project.all()[0].id)
+            labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+            if labels:
+                TERMS_AND_LABELS = {'Project Donor': 'Project '+project.terms_and_labels.donor, 'Organization Admin':
+                                    'Team Admin', 'Project Manager': 'Project Manager', 'Reviewer': project.terms_and_labels.site_reviewer,
+                                    'Site Supervisor': project.terms_and_labels.site_supervisor, 'Super Admin': 'Super Admin',
+                                    'Staff Project Manager': 'Staff Project Manager', 'Region Supervisor': project. terms_and_labels.region_supervisor,
+                                    'Region Reviewer': project.terms_and_labels.region_reviewer
+
+                                    }
+                response += "Sucessfully invited " + email +" for "+ TERMS_AND_LABELS[group.name] + " role.<br>"
+
+            else:
+                response += "Sucessfully invited " + email +" for "+ group.name +" role.<br>"
         continue
 
     return HttpResponse(response)
