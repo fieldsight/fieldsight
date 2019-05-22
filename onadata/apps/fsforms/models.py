@@ -222,9 +222,11 @@ class Schedule(models.Model):
     def __unicode__(self):
         return getattr(self, "name", "")
 
+
 class DeletedXForm(models.Model):
     xf = models.OneToOneField(XForm, related_name="deleted_xform")
     date_created = models.DateTimeField(auto_now=True)
+
 
 class FieldSightXF(models.Model):
     xf = models.ForeignKey(XForm, related_name="field_sight_form")
@@ -234,8 +236,9 @@ class FieldSightXF(models.Model):
     is_scheduled = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now=True)
     date_modified = models.DateTimeField(auto_now=True)
-    schedule = models.OneToOneField(Schedule, blank=True, null=True, related_name="schedule_forms")
-    stage = models.OneToOneField(Stage, blank=True, null=True, related_name="stage_forms")
+    schedule = models.OneToOneField(Schedule, blank=True, null=True, related_name="schedule_forms",
+                                    on_delete=models.SET_NULL)
+    stage = models.OneToOneField(Stage, blank=True, null=True, related_name="stage_forms", on_delete=models.SET_NULL)
     shared_level = models.IntegerField(default=2, choices=SHARED_LEVEL)
     form_status = models.IntegerField(default=0, choices=FORM_STATUS)
     fsform = models.ForeignKey('self', blank=True, null=True, related_name="parent")

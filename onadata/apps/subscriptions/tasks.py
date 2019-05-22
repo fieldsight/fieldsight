@@ -17,11 +17,10 @@ from .models import Subscription
 
 
 @shared_task()
-def email_after_updating_plan(user_id, receipt_url, sub_id, amount, template, mail_subject, brand):
+def email_after_payment_success(user_id, receipt_url, sub_id, amount, brand):
     time.sleep(10)
     user = User.objects.get(id=user_id)
     stripe.api_key = settings.STRIPE_SECRET_KEY
-    mail_subject = mail_subject
     sub_obj = Subscription.objects.get(id=sub_id)
     plan_name = sub_obj.package.get_plan_display()
     submissions = sub_obj.package.submissions
@@ -34,7 +33,7 @@ def email_after_updating_plan(user_id, receipt_url, sub_id, amount, template, ma
     }
     start_date = datetime.now().strftime('%d-%m-%Y')
     end_date = ending_date[period].strftime('%d-%m-%Y')
-    message = render_to_string(template, {
+    message = render_to_string("subscriptions/receipt_email.html", {
         'user': user,
         'submissions': submissions,
         'receipt_url': receipt_url,
@@ -49,7 +48,44 @@ def email_after_updating_plan(user_id, receipt_url, sub_id, amount, template, ma
     })
     to_email = user.email
     email = EmailMessage(
-        mail_subject, message, to=[to_email]
+        "Receipt Email", message, to=[to_email]
+    )
+    email.content_subtype = "html"
+
+    email.send()
+
+
+@shared_task()
+def email_after_proration_adjustment(user_id, sub_id, amount):
+    time.sleep(10)
+    user = User.objects.get(id=user_id)
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    sub_obj = Subscription.objects.get(id=sub_id)
+    plan_name = sub_obj.package.get_plan_display()
+    submissions = sub_obj.package.submissions
+    period = sub_obj.package.period_type
+    period_type = sub_obj.package.get_period_type_display()
+    usage_submissions = sub_obj.organization.get_total_submissions()
+    ending_date = {
+        1: datetime.now() + dateutil.relativedelta.relativedelta(months=1),
+        2: datetime.now() + dateutil.relativedelta.relativedelta(months=12)
+    }
+    start_date = datetime.now().strftime('%d-%m-%Y')
+    end_date = ending_date[period].strftime('%d-%m-%Y')
+    message = render_to_string("subscriptions/proration_adjustment.html", {
+        'user': user,
+        'submissions': submissions,
+        'plan_name': plan_name,
+        'start_date': start_date,
+        'end_date': end_date,
+        'period': period_type,
+        'amount': amount/100,
+        'domain': settings.SITE_URL,
+        'usage_submissions': usage_submissions,
+    })
+    to_email = user.email
+    email = EmailMessage(
+        "Proration Adjustment", message, to=[to_email]
     )
     email.content_subtype = "html"
 
@@ -98,4 +134,41 @@ def notification_before_renewal(user_id):
 
     week_before_renew = timezone.now() + timedelta(days=23)
     notification_before_one_week_renewal.apply_async(args=[user_id], eta=week_before_renew)
+
+
+@shared_task()
+def email_after_package_change(user_id, stripe_customer, brand, mail_subject):
+    time.sleep(10)
+    user = User.objects.get(id=user_id)
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    sub_obj = Subscription.objects.get(stripe_customer__stripe_cust_id=stripe_customer)
+    plan_name = sub_obj.package.get_plan_display()
+    submissions = sub_obj.package.submissions
+    period = sub_obj.package.period_type
+    period_type = sub_obj.package.get_period_type_display()
+    amount = sub_obj.package.total_charge
+    ending_date = {
+        1: datetime.now() + dateutil.relativedelta.relativedelta(months=1),
+        2: datetime.now() + dateutil.relativedelta.relativedelta(months=12)
+    }
+    start_date = datetime.now().strftime('%d-%m-%Y')
+    end_date = ending_date[period].strftime('%d-%m-%Y')
+    message = render_to_string("subscriptions/package_change.html", {
+        'user': user,
+        'submissions': submissions,
+        'plan_name': plan_name,
+        'start_date': start_date,
+        'end_date': end_date,
+        'period': period_type,
+        'amount': amount,
+        'domain': settings.SITE_URL,
+        'brand': brand
+    })
+    to_email = user.email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+
+    email.send()
 

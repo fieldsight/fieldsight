@@ -50,11 +50,14 @@ class MySiteRolesSerializer(serializers.ModelSerializer):
     def get_project(self, obj):
 
         project = obj.project
-
+        filtered_ma = []
+        for ma in obj.project.site_meta_attributes:
+            if ma['question_type'] in ['Text', 'Number', 'MCQ', 'Date']:
+                filtered_ma.append(ma)
         return {'name': project.name, 'id': project.id, 'description': project.public_desc,
                                          'address':project.address, 'phone':project.phone, 'organization_name':project.organization.name,
                                          'organization_url':project.organization.logo.url,
-                                         'lat': repr(project.latitude), 'lon': repr(project.longitude), 'cluster_sites':project.cluster_sites, 'site_meta_attributes':project.site_meta_attributes}
+                                         'lat': repr(project.latitude), 'lon': repr(project.longitude), 'cluster_sites':project.cluster_sites, 'site_meta_attributes':filtered_ma}
 
 
 

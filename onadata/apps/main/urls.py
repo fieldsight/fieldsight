@@ -10,11 +10,12 @@ from onadata.apps.api.urls import BriefcaseApi
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 
-from onadata.apps.users.forms import ValidatingPasswordChangeForm
+from onadata.apps.users.forms import ValidatingPasswordChangeForm, ValidatingPasswordResetForm
 
 admin.autodiscover()
 
-
+handler404 = 'onadata.apps.fieldsight.views.handler404'
+handler500 = 'onadata.apps.fieldsight.views.handler500'
 
 
 urlpatterns = patterns(
@@ -51,6 +52,14 @@ urlpatterns = patterns(
     url(r'^accounts/password/change/$', 'django.contrib.auth.views.password_change',
         {'password_change_form': ValidatingPasswordChangeForm,
          'post_change_redirect': '/accounts/password/change/done'}),
+    url(
+        r'^accounts/password/reset/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+        'django.contrib.auth.views.password_reset_confirm',
+        {
+            'set_password_form': ValidatingPasswordResetForm,
+            'post_reset_redirect': '/accounts/password/reset/complete'
+        },
+        name='auth_password_reset_confirm'),
     url(r'^accounts/', include('onadata.apps.main.registration_urls')),
 
     # oath2_provider

@@ -27,6 +27,7 @@ class EMSerializer(serializers.ModelSerializer):
 class SubStageSerializer1(serializers.ModelSerializer):
     stage_forms = FSXFSerializer()
     em = EMSerializer(read_only=True)
+    tags = serializers.SerializerMethodField()
     # response_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -47,6 +48,11 @@ class SubStageSerializer1(serializers.ModelSerializer):
         except Exception as e:
             return None
 
+    def get_tags(self, obj):
+        parent_tags = self.context.get(str(obj.stage_id), [])
+        obj.tags.extend(parent_tags)
+        return list(set(obj.tags))
+
     # def get_response_count(self, obj):
     #     is_project = self.context.get('is_project', False)
     #     if is_project:
@@ -65,6 +71,7 @@ class StageSerializer1(serializers.ModelSerializer):
         exclude = ('shared_level', 'group', 'ready', 'stage',)
 
     def get_substages(self, stage):
+        self.context[str(stage.id)] = stage.tags
         stages = Stage.objects.filter(stage=stage, stage_forms__is_deleted=False, stage_forms__is_deployed=True).select_related( 'stage_forms', 'stage_forms__xf', 'em').order_by('order', 'date_created')
         serializer = SubStageSerializer1(instance=stages, context=self.context, many=True)
         return serializer.data
