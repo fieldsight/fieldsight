@@ -47,7 +47,49 @@
                                     as
                                       {% if invite.group.name == "Organization Admin" %}  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">Team Admin</span>
 
-                                      {% elif invite.group.name == "Project Donor" %}  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">Project Partner</span>
+                                      {% elif invite.group.name == "Project Donor" %}
+
+                                            {% if terms_and_labels %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">Project {{project.terms_and_labels.donor}}</span>
+
+                                            {% else %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">Project Partner</span>
+                                            {% endif %}
+
+                                      {% elif invite.group.name == "Site Supervisor" %}
+
+                                            {% if terms_and_labels %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{project.terms_and_labels.site_supervisor}}</span>
+
+                                            {% else %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.group.name }}</span>
+                                            {% endif %}
+
+                                      {% elif invite.group.name == "Reviewer" %}
+
+                                            {% if terms_and_labels %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{project.terms_and_labels.site_reviewer}}</span>
+
+                                            {% else %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.group.name }}</span>
+                                            {% endif %}
+
+                                      {% elif invite.group.name == "Region Supervisor" %}
+
+                                            {% if terms_and_labels %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{project.terms_and_labels.region_supervisor}}</span>
+
+                                            {% else %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.group.name }}</span>
+                                            {% endif %}
+                                      {% elif invite.group.name == "Region Reviewer" %}
+
+                                            {% if terms_and_labels %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{project.terms_and_labels.region_reviewer}}</span>
+
+                                            {% else %}
+                                                <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.group.name }}</span>
+                                            {% endif %}
 
                                       {% else %}
                                         <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.group.name }}</span>
@@ -60,7 +102,7 @@
                                         for  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.regions.all.0.name }}</span>
 
                                       {% else %}
-                                      {{ invite.regions.all|length }} regions
+                                      for {{ invite.regions.all|length }} regions
 
                                       {% endif %}
                                         in  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.all.0.name }}</span>
@@ -73,7 +115,7 @@
                                   for <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.site.all.0.name }} </span>
 
                                         {% else %}
-                                            {{ invite.site.all|length }} sites
+                                            for {{ invite.site.all|length }} sites
                                    {% endif %}
 
                                     in  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.all.0.name }}</span> of
@@ -86,7 +128,7 @@
                                       for the  <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.all|length }} </span> projects {% endif %} of <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.organization.name }}</span>
 
                                       {% elif invite.organization %}
-                                        by <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 0 0 2px;">.{{ invite.organization.name }}</span>
+                                        by <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 0 0 2px;">{{ invite.organization.name }}</span>
                                     {% endif %}. Sign into or create your FieldSight account below to start.
                               </td>
                             </tr>

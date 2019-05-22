@@ -1,13 +1,11 @@
 from __future__ import unicode_literals
 import datetime
 import json
-import redis
 import xlwt
 import stripe
 from django.contrib.contenttypes.models import ContentType
 from django.utils.decorators import method_decorator
 from io import BytesIO
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import Group, User, Permission
 from django.contrib.gis.geos import Point
@@ -17,36 +15,30 @@ from django.forms import modelformset_factory
 from django.http import HttpResponseRedirect, JsonResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.template.response import TemplateResponse
-from django.views.generic import ListView, TemplateView, View, FormView
+from django.views.generic import ListView, View
 from django.core.urlresolvers import reverse_lazy, reverse
-from django.contrib.auth.decorators import login_required
 from django.core.serializers import serialize
 from django.forms.forms import NON_FIELD_ERRORS
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 
-from fcm.utils import get_device_model
-
 import django_excel as excel
 from registration.backends.default.views import RegistrationView
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes , authentication_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from channels import Group as ChannelGroup
 
-from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
+from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fieldsight.bar_data_project import BarGenerator, ProgressBarGenerator
 from onadata.apps.fieldsight.management.commands.municipality_data import generate_municipality_data
-from onadata.apps.fsforms.Submission import Submission
 from onadata.apps.fsforms.line_data_project import LineChartGenerator, LineChartGeneratorOrganization, \
     LineChartGeneratorSite, ProgressGeneratorSite, LineChartGeneratorProject
 from onadata.apps.fsforms.models import FieldSightXF, Stage, FInstance, Instance
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.models import UserProfile
 from onadata.apps.fsforms.tasks import clone_form
-from onadata.apps.logger.models import XForm
-from onadata.apps.geo.models import GeoLayer
 from .mixins import (LoginRequiredMixin, SuperAdminMixin, OrganizationMixin, ProjectMixin, SiteView,
                      CreateView, UpdateView, DeleteView, OrganizationView as OView, ProjectView as PView,
                      group_required, OrganizationViewFromProfile, ReviewerMixin, MyOwnOrganizationMixin,
@@ -54,9 +46,9 @@ from .mixins import (LoginRequiredMixin, SuperAdminMixin, OrganizationMixin, Pro
 
 from .rolemixins import FullMapViewMixin, SuperUserRoleMixin, ReadonlyProjectLevelRoleMixin, ReadonlySiteLevelRoleMixin, \
     DonorRoleMixin, DonorSiteViewRoleMixin, SiteDeleteRoleMixin, SiteRoleMixin, ProjectRoleView, ReviewerRoleMixin, ProjectRoleMixin,\
-    OrganizationRoleMixin, ReviewerRoleMixinDeleteView, ProjectRoleMixinDeleteView, RegionRoleMixin, RegionSupervisorReviewerMixin
+    OrganizationRoleMixin, ProjectRoleMixinDeleteView, RegionRoleMixin, RegionSupervisorReviewerMixin
 
-from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, \
+from .models import ProjectGeoJSON, Organization, Project, Site, BluePrints, UserInvite, Region, SiteType, \
     ProjectType, Sector, ProjectLevelTermsAndLabels
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
@@ -64,32 +56,25 @@ from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, S
 
 from onadata.apps.subscriptions.models import Subscription, Customer, Package
 from django.views.generic import TemplateView
-from django.core.mail import send_mail, EmailMessage
+from django.core.mail import EmailMessage
 from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string, get_template
 from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes, smart_str
+from django.utils.encoding import force_bytes
 from django.utils.crypto import get_random_string
-from django.views.decorators.csrf import csrf_exempt
 
 from django.utils.encoding import force_text
 from django.utils.http import urlsafe_base64_decode
-from django.db.models import Prefetch
-from django.core.files.storage import FileSystemStorage
-import pyexcel as p
 
-from onadata.apps.fieldsight.tasks import generate_stage_status_report, generateSiteDetailsXls, UnassignAllProjectRolesAndSites, \
+from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, UnassignAllProjectRolesAndSites, \
     UnassignAllSiteRoles, UnassignUser, generateCustomReportPdf, multiuserassignproject, bulkuploadsites, multiuserassignsite, \
     multiuserassignregion, multi_users_assign_regions, multi_users_assign_to_entire_project, email_after_subscribed_plan
 from .generatereport import PDFReport
-from django.utils import translation
 from django.conf import settings
 from django.db.models import Prefetch
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.core.serializers.json import DjangoJSONEncoder, Serializer
+from django.core.serializers.json import DjangoJSONEncoder
 from django.template import Context
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from onadata.apps.fsforms.reports_util import get_images_for_site, get_images_for_site_all, get_site_responses_coords, get_images_for_sites_count
 from onadata.apps.staff.models import Team
 from .metaAttribsGenerator import generateSiteMetaAttribs
@@ -1649,6 +1634,16 @@ def senduserinvite(request):
         invite.project = project_id
         invite.site = site_id
         current_site = get_current_site(request)
+
+        if len(invite.project.all()) > 0:
+
+            project = get_object_or_404(Project, id=invite.project.all()[0].id)
+            terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
+        else:
+            project = ''
+            terms_and_labels = False
+
         subject = 'Invitation for Role'
         data ={
             'email': invite.email,
@@ -1657,6 +1652,8 @@ def senduserinvite(request):
             'invite_id': urlsafe_base64_encode(force_bytes(invite.pk)),
             'token': invite.token,
             'invite': invite,
+            'terms_and_labels': terms_and_labels,
+            'project': project
             }
         message = get_template('fieldsight/email_sample.html').render(Context(data))
         email_to = (invite.email,)
@@ -1667,80 +1664,33 @@ def senduserinvite(request):
         if group.name == "Unassigned":
             response += "Sucessfully invited "+ email +" to join this Team.<br>"
         else:
-            project = get_object_or_404(Project, id=invite.project.all()[0].id)
-            labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
-            if labels:
-                TERMS_AND_LABELS = {'Project Donor': 'Project '+project.terms_and_labels.donor, 'Organization Admin':
-                                    'Team Admin', 'Project Manager': 'Project Manager', 'Reviewer': project.terms_and_labels.site_reviewer,
-                                    'Site Supervisor': project.terms_and_labels.site_supervisor, 'Super Admin': 'Super Admin',
-                                    'Staff Project Manager': 'Staff Project Manager', 'Region Supervisor': project. terms_and_labels.region_supervisor,
-                                    'Region Reviewer': project.terms_and_labels.region_reviewer
+            if len(invite.project.all()) > 0:
+                project = get_object_or_404(Project, id=invite.project.all()[0].id)
+                labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+                if labels:
 
-                                    }
-                response += "Sucessfully invited " + email +" for "+ TERMS_AND_LABELS[group.name] + " role.<br>"
+                    TERMS_AND_LABELS = {'Project Donor': 'Project '+project.terms_and_labels.donor, 'Organization Admin':
+                                        'Team Admin', 'Project Manager': 'Project Manager', 'Reviewer': project.terms_and_labels.site_reviewer,
+                                        'Site Supervisor': project.terms_and_labels.site_supervisor, 'Super Admin': 'Super Admin',
+                                        'Staff Project Manager': 'Staff Project Manager', 'Region Supervisor': project. terms_and_labels.region_supervisor,
+                                        'Region Reviewer': project.terms_and_labels.region_reviewer
+
+                                        }
+                    response += "Sucessfully invited " + email +" for "+ TERMS_AND_LABELS[group.name] + " role.<br>"
+                else:
+                    response += "Sucessfully invited " + email + " for " + group.name + " role.<br>"
 
             else:
-                response += "Sucessfully invited " + email +" for "+ group.name +" role.<br>"
+                if group.name == 'Organization Admin':
+
+                    response += "Sucessfully invited " + email +" for Team Admin role."
+                else:
+                    response += "Sucessfully invited " + email +" for "+ group.name +" role.<br>"
+
         continue
 
     return HttpResponse(response)
 
-# @login_required()
-# def invitemultiregionalusers(request, emails, group, region_ids):
-   
-#     response=""
-#     for region_id in region_ids:
-#         region = Region.objects.get(id=region_id);
-#         project_id = region.project_id
-#         organization_id = region.project.organization_id  
-#         sites = Site.objects.filter(region_id=region_id)  
-#         for site in sites:
-
-#             for email in emails:
-#                 email = email.strip()
-                
-#                 userinvite = UserInvite.objects.filter(email__iexact=email, organization_id=organization_id, group=group, project_id=project_id,  site_id=site_id, is_used=False)
-
-#                 if userinvite:
-#                     response += 'Invite for '+ email + ' in ' + group.name +' role has already been sent.<br>'
-#                     continue
-                
-#                 user = User.objects.filter(email__iexact=email)
-#                 if user:
-#                     userrole = UserRole.objects.filter(user=user[0], group=group, organization_id=organization_id, project_id=project_id, site_id=site_id, ended_at__isnull=True).order_by('-id')
-#                     if userrole:
-#                         if group.name == "Unassigned":
-#                             response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' has already joined this organization.<br>'
-#                         else:
-#                             response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' already has the role for '+group.name+'.<br>' 
-#                         continue
-                    
-#                 invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32), group=group, project_id=project_id, organization_id=organization_id,  site_id=site_id)
-#                 invite.save()
-#                 current_site = get_current_site(request)
-#                 subject = 'Invitation for Role'
-#                 data = {
-#                     'email': invite.email,
-#                     'domain': current_site.domain,
-#                     'invite_id': urlsafe_base64_encode(force_bytes(invite.pk)),
-#                     'token': invite.token,
-#                     'invite': invite,
-#                     }
-#                 email_to = (invite.email,)
-
-#                 message = get_template('fieldsight/email_sample.html').render(Context(data))
-#                 email_to = (invite.email,)
-                
-#                 msg = EmailMessage(subject, message, 'Field Sight', email_to)
-#                 msg.content_subtype = "html"
-#                 msg.send()
-
-#                 if group.name == "Unassigned":
-#                     response += "Sucessfully invited "+ email +" to join this organization.<br>"
-#                 else:    
-#                     response += "Sucessfully invited "+ email +" for "+ group.name +" role.<br>"
-#                 continue
-#     return HttpResponse(response)
 
 @login_required()
 def sendmultiroleuserinvite(request):
@@ -1769,7 +1719,6 @@ def sendmultiroleuserinvite(request):
         organization_id = Project.objects.get(pk=project_ids[0]).organization_id
         site_ids = []
         region_ids = []
-        print organization_id
 
     elif leveltype == "site":
         site_ids = levels
@@ -1777,7 +1726,6 @@ def sendmultiroleuserinvite(request):
         project_ids = [site.project_id]
         region_ids = []
         organization_id = site.project.organization_id
-
 
     for email in emails:
         userinvite = UserInvite.objects.filter(email__iexact=email, organization_id=organization_id, group=group, project__in=project_ids,  site__in=site_ids, is_used=False).exists()
@@ -1791,8 +1739,11 @@ def sendmultiroleuserinvite(request):
         invite.project = project_ids
         invite.site = site_ids
         invite.regions = region_ids
+        project = get_object_or_404(Project, id=project_ids[0])
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
 
         current_site = get_current_site(request)
+
         subject = 'Invitation for Role'
         data = {
             'user': User.objects.get(email=invite.email),
@@ -1800,8 +1751,9 @@ def sendmultiroleuserinvite(request):
             'invite_id': urlsafe_base64_encode(force_bytes(invite.pk)),
             'token': invite.token,
             'invite': invite,
+            'terms_and_labels': terms_and_labels,
+            'project': project
             }
-        email_to = (invite.email,)
         message = get_template('fieldsight/email_sample.html').render(Context(data))
         email_to = (invite.email,)
         msg = EmailMessage(subject, message, 'FieldSight', email_to)
@@ -1816,22 +1768,6 @@ def sendmultiroleuserinvite(request):
 
     return HttpResponse(response)
 
-
-# def activate_role(request, invite_idb64, token):
-#     try:
-#         invite_id = force_text(urlsafe_base64_decode(invite_idb64))
-#         invite = UserInvite.objects.filter(id=invite_id, token=token, is_used=False)
-#     except (TypeError, ValueError, OverflowError, UserInvite.DoesNotExist):
-#         invite = None
-#     if invite:
-#         user = User.objects.filter(email=invite[0].email)
-#         if user:
-#             userrole = UserRole(user=user[0], group=invite[0].group, organization=invite[0].organization, project=invite[0].project, site=invite[0].site)
-#             userrole.save()
-#             return HttpResponse("Sucess")
-#         else:
-
-#     return HttpResponse("Failed")
 
 def delete_unassigned_group(user):
     """
@@ -1866,8 +1802,6 @@ class ActivateRole(TemplateView):
         else:
             # return render(request, 'fieldsight/invited_user_reg.html',{'invite':invite, 'is_used': False, 'status':'',})
             return render(request, 'users/register_with_google.html',{'invite':invite, 'is_used': False, 'status':'',})
-
-        
 
     def post(self, request, invite, *args, **kwargs):
         user_exists = User.objects.filter(email__iexact=invite.email)
