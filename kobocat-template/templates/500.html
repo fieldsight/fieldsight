@@ -1,24 +1,9 @@
-{% extends "fieldsight/fieldsight_base.html" %}
-{% load i18n staticfiles %}
-
-
-{%block title %}500 Error
-{% endblock %}
-
+{% extends 'base.html' %}
+{% load i18n %}
 {% block content %}
+<h3>
+	{% trans "500 Error" %}
+</h3>
 
-    <div id="main-content" class="padding">
-				<section class="panel">
-                    <header class="panel-heading clearfix">
-
-
-
-						<div class="row">
-							<img src="https://www.inzjobs.com/resources/frontend/images/404-error-page.png" >
-                        </div>
-                    </header>
-
-                </section>
-
-			</div>
+{% trans "If this is a significant error that needs to be fixed, please send a support request to support@kobotoolbox.org with information about what triggered this error." %}
 {% endblock %}

@@ -2,19 +2,17 @@ from __future__ import unicode_literals
 
 from django.db.models import Sum, F, Q
 from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_cookie
 from rest_framework import viewsets, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+import rest_framework.status
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import Stage, EducationMaterial, DeployEvent, FInstance
 from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer, SubStageSerializer, \
-    SubStageDetailSerializer, EMSerializer, DeploySerializer, FinstanceDataOnlySerializer, \
-    InstanceSerializer
+    SubStageDetailSerializer, EMSerializer, DeploySerializer, FinstanceSerializer, FinstanceDataOnlySerializer
 from onadata.apps.userrole.models import UserRole
+from onadata.apps.fieldsight.models import Region
 
 
 class StageListViewSet(viewsets.ModelViewSet):
@@ -131,7 +129,6 @@ class DeployViewset(viewsets.ModelViewSet):
     queryset = DeployEvent.objects.all()
     serializer_class = DeploySerializer
 
-
 class LargeResultsSetPagination(PageNumberPagination):
     page_size = 100
     # page_size_query_param = 'page_size'
@@ -157,13 +154,3 @@ class FInstanceViewset(viewsets.ReadOnlyModelViewSet):
             pass
 
         return self.queryset.filter(site__in=sites).select_related('submitted_by', 'site_fxf',  'project_fxf').order_by("-date")
-
-
-class InstanceDetailViewSet(viewsets.ModelViewSet):
-    queryset = FInstance.objects.all().select_related("instance", "project_fxf", "project_fxf__xf", "site_fxf__xf")
-    serializer_class = InstanceSerializer
-
-    @method_decorator(cache_page(60 * 60 * 24 * 30))
-    @method_decorator(vary_on_cookie)
-    def retrieve(self, request, *args, **kwargs):
-        return super(InstanceDetailViewSet, self).retrieve(request, *args, **kwargs)

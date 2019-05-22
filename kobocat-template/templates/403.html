@@ -1,21 +1,22 @@
 {% extends "fieldsight/fieldsight_base.html" %}
 {% load i18n staticfiles %}
+{% load filters %}
+{% block page-title %}{% trans 'Permission Denied' %}{% endblock %}
 
 
-{%block title %}403 Error
-{% endblock %}
 
 {% block content %}
 
-    <div id="main-content" class="padding">
-				<section class="panel">
-                    <header class="panel-heading clearfix">
-						<div class="row">
-							<img src="https://www.inzjobs.com/resources/frontend/images/404-error-page.png" >
-                        </div>
-                    </header>
 
-                </section>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="mini-stat clearfix">
+            <div class="mini-stat-info">
+                <img src="{{STATIC_URL}}images/permission.jpg">
+            </div>
+        </div>
+    </div>
+</div>
 
-			</div>
+
 {% endblock %}
