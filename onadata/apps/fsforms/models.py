@@ -598,6 +598,11 @@ class FInstance(models.Model):
         parse_individual_questions(json_question['children'])
         return data
 
+
+class EditedSubmission(models.Model):
+    old = models.ForeignKey(FInstance, related_name="edits")
+    new = models.ForeignKey(FInstance, related_name="new_edits")
+
 class InstanceStatusChanged(models.Model):
     finstance = models.ForeignKey(FInstance, related_name="comments")
     message = models.TextField(null=True, blank=True)
@@ -615,6 +620,7 @@ class InstanceStatusChanged(models.Model):
 
     def getname(self):
         return '{0} form {1}'.format(self.finstance.site_fxf.form_type(), self.finstance.site_fxf.xf.title)
+
 
 class InstanceImages(models.Model):
     instance_status = models.ForeignKey(InstanceStatusChanged, related_name="images")
