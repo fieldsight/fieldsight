@@ -14,7 +14,8 @@ from onadata.apps.users.forms import ValidatingPasswordChangeForm, ValidatingPas
 
 admin.autodiscover()
 
-
+handler404 = 'onadata.apps.fieldsight.views.handler404'
+handler500 = 'onadata.apps.fieldsight.views.handler500'
 
 
 urlpatterns = patterns(

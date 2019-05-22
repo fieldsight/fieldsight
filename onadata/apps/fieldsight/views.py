@@ -15,7 +15,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.forms import modelformset_factory
 from django.http import HttpResponseRedirect, JsonResponse, Http404, HttpResponse
-from django.shortcuts import get_object_or_404, render, redirect
+from django.shortcuts import get_object_or_404, render, redirect, render_to_response
 from django.template.response import TemplateResponse
 from django.views.generic import ListView, TemplateView, View, FormView
 from django.core.urlresolvers import reverse_lazy, reverse
@@ -86,7 +86,7 @@ from django.conf import settings
 from django.db.models import Prefetch
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.serializers.json import DjangoJSONEncoder, Serializer
-from django.template import Context
+from django.template import Context, RequestContext
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from onadata.apps.fsforms.reports_util import get_images_for_site, get_images_for_site_all, get_site_responses_coords, get_images_for_sites_count
@@ -4076,3 +4076,17 @@ def auto_create_project_site(instance, created, **kwargs):
         project_type_id = ProjectType.objects.first().id
         project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id)
         Site.objects.create(name="Example Site", project=project, identifier="example site")
+
+
+def handler404(request, *args, **argv):
+    response = render_to_response('404.html', {},
+                                  context_instance=RequestContext(request))
+    response.status_code = 404
+    return response
+
+
+def handler500(request, *args, **argv):
+    response = render_to_response('500.html', {},
+                                  context_instance=RequestContext(request))
+    response.status_code = 500
+    return response
