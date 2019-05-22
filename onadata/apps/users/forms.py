@@ -163,10 +163,9 @@ class ValidatingPasswordChangeForm(auth.forms.PasswordChangeForm):
             raise forms.ValidationError("The new password must be at least %d characters long." % self.MIN_LENGTH)
 
         # At least one letter and one non-letter
-        first_isalpha = password1[0].isalpha()
-        if all(c.isalpha() == first_isalpha for c in password1):
-            raise forms.ValidationError("The new password must contain at least one letter and at least one digit or" \
-                                        " punctuation character.")
+        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$")
+        if not bool(pattern.search(password1)):
+            raise ValidationError('Password must contain alphabet characters, special characters and numbers')
 
         return password1
 
@@ -182,8 +181,8 @@ class ValidatingPasswordResetForm(auth.forms.SetPasswordForm):
             raise forms.ValidationError("The new password must be at least %d characters long." % self.MIN_LENGTH)
 
         # At least one letter and one non-letter
-        first_isalpha = password1[0].isalpha()
-        if all(c.isalpha() == first_isalpha for c in password1):
-            raise forms.ValidationError("The new password must contain at least one letter and at least one digit or punctuation character.")
+        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$")
+        if not bool(pattern.search(password1)):
+            raise ValidationError('Password must contain alphabet characters, special characters and numbers')
 
         return password1
