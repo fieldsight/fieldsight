@@ -11,5 +11,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField('sitetype', 'identifier', models.CharField(max_length=255))
+        migrations.AlterField('sitetype', 'identifier', models.CharField(max_length=255, verbose_name='ID'))
     ]
