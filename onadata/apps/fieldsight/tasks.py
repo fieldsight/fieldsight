@@ -204,7 +204,7 @@ def site_download_zipfile(task_prog_obj_id, size):
         buffer.close()                                                                      
 
 @shared_task(time_limit=300, soft_time_limit=300)
-def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, region_ids):
+def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, region_ids, sync_to_drive=False):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     project = Project.objects.get(pk=project_id)
@@ -341,12 +341,19 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         task.file.name = xl_data.name
         task.status = 2
         task.save()
-        noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report generation in Project",
+        
+        if sync_to_drive:
+            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project)
+
+            noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report sync to Google Drive",
+                                   recipient=task.user, content_object=project, extra_object=project,
+                                   extra_message="Site Stage Progress report sync to Google Drive in project")
+
+
+        else:
+            noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report generation in Project",
                                    recipient=task.user, content_object=project, extra_object=project,
                                    extra_message=" <a href='/"+ "media/stage-report/{}_stage_data.xls".format(project.id) +"'>Site Stage Progress report </a> generation in project")
-        
-        if not site_type_ids and not region_ids:
-            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project)
 
     except DriveException as e:
         print 'Report upload to drive  Unsuccesfull. %s' % e
@@ -899,7 +906,7 @@ def siteDetailsGenerator(project, sites, ws):
 # siteDetailsGenerator(project, sites, None)
 
 @shared_task(time_limit=300, soft_time_limit=300)
-def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids, type_ids=None):
+def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids, type_ids=None, sync_to_drive=False):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
@@ -942,11 +949,7 @@ def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids
         task.status = 2
         task.save()
 
-        task.logs.create(source=source_user, type=32, title="Site details xls generation in project",
-                                   recipient=source_user, content_object=task, extra_object=project,
-                                   extra_message=" <a href='" +  task.file.url +"'>Xls sites detail report</a> generation in project")
-
-        if not type_ids and not region_ids:
+        if sync_to_drive:
             
             if not os.path.exists("media/site-details-report/"):
                 os.makedirs("media/site-details-report/")
@@ -958,6 +961,15 @@ def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids
             upload_to_drive(temporarylocation, "{} - Site Information".format(project.id), "Site Information", project)
 
             os.remove(temporarylocation)
+
+            task.logs.create(source=source_user, type=32, title="Site details xls sync to Google Drive in project",
+                                   recipient=source_user, content_object=task, extra_object=project,
+                                   extra_message=" <a href='" +  task.file.url +"'>Xls sites detail report sync to Google Drive in project")
+        else:
+            task.logs.create(source=source_user, type=32, title="Site details xls generation in project",
+                                   recipient=source_user, content_object=task, extra_object=project,
+                                   extra_message=" <a href='" +  task.file.url +"'>Xls sites detail report</a> generation in project")
+
 
     except DriveException as e:
         print 'Report upload to drive  Unsuccesfull. %s' % e

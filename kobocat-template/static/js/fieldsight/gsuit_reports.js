@@ -242,7 +242,7 @@
 			}
 			
 			options = {headers: {'X-CSRFToken':configure_settings.csrf_token}};
-			body = {'regions': [], 'siteTypes': []}
+			body = {'regions': [], 'siteTypes': [], 'sync_to_drive': true}
 			
 			console.log(body)
 			this.$http.post(configure_settings.genarete_sites_export_url, body, options).then(successCallback, errorCallback);     
@@ -263,7 +263,7 @@
 			}
 			
 			options = {headers: {'X-CSRFToken':configure_settings.csrf_token}};
-			body = {'regions': [], 'siteTypes': []}
+			body = {'regions': [], 'siteTypes': [], 'sync_to_drive': true}
 			
 			console.log(body)
 			this.$http.post(configure_settings.progress_report_url, body, options).then(successCallback, errorCallback);     
