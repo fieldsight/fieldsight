@@ -1947,6 +1947,7 @@ def delete_data(request, fsxf_id=None):
     # return HttpResponse(response_text, content_type='application/json')
 
 
+
 def data_view(request, fsxf_id):
     fs_xform = FieldSightXF.objects.get(pk=fsxf_id)
     xform = fs_xform.xf
@@ -1968,14 +1969,12 @@ def data_view(request, fsxf_id):
 
     return render(request, "fieldsight_data_view.html", data)
 
-
 class XFormView(object):
     model = XForm
 
 
 class XformDetailView(LoginRequiredMixin, SuperAdminMixin, XFormView, DetailView):
     pass
-
 
 @login_required
 @api_view(['POST'])
@@ -1996,7 +1995,6 @@ def save_educational_material(request):
         serializer = EMSerializer(em)
         return Response({'data': serializer.data}, status=status.HTTP_200_OK)
     return Response({'error': 'Invalid Educational Material Data'}, status=status.HTTP_400_BAD_REQUEST)
-
 
 @login_required
 @api_view(['POST'])
@@ -2105,7 +2103,6 @@ def set_deploy_all_stages(request, is_project, pk):
     except Exception as e:
         return Response({'error':e.message}, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['GET'])
 def set_deploy_main_stage(request, is_project, pk, stage_id):
     if True:
@@ -2177,7 +2174,6 @@ class CreateKoboFormView(TemplateView, LoginRequiredMixin):
 
         return data
 
-
 class DeleteFInstance(FInstanceRoleMixin, View):
     def get(self, request, *args, **kwargs):
         try:
@@ -2221,7 +2217,6 @@ class DeleteFInstance(FInstanceRoleMixin, View):
 
         next_url = request.GET.get('next', '/')
         return HttpResponseRedirect(next_url)
-
 
 class DeleteFieldsightXF(FormMixin, View):
     def get(self, request, *args, **kwargs):
@@ -2292,13 +2287,11 @@ def repair_mongo(request, instance):
         return Response({'error': "Failed to sync mongo"}, status=status.HTTP_400_BAD_REQUEST)
     return Response({'success': "synced mongo"}, status=status.HTTP_200_OK)
 
-
 def download_submission(request, pk):
     finstance = get_object_or_404(FInstance, pk__exact=pk)
     response = response_with_mimetype_and_name('xml',  str(finstance.instance.id), show_date=False)
     response.content = finstance.instance.xml
     return response
-
 
 def download_xml_version(request, pk):
     finstance = get_object_or_404(FInstance, pk__exact=pk)
@@ -2318,7 +2311,6 @@ def download_xml_version(request, pk):
             xf_history = XformHistory.objects.get(xform=xf, version=submission_version)
             response.content = xf_history.xml
     return response
-
 
 @api_view(['GET'])
 def get_attachments_of_finstance(request,pk):
