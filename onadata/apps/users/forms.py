@@ -152,23 +152,6 @@ class UserEditForm(forms.Form):
     twitter = forms.CharField(required=False)
 
 
-class ValidatingPasswordChangeForm(auth.forms.PasswordChangeForm):
-    MIN_LENGTH = 8
-
-    def clean_new_password1(self):
-        password1 = self.cleaned_data.get('new_password1')
-
-        # At least MIN_LENGTH long
-        if len(password1) < self.MIN_LENGTH:
-            raise forms.ValidationError("The new password must be at least %d characters long." % self.MIN_LENGTH)
-
-        # At least one letter and one non-letter
-        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$")
-        if not bool(pattern.search(password1)):
-            raise ValidationError('Password must contain alphabet characters, special characters and numbers')
-
-        return password1
-
 
 class ValidatingPasswordResetForm(auth.forms.SetPasswordForm):
     MIN_LENGTH = 8
@@ -186,3 +169,4 @@ class ValidatingPasswordResetForm(auth.forms.SetPasswordForm):
             raise ValidationError('Password must contain alphabet characters, special characters and numbers')
 
         return password1
+

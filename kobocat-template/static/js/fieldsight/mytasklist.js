@@ -57,7 +57,7 @@ window.app = new Vue({
     tasklistgenerate: function(data, status){
       var additional_content = "";
       if (data.status == 2){
-        if ([3,6,8,9,10].indexOf(data.task_type) >= 0){
+        if ([3,6,8,9,10,11,12,16].indexOf(data.task_type) >= 0){
               status = " is ready to download. "
               var url  = data.file
               if (data.task_type == 10){

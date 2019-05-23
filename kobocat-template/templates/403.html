@@ -1,9 +1,12 @@
 {% extends "fieldsight/fieldsight_base.html" %}
 {% load i18n staticfiles %}
+{% load filters %}
+{% block page-title %}{% trans 'Permission Denied' %}{% endblock %}
 
 
 {%block title %}500 Error
 {% endblock %}
+
 
 
 {%block extracss %}
@@ -163,3 +166,6 @@
         </div>
     </div>
 {% endblock %}
+
+
+

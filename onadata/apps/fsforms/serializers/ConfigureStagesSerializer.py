@@ -4,10 +4,9 @@ from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Project, Site
 from onadata.apps.fsforms.models import Stage, FieldSightXF, EducationalImages, EducationMaterial, DeployEvent, \
-    FInstance, XformHistory
+    FInstance
 from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import EMSerializer
 from onadata.apps.fsforms.serializers.InstanceStatusChangedSerializer import FSXFSerializer
-from onadata.apps.fsforms.utils import get_version
 from onadata.apps.logger.models import XForm, Instance
 
 from django.contrib.sites.models import Site as DjangoSite
@@ -191,36 +190,10 @@ class DeploySerializer(serializers.ModelSerializer):
     def get_clean_data(self, obj):
         return dict(obj.data)
 
-
 class InstanceSerializer(serializers.ModelSerializer):
-    question = serializers.SerializerMethodField()
-    answer = serializers.SerializerMethodField()
-
     class Meta:
-        model = FInstance
-        fields = ('answer', 'question')
-
-    def get_answer(self, obj):
-        return obj.instance.json
-
-    def get_question(self, finstance):
-        submission_version = finstance.get_version
-        if finstance.project_fxf:
-            xf = finstance.project_fxf.xf
-            json_data = xf.json
-            xml = xf.xml
-        else:
-            xf = finstance.site_fxf.xf
-            json_data = xf.json
-            xml = xf.xml
-        xml_version = get_version(xml)
-        if submission_version and submission_version == xml_version:
-            return json.loads(json_data)
-        else:
-            if XformHistory.objects.filter(xform=xf, version=submission_version).exists():
-                xf_history = XformHistory.objects.get(xform=xf, version=submission_version)
-                return json.loads(str(xf_history.json))
-        return json.loads(json_data)
+        model = Instance
+        fields = ('json',)
 
 
 class FinstanceSerializer(serializers.ModelSerializer):
