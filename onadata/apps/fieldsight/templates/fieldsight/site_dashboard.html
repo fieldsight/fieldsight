@@ -841,6 +841,8 @@
 				configure_settings.end_date_min_value = "{{ obj.date_created.date|date:'Y-m-d'}}";
 				configure_settings.genarete_logs_report_url = "{% url 'fieldsight_export:logs_report' obj.pk %}";
 				configure_settings.log_report_type = "Site";
+				configure_settings.terms_and_labels_project_id = "{{obj.project.id}}";
+
 					var height = 0;
 					$(".gh-col" ).each(function() {
 						height += $(this).height();

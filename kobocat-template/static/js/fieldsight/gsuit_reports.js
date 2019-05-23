@@ -16,7 +16,8 @@
 									<tbody>
 										<tr>
 											<td>
-												<h6> Site Information </h6>
+												<h6 v-if="this.terms_and_labels.length==0"> Site Information </h6>
+												<h6 v-else > {{this.terms_and_labels[0].site}} Information </h6>
 												<p v-if="details_updated_at != null"><a :href="details_link" target="_blank"> View in Google sheets <i class="la la-external-link"></i></a><br>
 
 												Last synced at {{ details_updated_at }}</p>
@@ -193,6 +194,8 @@
 	    survey_forms: [],
 	    staged_forms: [],
 	    gsuit_metas: configure_settings.gsuit_metas,
+	    terms_and_labels: [],
+	    project_id: configure_settings.terms_and_labels_project_id,
 	  }),
 	  created: function (){
 	  		
@@ -292,5 +295,19 @@
 			},
 		
 		},
+
+		mounted() {
+             function errorCallback() {
+                    callback(new Error('Failed to load Project Terms and Labels data.'))
+                }
+
+             function successCallback(response) {
+                this.terms_and_labels = response.body;
+            }
+            this.$http.get('/fieldsight/api/project-terms-labels/'+ this.project_id).then(successCallback, errorCallback)
+
+            },
+
+
 
 	 })

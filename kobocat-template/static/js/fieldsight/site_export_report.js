@@ -21,7 +21,7 @@
 				                    Export of all site information in an spreadsheet.
 				              </p>
 				                <p v-else>
-				                     Export of all {{this.terms_and_labels[0].site}} information in an spreadsheet.
+				                     Export of all {{this.terms_and_labels[0].site.toLowerCase().trim()}} information in an spreadsheet.
 
 				              </p>
 
@@ -38,14 +38,23 @@
 					<div class="p-3 border bg-light">
 					<div class="form-row">
 					    
-				        <div class="form-group col-md-6">
-								<label v-if="this.terms_and_labels.length==0" for="startdate">Region:</label>
-								<label v-else for="startdate">{{this.terms_and_labels[0].region}}:</label>
+				        <div v-if="this.terms_and_labels.length==0" class="form-group col-md-6">
+								<label for="startdate">Region:</label>
 							<treeselect :multiple="true"
 								  :options="regionOptions"
 								  :load-options="loadRegionOptions"
 								  :auto-load-root-options="false"
 								  placeholder="Select Regions"
+								  v-model="regionValues" />
+
+						</div>
+						 <div v-else class="form-group col-md-6">
+								<label for="startdate">{{this.terms_and_labels[0].region}}:</label>
+							<treeselect :multiple="true"
+								  :options="regionOptions"
+								  :load-options="loadRegionOptions"
+								  :auto-load-root-options="false"
+								  :placeholder=this.terms_and_labels[0].region
 								  v-model="regionValues" />
 
 						</div>
