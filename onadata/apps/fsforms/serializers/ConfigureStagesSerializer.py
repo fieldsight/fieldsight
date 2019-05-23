@@ -327,8 +327,9 @@ class FInstanceDetailSerializer(serializers.ModelSerializer):
 
     def get_form_type(self, obj):
         return {
-            'is_staged': obj.site_fxf.is_staged, 'is_scheduled': obj.site_fxf.is_scheduled,
-            'is_survey': obj.site_fxf.is_survey,
+            'is_staged': obj.site_fxf.is_staged if obj.site_fxf else obj.project_fxf.is_staged,
+            'is_scheduled': obj.site_fxf.is_scheduled if obj.site_fxf else obj.project_fxf.is_scheduled,
+            'is_survey': obj.site_fxf.is_survey if obj.site_fxf else obj.project_fxf.is_scheduled,
         }
 
     def get_submission_data(self, obj):
@@ -355,7 +356,7 @@ class FInstanceDetailSerializer(serializers.ModelSerializer):
         json_question = get_question(obj)
 
         base_url = BASEURL
-        media_folder = obj.site_fxf.xf.user.username
+        media_folder = obj.instance.xform.user.username
 
         def parse_repeat(r_object, prev_group = None):
             repeat = dict()
