@@ -3,6 +3,7 @@ from rest_framework import viewsets
 
 from onadata.apps.fsforms.models import InstanceStatusChanged, FInstance
 from onadata.apps.fsforms.serializers.InstanceStatusChangedSerializer import InstanceStatusChangedSerializer, FInstanceResponcesSerializer
+from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import FinstanceSerializer, FInstanceDetailSerializer
 from rest_framework.pagination import PageNumberPagination
 from onadata.apps.fsforms.models import FieldSightXF
 from django.http import Http404
@@ -53,3 +54,11 @@ class SiteInstanceResponseViewSet(viewsets.ModelViewSet):
             return queryset.filter(site_id=self.kwargs.get('site_pk'), project_fxf_id=self.kwargs.get('form_pk')).order_by('-date')
         return queryset.filter(site_id=self.kwargs.get('site_pk'), site_fxf_id=self.kwargs.get('form_pk')).order_by('-date')
 
+
+class InstanceDetailViewSet(viewsets.ModelViewSet):
+    queryset = FInstance.objects.all()
+    serializer_class = FInstanceDetailSerializer
+    pagination_class = LargeResultsSetPagination
+
+    def filter_queryset(self, queryset):
+        return queryset.filter(pk=self.kwargs.get('pk'))
