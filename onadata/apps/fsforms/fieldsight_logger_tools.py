@@ -85,7 +85,6 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, fxfid, project_fxf
         instance.save()
     else:
         # new submission
-        print("new submission")
         instance = Instance.objects.create(
             xml=xml, user=submitted_by, status=status, xform=xform)
         if fxfid and site_id and project_fxf and project_id and fxfid:
@@ -98,7 +97,6 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, fxfid, project_fxf
             FInstance.objects.create(instance=instance, site_id=site_id, project_id=project_id, site_fxf_id=fxfid,
                              submitted_by=submitted_by)
         elif fxfid and site_id:
-            print("create site F instance")
             FInstance.objects.create(instance=instance, site_id=site_id,site_fxf_id=fxfid,
                              submitted_by=submitted_by)
         elif project_id and project_fxf:
@@ -221,7 +219,6 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
         instance.date_created = date_created_override
         instance.save()
     if instance.xform is not None:
-        print("creationg Parsed Instance")
         if fs_poj_id:
             fs_poj_id = str(fs_poj_id)
         pi, created = FieldSightParsedInstance.get_or_create(instance,
@@ -229,7 +226,6 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
                                                                           'fs_site':site, 'fs_project':project,
                                                                           'fs_project_uuid':fs_poj_id})
     if not created:
-        print("not created FPI")
         pi.save(async=False)
     return instance
 
@@ -256,8 +252,6 @@ def create_instance(fsxfid, xml_file, media_files,
             if request and request.user.is_authenticated() else None
         xml = xml_file.read()
         xml_hash = Instance.get_hash(xml)
-        print("hash = ", xml_hash)
-        print("has_start_time = ", xform.has_start_time)
 
         if xform.has_start_time:
             # XML matches are identified by identical content hash OR, when a
@@ -276,14 +270,12 @@ def create_instance(fsxfid, xml_file, media_files,
         uuid = new_uuid
 
         if existing_instance:
-            print("exixting Instance")
             # ensure we have saved the extra attachments
             any_new_attachment = save_attachments(existing_instance, media_files)
             if not any_new_attachment:
                 raise DuplicateInstance()
             else:
                 # Update Mongo via the related ParsedInstance
-                print("updating Parsed Instance IN project")
                 if fs_proj_xf:
                     fs_poj_id = str(fs_proj_xf)
                 else:
