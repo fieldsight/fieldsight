@@ -4,10 +4,11 @@ from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Project, Site
 from onadata.apps.fsforms.models import Stage, FieldSightXF, EducationalImages, EducationMaterial, DeployEvent, \
-    FInstance
+    FInstance, XformHistory
 from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import EMSerializer
 from onadata.apps.fsforms.serializers.InstanceStatusChangedSerializer import FSXFSerializer
 from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.fsforms.utils import get_version
 
 from django.contrib.sites.models import Site as DjangoSite
 BASEURL = DjangoSite.objects.get_current().domain
@@ -332,8 +333,27 @@ class FInstanceDetailSerializer(serializers.ModelSerializer):
 
     def get_submission_data(self, obj):
         data = []
-        json_answer = obj.instance.json
-        json_question = json.loads(obj.site_fxf.xf.json)
+
+        def get_answer(obj):
+            return obj.instance.json
+
+        def get_question(obj):
+            submission_version = obj.get_version
+            json_data = obj.instance.xform.json
+            xml = obj.instance.xform.xml
+            xml_version = get_version(xml)
+            if submission_version and submission_version == xml_version:
+                return json.loads(json_data)
+            else:
+                if XformHistory.objects.filter(xform=obj.instance.xform, version=submission_version).exists():
+                    xf_history = XformHistory.objects.get(xform=obj.instance.xform, version=submission_version)
+                    return json.loads(str(xf_history.json))
+
+            return json.loads(json_data)
+
+        json_answer = get_answer(obj)
+        json_question = get_question(obj)
+
         base_url = BASEURL
         media_folder = obj.site_fxf.xf.user.username
 
