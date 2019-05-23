@@ -8,7 +8,8 @@ from onadata.apps.fieldsight.viewsets.ProjectViewSet import DonorMyProjectsLayer
 from onadata.apps.fieldsight.viewsets.RegionViewSet import RegionViewSet, RegionPagignatedViewSet, RegionSearchViewSet, UserMainRegionViewSet
 from onadata.apps.fieldsight.viewsets.SiteViewSet import ProjectSitelistViewset, SitelistMinimalViewset, SiteViewSet, AllSiteViewSet, SiteCreationSurveyViewSet, \
     SiteReviewViewSet, ProjectTypeViewset, SiteTypeViewset, SiteReviewUpdateViewSet, SiteUnderProjectViewSet, SiteUpdateViewSet, \
-    ProjectUpdateViewSet, SiteUnderOrgViewSet, SiteUnderRegionViewSet, SitePagignatedViewSet, SiteSearchViewSet, UserSitelistMinimalViewset
+    ProjectUpdateViewSet, SiteUnderOrgViewSet, SiteUnderRegionViewSet, SitePagignatedViewSet, SiteSearchViewSet, \
+    UserSitelistMinimalViewset, ProjectTermsAndLabelApi
 from .forms import RegistrationForm
 
 from .views import (
@@ -20,7 +21,6 @@ from .views import (
     OrganizationListView,
     OrganizationCreateView,
     OrganizationUpdateView,
-    OrganizationDeleteView,
     Organization_dashboard,
     alter_org_status,
     OrganizationadminCreateView,
@@ -39,7 +39,6 @@ from .views import (
     alter_site_status,
     add_supervisor,
     CreateUserView,
-    viewfullmap,
     OrgFullmap,
     ProjFullmap,
     SiteFullmap,
@@ -49,12 +48,10 @@ from .views import (
     RegionCreateView,
     RegionUpdateView,
     RegionDeleteView,
-    # RegionDeactivateView,
     RegionListView,
-    UserListView, site_images, FilterUserView, UploadSitesView, BluePrintsView, add_project_role, ManagePeopleSiteView,
+    UserListView, site_images, UploadSitesView, BluePrintsView, add_project_role, ManagePeopleSiteView,
     ManagePeopleProjectView, ManagePeopleOrganizationView, SiteSurveyListView, ajax_upload_sites, ajax_save_site,
     ajax_save_project, RolesView, OrgProjectList, OrgUserList, ProjUserList, SiteUserList, ProjSiteList, OrgSiteList,
-    AssignUsersToRegionsView, AssignUsersToEntireProjectView,
     SitesTypeView, AddSitesTypeView,
     senduserinvite, ActivateRole, checkemailforinvite, ProjectSummaryReport, SiteSummaryReport, MultiUserAssignSiteView,
     MultiUserAssignProjectView, sendmultiroleuserinvite, project_html_export, RegionalSitelist, RegionalSiteCreateView,
@@ -221,6 +218,7 @@ urlpatterns = [
     url(r'^project_terms_label_update/(?P<pk>\d+)/$', ProjectTermsLabelUpdate.as_view(), name='project_terms_label_update'),
 
     url(r'^terms-and-labels/(?P<pk>\d+)/$', ProjectTermsAndLabelView.as_view(), name='terms_and_labels'),
+    url(r'^api/project-terms-labels/(?P<project_id>\d+)$', ProjectTermsAndLabelApi.as_view({'get': 'list'}), name='project_terms_labels_api'),
 
     url(r'^api/project-regions/(?P<pk>\d+)/$', RegionViewSet.as_view({'get': 'list'}), name='project_regions_api'),
     

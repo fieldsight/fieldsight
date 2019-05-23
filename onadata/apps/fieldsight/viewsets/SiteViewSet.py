@@ -8,16 +8,16 @@ from rest_framework.permissions import BasePermission
 from channels import Group as ChannelGroup
 
 
-from onadata.apps.fieldsight.models import Site, ProjectType, Project, Region, SiteType
+from onadata.apps.fieldsight.models import Site, ProjectType, Project, Region, SiteType, ProjectLevelTermsAndLabels
 from onadata.apps.fieldsight.serializers.SiteSerializer import SuperMinimalSiteSerializer, MinimalSiteSerializer, SiteSerializer, SiteCreationSurveySerializer, \
     SiteReviewSerializer, ProjectTypeSerializer, SiteUpdateSerializer, ProjectUpdateSerializer, RegionSerializer, \
     SiteTypeSerializer
+from onadata.apps.fieldsight.serializers.ProjectTermsSerializer import ProjectLevelTermsSerializers
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.userrole.models import UserRole
 from django.contrib.auth.models import Group
 from django.db import transaction
 from rest_framework.pagination import PageNumberPagination
-from onadata.apps.fsforms.models import FInstance
 from django.db.models import Q
 
 
@@ -345,6 +345,18 @@ class SiteSearchViewSet(viewsets.ModelViewSet):
         return self.queryset.filter(Q(name__icontains=query) | Q(identifier__icontains=query))
 
 
+class ProjectTermsAndLabelApi(viewsets.ReadOnlyModelViewSet):
+    """
+        Return project level terms and labels.
+    """
+    queryset = ProjectLevelTermsAndLabels.objects.all()
+    serializer_class = ProjectLevelTermsSerializers
+
+    def filter_queryset(self, queryset):
+        project_id = self.kwargs.get('project_id', None)
+        return queryset.filter(project_id=project_id)
+
+
 class SitelistMinimalViewset(viewsets.ModelViewSet):
     queryset = Site.objects.all()
     serializer_class = SuperMinimalSiteSerializer
@@ -353,6 +365,7 @@ class SitelistMinimalViewset(viewsets.ModelViewSet):
     
     def filter_queryset(self, queryset):
         return queryset.filter(project__id=self.kwargs.get('pk', None))
+
 
 class UserSitelistMinimalViewset(viewsets.ModelViewSet):
     queryset = Site.objects.all()
