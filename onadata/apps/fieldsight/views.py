@@ -2013,10 +2013,11 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
 
 
 class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
+
     def get(self, request, pk, *args, **kwargs):
-        user = User.objects.get(pk=self.kwargs.get('pk'))
-        start_date=self.kwargs.get('start_date')
-        end_date=self.kwargs.get('end_date')
+        user = User.objects.get(pk=self.kwargs.get('user_id'))
+        start_date = self.kwargs.get('start_date')
+        end_date = self.kwargs.get('end_date')
         split_startdate = start_date.split('-')
         split_enddate = end_date.split('-')
 
@@ -3834,12 +3835,14 @@ def project_dashboard_peoples(request, pk):
 def project_managers(request, pk):
 
     users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk, user_roles__group_id__in=[4, 9], user_roles__ended_at__isnull=True).distinct('id')
-
+    project = get_object_or_404(Project, id=pk)
     user_data = []
     for user in users:
         user_data.append(dict(label=user.get_full_name(),
                               email=user.email,
-                              id=user.id))
+                              id=user.id,
+                              project_id=project.id
+                              ))
 
 
     return Response(user_data)

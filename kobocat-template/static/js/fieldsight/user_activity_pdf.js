@@ -25,6 +25,7 @@ window.app = new Vue({
         maxDate: configure_settings.end_date_max_value,
         users: null,
         selected_user: null,
+        project_id: null,
      },
 
   template: `
@@ -74,7 +75,7 @@ window.app = new Vue({
                   </div>
                 </div>
               </div>
-              <a :disabled="(date1 == '' || date2 == '' || selected_user == null) ? true : false " :href="'/fieldsight/user/report/activity/' + selected_user + '/' + date1 + '/' + date2 + '/'"><button type="button" class="btn btn-success"> Preview PDF</button></a>
+              <a :disabled="(date1 == '' || date2 == '' || selected_user == null) ? true : false " :href="'/fieldsight/user/report/activity/' + project_id + '/'+ selected_user + '/' + date1 + '/' + date2 + '/'"><button type="button" class="btn btn-success"> Preview PDF</button></a>
           </div>
         </div>
           `,
@@ -85,6 +86,10 @@ window.app = new Vue({
     loadOptions({ action, parentNode, callback }) {
       function successCallback(response) {
         this.users = response.body
+        if(response.body[0].project_id){
+                this.project_id = response.body[0].project_id;
+
+        }
 
         callback()
       }
