@@ -11,36 +11,54 @@ from onadata.apps.fsforms.models import XformHistory
 from onadata.apps.logger.models import XForm
 
 from pyxform.builder import create_survey_from_xls
+from onadata.apps.fsforms.utils import get_version
+
+from pyxform import xls2json_backends
+import xlwt
+import re
+import StringIO
 
 
-import os
-import glob
-import csv
-from xlsxwriter.workbook import Workbook
-
-from onadata.koboform.pyxform_utils import convert_csv_to_xls
-
-
-def csv_to_xls(dir_name):
-    for csvfile in glob.glob(os.path.join(dir_name, '*.csv')):
-        workbook = Workbook(csvfile[:-4] + '.xlsx')
-        worksheet = workbook.add_worksheet()
-        with open(csvfile, 'rt', encoding='utf8') as f:
-            reader = csv.reader(f)
-            for r, row in enumerate(reader):
-                for c, col in enumerate(row):
-                    worksheet.write(r, c, col)
-        workbook.close()
+def copy_filelike_to_filelike(src, dst, bufsize = 16384):
+    while True:
+        buf = src.read(bufsize)
+        if not buf:
+            break
+        dst.write(buf)
 
 
+def csv_to_xls(csv_repr):
+    csv_repr = ''.join([
+        line for line in csv_repr if line.strip().strip('"')
+    ])
 
-def get_version(xml):
-    import re
-    p = re.compile('version="(.*)">')
-    m = p.search(xml)
-    if m:
-        return m.group(1)
-    raise Exception("no version found")
+    def _add_contents_to_sheet(sheet, contents):
+        cols = []
+        for row in contents:
+            for key in row.keys():
+                if key not in cols:
+                    cols.append(key)
+        for ci, col in enumerate(cols):
+            sheet.write(0, ci, col)
+        for ri, row in enumerate(contents):
+            for ci, col in enumerate(cols):
+                val = row.get(col, None)
+                if val:
+                    sheet.write(ri + 1, ci, val)
+
+    encoded_csv = csv_repr.decode("utf-8").encode("utf-8")
+    dict_repr = xls2json_backends.csv_to_dict(StringIO.StringIO(encoded_csv))
+    workbook = xlwt.Workbook()
+    for sheet_name in dict_repr.keys():
+        # pyxform.xls2json_backends adds "_header" items for each sheet.....
+        if not re.match(r".*_header$", sheet_name):
+            cur_sheet = workbook.add_sheet(sheet_name)
+            _add_contents_to_sheet(cur_sheet, dict_repr[sheet_name])
+    # TODO: As XLS files are binary, I believe this should be `io.BytesIO()`.
+    string_io = StringIO.StringIO()
+    workbook.save(string_io)
+    string_io.seek(0)
+    return string_io
 
 
 def get_id_string(xml):
@@ -54,7 +72,7 @@ def get_id_string(xml):
 
 class Command(BaseCommand):
     help = 'Create xml from xls'
-    
+
     def add_arguments(self, parser):
         parser.add_argument('directory', type=str)
 
@@ -64,7 +82,7 @@ class Command(BaseCommand):
         error_file_list = []
         # csv_to_xls(xls_directory)
         for filename in os.listdir(xls_directory):
-            if os.path.isfile(os.path.join(xls_directory,filename)):
+            if os.path.isfile(os.path.join(xls_directory, filename)):
                 if filename.endswith(".xls"):
                     pass
                 elif filename.endswith(".csv"):
@@ -90,7 +108,7 @@ class Command(BaseCommand):
             
             else:
                 xls_file.close()
-            
+
             # print("version =  ======", version)
             if not XForm.objects.filter(id_string=id_string).exists():
                 print("xform with id string not found ", id_string)
@@ -112,7 +130,7 @@ class Command(BaseCommand):
             else:
                 print('History already exists of this file  ', filename)
             print('Successfully created XFORM HISTORY form  ', filename)
-        
+
         if error_file_list:
             print('Errors occured at files: ')
             for files in error_file_list:
