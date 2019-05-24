@@ -42,13 +42,15 @@ def run_enketo(project_form, instance):
     for ID_SUBMISSION in instances:
         enketo_url = "{}forms/edit/{}/{}".format(BASE_URL, ID_STRING, ID_SUBMISSION)
         driver.get(enketo_url)
-        time.sleep(3)
+        time.sleep(6)
+        driver.save_screenshot('ID_SUBMISSION{}.png'.format(str(ID_SUBMISSION)))
 
         try:
             driver.execute_script("document.querySelectorAll('button#submit-form')[0].click()")
             time.sleep(2)
             print(ID_SUBMISSION)
         except TimeoutException:
+            driver.close()
             print "Loading took too much time!"
     driver.close()
 
