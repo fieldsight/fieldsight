@@ -8,6 +8,7 @@ from django.core.files import File
 from django.core.management.base import BaseCommand
 from onadata.apps.fsforms.models import XformHistory
 from onadata.apps.logger.models import XForm
+from onadata.apps.fsforms.utils import get_version
 
 from pyxform.builder import create_survey_from_xls
 
@@ -57,15 +58,6 @@ def csv_to_xls(csv_repr):
     workbook.save(string_io)
     string_io.seek(0)
     return string_io
-
-
-def get_version(xml):
-    import re
-    p = re.compile('version="(.*)">')
-    m = p.search(xml)
-    if m:
-        return m.group(1)
-    raise Exception("no version found")
 
 
 def get_id_string(xml):
