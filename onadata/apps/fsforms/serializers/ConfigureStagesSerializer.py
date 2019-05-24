@@ -329,7 +329,7 @@ class FInstanceDetailSerializer(serializers.ModelSerializer):
         return {
             'is_staged': obj.site_fxf.is_staged if obj.site_fxf else obj.project_fxf.is_staged,
             'is_scheduled': obj.site_fxf.is_scheduled if obj.site_fxf else obj.project_fxf.is_scheduled,
-            'is_survey': obj.site_fxf.is_survey if obj.site_fxf else obj.project_fxf.is_scheduled,
+            'is_survey': obj.site_fxf.is_survey if obj.site_fxf else obj.project_fxf.is_survey,
         }
 
     def get_submission_data(self, obj):
