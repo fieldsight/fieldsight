@@ -73,7 +73,7 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
                 sites = sites.filter(date_modified__gte=last_updated_date)
 
             except:
-                pass
+                return []
 
         return sites
 
@@ -98,7 +98,7 @@ def supervisor_logs(request):
         try:
             date = datetime.fromtimestamp(int(last_updated))  # notifications newer than this date.
         except:
-            pass
+            return Response({'notifications': []})
     notifications = get_notifications_queryset(email, date)
     return Response({'notifications': notifications})
 
