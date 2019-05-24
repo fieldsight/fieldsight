@@ -19,28 +19,25 @@ USER_PASSWORD = ""
 
 
 # BASE_URL = "http://localhost:8001/"
-BASE_URL = "https://app.fieldsight.org/"
-# BASE_URL = "https://fieldsight.naxa.com.np/"
-PROJECT_FORM_ID = 0
-ID_STRING = ""
+# BASE_URL = "https://app.fieldsight.org/"
+BASE_URL = "https://fieldsight.naxa.com.np/"
 
 
 def run_enketo(project_form, instance):
-    # display = Display(visible=0, size=(1024, 900))
-    # display.start()
+    display = Display(visible=0, size=(1024, 900))
+    display.start()
     firefox_capabilities = DesiredCapabilities.FIREFOX
     firefox_capabilities['marionette'] = True
-    # firefox_capabilities['binary'] = '/home/awemulya/Downloads/geckodriver-v0.24.0-linux32'
+    # firefox_capabilities['binary'] = '/geckodriver-v0.24.0-linux32'
     driver = webdriver.Firefox(capabilities=firefox_capabilities, executable_path='/geckodriver')
     driver.get(BASE_URL)
     driver.find_element_by_name('username').send_keys(USER_NAME)
     driver.find_element_by_name('password').send_keys(USER_PASSWORD + Keys.RETURN)
     # print(project_form)
-    # project_fxf = FieldSightXF.objects.get(pk=project_form)
-    # instances = project_fxf.project_form_instances.filter(instance__id__gt=instance).\
-    #     values_list('instance', flat=True).order_by('pk')
-    # ID_STRING = project_fxf.xf.id_string
-    instances = []
+    project_fxf = FieldSightXF.objects.get(pk=project_form)
+    instances = project_fxf.project_form_instances.filter(instance__id__gt=instance).\
+        values_list('instance', flat=True).order_by('pk')[:100]
+    ID_STRING = project_fxf.xf.id_string
 
     for ID_SUBMISSION in instances:
         enketo_url = "{}forms/edit/{}/{}".format(BASE_URL, ID_STRING, ID_SUBMISSION)
