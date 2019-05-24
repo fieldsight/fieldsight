@@ -107,7 +107,11 @@
               <div class="col-sm-6">
                 <p class="org-info-item">
                   <strong>Roles :</strong>
-                  <span>{{ roles }}</span>
+                  <span>
+                    {% for role in roles %}
+                      {{role}},
+                    {% endfor %}
+                  </span>
                 </p>
               </div>
               <div class="col-sm-6">

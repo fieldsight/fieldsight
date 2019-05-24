@@ -87,7 +87,7 @@ urlpatterns = [
     url(r'^accounts/create/$', CreateUserView.as_view(
         form_class=RegistrationForm), name='user-create'),
 
-    url(r'^user/report/activity/(?P<pk>[0-9]+)/(?P<start_date>\d{4}-\d{2})/(?P<end_date>\d{4}-\d{2})/$', UserActivityReport.as_view(), name="user-activity-report"),
+    # url(r'^user/report/activity/(?P<pk>[0-9]+)/(?P<start_date>\d{4}-\d{2})/(?P<end_date>\d{4}-\d{2})/$', UserActivityReport.as_view(), name="user-activity-report"),
 
     url(r'^organization/$', OrganizationListView.as_view(), name='organizations-list'),
     url(r'^organization/$', OrganizationListView.as_view(), name='organization-list'),
@@ -192,7 +192,7 @@ urlpatterns = [
     url(r'^activaterole/(?P<invite_idb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z_\-]+)/$',
         ActivateRole.as_view(), name='activate-role'),
     url(r'^project/report/summary/(?P<pk>\d+)/$', ProjectSummaryReport.as_view(), name='project-summary-report'),
-    url(r'^user/report/activity/(?P<pk>\d+)/(?P<start_date>\d{4}-\d{2}-\d{2})/(?P<end_date>\d{4}-\d{2}-\d{2})/$', UserActivityReport.as_view(), name='user-activity-report'),
+    url(r'^user/report/activity/(?P<pk>\d+)/(?P<user_id>\d+)/(?P<start_date>\d{4}-\d{2}-\d{2})/(?P<end_date>\d{4}-\d{2}-\d{2})/$', UserActivityReport.as_view(), name='user-activity-report'),
     url(r'^site/report/summary/(?P<pk>\d+)/$', SiteSummaryReport.as_view(), name='site-summary-report'),
     url(r'map-view/$',views.viewfullmap, name='full-map'),
     url(r'org-map/(?P<pk>[0-9]+)/$', OrgFullmap.as_view(), name='org-loc-map'),
