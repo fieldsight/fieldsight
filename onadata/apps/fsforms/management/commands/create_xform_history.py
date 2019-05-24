@@ -2,16 +2,15 @@ from __future__ import unicode_literals
 
 import os
 import glob
-import shutil
 
 from django.core.files import File
 
 from django.core.management.base import BaseCommand
 from onadata.apps.fsforms.models import XformHistory
 from onadata.apps.logger.models import XForm
+from onadata.apps.fsforms.utils import get_version
 
 from pyxform.builder import create_survey_from_xls
-from onadata.apps.fsforms.utils import get_version
 
 from pyxform import xls2json_backends
 import xlwt
@@ -94,18 +93,26 @@ class Command(BaseCommand):
                     print("##########################")
                     print("##########################")
                     continue
+
             xls_file = open(os.path.join(xls_directory, filename))
             print("creating survey for ", xls_file)
             try:
+                if filename.endswith(".csv"):
+                    csv_file = open(os.path.join(xls_directory, filename))
+                    bytes_io = csv_to_xls(csv_file)
+                    with open(xls_directory + '' + filename.replace('.csv', '.xls'), 'wb') as f:
+                        copy_filelike_to_filelike(bytes_io, f)
+                        f.close()
+                    xls_file = open(xls_directory + '' + filename.replace('.csv', '.xls'), 'r')
+
                 survey = create_survey_from_xls(xls_file)
                 xml = survey.to_xml()
                 version = get_version(xml)
                 id_string = get_id_string(xml)
-            
             except Exception as e:
                 error_file_list.append(filename)
                 pass
-            
+
             else:
                 xls_file.close()
 
@@ -124,7 +131,10 @@ class Command(BaseCommand):
                 continue
             if not XformHistory.objects.filter(xform=xform, version=version).exists():
                 print("creating history from file ", filename)
-                file_obj = open(os.path.join(xls_directory, filename))
+                if filename.endswith('.csv'):
+                    file_obj = open(xls_directory + '' + filename.replace('.csv', '.xls'), 'r')
+                else:
+                    file_obj = open(os.path.join(xls_directory, filename))
                 history = XformHistory(xform=xform, xls=File(file_obj))
                 history.save()
             else:
