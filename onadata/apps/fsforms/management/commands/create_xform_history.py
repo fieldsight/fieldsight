@@ -10,13 +10,15 @@ from onadata.apps.fsforms.models import XformHistory
 from onadata.apps.logger.models import XForm
 
 from pyxform.builder import create_survey_from_xls
+from onadata.apps.fsforms.utils import get_version
 
 from pyxform import xls2json_backends
 import xlwt
 import re
 import StringIO
 
-def copy_filelike_to_filelike(src, dst, bufsize=16384):
+
+def copy_filelike_to_filelike(src, dst, bufsize = 16384):
     while True:
         buf = src.read(bufsize)
         if not buf:
@@ -58,15 +60,6 @@ def csv_to_xls(csv_repr):
     return string_io
 
 
-def get_version(xml):
-    import re
-    p = re.compile('version="(.*)">')
-    m = p.search(xml)
-    if m:
-        return m.group(1)
-    raise Exception("no version found")
-
-
 def get_id_string(xml):
     import re
     p = re.compile('id="(.*)" ')
@@ -78,7 +71,7 @@ def get_id_string(xml):
 
 class Command(BaseCommand):
     help = 'Create xml from xls'
-    
+
     def add_arguments(self, parser):
         parser.add_argument('directory', type=str)
 
@@ -88,7 +81,7 @@ class Command(BaseCommand):
         error_file_list = []
         # csv_to_xls(xls_directory)
         for filename in os.listdir(xls_directory):
-            if os.path.isfile(os.path.join(xls_directory,filename)):
+            if os.path.isfile(os.path.join(xls_directory, filename)):
                 if filename.endswith(".xls"):
                     pass
                 elif filename.endswith(".csv"):
@@ -122,7 +115,7 @@ class Command(BaseCommand):
 
             else:
                 xls_file.close()
-            
+
             # print("version =  ======", version)
             if not XForm.objects.filter(id_string=id_string).exists():
                 print("xform with id string not found ", id_string)
@@ -147,7 +140,7 @@ class Command(BaseCommand):
             else:
                 print('History already exists of this file  ', filename)
             print('Successfully created XFORM HISTORY form  ', filename)
-        
+
         if error_file_list:
             print('Errors occured at files: ')
             for files in error_file_list:
