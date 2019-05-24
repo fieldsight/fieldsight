@@ -3834,7 +3834,7 @@ def project_dashboard_peoples(request, pk):
 @api_view(["GET"])
 def project_managers(request, pk):
 
-    users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk, user_roles__group_id__in=[4, 9], user_roles__ended_at__isnull=True).distinct('id')
+    users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk, user_roles__group_id__in=[4, 9]).distinct('id')
     project = get_object_or_404(Project, id=pk)
     user_data = []
     for user in users:
