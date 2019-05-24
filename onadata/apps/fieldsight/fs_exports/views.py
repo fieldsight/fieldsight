@@ -212,10 +212,12 @@ class ExportProjectSitesWithRefs(ReadonlyProjectLevelRoleMixin, View):
         data = json.loads(self.request.body)
         site_type_ids = data.get('siteTypes', None)
         region_ids = data.get('regions', None)
+        sync_to_drive = data.get('sync_to_drive', False)
+
 
         task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
         if task_obj:
-            task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), region_ids, site_type_ids)
+            task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), region_ids, site_type_ids, sync_to_drive)
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
@@ -230,10 +232,11 @@ class StageStatus(DonorRoleMixin, View):
         data = json.loads(self.request.body)
         site_type_ids = data.get('siteTypes', None)
         region_ids = data.get('regions', None)
+        sync_to_drive = data.get('sync_to_drive', False)
 
         task_obj=CeleryTaskProgress.objects.create(user=user, task_type=10, content_object = obj)
         if task_obj:
-            task = generate_stage_status_report.delay(task_obj.pk, obj.id, site_type_ids, region_ids)
+            task = generate_stage_status_report.delay(task_obj.pk, obj.id, site_type_ids, region_ids, sync_to_drive)
             task_obj.task_id = task.id
             task_obj.save()
             data = {'status':'true','message':'Progress report is being generated. You will be notified upon completion. (It may take more time depending upon number of sites and submissions.)'}

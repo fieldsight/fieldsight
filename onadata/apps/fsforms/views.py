@@ -13,7 +13,7 @@ from django.db import transaction
 from django.db.models import Q, Sum, F
 from django.http import HttpResponseRedirect
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, render_to_response
 from django.template import RequestContext
 from django.utils.translation import ugettext as _
 from django.contrib.auth.decorators import login_required
@@ -2331,22 +2331,14 @@ def edit_data(request,  id_string, data_id):
     # if not has_edit_permission(xform, owner, request, xform.shared):
     #     return HttpResponseForbidden(_(u'Not shared.'))
     if not hasattr(settings, 'ENKETO_URL'):
-        return HttpResponseRedirect(reverse(
-            'onadata.apps.main.views.show',
-            kwargs={'username': xform.user.username, 'id_string': id_string}))
+        response = render_to_response('enketo_error.html', {},
+                                      context_instance=RequestContext(request))
+        response.status_code = 500
+        return response
 
-    url = '%sdata/edit_url' % settings.ENKETO_URL
-    # see commit 220f2dad0e for tmp file creation
     injected_xml = inject_instanceid(instance.xml, instance.uuid)
-    return_url = request.build_absolute_uri(
-        reverse(
-            'onadata.apps.viewer.views.instance',
-            kwargs={
-                'username': xform.user.username,
-                'id_string': id_string}
-        ) + "#/" + str(instance.id))
+
     form_url = _get_form_url(request, xform.user.username, settings.ENKETO_PROTOCOL)
-    print(form_url, "TRANSFORM FORM URLl")
 
     try:
         url = enketo_url(
@@ -2365,11 +2357,11 @@ def edit_data(request,  id_string, data_id):
         if url:
             context.enketo = url
             return HttpResponseRedirect(url)
-    # return HttpResponseRedirect(
-    #     reverse('onadata.apps.main.views.show',
-    #             kwargs={'username': xform.user.username,
-    #                     'id_string': id_string}))
-    return HttpResponse("This form cannot be viewed in enketo. Please Report")
+
+    response = render_to_response('enketo_error.html', {},
+                                  context_instance=RequestContext(request))
+    response.status_code = 500
+    return response
 
 
 def view_data(request,  id_string, data_id):
@@ -2379,19 +2371,14 @@ def view_data(request,  id_string, data_id):
     instance = get_object_or_404(
         Instance, pk=data_id, xform=xform)
     instance_attachments = image_urls_dict(instance)
-    # check permission
-    # if not has_edit_permission(xform, owner, request, xform.shared):
-    #     return HttpResponseForbidden(_(u'Not shared.'))
     if not hasattr(settings, 'ENKETO_URL'):
-        return HttpResponseRedirect(reverse(
-            'onadata.apps.main.views.show',
-            kwargs={'username': xform.user.username, 'id_string': id_string}))
+        response = render_to_response('enketo_error.html', {},
+                                      context_instance=RequestContext(request))
+        response.status_code = 500
+        return response
 
-    url = '%sdata/edit_url' % settings.ENKETO_URL
-    # see commit 220f2dad0e for tmp file creation
     injected_xml = inject_instanceid(instance.xml, instance.uuid)
     form_url = _get_form_url(request, xform.user.username, settings.ENKETO_PROTOCOL)
-    print(form_url, "TRANSFORM FORM URLl")
 
     try:
         url = enketo_view_url(
@@ -2410,11 +2397,10 @@ def view_data(request,  id_string, data_id):
         if url:
             context.enketo = url
             return HttpResponseRedirect(url)
-    # return HttpResponseRedirect(
-    #     reverse('onadata.apps.main.views.show',
-    #             kwargs={'username': xform.user.username,
-    #                     'id_string': id_string}))
-    return HttpResponse("This form cannot be viewed in enketo. Please Report With submission id")
+    response = render_to_response('enketo_error.html', {},
+                                  context_instance=RequestContext(request))
+    response.status_code = 500
+    return response
 
 
 class FormVersions(LoginRequiredMixin, View):
