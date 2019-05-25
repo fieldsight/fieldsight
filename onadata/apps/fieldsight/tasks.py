@@ -2041,7 +2041,8 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
                         "start": { 
                             '$gte' : new_startdate.isoformat(),
                             '$lte' : end.isoformat() 
-                        }
+                        },
+                        "fs_project": {'$in' : [str(project_id), int(project_id)]}
                     }
                 },
                 { 
@@ -2086,19 +2087,19 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
         last_month = new_enddate - datetime.timedelta(days=30)
         query['monthly'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[last_month, new_enddate], then=1),
+                When(supervisor__instance__date_created__range=[last_month, new_enddate], supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
         last_week = new_enddate - datetime.timedelta(days=7)
         query['weekly'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[last_week, new_enddate], then=1),
+                When(supervisor__instance__date_created__range=[last_week, new_enddate], supervisor__project_id=project_id,then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['daily'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate], then=1),
+                When(supervisor__instance__date_created__range=[end, new_enddate], supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
