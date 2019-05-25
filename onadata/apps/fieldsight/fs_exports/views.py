@@ -196,7 +196,7 @@ class ExportProjectSitesWithRefs(ReadonlyProjectLevelRoleMixin, View):
 
         task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
         if task_obj:
-            task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), self.kwargs.get('region_id', None))
+            task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), self.kwargs.get('region_id', None))
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
@@ -217,7 +217,7 @@ class ExportProjectSitesWithRefs(ReadonlyProjectLevelRoleMixin, View):
 
         task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
         if task_obj:
-            task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), region_ids, site_type_ids, sync_to_drive)
+            task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), region_ids, site_type_ids, sync_to_drive)
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
@@ -274,7 +274,7 @@ class CloneProjectSites(ProjectRoleMixin, View):
             source_user = self.request.user            
             task_obj=CeleryTaskProgress.objects.create(user=source_user, content_object=t_project, task_type=4)
             if task_obj:
-                task = importSites.delay(task_obj.pk, source_user, f_project, t_project, meta_attributes, regions, ignore_region)
+                task = importSites.delay(task_obj.pk, f_project, t_project, meta_attributes, regions, ignore_region)
                 task_obj.task_id = task.id
                 task_obj.save()
                 result='Sites are being Imported. You will be notified in notifications list as well.'

@@ -1174,7 +1174,7 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                 if task_obj:
                     # import ipdb
                     # ipdb.set_trace()
-                    task = bulkuploadsites.delay(task_obj.pk, user, sites, pk)
+                    task = bulkuploadsites.delay(task_obj.pk, sites, pk)
                     task_obj.task_id = task.id
                     task_obj.save()
                     messages.success(request, 'Sites are being uploaded. You will be notified in notifications list as well.')
@@ -2204,7 +2204,7 @@ class MultiUserAssignSiteView(ProjectRoleMixin, TemplateView):
         project = get_object_or_404(Project, pk=pk, is_active=True)
         task_obj =CeleryTaskProgress.objects.create(user=user, content_object = project, task_type=2)
         if task_obj:
-            task = multiuserassignsite.delay(task_obj.pk, user, pk, sites, users, group.id)
+            task = multiuserassignsite.delay(task_obj.pk, pk, sites, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('sucess')
@@ -2274,7 +2274,7 @@ class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
         org = get_object_or_404(Organization, pk=pk)
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object = org, task_type=1)
         if task_obj:
-            task = multiuserassignproject.delay(task_obj.pk, user.id, pk, projects, users, group_id)
+            task = multiuserassignproject.delay(task_obj.pk, pk, projects, users, group_id)
             task_obj.task_id=task.id
             task_obj.save()
             return HttpResponse("Success")
@@ -2735,7 +2735,7 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
 #         project = get_object_or_404(Project, pk=pk, is_active=True)
 #         task_obj = CeleryTaskProgress.objects.create(user=user, content_object = project, task_type=2)
 #         if task_obj:
-#             task = multiuserassignregion.delay(task_obj.pk, user, pk, regions, users, group.id)
+#             task = multiuserassignregion.delay(task_obj.pk, pk, regions, users, group.id)
 #             task_obj.task_id = task.id
 #             task_obj.save()
 #             return HttpResponse('sucess')
@@ -2759,7 +2759,7 @@ class MultiUserAssignRegionView(ProjectRoleMixin, TemplateView):
         project = get_object_or_404(Project, pk=pk, is_active=True)
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=2)
         if task_obj:
-            task = multiuserassignregion.delay(task_obj.pk, user, pk, regions, users, group.id)
+            task = multiuserassignregion.delay(task_obj.pk, pk, regions, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('sucess')
@@ -2789,7 +2789,7 @@ class AssignUsersToRegionsView(ProjectRoleMixin, TemplateView):
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=13)
 
         if task_obj:
-            task = multi_users_assign_regions.delay(task_obj.pk, user.id, pk, regions, users, group.id)
+            task = multi_users_assign_regions.delay(task_obj.pk, pk, regions, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('Success')
@@ -2819,7 +2819,7 @@ class AssignUsersToEntireProjectView(ProjectRoleMixin, TemplateView):
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=14)
 
         if task_obj:
-            task = multi_users_assign_to_entire_project.delay(task_obj.pk, user, pk, regions, users, unassigned_sites)
+            task = multi_users_assign_to_entire_project.delay(task_obj.pk, pk, regions, users, unassigned_sites)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('Success')
@@ -3055,7 +3055,7 @@ class ExcelBulkSiteSample(ProjectRoleMixin, View):
             regions = regions.split(',')
         task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
         if task_obj:
-            task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), regions)
+            task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), regions)
             task_obj.task_id = task.id
             task_obj.save()
             #status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
@@ -3491,7 +3491,7 @@ class FormlistAPI(View):
 
         task_obj=CeleryTaskProgress.objects.create(user=request.user, content_object = site, task_type=9)
         if task_obj:
-            task = generateCustomReportPdf.delay(task_obj.id, request.user, pk, base_url, fs_ids, start_date, end_date, removeNullField)
+            task = generateCustomReportPdf.delay(task_obj.id, pk, base_url, fs_ids, start_date, end_date, removeNullField)
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'True','message':'Sucess, the report is being generated. You will be notified after the report is generated. '}
@@ -4165,7 +4165,7 @@ class UnassignUserRegionAndSites(View):
             user = get_object_or_404(User, pk=pk)
             task_obj=CeleryTaskProgress.objects.create(user=request.user, description="Removal of UserRoles", content_object = user, task_type=7)
             if task_obj:
-                task = UnassignUser.delay(task_obj.id, user_id, sites, regions, projects, group_id)
+                task = UnassignUser.delay(task_obj.id, sites, regions, projects, group_id)
                 task_obj.task_id = task.id
                 task_obj.save()
                 status, data = 200, {'status':'True', 'ids':ids, 'projects':projects, 'regions':regions, 'sites': sites, 'message':'Sucess, the roles are being removed. You will be notified after all the roles are removed. '}
