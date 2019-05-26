@@ -2026,7 +2026,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
 
         new_enddate = end + datetime.timedelta(days=1)
 
-        roles = user.user_roles.filter(ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
+        roles = user.user_roles.filter(project_id=pk, ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
         # recent_images = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": "santoshkhatri"}, "start": { 
         #                     '$gte' : new_startdate.isoformat(),
         #                     '$lte' : end.isoformat() 
@@ -2043,7 +2043,8 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                         },
                         "_geolocation": {
                                 "$not":{ "$elemMatch": { "$eq": None }}
-                            }
+                        },
+                        "fs_project": {'$in' : [str(pk), int(pk)]}
                     }
             },
             {
@@ -2062,7 +2063,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                     }
             }])['result']
         response_coords = {'features': coords, 'type':'FeatureCollection'}
-        submission_queryset = user.supervisor.filter(instance__date_created__range=[new_startdate, new_enddate])
+        submission_queryset = user.supervisor.filter(project_id=pk, instance__date_created__range=[new_startdate, new_enddate])
         approved = submission_queryset.filter(form_status=3).count()
         rejected = submission_queryset.filter(form_status=1).count()
         pending = submission_queryset.filter(form_status=0).count()
@@ -2084,7 +2085,8 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
                         "start": { 
                             '$gte' : new_startdate.isoformat(),
                             '$lte' : new_enddate.isoformat() 
-                        }
+                        },
+                        "fs_project": {'$in' : [str(pk), int(pk)]}
                     }
                 },
                 { 
@@ -3835,13 +3837,11 @@ def project_dashboard_peoples(request, pk):
 def project_managers(request, pk):
 
     users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk, user_roles__group_id__in=[4, 9]).distinct('id')
-    project = get_object_or_404(Project, id=pk)
     user_data = []
     for user in users:
         user_data.append(dict(label=user.get_full_name(),
                               email=user.email,
                               id=user.id,
-                              project_id=project.id
                               ))
 
 
