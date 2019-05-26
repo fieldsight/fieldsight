@@ -19,39 +19,62 @@ USER_PASSWORD = ""
 
 
 # BASE_URL = "http://localhost:8001/"
-# BASE_URL = "https://app.fieldsight.org/"
-BASE_URL = "https://fieldsight.naxa.com.np/"
+BASE_URL = "https://app.fieldsight.org/"
+# BASE_URL = "https://fieldsight.naxa.com.np/"
+# PROJECT_FORM_ID = 863944
+# ID_STRING = "aKj8xav4pECzcTW2zHm7SX"
+# ID_SUBMISSION = "42176"
+
+
+def edit_submission(ID_SUBMISSION, driver, ID_STRING):
+    enketo_url = "{}forms/edit/{}/{}".format(BASE_URL, ID_STRING, ID_SUBMISSION)
+    print(enketo_url)
+    driver.get(enketo_url)
+    time.sleep(5)
+    # driver.save_screenshot('screenie{}.png'.format(str(ID_SUBMISSION)))
+    try:
+        # submit_button = driver.find_elements_by_xpath('//*[@id="submit-form"]')[0]
+        # submit_button.click()
+        driver.execute_script("document.querySelectorAll('button#submit-form')[0].click()")
+        time.sleep(5)
+        # driver.save_screenshot('screenie_thanks{}.png'.format(str(ID_SUBMISSION)))
+        if "Thank" in driver.page_source:
+            return True
+            # print(ID_SUBMISSION)
+        else:
+            return False
+    except TimeoutException:
+        print "Loading took too much time!"
+    return False
 
 
 def run_enketo(project_form, instance):
     display = Display(visible=0, size=(1024, 900))
     display.start()
-    firefox_capabilities = DesiredCapabilities.FIREFOX
-    firefox_capabilities['marionette'] = True
-    # firefox_capabilities['binary'] = '/geckodriver-v0.24.0-linux32'
-    driver = webdriver.Firefox(capabilities=firefox_capabilities, executable_path='/geckodriver')
+    #firefox_capabilities = DesiredCapabilities.FIREFOX
+    #firefox_capabilities['marionette'] = True
+    # firefox_capabilities['binary'] = '/home/awemulya/Downloads/geckodriver-v0.24.0-linux32'
+    #driver = webdriver.Firefox(capabilities=firefox_capabilities, executable_path='/srv/fieldsight/geckodriver')
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--no-sandbox')
+    driver = webdriver.Chrome(executable_path=r"/home/ubuntu/chromedriver", chrome_options=chrome_options)
+    time.sleep(10)
     driver.get(BASE_URL)
     driver.find_element_by_name('username').send_keys(USER_NAME)
     driver.find_element_by_name('password').send_keys(USER_PASSWORD + Keys.RETURN)
-    # print(project_form)
+    time.sleep(5)
+    #driver.save_screenshot('{}.png'.format()
+    print(driver.title)
     project_fxf = FieldSightXF.objects.get(pk=project_form)
     instances = project_fxf.project_form_instances.filter(instance__id__gt=instance).\
-        values_list('instance', flat=True).order_by('pk')[:100]
+        values_list('instance', flat=True).order_by('pk')
     ID_STRING = project_fxf.xf.id_string
 
     for ID_SUBMISSION in instances:
-        enketo_url = "{}forms/edit/{}/{}".format(BASE_URL, ID_STRING, ID_SUBMISSION)
-        driver.get(enketo_url)
-        time.sleep(6)
-        driver.save_screenshot('ID_SUBMISSION{}.png'.format(str(ID_SUBMISSION)))
+        flag = False
+        while not flag:
+            flag = edit_submission(ID_SUBMISSION, driver, ID_STRING)
 
-        try:
-            driver.execute_script("document.querySelectorAll('button#submit-form')[0].click()")
-            time.sleep(2)
-            print(ID_SUBMISSION)
-        except TimeoutException:
-            driver.close()
-            print "Loading took too much time!"
     driver.close()
 
 
@@ -81,5 +104,3 @@ class Command(BaseCommand):
         project_form = options.get("f", 0)
         instance = options.get("i", 0)
         run_enketo(project_form, instance)
-
-
