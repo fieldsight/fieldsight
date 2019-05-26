@@ -1,4 +1,4 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends "fieldsight/manage_base.html" %}
 {% load i18n staticfiles %}
 {% load filters %}
 
@@ -9,13 +9,8 @@
 {% load pagination_tags %}
 {% load sorting_tags %}
 {% load fs_filters %}
-<div id="main-content" class="padding">
-                <nav aria-label="breadcrumb" role="navigation">
-					<ol class="breadcrumb">
-						<li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' pk %}">{{ project.name }}</a></li>
-						<li class="breadcrumb-item active" aria-current="page">{% trans 'Region' %} {% trans 'List' %}</li>
-					</ol>
-				</nav>
+<div class="padding">
+
 				<section class="panel">
                     <header class="panel-heading clearfix">
                         <h3><i class="la la-globe"></i>{% trans 'Manage' %} {% trans 'Regions'%}</h3>
@@ -67,4 +62,15 @@
                 </section>
 
 			</div>
+{% endblock %}
+
+{%block extrascript %}
+
+  	<script type="text/javascript">
+        $(document).ready(function(){
+
+        $("ul.nav li:nth-child(4) a" ).addClass("active");
+
+});
+</script>
 {% endblock %}

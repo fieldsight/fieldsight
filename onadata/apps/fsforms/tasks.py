@@ -6,16 +6,15 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.conf import settings
 
-from onadata.apps.fieldsight.models import Site, Project
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, DeployEvent, XformHistory
+from onadata.apps.fieldsight.models import  Project
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, DeployEvent
 from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer
-from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import FSXFormListSerializer, StageFormSerializer
+from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import StageFormSerializer
 from onadata.apps.fsforms.utils import send_sub_stage_deployed_project, send_bulk_message_stage_deployed_project, \
-    send_bulk_message_stages_deployed_project, send_message_un_deploy_project, send_message_koboform_updated
+    send_bulk_message_stages_deployed_project, send_message_un_deploy_project, notify_koboform_updated
 from onadata.apps.logger.models import XForm
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.libs.utils.fieldsight_tools import clone_kpi_form
-from django.core.mail import EmailMessage
 
 
 @shared_task(max_retries=10, soft_time_limit=60)
@@ -63,6 +62,7 @@ def copy_stage_to_sites(main_stage, pk):
         # First countdown will be 1.0, then 2.0, 4.0, etc.
         raise copy_stage_to_sites.retry(countdown=seconds_to_wait)
 
+
 @shared_task(max_retries=10, soft_time_limit=60)
 def copy_sub_stage_to_sites(sub_stage, pk):
     try:
@@ -93,6 +93,7 @@ def copy_sub_stage_to_sites(sub_stage, pk):
         # First countdown will be 1.0, then 2.0, 4.0, etc.
         raise copy_sub_stage_to_sites.retry(countdown=seconds_to_wait)
 
+
 @shared_task(max_retries=10, soft_time_limit=60)
 def copy_schedule_to_sites(schedule, fxf_status, pk):
     try:
@@ -118,15 +119,18 @@ def copy_schedule_to_sites(schedule, fxf_status, pk):
 @shared_task(max_retries=5)
 def post_update_xform(xform_id, user):
     existing_xform = XForm.objects.get(pk=xform_id)
-    user = User.objects.get(pk=user)
-    existing_xform.logs.create(source=user, type=20, title="Kobo form Updated",
-                                description="update kobo form ")
+    # user = User.objects.get(pk=user)
+    # existing_xform.logs.create(source=user, type=20, title="Kobo form Updated",
+    #                             description="update kobo form ", ) #event_name = ??
 
-    send_message_koboform_updated(existing_xform)
+    notify_koboform_updated(existing_xform)
 
 
 @shared_task(max_retries=5)
-def clone_form(user, project, task_id):
+def clone_form(user_id, project_id, task_id):
+    user = User.objects.get(id=user_id)
+    project = Project.objects.get(id=project_id)
+
     token = user.auth_token.key
 
     #general clone

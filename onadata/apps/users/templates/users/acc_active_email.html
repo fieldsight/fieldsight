@@ -1,5 +1,147 @@
-{% autoescape off %}
-Hi {{ user.username }},
-Please click on the link to confirm your registration,
-{{ domain }}{% url 'users:activate' uidb64=uid token=token %}
-{% endautoescape %}
+{% extends 'users/email_base.html' %}
+
+{% block content %}
+  <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f0f0f0" align="center">
+      <tbody>
+        <tr>
+          <td style="font-size:0;" align="center">
+            <div style="display:inline-block;width:100%;max-width:800px;vertical-align:top;" class="width800 mrt-30">
+              <!-- ID:BG SECTION-1 -->
+              <table class="display-width" style="max-width:800px;" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" align="center">
+                <tbody>
+                  <tr>
+                    <td class="padding" align="center">
+                      <div style="display:inline-block;width:100%;max-width:600px;vertical-align:top;font-family:Ubuntu, sans-serif;" class="main-width">
+                        <table class="display-width-inner" style="max-width:600px;" width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+                          <tbody>
+                            <tr>
+                              <td style="mso-line-height-rule:exactly;line-height:30px;font-size:0;" height="30">
+                                 
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px;">
+                              	Hi <span>{{user.username}}</span>,
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="color:#0488d1;font-family:Ubuntu, sans-serif;font-weight:500;font-size:14px;line-height:24px; text-align:justify;">
+                               	Welcome to FieldSight!
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="mso-line-height-rule:exactly;line-height:10px;font-size:0;" height="10">
+                                 
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px; text-align:justify;">
+                               	Please click on the link below to complete your registration.
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="mso-line-height-rule:exactly;line-height:20px;font-size:0;" height="20">
+                                 
+                              </td>
+                            </tr>
+                            <tr>
+                              <td class="button-width" align="center">
+                                <!--  BUTTON -->
+                                <table class="display-button" style="border-radius:50px;" cellspacing="0" cellpadding="0" border="0" bgcolor="#1872b5" align="left">
+                                  <tbody>
+                                    <tr>
+                                      <td class="MsoNormal" style="color:#ffffff;font-family:Ubuntu, sans-serif;font-weight:500;padding:10px 16px;font-size:12px;letter-spacing:1px;" align="center">
+                                        <a href="{{ domain }}{% url 'users:activate' uidb64=uid token=token %}" style="color:#ffffff;text-decoration:none;text-transform:uppercase;">Click here</a>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f0f0f0" align="center">
+	     <tbody>
+	        <tr>
+		        <td style="font-size:0;" align="center">
+		            <div style="display:inline-block;width:100%;max-width:800px;vertical-align:top;" class="width800">
+		              <!-- ID:BG SECTION-1 -->
+		              <table class="display-width" style="max-width:800px;" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" align="center">
+		                <tbody>
+		                  <tr>
+		                    <td class="padding" align="center">
+		                      <div style="display:inline-block;width:100%;max-width:600px;vertical-align:top;font-family:Ubuntu, sans-serif;" class="main-width">
+		                        <table class="display-width-inner" style="max-width:600px;" width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+		                          <tbody>
+		                            <tr>
+		                              <td style="mso-line-height-rule:exactly;line-height:15px;font-size:0;">
+		                                 
+		                              </td>
+		                            </tr>
+		                            <tr>
+		                              <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px;">
+		                              	Thank you for joining our platform.
+		                            </td>
+		                          </tr>
+		                        </tbody>
+		                      </table>
+		                    </div>
+		                  </td>
+		                </tr>
+		              	</tbody>
+		            </table>
+		          </div>
+		        </td>
+		    </tr>
+	    </tbody>
+	</table>
+
+  <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f0f0f0" align="center">
+      <tbody>
+        <tr>
+          <td style="font-size:0;" align="center">
+            <div style="display:inline-block;width:100%;max-width:800px;vertical-align:top;" class="width800">
+              <!-- ID:BG SECTION-1 -->
+              <table class="display-width" style="max-width:800px;" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" align="center">
+                <tbody>
+                  <tr>
+                    <td class="padding" align="center">
+                      <div style="display:inline-block;width:100%;max-width:600px;vertical-align:top;font-family:Ubuntu, sans-serif;" class="main-width">
+                        <table class="display-width-inner" style="max-width:600px;" width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+                          <tbody>
+                            <tr>
+                          <tr>
+                              <td style="mso-line-height-rule:exactly;line-height:10px;font-size:0;" height="10">
+                                 
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px;">
+                              	The next step is to invite team members to join your project. Learn how to do this in our<a href="#" style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 0 0 2px;" target="_link">User Manual</a>.
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+
+  {% endblock %}

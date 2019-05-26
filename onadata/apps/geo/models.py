@@ -24,6 +24,7 @@ class GeoLayer(models.Model):
 
     def save(self, *args, **kwargs):
         from .loader import load_areas
+
         super(GeoLayer, self).save(*args, **kwargs)
 
         if self.stale_areas:

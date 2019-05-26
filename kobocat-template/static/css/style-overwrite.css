@@ -1,0 +1,127 @@
+/*===Login Page Input Fields Correction==*/
+
+.form-signin input[type="text"].form-control, .form-
+
+signin input[type="password"].form-control{
+font-size: 16px;
+}
+
+.card{
+box-shadow: none;
+}
+
+.radio-div{
+position: absolute;
+right: 10px;
+padding: 10px 15px;
+border-radius: 3px;
+}
+
+.radio-div .radio{
+margin: 5px 0;
+}
+
+.mini-stat-icon{
+font-size: 30px;
+}
+
+.dropdown-toggle:active{
+background: inherit;
+}
+
+.card{
+box-shadow: none;
+}
+
+.radio-div{
+position: absolute;
+right: 10px;
+padding: 10px 15px;
+border-radius: 3px;
+}
+
+.radio-div .radio{
+margin: 5px 0;
+}
+
+.mini-stat-icon{
+font-size: 30px;
+}
+
+.dropdown-toggle:active{
+background: inherit;
+}
+
+.list-img{
+overflow: hidden;
+}
+
+
+.organization-detail-page .mini-stat{
+box-shadow: none;
+background: rgba(0,0,0,0.05);
+padding: 10px;
+margin-bottom: 10px;
+}
+
+.org-description{
+box-shadow: none !important;
+
+}
+
+.org-logo{
+margin-left: 10px;
+}
+
+.admin-list{
+box-shadow: none !important;
+border: 0;
+}
+
+.info-box{
+box-shadow: none !important;
+background: rgba(0,0,0,0.05);
+}
+
+.organization-short-detail >.row{
+margin: 0;
+}
+
+.organization-short-detail .org-description{
+
+}
+
+.user-block .description{
+font-size: 11px;
+}
+
+.adminname {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+li.user-block{
+padding: 5px 0;
+}
+
+.adminname {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.user-block .username{
+background: rgb(156, 181, 191);
+padding: 10px 10px;
+text-align: center;
+}
+
+.user-block .username a{
+color: #FFF;
+}
+
+.org-site{
+border: none;
+background: #FFF;
+margin-top: 15px;
+min-height: 146px;
+}

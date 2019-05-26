@@ -9,7 +9,7 @@ from django.views.generic import TemplateView, View
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
-from onadata.apps.fieldsight.tasks import importSites, exportProjectSiteResponses, generateSiteDetailsXls, site_download_zipfile, exportProjectstatistics, exportLogs, generate_stage_status_report
+from onadata.apps.fieldsight.tasks import importSites, exportProjectSiteResponses, generateSiteDetailsXls, site_download_zipfile, exportProjectstatistics, exportLogs, generate_stage_status_report, exportProjectUserstatistics
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -196,7 +196,7 @@ class ExportProjectSitesWithRefs(ReadonlyProjectLevelRoleMixin, View):
 
         task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
         if task_obj:
-            task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), self.kwargs.get('region_id', None))
+            task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), self.kwargs.get('region_id', None))
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
@@ -212,10 +212,12 @@ class ExportProjectSitesWithRefs(ReadonlyProjectLevelRoleMixin, View):
         data = json.loads(self.request.body)
         site_type_ids = data.get('siteTypes', None)
         region_ids = data.get('regions', None)
+        sync_to_drive = data.get('sync_to_drive', False)
+
 
         task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
         if task_obj:
-            task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), region_ids, site_type_ids)
+            task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), region_ids, site_type_ids, sync_to_drive)
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
@@ -230,13 +232,32 @@ class StageStatus(DonorRoleMixin, View):
         data = json.loads(self.request.body)
         site_type_ids = data.get('siteTypes', None)
         region_ids = data.get('regions', None)
+        sync_to_drive = data.get('sync_to_drive', False)
 
         task_obj=CeleryTaskProgress.objects.create(user=user, task_type=10, content_object = obj)
         if task_obj:
-            task = generate_stage_status_report.delay(task_obj.pk, obj.id, site_type_ids, region_ids)
+            task = generate_stage_status_report.delay(task_obj.pk, obj.id, site_type_ids, region_ids, sync_to_drive)
             task_obj.task_id = task.id
             task_obj.save()
             data = {'status':'true','message':'Progress report is being generated. You will be notified upon completion. (It may take more time depending upon number of sites and submissions.)'}
+        else:
+            data = {'status':'false','message':'Report cannot be generated a the moment.'}
+        return JsonResponse(data, status=200)
+
+class UserActivityStats(DonorRoleMixin, View):
+    def post(self, request, *args, **kwargs):
+        obj = get_object_or_404(Project, pk=self.kwargs.get('pk'), is_active=True)
+        user = request.user
+        data = json.loads(self.request.body)
+        start_date = data.get('startdate')
+        end_date = data.get('enddate')
+        
+        task_obj=CeleryTaskProgress.objects.create(user=user, task_type=16, content_object = obj)
+        if task_obj:
+            task = exportProjectUserstatistics.delay(task_obj.pk, user, obj.id, start_date, end_date)
+            task_obj.task_id = task.id
+            task_obj.save()
+            data = {'status':'true','message':'User Activity report is being generated. You will be notified upon completion.'}
         else:
             data = {'status':'false','message':'Report cannot be generated a the moment.'}
         return JsonResponse(data, status=200)
@@ -253,7 +274,7 @@ class CloneProjectSites(ProjectRoleMixin, View):
             source_user = self.request.user            
             task_obj=CeleryTaskProgress.objects.create(user=source_user, content_object=t_project, task_type=4)
             if task_obj:
-                task = importSites.delay(task_obj.pk, source_user, f_project, t_project, meta_attributes, regions, ignore_region)
+                task = importSites.delay(task_obj.pk, f_project, t_project, meta_attributes, regions, ignore_region)
                 task_obj.task_id = task.id
                 task_obj.save()
                 result='Sites are being Imported. You will be notified in notifications list as well.'

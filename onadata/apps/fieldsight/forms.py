@@ -15,7 +15,7 @@ from registration import forms as registration_forms
 from onadata.apps.fieldsight.helpers import AdminImageWidget
 from .utils.forms import HTML5BootstrapModelForm, KOModelForm
 
-from .models import Organization, Project, Site, BluePrints, Region, SiteType
+from .models import Organization, Project, Site, BluePrints, Region, SiteType, Sector
 from onadata.apps.geo.models import GeoLayer
 
 from onadata.apps.userrole.models import UserRole
@@ -24,6 +24,8 @@ import StringIO
 import mimetypes
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.db.models import Q
+
 USERNAME_REGEX = r'^[a-z][a-z0-9_]+$'
 USERNAME_MAX_LENGTH = 30
 USERNAME_INVALID_MESSAGE = _(
@@ -83,7 +85,7 @@ class OrganizationForm(forms.ModelForm):
 
     class Meta:
         model = Organization
-        exclude = ['is_active', 'owner']
+        exclude = ['is_active', 'owner', 'fax', 'additional_desc']
         # exclude = ['organizaton']
         widgets = {
         'is_active': forms.HiddenInput(),
@@ -237,6 +239,26 @@ class ProjectForm(forms.ModelForm):
     y = forms.FloatField(widget=forms.HiddenInput(), required=False)
     width = forms.FloatField(widget=forms.HiddenInput(), required=False)
     height = forms.FloatField(widget=forms.HiddenInput(), required=False)
+    sector = forms.ModelChoiceField(queryset=Sector.objects.filter(sector=None))
+    sub_sector = forms.ModelChoiceField(queryset=Sector.objects.filter(~Q(sector=None)))
+
+    def clean_sub_sector(self):
+        cleaned_data = super(ProjectForm, self).clean()
+        if self.instance.id:
+            sub_sector = cleaned_data.get('sub_sector')
+            sector = cleaned_data.get('sector')
+            print(sub_sector.sector)
+            if sub_sector.sector == sector:
+                return sub_sector
+            elif not sub_sector.sector == self.instance.sector:
+                msg = 'Select the sub sector that matches the selected sector'
+                self.add_error('sub_sector', msg)
+            else:
+                msg = 'Select the sub sector that matches the selected sector'
+                self.add_error('sub_sector', msg)
+
+        else:
+            return cleaned_data.get('sub_sector')
 
     def __init__(self, *args, **kwargs):
         is_new = kwargs.pop('new', None)
@@ -245,7 +267,7 @@ class ProjectForm(forms.ModelForm):
 
         if not self.fields['location'].initial:
             self.fields['location'].initial = Point(85.3240, 27.7172, srid=4326)
-        self.fields['type'].empty_label = None
+        # self.fields['type'].empty_label = None
         if self.instance.cluster_sites:
             self.fields.pop('cluster_sites')
 
@@ -256,13 +278,15 @@ class ProjectForm(forms.ModelForm):
 
         if not is_new:
             org_id = kwargs['instance'].organization.id
-        self.fields['geo_layers'].queryset = GeoLayer.objects.filter(
-            organization__id=org_id
-        )
+        # self.fields['geo_layers'].queryset = GeoLayer.objects.filter(
+        #     organization__id=org_id
+        # )
+
 
     class Meta:
         model = Project
-        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta')
+        exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers', 'fax',
+                   'additional_desc', 'type')
         #organization_filters = ['organization']
         widgets = {
             'is_active': forms.HiddenInput(),
@@ -308,6 +332,22 @@ class ProjectForm(forms.ModelForm):
         super(ProjectForm, self).clean()
 
 
+class ProjectGeoLayerForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        org_id = kwargs.pop('organization_id', None)
+
+        super(ProjectGeoLayerForm, self).__init__(*args, **kwargs)
+
+        self.fields['geo_layers'].queryset = GeoLayer.objects.filter(
+            organization__id=org_id
+        )
+
+    class Meta:
+        model = Project
+        fields = ('geo_layers',)
+
+
 class SiteForm(HTML5BootstrapModelForm, KOModelForm):
     x = forms.FloatField(widget=forms.HiddenInput(), required=False)
     y = forms.FloatField(widget=forms.HiddenInput(), required=False)
@@ -324,7 +364,7 @@ class SiteForm(HTML5BootstrapModelForm, KOModelForm):
 
     class Meta:
         model = Site
-        exclude = ('project', 'is_survey', 'is_active', 'region', 'current_status', 'current_progress',)
+        exclude = ('project', 'is_survey', 'is_active', 'region', 'current_status', 'current_progress', 'additional_desc')
        
         project_filters = ['type']
         widgets = {
@@ -450,7 +490,7 @@ class SiteTypeForm(forms.ModelForm):
         exclude = ('project','deleted')
         widgets = {
             'name': TextInput(attrs={'placeholder': 'name','id':'id_name', 'class':'form-control', }),
-            'identifier': TextInput(attrs={'placeholder': 'ID', 'id':'id_identifier', 'class':'form-control', 'autocomplete': 'off','pattern':'[0-9]+', 'title':'Enter Positive numbers Only ', }),
+            'identifier': TextInput(attrs={'placeholder': 'ID', 'id':'id_identifier', 'class':'form-control', 'autocomplete': 'off','title': 'Enter Unique Site type ID ', }),
         }
 
 

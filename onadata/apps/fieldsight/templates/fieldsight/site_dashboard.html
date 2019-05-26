@@ -123,7 +123,7 @@
 							{% block breadcrumbs %}
 							<ol class="breadcrumb">
 								{% ifrole "Organization" %}
-								<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Organization' %} {% trans 'List' %}</a></li>
+								<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Teams' %}</a></li>
 								<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' obj.project.organization.pk %}">{{obj.project.organization.name}}</a></li>
 								{% endrole %}
 								{% ifrole "Project" %}
@@ -158,7 +158,7 @@
 									<div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButtonManage">
 										<a class="dropdown-item" href="{% url 'fieldsight:site-edit' obj.pk %}"><i class="la la-edit"></i>{% trans 'Edit Site Information' %}</a>
 										<a class="dropdown-item" href="{% url 'fieldsight:site-blue-prints' obj.pk %}"><i class="la la-file-text-o"></i>{% trans 'Site' %} {% trans 'Documents' %}</a>
-										<a class="dropdown-item" href="{% url 'fieldsight:manage-people-site' obj.pk %}"><i class="la la-user"></i>{% trans 'People' %}</a>
+										<a class="dropdown-item" href="{% url 'fieldsight:manage-people-site' obj.pk %}"><i class="la la-user"></i>{% trans 'User' %}</a>
 										<a class="dropdown-item" href="{% url 'forms:setup-forms' 0 obj.pk %}"><i class="la la-clipboard"></i>{% trans 'Forms (for this site only)' %}</a>
 
 										

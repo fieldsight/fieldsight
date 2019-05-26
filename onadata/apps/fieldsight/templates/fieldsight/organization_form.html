@@ -1,4 +1,4 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends base_template %}
 {% load i18n staticfiles %}
 {% load filters %}
 
@@ -78,26 +78,15 @@
 
     });
   </script>
-			<div id="main-content" class="padding">
-                <nav aria-label="breadcrumb" role="navigation">
-                    {% block breadcrumbs %}
-					<ol class="breadcrumb">
-                        {% if form.instance.id %}
-						<li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' form.instance.id %}">{{ form.instance.name }}</a></li>
-						{% else %}
-                        <li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Organization' %}</a></li>
-                        {% endif %}
-						<li class="breadcrumb-item active" aria-current="page">{{ scenario }}</li>
-					 </ol>
-                    {% endblock %}
-				</nav>
+			<div class="padding">
+
 				<section class="panel">
                     <header class="panel-heading clearfix">
                         {% if form.instance.name %}
-                        <h3><i class="la la-building"></i>{% trans 'Edit' %} {% trans 'Organization' %}</h3>
+                        <h3><i class="la la-building"></i>{% trans 'Edit' %} {% trans 'Team' %}</h3>
                         <button type="button" class="btn btn-danger pull-right" style="display:none;" data-toggle="modal" data-target="#myModal"><i class="la la-trash"></i> {% trans 'Delete' %}</button>
                         {% else %}
-                        <h3><i class="la la-building"></i>{% trans 'New' %} {% trans 'Organization' %}</h3>
+                        <h3><i class="la la-building"></i>{% trans 'New' %} {% trans 'Team' %}</h3>
                         {% endif %}
                         
                     </header>
@@ -160,7 +149,7 @@
                             </div>
                             <div class="modal-body">
                               <h4 style="color:red; text-align: center;">{% trans 'Warning' %}</h4>
-                                <p>{% trans '"All the projects, sites, form submissions and user roles within this organization will be completely removed. Do you still want to continue?"' %}</p>
+                                <p>{% trans '"All the projects, sites, form submissions and user roles within this Team will be completely removed. Do you still want to continue?"' %}</p>
                             </div>
                             <div class="modal-footer">
                                 {% if form.instance.id %}
@@ -217,6 +206,14 @@
  var elong = "{{form.instance.longitude}}";
 
 
+     $(document).ready(function(){
+
+        $("ul.nav li:nth-child(1) a" ).addClass("active");
+        $("#id_logo").closest(".form-group").find(".text-danger").hide();
+
+
+
+    });
 </script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/addmarker.js?v=2.0"></script>
 <script type="text/javascript">

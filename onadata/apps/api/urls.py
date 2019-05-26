@@ -22,23 +22,12 @@ from onadata.apps.api.viewsets.submissionstats_viewset import\
     SubmissionStatsViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.viewsets.xform_list_api import XFormListApi
-# from onadata.apps.api.viewsets.assigned_xform_list_api import AssignedXFormListApi
 from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
 from onadata.apps.api.viewsets.briefcase_api import BriefcaseApi
 
 
-def make_routes(template_text):
-    return routers.Route(
-        url=r'^{prefix}/{%s}{trailing_slash}$' % template_text,
-        mapping={
-            'get': 'list',
-            'post': 'create'
-        },
-        name='{basename}-list',
-        initkwargs={'suffix': 'List'})
-
-
 class MultiLookupRouter(routers.DefaultRouter):
+
     def __init__(self, *args, **kwargs):
         super(MultiLookupRouter, self).__init__(*args, **kwargs)
         self.lookups_routes = []
@@ -53,8 +42,8 @@ class MultiLookupRouter(routers.DefaultRouter):
             name='{basename}-detail',
             initkwargs={'suffix': 'Instance'}
         ))
-        self.lookups_routes.append(make_routes('lookup'))
-        self.lookups_routes.append(make_routes('lookups'))
+        self.lookups_routes.append(self.make_routes('lookup'))
+        self.lookups_routes.append(self.make_routes('lookups'))
         # Dynamically generated routes.
         # Generated using @action or @link decorators on methods of the viewset
         self.lookups_routes.append(routers.Route(
@@ -67,6 +56,17 @@ class MultiLookupRouter(routers.DefaultRouter):
             name='{basename}-{methodnamehyphen}',
             initkwargs={}
         ))
+
+    @staticmethod
+    def make_routes(template_text):
+        return routers.Route(
+            url=r'^{prefix}/{%s}{trailing_slash}$' % template_text,
+            mapping={
+                'get': 'list',
+                'post': 'create'
+            },
+            name='{basename}-list',
+            initkwargs={'suffix': 'List'})
 
     def get_extra_lookup_regexes(self, route):
 
@@ -362,6 +362,25 @@ Example using curl:
             ret = format_suffix_patterns(ret, allowed=['[a-z0-9]+'])
         return ret
 
+
+class MultiLookupRouterWithPatchList(MultiLookupRouter):
+    """
+    This class only extends MultiLookupRouter to allow PATCH method on list endpoint
+    """
+    @staticmethod
+    def make_routes(template_text):
+        return routers.Route(
+            url=r'^{prefix}/{%s}{trailing_slash}$' % template_text,
+            mapping={
+                'get': 'list',
+                'post': 'create',
+                'patch': 'modify'
+            },
+            name='{basename}-list',
+            initkwargs={'suffix': 'List'})
+
+
+
 router = MultiLookupRouter(trailing_slash=False)
 router.register(r'users', UserViewSet)
 router.register(r'user', ConnectViewSet)
@@ -371,7 +390,6 @@ router.register(r'forms', XFormViewSet)
 router.register(r'projects', ProjectViewSet)
 router.register(r'teams', TeamViewSet)
 router.register(r'notes', NoteViewSet)
-router.register(r'data', DataViewSet, base_name='data')
 router.register(r'stats', StatsViewSet, base_name='stats')
 router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
@@ -379,6 +397,9 @@ router.register(r'charts', ChartsViewSet, base_name='chart')
 router.register(r'metadata', MetaDataViewSet, base_name='metadata')
 router.register(r'media', AttachmentViewSet, base_name='attachment')
 router.register(r'formlist', XFormListApi, base_name='formlist')
-# router.register(r'assignedFormlist', AssignedXFormListApi, base_name='assignedFormlist') # mobile  forms.
 router.register(r'submissions', XFormSubmissionApi, base_name='submissions')
 router.register(r'briefcase', BriefcaseApi, base_name='briefcase')
+
+
+router_with_patch_list = MultiLookupRouterWithPatchList(trailing_slash=False)
+router_with_patch_list.register(r'data', DataViewSet, base_name='data')

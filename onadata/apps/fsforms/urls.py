@@ -1,7 +1,8 @@
 from django.conf.urls import url
 
 from onadata.apps.fsforms.viewsets.FieldSightXformViewset import GeneralFormsViewSet, SurveyFormsViewSet, FormDetailViewset
-from onadata.apps.fsforms.viewsets.InstanceHistoryViewSet import SiteInstanceResponseViewSet, InstanceHistoryViewSet, InstanceResponseViewSet, InstanceHistoryDetailViewSet
+from onadata.apps.fsforms.viewsets.InstanceHistoryViewSet import SiteInstanceResponseViewSet, InstanceHistoryViewSet,\
+    InstanceResponseViewSet, InstanceHistoryDetailViewSet, InstanceDetailViewSet
 from onadata.apps.fsforms.viewsets.ScheduleViewset import ScheduleViewset, DayViewset
 from onadata.apps.fsforms.viewsets.AssignedXFormListApiViewSet import AssignedXFormListApi
 from onadata.apps.fsforms.viewsets.FSXFormSubmissionApiViewset import FSXFormSubmissionApi, ProjectFSXFormSubmissionApi
@@ -12,7 +13,6 @@ from onadata.apps.fsforms.viewsets.ConfigureStageViewset import StageListViewSet
     SubStageDetailViewSet, EmViewSet, DeployViewset, FInstanceViewset
 from onadata.apps.fsforms.viewsets.XformsViewset import XFormViewSet
 from onadata.apps.fsforms.viewsets.InstanceListViewSet import InstanceListViewSet
-from onadata.libs.utils.viewer_tools import enketo_view_url
 from .views import (
     LibraryFormsListView,
     XformDetailView,
@@ -236,6 +236,7 @@ urlpatterns = urlpatterns + [
     url(r'^api/responses/(?P<pk>\d+)/$', InstanceResponseViewSet.as_view({'get': 'list'})),
     url(r'^api/responses/(?P<form_pk>\d+)/(?P<site_pk>\d+)/$', SiteInstanceResponseViewSet.as_view({'get': 'list'})),
     url(r'^api/form-detail/(?P<pk>\d+)/$', FormDetailViewset.as_view({'get': 'retrieve'})),
+    url(r'^api/instance/(?P<pk>\d+)/$', InstanceDetailViewSet.as_view({'get': 'list'})),
 
     url(r'^api/stage-list/(?P<is_project>\d)/(?P<pk>\d+)/$', StageListViewSet.as_view({'post': 'create','get': 'list'})),
     url(r'^api/configure-stage-update/(?P<pk>\d+)/$', StageListViewSet.as_view({'put': 'update','get': 'retrieve_by_id'})),

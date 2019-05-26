@@ -12,7 +12,7 @@ from zipfile import ZipFile
 
 from bson import json_util
 from django.conf import settings
-from django.core.files.base import File
+from django.core.files.base import File, ContentFile
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.storage import get_storage_class
 from django.contrib.auth.models import User
@@ -25,13 +25,10 @@ from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 from json2xlsclient.client import Client
 
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.api.mongo_helper import MongoHelper
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.models.parsed_instance import\
-    _is_invalid_for_mongo, _encode_for_mongo, dict_for_mongo,\
-    _decode_from_mongo
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
@@ -258,11 +255,11 @@ class ExportBuilder(object):
                             'type': child.bind.get(u"type")
                         })
 
-                        if _is_invalid_for_mongo(child_xpath):
+                        if MongoHelper.is_attribute_invalid(child_xpath):
                             if current_section_name not in encoded_fields:
                                 encoded_fields[current_section_name] = {}
                             encoded_fields[current_section_name].update(
-                                {child_xpath: _encode_for_mongo(child_xpath)})
+                                {child_xpath: MongoHelper.encode(child_xpath)})
 
                     # if its a select multiple, make columns out of its choices
                     if child.bind.get(u"type") == MULTIPLE_SELECT_BIND_TYPE\
@@ -371,7 +368,8 @@ class ExportBuilder(object):
 
     @classmethod
     def decode_mongo_encoded_section_names(cls, data):
-        return dict([(_decode_from_mongo(k), v) for k, v in data.iteritems()])
+        return dict([(MongoHelper.decode(k), v) for k, v in data.iteritems()])
+
 
     @classmethod
     def convert_type(cls, value, data_type):
@@ -544,12 +542,26 @@ class ExportBuilder(object):
                 question_json = XformHistory.objects.get(xform=xform, version=__version__).json
         except Exception as e:
             print(str(e))
+        print(filter_query)
+        try:
+            fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_project_uuid'])
+            if __version__:
+                submissions = fxf_form.project_form_instances.filter(version=__version__).select_related("site").values("form_status", "instance", "site", "site__name", "site__address", "site__phone", "site__identifier")
+            else:
+                submissions =fxf_form.project_form_instances.select_related("site").values("form_status", "instance","site", "site__name", "site__address", "site__phone", "site__identifier")
+        except Exception as e: # SITE LEVEL FORM
+            fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_uuid'])
+            if __version__:
+                submissions = fxf_form.site_form_instances.filter(version=__version__).select_related("site").values(
+                    "form_status", "instance", "site", "site__name", "site__address", "site__phone", "site__identifier")
+            else:
+                submissions = fxf_form.site_form_instances.select_related("site").values("form_status", "instance",
+                                                                                            "site", "site__name",
+                                                                                            "site__address",
+                                                                                            "site__phone",
+                                                                                            "site__identifier")
 
-        fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_project_uuid'])
-        if __version__:
-            submissions = fxf_form.project_form_instances.filter(version=__version__).select_related("site").values("form_status", "instance", "site", "site__name", "site__address", "site__phone", "site__identifier")
-        else:
-            submissions =fxf_form.project_form_instances.select_related("site").values("form_status", "instance","site", "site__name", "site__address", "site__phone", "site__identifier")
+
         [s for s in submissions] # query db
 
         postgres_data = {
@@ -792,7 +804,8 @@ def build_survey_from_history(xform, __version__):
 def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
-                    binary_select_multiples=False):
+                    binary_select_multiples=False,
+                    sync_to_gsuit=False):
     """
     Create appropriate export object given the export type
     """
@@ -860,10 +873,10 @@ def generate_export(export_type, extension, username, id_string,
     storage = get_storage_class()()
     # seek to the beginning as required by storage classes
     
-    print 'file_url--------->', temp_file, filter_query
+    print sync_to_gsuit, 'file_url--------->', temp_file, filter_query
 
     try:
-        if '__version__' not in filter_query['$and'][0]:
+        if sync_to_gsuit == True and '__version__' not in filter_query['$and'][0]:
             if not os.path.exists("media/forms/"):
                 os.makedirs("media/forms/")
 
@@ -961,6 +974,42 @@ def increment_index_in_filename(filename):
     return new_filename
 
 
+# def generate_attachments_zip_export(
+#         export_type, extension, username, id_string, export_id=None,
+#         filter_query=None):
+#     xform = XForm.objects.get(user__username=username, id_string=id_string)
+#     attachments = Attachment.objects.filter(instance__xform=xform)
+#     basename = "%s_%s" % (id_string,
+#                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+#     filename = basename + "." + extension
+#     file_path = os.path.join(
+#         username,
+#         'exports',
+#         id_string,
+#         export_type,
+#         filename)
+#
+#     with NamedTemporaryFile('wb+', prefix='media_zip_export_', suffix='.zip') as temporary_file:
+#         create_attachments_zipfile(attachments, temporary_file=temporary_file)
+#         export_filename = get_storage_class()().save(
+#             file_path,
+#             File(temporary_file, file_path))
+#
+#     dir_name, basename = os.path.split(export_filename)
+#
+#     # get or create export object
+#     if(export_id):
+#         export = Export.objects.get(id=export_id)
+#     else:
+#         export = Export.objects.create(xform=xform, export_type=export_type)
+#
+#     export.filedir = dir_name
+#     export.filename = basename
+#     export.internal_status = Export.SUCCESSFUL
+#     export.save()
+#     return export
+
+
 def generate_attachments_zip_export(
         export_type, extension, username, id_string, export_id=None,
         filter_query=None):
@@ -976,11 +1025,13 @@ def generate_attachments_zip_export(
         export_type,
         filename)
 
-    with NamedTemporaryFile('wb+', prefix='media_zip_export_', suffix='.zip') as temporary_file:
-        create_attachments_zipfile(attachments, temporary_file=temporary_file)
-        export_filename = get_storage_class()().save(
-            file_path,
-            File(temporary_file, file_path))
+    export_filename = get_storage_class()().save(file_path, ContentFile(''))
+
+    with get_storage_class()().open(export_filename, 'wb') as destination_file:
+        create_attachments_zipfile(
+            attachments,
+            output_file=destination_file,
+        )
 
     dir_name, basename = os.path.split(export_filename)
 
@@ -995,7 +1046,6 @@ def generate_attachments_zip_export(
     export.internal_status = Export.SUCCESSFUL
     export.save()
     return export
-
 
 def generate_kml_export(
         export_type, extension, username, id_string, export_id=None,

@@ -1,17 +1,15 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends "fieldsight/manage_base.html" %}
 {% load i18n staticfiles %}
 {% load filters %}
 
 {% block content %}
 <link href="{% static 'css/geolayer_form.css' %}" rel="stylesheet">
-<div id="main-content" class="padding">
+<div class="padding">
 
     <nav aria-label="breadcrumb" role="navigation">
         {% block breadcrumbs %}
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-list' %}">{% trans 'Organization' %} {% trans 'List' %}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'fieldsight:organizations-dashboard' organization.pk %}">{{organization.name}}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'fieldsight:geo-layers' organization.pk %}">Geo layers</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fieldsight:geo-layers' obj.pk %}">Geo layers</a></li>
             {% if form.instance.id %}
             <li class="breadcrumb-item active" aria-current="page">{% trans 'Edit' %}</li>
             {% else %}
@@ -51,4 +49,15 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extrascript %}
+<script>
+    $(document).ready(function(){
+
+        $("ul.nav li:nth-child(2) a" ).addClass("active");
+
+    });
+</script>
+
 {% endblock %}

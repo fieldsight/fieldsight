@@ -52,14 +52,16 @@ from .views import (
     RegionCreateView,
     RegionUpdateView,
     RegionDeleteView,
+    project_managers,
     # RegionDeactivateView,
     RegionListView,
+    UserActivityReport,
     UserListView, site_images, FilterUserView, UploadSitesView, BluePrintsView, add_project_role, ManagePeopleSiteView,
     ManagePeopleProjectView, ManagePeopleOrganizationView, SiteSurveyListView, ajax_upload_sites, ajax_save_site,
     ajax_save_project, RolesView, OrgProjectList, OrgUserList, ProjUserList, SiteUserList, ProjSiteList, OrgSiteList,
     AssignUsersToRegionsView, AssignUsersToEntireProjectView,
     SitesTypeView, AddSitesTypeView,
-    senduserinvite, ActivateRole, checkemailforinvite, ProjectSummaryReport, SiteSummaryReport, MultiUserAssignSiteView,
+    senduserinvite, ActivateRole, checkemailforinvite, ProjectSummaryReport, UserActivityReport, SiteSummaryReport, MultiUserAssignSiteView,
     MultiUserAssignProjectView, sendmultiroleuserinvite, project_html_export, RegionalSitelist, RegionalSiteCreateView,
     MultiUserAssignRegionView, DefineProjectSiteMeta,
     SiteMetaForm, MultiSiteAssignRegionView, ExcelBulkSiteSample, ProjectStageResponsesStatus, StageTemplateView,
@@ -69,7 +71,7 @@ from .views import (
     SiteSearchView, ProjectDashboardStageResponsesStatus, GeoJSONContent, DonorFullMap, ProjectSiteListGeoJSON,
     SiteBulkEditView, site_refrenced_metas, UnassignUserRegionAndSites, MainRegionsAndSitesAPI, redirectToSite,
     municipality_data, FormResponseSite, DonorRegionalSitelist, SubRegionAndSitesAPI, SiteSearchLiteView,
-    EditSitesTypeView, DeleteSitesTypeView)
+    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites)
 
 
 from onadata.apps.geo.views import (
@@ -84,6 +86,8 @@ from onadata.apps.remote_app.views import RemoteProjectView
 urlpatterns = [
     url(r'^accounts/create/$', CreateUserView.as_view(
         form_class=RegistrationForm), name='user-create'),
+
+    # url(r'^user/report/activity/(?P<pk>[0-9]+)/(?P<start_date>\d{4}-\d{2})/(?P<end_date>\d{4}-\d{2})/$', UserActivityReport.as_view(), name="user-activity-report"),
 
     url(r'^organization/$', OrganizationListView.as_view(), name='organizations-list'),
     url(r'^organization/$', OrganizationListView.as_view(), name='organization-list'),
@@ -118,6 +122,8 @@ urlpatterns = [
 
     url(r'^proj-users/(?P<pk>\d+)/$', ProjUserList.as_view(), name='proj-user-list'),
     url(r'^proj-sites/(?P<pk>\d+)/$', ProjSiteList.as_view(), name='proj-site-list'),
+    url(r'^manage-project-sites/(?P<pk>\d+)/$', ManageProjectSites.as_view(), name='manage_project_sites'),
+
     url(r'^donor-proj-sites/(?P<pk>\d+)/$', DonorProjSiteList.as_view(), name='donor-proj-site-list'),
 
     url(r'^site-users/(?P<pk>\d+)/$', SiteUserList.as_view(), name='site-user-list'),
@@ -175,7 +181,7 @@ urlpatterns = [
 
     url(r'^accounts/create/$', CreateUserView.as_view(form_class=RegistrationForm), name='user-create'),
     url(r'^userlist/$', UserListView.as_view(), name='user-list'),
-    url(r'sendmultiusermultilevelinvite^filter-users/$', FilterUserView.as_view(), name='filter-users'),
+    # url(r'sendmultiusermultilevelinvite^filter-users/$', FilterUserView.as_view(), name='filter-users'),
     url(r'fcm/v1/devices/$', DeviceViewSet.as_view({'get': 'list'})),
     url(r'fcm/add/', FcmDeviceViewSet.as_view({'post': 'create'})),
     url(r'fcm/logout/', FcmDeviceViewSet.as_view({'post': 'inactivate'})),
@@ -186,6 +192,7 @@ urlpatterns = [
     url(r'^activaterole/(?P<invite_idb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z_\-]+)/$',
         ActivateRole.as_view(), name='activate-role'),
     url(r'^project/report/summary/(?P<pk>\d+)/$', ProjectSummaryReport.as_view(), name='project-summary-report'),
+    url(r'^user/report/activity/(?P<pk>\d+)/(?P<user_id>\d+)/(?P<start_date>\d{4}-\d{2}-\d{2})/(?P<end_date>\d{4}-\d{2}-\d{2})/$', UserActivityReport.as_view(), name='user-activity-report'),
     url(r'^site/report/summary/(?P<pk>\d+)/$', SiteSummaryReport.as_view(), name='site-summary-report'),
     url(r'map-view/$',views.viewfullmap, name='full-map'),
     url(r'org-map/(?P<pk>[0-9]+)/$', OrgFullmap.as_view(), name='org-loc-map'),
@@ -214,6 +221,8 @@ urlpatterns = [
 
     url(r'^region/(?P<pk>[0-9]+)/$', RegionUpdateView.as_view(), name='region-update'),
     url(r'^region-list/(?P<pk>\d+)/$', RegionListView.as_view(), name='region-list'),
+    url(r'^project-region-sites/(?P<pk>\d+)/$', ProjectRegionSitesView().as_view(), name='project_region_sites'),
+    url(r'^project-geo-layer/(?P<pk>\d+)/$', ProjectGeoLayerView().as_view(), name='project_geo_layer'),
 
     url(r'^api/project-regions/(?P<pk>\d+)/$', RegionViewSet.as_view({'get': 'list'}), name='project_regions_api'),
     
@@ -280,6 +289,8 @@ urlpatterns = [
     url(r'^api/municipality/$', municipality_data, name='municipality'),
 
     url(r'^api/project_peoples/(?P<pk>\d+)/$', project_dashboard_peoples, name='pdp'),
+    url(r'^api/project_managers/(?P<pk>\d+)/$', project_managers, name='project_managers_api'),
+
     url(r'^api/project_map/(?P<pk>\d+)/$', project_dashboard_map, name='pdm'),
     url(r'^api/project_graphs/(?P<pk>\d+)/$', project_dashboard_graphs, name='pdg'),
     url(r'^api/project/metas/(?P<pk>\d+)/$', ProjectMetas.as_view({'get':'list'}), name='pmetas'),

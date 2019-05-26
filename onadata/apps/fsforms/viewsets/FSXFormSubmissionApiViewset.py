@@ -9,7 +9,8 @@ from rest_framework import status
 from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
 from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.fieldsight.models import Site
-from onadata.apps.fsforms.models import FieldSightXF, Stage, Schedule, SubmissionOfflineSite
+from onadata.apps.fsforms.models import FieldSightXF, Stage, Schedule, SubmissionOfflineSite, FInstance, \
+    EditedSubmission
 from onadata.apps.fsforms.serializers.FieldSightSubmissionSerializer import FieldSightSubmissionSerializer
 from ..fieldsight_logger_tools import safe_create_instance
 from channels import Group as ChannelGroup
@@ -34,7 +35,6 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
 
         fsxfid = kwargs.get('pk', None)
         siteid = kwargs.get('site_id', None)
-        offline_submission_site = None
         if fsxfid is None or siteid is None:
             return self.error_response("Site Id Or Form ID Not Given", False, request)
         try:
@@ -46,28 +46,7 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                 if siteid == '0':
                     siteid = None
                 elif Site.objects.filter(pk=siteid).exists() == False:
-                    if len(siteid) > 12:
-                        if FieldSightXF.objects.filter(pk=fsxfid).exists():
-                            project_form = FieldSightXF.objects.get(pk=fsxfid)
-                            project = project_form.project
-                            if project:
-                                site, created = Site.objects.get_or_create(
-                                    identifier="temporary_site",
-                                    is_active=True,
-                                    name="Temporary  Site",
-                                    project_id=project.id,
-                                    is_survey=False,
-                                )
-                                siteid = site.id
-                                offline_submission_site, created = SubmissionOfflineSite.objects.get_or_create(
-                                    offline_site_id=kwargs.get('site_id', None), temporary_site=site, instance=None,  fieldsight_form=project_form)
-                            else:
-                                return self.error_response("Invalid Project in Project Form id", False, request)
-
-                        else:
-                            return self.error_response("Invalid Form id", False, request)
-                    else:
-                        return self.error_response("siteid Invalid", False, request)
+                    return self.error_response("siteid Invalid", False, request)
                 if fsxfid is None:
                     return self.error_response("Fieldsight Form ID Not Given", False, request)
                 try:
@@ -86,15 +65,11 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
 
                 if error or not instance:
                     return self.error_response(error, False, request)
-
-                if offline_submission_site is not None:
-                    try:
-                        instance.fieldsight_instance.offline_submission
-                    except Exception as e:
-                        offline_submission_site.instance = instance.fieldsight_instance
-                        offline_submission_site.save()
-                        print("new submission")
-
+                params = self.request.query_params
+                flagged_instance = params.get("instance")
+                if flagged_instance and flagged_instance is not None:
+                    EditedSubmission.objects.get_or_create(new=instance.fieldsight_instance,
+                                                           old=FInstance.objects.get(pk=flagged_instance))
 
                 if not FieldSightLog.objects.filter(object_id=instance.id, type=16).exists():
                     if fs_proj_xf.is_survey:
@@ -142,6 +117,12 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
         if error or not instance:
             return self.error_response(error, False, request)
 
+        params = self.request.query_params
+        flagged_instance = params.get("instance")
+        if flagged_instance and flagged_instance is not None:
+            EditedSubmission.objects.get_or_create(new=instance.fieldsight_instance,
+                                                   old=FInstance.objects.get(pk=flagged_instance))
+
         if fxf.is_staged:
             instance.fieldsight_instance.site.update_current_progress()
         else:
@@ -171,7 +152,6 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
     template_name = 'fsforms/submission.xml'
 
     def create(self, request, *args, **kwargs):
-        offline_submission_site = None
         if self.request.user.is_anonymous():
             self.permission_denied(self.request)
 
@@ -180,27 +160,7 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
         if siteid == '0':
             siteid = None
         elif Site.objects.filter(pk=siteid).exists() == False:
-            if len(siteid) > 12:
-                if FieldSightXF.objects.filter(pk=fsxfid).exists():
-                    project_form = FieldSightXF.objects.get(pk=fsxfid)
-                    project = project_form.project
-                    if project:
-                        site, created = Site.objects.get_or_create(
-                            identifier="temporary_site",
-                            is_active=True,
-                            name="Temporary  Site",
-                            project_id=project.id,
-                            is_survey=False,
-                        )
-                        siteid = site.id
-                        offline_submission_site, created = SubmissionOfflineSite.objects.get_or_create(offline_site_id=kwargs.get('site_id', None), temporary_site=site, instance=None, fieldsight_form=project_form)
-                    else:
-                        return self.error_response("Invalid Project in Project Form id", False, request)
-
-                else:
-                    return self.error_response("Invalid Form id", False, request)
-            else:
-                return self.error_response("siteid Invalid", False, request)
+            return self.error_response("siteid Invalid", False, request)
         if fsxfid is None:
             return self.error_response("Fieldsight Form ID Not Given", False, request)
         try:
@@ -216,7 +176,6 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
                             headers=self.get_openrosa_headers(request),
                             template_name=self.template_name)
         error, instance = create_instance_from_xml(request, None, siteid, fs_proj_xf.id, proj_id, xform)
-
         if error or not instance:
             return self.error_response(error, False, request)
 
@@ -225,14 +184,10 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
         elif siteid:
             site.update_status()
 
-        if offline_submission_site is not None:
-            try:
-                instance.fieldsight_instance.offline_submission
-            except Exception as e:
-                offline_submission_site.instance = instance.fieldsight_instance
-                offline_submission_site.save()
-                print("new submission")
-
+        params = self.request.query_params
+        flagged_instance = params.get("instance")
+        if flagged_instance and flagged_instance is not None :
+            EditedSubmission.objects.get_or_create(new=instance.fieldsight_instance, old=FInstance.objects.get(pk=flagged_instance))
 
         if not FieldSightLog.objects.filter(object_id=instance.id, type=16).exists():
             if fs_proj_xf.is_survey:

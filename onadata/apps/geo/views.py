@@ -21,7 +21,9 @@ class GeoLayersView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super(GeoLayersView, self).get_context_data(**kwargs)
-        context['organization'] = get_object_or_404(Organization, id=self.kwargs['org_pk'])
+        context['obj'] = get_object_or_404(Organization, id=self.kwargs['org_pk'])
+        context['level'] = "2"
+
         return context
 
 
@@ -32,7 +34,9 @@ class GeoLayerFormView(object):
 
     def get_context_data(self, **kwargs):
         context = super(GeoLayerFormView, self).get_context_data(**kwargs)
-        context['organization'] = get_object_or_404(Organization, id=self.kwargs['org_pk'])
+        context['obj'] = get_object_or_404(Organization, id=self.kwargs['org_pk'])
+        context['level'] = "2"
+
         return context
 
     def get_success_url(self):

@@ -1,17 +1,19 @@
-import httplib2
 import json
+
+import requests
 
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 
 
 class ServiceDefinition(RestServiceInterface):
+    """
+        @deprecated.
+        This service should not be used anymore.
+    """
     id = u'json'
     verbose_name = u'JSON POST'
 
-    def send(self, url, parsed_instance):
-        post_data = json.dumps(parsed_instance.to_dict_for_mongo())
+    def send(self, url, data):
+        post_data = json.dumps(data.get("json"))
         headers = {"Content-Type": "application/json"}
-        http = httplib2.Http()
-        resp, content = http.request(uri=url, method='POST',
-                                     headers=headers,
-                                     body=post_data)
+        requests.post(url, headers=headers, data=post_data)

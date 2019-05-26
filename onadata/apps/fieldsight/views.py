@@ -56,10 +56,10 @@ from .rolemixins import FullMapViewMixin, SuperUserRoleMixin, ReadonlyProjectLev
     DonorRoleMixin, DonorSiteViewRoleMixin, SiteDeleteRoleMixin, SiteRoleMixin, ProjectRoleView, ReviewerRoleMixin, ProjectRoleMixin,\
     OrganizationRoleMixin, ReviewerRoleMixinDeleteView, ProjectRoleMixinDeleteView, RegionRoleMixin, RegionSupervisorReviewerMixin
 
-from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, ProjectType
+from .models import ProjectGeoJSON, Organization, Project, Site, ExtraUserDetail, BluePrints, UserInvite, Region, SiteType, ProjectType, Sector
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
-                    SiteBulkEditForm, SiteTypeForm)
+                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm)
 
 from onadata.apps.subscriptions.models import Subscription, Customer, Package
 from django.views.generic import TemplateView
@@ -79,7 +79,7 @@ import pyexcel as p
 
 from onadata.apps.fieldsight.tasks import generate_stage_status_report, generateSiteDetailsXls, UnassignAllProjectRolesAndSites, \
     UnassignAllSiteRoles, UnassignUser, generateCustomReportPdf, multiuserassignproject, bulkuploadsites, multiuserassignsite, \
-    multiuserassignregion, multi_users_assign_regions, multi_users_assign_to_entire_project
+    multiuserassignregion, multi_users_assign_regions, multi_users_assign_to_entire_project, email_after_subscribed_plan
 from .generatereport import PDFReport
 from django.utils import translation
 from django.conf import settings
@@ -438,6 +438,11 @@ class OrganizationCreateView(OrganizationView, CreateView):
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
+    def get_context_data(self, **kwargs):
+        context = super(OrganizationCreateView, self).get_context_data(**kwargs)
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        return context
+
     def form_valid(self, form):
 
         self.object = form.save()
@@ -445,10 +450,11 @@ class OrganizationCreateView(OrganizationView, CreateView):
         self.object.save()
         noti = self.object.logs.create(source=self.request.user, type=9, title="new Organization",
                                        organization=self.object, content_object=self.object,
-                                       description="{0} created a new organization named {1}".
+                                       description="{0} created a new Team named {1}".
                                        format(self.request.user, self.object.name))
 
         user = self.request.user
+        user_id = User.objects.get(username=user).id
         profile = user.user_profile
         if not profile.organization:
             profile.organization = self.object
@@ -460,6 +466,8 @@ class OrganizationCreateView(OrganizationView, CreateView):
             customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
             Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer, initiated_on=datetime.datetime.now(),
                                         package=free_package, organization=self.object)
+            user_id = user_id
+            email_after_subscribed_plan.delay(user_id)
 
         project = Project.objects.get(name="Example Project", organization_id=self.object.id)
         sites = Site.objects.filter(project=project)
@@ -468,7 +476,9 @@ class OrganizationCreateView(OrganizationView, CreateView):
                                                      description="Auto Clone and Deployment of Forms",
                                                      task_type=15, content_object=self.object)
         if task_obj:
-            clone_form.delay(user, project, task_obj.id)
+            project_id = Project.objects.get(name="Example Project", organization_id=self.object.id).id
+
+            clone_form.delay(user_id, project_id, task_obj.id)
         # result = {}
         # result['description'] = '{0} created a new organization named {1} '.format(noti.source.get_full_name(), self.object.name)
         # result['url'] = noti.get_absolute_url()
@@ -496,11 +506,18 @@ class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView
     def get_success_url(self):
         return reverse('fieldsight:organizations-dashboard', kwargs={'pk': self.kwargs['pk']})
 
+    def get_context_data(self, **kwargs):
+        context = super(OrganizationUpdateView, self).get_context_data(**kwargs)
+        context['level'] = "2"
+        context['obj'] = Organization.objects.get(id=self.kwargs['pk'])
+        context['base_template'] = "fieldsight/manage_base.html"
+        return context
+
     def form_valid(self, form):
         self.object = form.save()
-        noti = self.object.logs.create(source=self.request.user, type=13, title="edit Organization",
+        noti = self.object.logs.create(source=self.request.user, type=13, title="edit Team",
                                        organization=self.object, content_object=self.object,
-                                       description="{0} changed the details of organization named {1}".
+                                       description="{0} changed the details of Team named {1}".
                                        format(self.request.user.get_full_name(), self.object.name))
         # result = {}
         # result['description'] = noti.description
@@ -569,7 +586,7 @@ class OrganizationadminCreateView(LoginRequiredMixin, OrganizationRoleMixin, Tem
             user_id = request.POST.get('user')
             role_obj.user_id = int(user_id)
             role_obj.save()
-            messages.add_message(request, messages.INFO, 'Organization Admin Added')
+            messages.add_message(request, messages.INFO, 'Team Admin Added')
             return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': id}))
 
 
@@ -716,6 +733,21 @@ class ProjectCreateView(ProjectView, OrganizationRoleMixin, CreateView):
         context = super(ProjectCreateView, self).get_context_data(**kwargs)
         context['org'] = Organization.objects.get(pk=self.kwargs.get('pk'))
         context['pk'] = self.kwargs.get('pk')
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+
+        sectors = Sector.objects.filter(sector=None)
+        sector_list = []
+        for sect in sectors:
+            sector_dict = {}
+            sub_sector_list = []
+            sub_sectors = Sector.objects.filter(sector=sect)
+            for item in sub_sectors:
+                sub_sector_list.append({item.id: str(item.name)})
+            sector_dict[str(sect.name)] = sub_sector_list
+            sector_list.append(dict(sector_dict))
+
+        context['sub_sectors'] = sector_list
+
         return context
 
     def get_form_kwargs(self):
@@ -746,6 +778,27 @@ class ProjectCreateView(ProjectView, OrganizationRoleMixin, CreateView):
 class ProjectUpdateView(ProjectView, ProjectRoleMixin, UpdateView):
     def get_success_url(self):
         return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectUpdateView, self).get_context_data(**kwargs)
+        context['level'] = "1"
+        context['obj'] = self.object
+        context['base_template'] = "fieldsight/manage_base.html"
+
+        sectors = Sector.objects.filter(sector=None)
+        sector_list = []
+        for sect in sectors:
+            sector_dict = {}
+            sub_sector_list = []
+            sub_sectors = Sector.objects.filter(sector=sect)
+            for item in sub_sectors:
+                sub_sector_list.append({item.id: str(item.name)})
+            sector_dict[str(sect.name)] = sub_sector_list
+            sector_list.append(dict(sector_dict))
+
+        context['sub_sectors'] = sector_list
+
+        return context
 
     def form_valid(self, form):
         self.object = form.save(new=False)
@@ -783,6 +836,44 @@ class ProjectDeleteView(ProjectRoleMixinDeleteView, View):
 
         return HttpResponseRedirect(reverse('fieldsight:org-project-list', kwargs={'pk': project.organization_id }))
 
+
+class ProjectGeoLayerView(ProjectRoleMixin, UpdateView):
+
+    model = Project
+    template_name = 'fieldsight/project_geo_layer.html'
+    form_class = ProjectGeoLayerForm
+
+    def get_success_url(self):
+        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectGeoLayerView, self).get_context_data(**kwargs)
+        context['level'] = "1"
+        context['obj'] = self.object
+        context['base_template'] = "fieldsight/manage_base.html"
+
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super(ProjectGeoLayerView, self).get_form_kwargs()
+        proj = Project.objects.get(id=self.kwargs['pk'])
+        kwargs.update({
+            'organization_id': proj.organization.id,
+        })
+        return kwargs
+
+    # def form_valid(self, form):
+    #     self.object = form.save(new=False)
+    #
+    #     noti = self.object.logs.create(source=self.request.user, type=14, title="Edit Project",
+    #                                    organization=self.object.organization,
+    #                                    project=self.object, content_object=self.object,
+    #                                    description='{0} changed the details of project named {1}'.format(
+    #                                        self.request.user.get_full_name(), self.object.name))
+
+        # return HttpResponseRedirect(self.get_success_url())
+
+
 class SiteView(object):
     model = Site
     # success_url = reverse_lazy('fieldsight:org-site-list')
@@ -814,7 +905,8 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
                                                     project_id=self.kwargs.get('pk'))
         if existing_identifier:
             messages.add_message(self.request, messages.INFO,
-                                 'Your identifier conflict with existing site please use different identifier to create site')
+                                 'Your identifier "' + form.cleaned_data.get(
+                'identifier') + '" conflict with existing site please use different identifier to create site')
 
             return HttpResponseRedirect(reverse(
                 'fieldsight:site-add',
@@ -1082,7 +1174,7 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                 if task_obj:
                     # import ipdb
                     # ipdb.set_trace()
-                    task = bulkuploadsites.delay(task_obj.pk, user, sites, pk)
+                    task = bulkuploadsites.delay(task_obj.pk, sites, pk)
                     task_obj.task_id = task.id
                     task_obj.save()
                     messages.success(request, 'Sites are being uploaded. You will be notified in notifications list as well.')
@@ -1268,7 +1360,14 @@ class RolesView(LoginRequiredMixin, TemplateView):
 
         context['staff_project_manager'] = self.request.roles.select_related('staff_project').filter(group__name = "Staff Project Manager", staff_project__is_deleted = False)
         context['unassigned'] = self.request.roles.filter(group__name="Unassigned")
-        context['has_user_profile'] = UserProfile.objects.filter(user=self.request.user).exists()
+        has_user_profile = UserProfile.objects.filter(user=self.request.user).exists()
+
+        context['has_user_profile'] = has_user_profile
+        if has_user_profile:
+            context['base_template'] = "fieldsight/fieldsight_base.html"
+
+        else:
+            context['base_template'] = "fieldsight/fieldsight_not_user_base.html"
 
         if Team.objects.filter(leader_id = self.request.user.id).exists():
             context['staff_teams'] = Team.objects.filter(leader_id = self.request.user.id, is_deleted=False)
@@ -1315,11 +1414,33 @@ class ProjSiteList(ProjectRoleMixin, ListView):
         context['pk'] = self.kwargs.get('pk')
         context['region_id'] = None
         context['type'] = "project"
+        context['obj'] = get_object_or_404(Project, id=self.kwargs.get('pk'))
+        context['level'] = "1"
         return context
 
     def get_queryset(self):
         queryset = Site.objects.filter(project_id=self.kwargs.get('pk'),is_survey=False, is_active=True)
         return queryset
+
+
+class ManageProjectSites(ProjectRoleMixin, ListView):
+    model = Site
+    template_name = 'fieldsight/manage_project_site.html'
+    paginate_by = 90
+
+    def get_context_data(self, **kwargs):
+        context = super(ManageProjectSites, self).get_context_data(**kwargs)
+        context['pk'] = self.kwargs.get('pk')
+        context['region_id'] = None
+        context['type'] = "project"
+        context['obj'] = get_object_or_404(Project, id=self.kwargs.get('pk'))
+        context['level'] = "1"
+        return context
+
+    def get_queryset(self):
+        queryset = Site.objects.filter(project_id=self.kwargs.get('pk'),is_survey=False, is_active=True)
+        return queryset
+
 
 class DonorProjSiteList(ReadonlyProjectLevelRoleMixin, ListView):
     model = Site
@@ -1338,10 +1459,12 @@ class DonorProjSiteList(ReadonlyProjectLevelRoleMixin, ListView):
         queryset = Site.objects.filter(project_id=self.kwargs.get('pk'),is_survey=False, is_active=True)
         return queryset
 
+
 class OrgUserList(OrganizationRoleMixin, ListView):
     model = UserRole
     paginate_by = 90
     template_name = "fieldsight/user_list_updated.html"
+
     def get_context_data(self, **kwargs):
         context = super(OrgUserList, self).get_context_data(**kwargs)
         context['pk'] = self.kwargs.get('pk')
@@ -1349,17 +1472,18 @@ class OrgUserList(OrganizationRoleMixin, ListView):
         context['organization_id'] = self.kwargs.get('pk')
         context['type'] = "organization"
         return context
+
     def get_queryset(self):
-        #queryset = UserRole.objects.select_related('User').filter(organization_id=self.kwargs.get('pk')).distinct('user_id')
-        #queryset = User.objects.select_related('user_profile').filter(user_profile__organization_id=self.kwargs.get('pk'))
-        
+
         queryset = UserRole.objects.select_related('user').filter(organization_id=self.kwargs.get('pk'), ended_at__isnull=True).distinct('user_id')
         return queryset
+
 
 class ProjUserList(ProjectRoleMixin, ListView):
     model = UserRole
     paginate_by = 90
     template_name = "fieldsight/user_list_updated.html"
+
     def get_context_data(self, **kwargs):
         context = super(ProjUserList, self).get_context_data(**kwargs)
         context['pk'] = self.kwargs.get('pk')
@@ -1367,6 +1491,7 @@ class ProjUserList(ProjectRoleMixin, ListView):
         context['organization_id'] = Project.objects.get(pk=self.kwargs.get('pk')).organization.id
         context['type'] = "project"
         return context
+
     def get_queryset(self):
         queryset = UserRole.objects.select_related('user').filter(project_id=self.kwargs.get('pk'), ended_at__isnull=True).distinct('user_id')
         return queryset
@@ -1443,7 +1568,7 @@ def senduserinvite(request):
 
             if userrole:
                 if group.name == "Unassigned":
-                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' has already joined this organization.<br>'
+                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' has already joined this Team.<br>'
                 else:
                     response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' already has the role for '+group.name+'.<br>' 
                 continue
@@ -1469,7 +1594,7 @@ def senduserinvite(request):
         msg.content_subtype = "html"
         msg.send()
         if group.name == "Unassigned":
-            response += "Sucessfully invited "+ email +" to join this organization.<br>"
+            response += "Sucessfully invited "+ email +" to join this Team.<br>"
         else:    
             response += "Sucessfully invited "+ email +" for "+ group.name +" role.<br>"
         continue
@@ -1586,8 +1711,7 @@ def sendmultiroleuserinvite(request):
         current_site = get_current_site(request)
         subject = 'Invitation for Role'
         data = {
-            'email': invite.email,
-            # 'domain': current_site.domain,
+            'user': User.objects.get(email=invite.email),
             'domain': settings.SITE_URL,
             'invite_id': urlsafe_base64_encode(force_bytes(invite.pk)),
             'token': invite.token,
@@ -1624,6 +1748,21 @@ def sendmultiroleuserinvite(request):
 #         else:
 
 #     return HttpResponse("Failed")
+
+def delete_unassigned_group(user):
+    """
+
+    Args:
+        user: User object
+
+    Returns:
+
+    """
+    if UserRole.objects.filter(user=user).count() > 1:
+        unassigned_group = UserRole.objects.filter(user=user, group__name="Unassigned")
+        if unassigned_group.exists():
+            unassigned_group.delete()
+
    
 class ActivateRole(TemplateView):
     def dispatch(self, request, invite_idb64, token):
@@ -1641,7 +1780,9 @@ class ActivateRole(TemplateView):
         if user:
             return render(request, 'fieldsight/invite_action.html',{'invite':invite, 'is_used': False, 'status':'',})
         else:
-            return render(request, 'fieldsight/invited_user_reg.html',{'invite':invite, 'is_used': False, 'status':'',})
+            # return render(request, 'fieldsight/invited_user_reg.html',{'invite':invite, 'is_used': False, 'status':'',})
+            return render(request, 'users/register_with_google.html',{'invite':invite, 'is_used': False, 'status':'',})
+
         
 
     def post(self, request, invite, *args, **kwargs):
@@ -1653,6 +1794,10 @@ class ActivateRole(TemplateView):
                 invite.save()
                 return HttpResponseRedirect(reverse('login'))
             user = user_exists[0]
+            profile = user.user_profile
+            if not profile.organization:
+                profile.organization = invite.organization
+                profile.save()
         else:
             username = request.POST.get('username')
             if len(request.POST.get('username')) < 6:
@@ -1702,19 +1847,24 @@ class ActivateRole(TemplateView):
                 userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
                                                                organization=invite.organization, project_id=project_id,
                                                                site_id=None, region_id=region_id)
-
+            delete_unassigned_group(user)
         else:
             for project_id in project_ids:
                 for site_id in site_ids:
                     userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project_id=project_id, site_id=site_id)
+                    delete_unassigned_group(user)
+
                 if not site_ids:
                     userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project_id=project_id, site=None)
+                    delete_unassigned_group(user)
 
         if not project_ids:
             userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project=None, site=None, region=None)
+            delete_unassigned_group(user)
             if invite.group_id == 1:
                 permission = Permission.objects.filter(codename='change_finstance')
                 user.user_permissions.add(permission[0])
+
 
         invite.is_used = True
         invite.save()
@@ -1862,6 +2012,142 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         return render(request, 'fieldsight/project_summary_report.html', dashboard_data)
 
 
+class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
+
+    def get(self, request, pk, *args, **kwargs):
+        user = User.objects.get(pk=self.kwargs.get('user_id'))
+        start_date = self.kwargs.get('start_date')
+        end_date = self.kwargs.get('end_date')
+        split_startdate = start_date.split('-')
+        split_enddate = end_date.split('-')
+
+        new_startdate = datetime.date(int(split_startdate[0]), int(split_startdate[1]), int(split_startdate[2]))
+        end = datetime.date(int(split_enddate[0]), int(split_enddate[1]), int(split_enddate[2]))
+
+        new_enddate = end + datetime.timedelta(days=1)
+
+        roles = user.user_roles.filter(project_id=pk, ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
+        # recent_images = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": "santoshkhatri"}, "start": { 
+        #                     '$gte' : new_startdate.isoformat(),
+        #                     '$lte' : end.isoformat() 
+        #                 }
+        #                 }, {"$unwind":"$_attachments"},{"$match":{"_attachments.mimetype" : "image/jpeg"}},  {"$project" : {"_attachments.download_url":1, }},{ "$sort" : { "_id": -1 }}, { "$limit": 3 }])
+        coords = settings.MONGO_DB.instances.aggregate([
+            {
+                "$match":
+                    {
+                        "_submitted_by": user.username,
+                        "_submission_time": { 
+                                '$gte' : new_startdate.isoformat(),
+                                '$lte' : end.isoformat() 
+                        },
+                        "_geolocation": {
+                                "$not":{ "$elemMatch": { "$eq": None }}
+                        },
+                        "fs_project": {'$in' : [str(pk), int(pk)]}
+                    }
+            },
+            {
+                "$project" :
+                    {
+                        "_id":0, "type": {"$literal": "Feature"},
+                        "geometry":{
+                            "type": {"$literal": "Point"},
+                            "coordinates": "$_geolocation"
+                        },
+                        "properties": {
+                            "id":"$_id",
+                            "fs_uuid":"$fs_uuid",
+                            "submitted_by":"$_submitted_by"
+                        }
+                    }
+            }])['result']
+        response_coords = {'features': coords, 'type':'FeatureCollection'}
+        submission_queryset = user.supervisor.filter(project_id=pk, instance__date_created__range=[new_startdate, new_enddate])
+        approved = submission_queryset.filter(form_status=3).count()
+        rejected = submission_queryset.filter(form_status=1).count()
+        pending = submission_queryset.filter(form_status=0).count()
+        flagged = submission_queryset.filter(form_status=2).count()
+             
+
+        total_submissions = submission_queryset.count()
+        submissions = submission_queryset.values_list(
+            'project_fxf__xf__title',
+            'instance__date_created',
+            'site__name',
+            'submitted_by__username'
+        )
+        visits_and_worked = settings.MONGO_DB.instances.aggregate(
+            [
+                {
+                    "$match":{
+                        "_submitted_by": user.username,
+                        "start": { 
+                            '$gte' : new_startdate.isoformat(),
+                            '$lte' : new_enddate.isoformat() 
+                        },
+                        "fs_project": {'$in' : [str(pk), int(pk)]}
+                    }
+                },
+                { 
+                    "$group" : { 
+                        "_id" :  { 
+                            "user": "$_submitted_by",
+                            "fs_site": "$fs_site",
+                            "date": { 
+                                "$substr": [ "$start", 0, 10 ]
+                            }
+                        },
+                            "submissions": {'$sum':1}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "_user":"$_id.user",
+                            "_fs_site": "$_id.fs_site"
+                        },
+                        "submissions": {'$sum': '$submissions'},
+                        "visits": { '$sum': 1}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$_id._user",
+                        "total_worked_days": {'$sum': '$visits'},
+                        "submissions": {'$sum': '$submissions'},
+                        "sites_visited": {'$sum': 1}
+                    }
+                }
+            ]
+        )['result']
+        try:
+            vac = visits_and_worked[0]
+        except:
+            vac = {
+                '_id': user.username,
+                'sites_visited': 0,
+                'submissions': 0,
+                'total_worked_days': 0
+            }
+
+        dashboard_data = {
+            'user': user,
+            'roles': roles,
+            # 'recent_images': recent_images,
+            'data': json.dumps(response_coords, cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8'),
+            'submissions': submissions,
+            'visits_and_worked': vac,
+            'total_submissions': total_submissions,
+            'approved': approved,
+            'pending': pending,
+            'rejected': rejected,
+            'flagged': flagged,
+            'approved': approved
+        }
+        return render(request, 'fieldsight/user_activity_report.html', dashboard_data)
+
+
 class SiteSummaryReport(LoginRequiredMixin, TemplateView):
 
     def get(self, request, **kwargs):
@@ -1918,7 +2204,7 @@ class MultiUserAssignSiteView(ProjectRoleMixin, TemplateView):
         project = get_object_or_404(Project, pk=pk, is_active=True)
         task_obj =CeleryTaskProgress.objects.create(user=user, content_object = project, task_type=2)
         if task_obj:
-            task = multiuserassignsite.delay(task_obj.pk, user, pk, sites, users, group.id)
+            task = multiuserassignsite.delay(task_obj.pk, pk, sites, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('sucess')
@@ -1988,10 +2274,10 @@ class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
         org = get_object_or_404(Organization, pk=pk)
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object = org, task_type=1)
         if task_obj:
-            task = multiuserassignproject.delay(task_obj.pk, user, pk, projects, users, group_id)
+            task = multiuserassignproject.delay(task_obj.pk, pk, projects, users, group_id)
             task_obj.task_id=task.id
             task_obj.save()
-            return HttpResponse("Sucess")
+            return HttpResponse("Success")
         else:
             return HttpResponse("Failed")
 
@@ -2136,9 +2422,10 @@ class RegionListView(RegionView, ProjectRoleMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(RegionListView, self).get_context_data(**kwargs)
         project = Project.objects.get(pk=self.kwargs.get('pk'))
-        context['project'] = project
+        context['obj'] = project
         context['pk'] = self.kwargs.get('pk')
         context['type'] = "region"
+        context["level"] = "1"
         return context
 
     def get_queryset(self):
@@ -2147,12 +2434,35 @@ class RegionListView(RegionView, ProjectRoleMixin, ListView):
         return queryset
 
 
+class ProjectRegionSitesView(ProjectRoleMixin, ListView):
+    model = Region
+    template_name = "fieldsight/project_region_sites.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectRegionSitesView, self).get_context_data(**kwargs)
+        project = Project.objects.get(pk=self.kwargs.get('pk'))
+        context['project'] = project
+
+        return context
+
+    def get_queryset(self):
+        if self.request.GET.get("q"):
+            query = self.request.GET.get("q")
+            queryset = Region.objects.filter(project_id=self.kwargs.get('pk'), parent=None, is_active=True).\
+                filter(Q(name__icontains=query) | Q(identifier__icontains=query))
+        else:
+            queryset = Region.objects.filter(project_id=self.kwargs.get('pk'), parent=None, is_active=True)
+        return queryset
+
+
 class RegionCreateView(RegionView, ProjectRoleMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super(RegionCreateView, self).get_context_data(**kwargs)
         project = Project.objects.get(pk=self.kwargs.get('pk'))
-        context['project'] = project
+        context['obj'] = project
         context['pk'] = self.kwargs.get('pk')
+        context['level'] = "1"
+
         if self.kwargs.get('parent_pk'):
             context['parent_identifier'] = Region.objects.get(pk=self.kwargs.get('parent_pk')).get_concat_identifier()
             print context['parent_identifier']
@@ -2238,8 +2548,9 @@ class RegionUpdateView(RegionView, RegionRoleMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super(RegionUpdateView, self).get_context_data(**kwargs)
         region = Region.objects.get(pk=self.kwargs.get('pk'))
-        context['project'] = region.project
+        context['obj'] = region.project
         context['pk'] = self.kwargs.get('pk')
+        context['level'] = "1"
         context['subregion_list'] = Region.objects.filter(
             parent__pk=self.kwargs.get('pk')
         )
@@ -2424,7 +2735,7 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
 #         project = get_object_or_404(Project, pk=pk, is_active=True)
 #         task_obj = CeleryTaskProgress.objects.create(user=user, content_object = project, task_type=2)
 #         if task_obj:
-#             task = multiuserassignregion.delay(task_obj.pk, user, pk, regions, users, group.id)
+#             task = multiuserassignregion.delay(task_obj.pk, pk, regions, users, group.id)
 #             task_obj.task_id = task.id
 #             task_obj.save()
 #             return HttpResponse('sucess')
@@ -2448,7 +2759,7 @@ class MultiUserAssignRegionView(ProjectRoleMixin, TemplateView):
         project = get_object_or_404(Project, pk=pk, is_active=True)
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=2)
         if task_obj:
-            task = multiuserassignregion.delay(task_obj.pk, user, pk, regions, users, group.id)
+            task = multiuserassignregion.delay(task_obj.pk, pk, regions, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('sucess')
@@ -2478,7 +2789,7 @@ class AssignUsersToRegionsView(ProjectRoleMixin, TemplateView):
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=13)
 
         if task_obj:
-            task = multi_users_assign_regions.delay(task_obj.pk, user, pk, regions, users, group.id)
+            task = multi_users_assign_regions.delay(task_obj.pk, pk, regions, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('Success')
@@ -2508,7 +2819,7 @@ class AssignUsersToEntireProjectView(ProjectRoleMixin, TemplateView):
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=14)
 
         if task_obj:
-            task = multi_users_assign_to_entire_project.delay(task_obj.pk, user, pk, regions, users, unassigned_sites)
+            task = multi_users_assign_to_entire_project.delay(task_obj.pk, pk, regions, users, unassigned_sites)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('Success')
@@ -2570,6 +2881,7 @@ class ProjectSearchView(ListView):
         query = self.request.GET.get("q")
         return self.model.objects.filter(name__icontains=query)
 
+
 class OrganizationUserSearchView(ListView):
     model = UserRole
     template_name = "fieldsight/user_list_updated.html"
@@ -2581,8 +2893,10 @@ class OrganizationUserSearchView(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get("q")
-        return self.model.objects.filter(user__username__icontains=query, organization_id=self.kwargs.get('pk'),project__isnull=True, site__isnull=True).distinct('user')
-        return queryset
+        return self.model.objects.filter(organization_id=self.kwargs.get('pk'), ended_at__isnull=True).\
+            filter(Q(user__username__icontains=query) | Q(user__first_name__icontains=query) |
+                   Q(user__last_name__icontains=query) | Q(user__email__icontains=query)).distinct('user')
+
 
 class ProjectUserSearchView(ListView):
     model = UserRole
@@ -2598,18 +2912,15 @@ class ProjectUserSearchView(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get("q")
-        return self.model.objects.select_related('user').filter(user__username__icontains=query, project_id=self.kwargs.get('pk'),
-                                                                  ended_at__isnull=True).distinct('user_id')
+        return self.model.objects.select_related('user').filter(project_id=self.kwargs.get('pk'), ended_at__isnull=True).\
+            filter(Q(user__username__icontains=query) | Q(user__first_name__icontains=query) |
+                   Q(user__last_name__icontains=query) | Q(user__email__icontains=query)).distinct('user_id')
+
 
 class SiteUserSearchView(ListView):
     model = UserRole
     template_name = "fieldsight/user_list_updated.html"
 
-    def get_queryset(self):
-        queryset = UserRole.objects.select_related('user').filter(site_id=self.kwargs.get('pk'),
-                                                                  ended_at__isnull=True).distinct('user_id')
-
-        return queryset
     def get_context_data(self, **kwargs):
         context = super(SiteUserSearchView, self).get_context_data(**kwargs)
         context['pk'] = self.kwargs.get('pk')
@@ -2620,14 +2931,21 @@ class SiteUserSearchView(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get("q")
-        return self.model.objects.select_related('user').filter(user__username__icontains=query, site_id=self.kwargs.get('pk'),
-                                                                  ended_at__isnull=True).distinct('user_id')
+        project = Site.objects.get(pk=self.kwargs.get('pk')).project
+        return self.model.objects.select_related('user').filter(ended_at__isnull=True).\
+            filter(Q(site_id=self.kwargs.get('pk')) | Q(region__project=project)).\
+            filter(Q(user__username__icontains=query) | Q(user__first_name__icontains=query) |
+                   Q(user__last_name__icontains=query) | Q(user__email__icontains=query)).distinct('user_id')
+
+
 
 class DefineProjectSiteMeta(RegionSupervisorReviewerMixin, TemplateView):
     def get(self, request, pk):
         project_obj = Project.objects.get(pk=pk)
+        level = "1"
         json_questions = json.dumps(project_obj.site_meta_attributes)
-        return render(request, 'fieldsight/project_define_site_meta.html', {'obj': project_obj, 'json_questions': json_questions,})
+        return render(request, 'fieldsight/project_define_site_meta.html', {'obj': project_obj, 'json_questions':
+            json_questions, 'level': level})
 
     def post(self, request, pk, *args, **kwargs):
         project = Project.objects.get(pk=pk)
@@ -2677,6 +2995,7 @@ class SiteMetaForm(ReviewerRoleMixin, TemplateView):
 class MultiSiteAssignRegionView(ProjectRoleMixin, TemplateView):
     def get(self, request, pk):
         project = Project.objects.get(pk=pk)
+        level = "1"
 
         if project.cluster_sites is False:
             raise PermissionDenied()
@@ -2736,7 +3055,7 @@ class ExcelBulkSiteSample(ProjectRoleMixin, View):
             regions = regions.split(',')
         task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
         if task_obj:
-            task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), regions)
+            task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), regions)
             task_obj.task_id = task.id
             task_obj.save()
             #status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
@@ -3172,7 +3491,7 @@ class FormlistAPI(View):
 
         task_obj=CeleryTaskProgress.objects.create(user=request.user, content_object = site, task_type=9)
         if task_obj:
-            task = generateCustomReportPdf.delay(task_obj.id, request.user, pk, base_url, fs_ids, start_date, end_date, removeNullField)
+            task = generateCustomReportPdf.delay(task_obj.id, pk, base_url, fs_ids, start_date, end_date, removeNullField)
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'True','message':'Sucess, the report is being generated. You will be notified after the report is generated. '}
@@ -3352,12 +3671,11 @@ class DefineProjectSiteCriteria(ProjectRoleMixin, TemplateView):
         project.save()
         return HttpResponseRedirect(reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs.get('pk')}))
 
+
 class AllResponseImages(ReadonlySiteLevelRoleMixin, View):
     def get(self, request, pk, **kwargs):
         all_imgs = get_images_for_site_all(pk)
         return render(request, 'fieldsight/gallery.html', {'is_donor_only': kwargs.get('is_donor_only', False), 'all_imgs' : json.dumps(list(all_imgs["result"]), cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8')})
-
-
 
 
 class SitesTypeView(ProjectRoleMixin, TemplateView):
@@ -3369,6 +3687,8 @@ class SitesTypeView(ProjectRoleMixin, TemplateView):
         types = project.types.filter(deleted=False)
         data['types'] = types
         data['obj'] = project
+        data['level'] = "1"
+
         return data
 
 
@@ -3380,6 +3700,7 @@ class AddSitesTypeView(ProjectRoleMixin, CreateView):
         data = super(AddSitesTypeView, self).get_context_data(**kwargs)
         project = Project.objects.get(pk=self.kwargs.get('pk'))
         data['obj'] = project
+        data['level'] = "1"
         return data
 
     def get_success_url(self):
@@ -3461,6 +3782,13 @@ class EditSitesTypeView(UpdateView):
 
         raise PermissionDenied()
 
+    def get_context_data(self, **kwargs):
+        data = super(EditSitesTypeView, self).get_context_data(**kwargs)
+        project = self.object.project
+        data['obj'] = project
+        data['level'] = "1"
+        return data
+
     def get_success_url(self):
         project = self.object.project
         return reverse('fieldsight:site-types', kwargs={'pk': project.pk})
@@ -3504,6 +3832,20 @@ def project_dashboard_peoples(request, pk):
 
     return Response({'peoples':user_data, 'new_people_url':new_people_url})
 
+
+@api_view(["GET"])
+def project_managers(request, pk):
+
+    users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk, user_roles__group_id__in=[4, 9]).distinct('id')
+    user_data = []
+    for user in users:
+        user_data.append(dict(label=user.get_full_name(),
+                              email=user.email,
+                              id=user.id,
+                              ))
+
+
+    return Response(user_data)
 
 @api_view(["GET"])
 def project_dashboard_map(request, pk):
@@ -3780,7 +4122,6 @@ class UnassignUserRegionAndSites(View):
                 request_usr_project_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=2).order_by('project_id').distinct('project_id').values_list('project_id', flat=True)
                 if not request_usr_project_role:
                     return JsonResponse(data, status=status)
-
                 if projects:
                     project_ids = [k[1:] for k in projects]
                     if not set(project_ids).issubset(set(request_usr_project_role)):
@@ -3824,7 +4165,7 @@ class UnassignUserRegionAndSites(View):
             user = get_object_or_404(User, pk=pk)
             task_obj=CeleryTaskProgress.objects.create(user=request.user, description="Removal of UserRoles", content_object = user, task_type=7)
             if task_obj:
-                task = UnassignUser.delay(task_obj.id, user_id, sites, regions, projects, group_id)
+                task = UnassignUser.delay(task_obj.id, sites, regions, projects, group_id)
                 task_obj.task_id = task.id
                 task_obj.save()
                 status, data = 200, {'status':'True', 'ids':ids, 'projects':projects, 'regions':regions, 'sites': sites, 'message':'Sucess, the roles are being removed. You will be notified after all the roles are removed. '}

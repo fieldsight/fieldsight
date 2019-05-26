@@ -3,12 +3,13 @@ from django.db.models import Q
 
 from onadata.apps.fieldsight.models import Region
 from onadata.apps.fieldsight.serializers.RegionSerializer import RegionSerializer, AllMainRegionSerializer
-from onadata.apps.api.viewsets.xform_viewset import CsrfExemptSessionAuthentication
 from onadata.apps.fieldsight.rolemixins import ProjectRoleMixin
 from rest_framework.permissions import BasePermission
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import BasePermission
+
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.userrole.models import UserRole
 from django.db.models import Q
 

@@ -1,4 +1,4 @@
-{% extends "fieldsight/fieldsight_base.html" %}
+{% extends base_template %}
 {% load i18n staticfiles %}
 {% load filters %}
 {% block page-title %} {% trans 'Profile '  %}{{obj.user }}{% endblock %}
@@ -12,7 +12,7 @@
                 {% if org_admin %}
                 <div class="widget-info margin-top bg-white padding">
                     <div class="widget-head">
-                        <h4>{% trans 'Organizations' %}</h4>
+                        <h4>{% trans 'Teams' %}</h4>
                     </div>
                     <div class="widget-body">
                         <div class="max-260-scroll" style="overflow-y: scroll;">
@@ -95,7 +95,7 @@
                 {% if proj_donor %}
                 <div class="widget-info margin-top bg-white padding">
                     <div class="widget-head">
-                        <h4>{% trans 'You are the donor in the following projects.' %}</h4>
+                        <h4>{% trans 'You are the partner in the following projects.' %}</h4>
                         <a href="{% url 'fieldsight:donorfullmap' %}" class="btn btn-sm btn-xs btn-primary"
                            target="_blank"><i class="la la-map"></i> View Interactive Map</a>
                     </div>
@@ -420,3 +420,21 @@
 
 </div>
 {% endblock %}
+
+{% block extrascript %}
+<script>
+
+          has_user_profile = "{{has_user_profile}}";
+          if (has_user_profile== 'False'){
+
+                  $(".logo").removeAttr('href');
+                  $( "span" ).removeClass( "la la-bars" )
+
+
+          }
+
+
+
+</script>
+{% endblock %}
+

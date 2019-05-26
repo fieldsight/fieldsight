@@ -142,8 +142,6 @@ class GeneralForm(HTML5BootstrapModelForm, KOModelForm):
         model = FieldSightXF
 
 
-
-
 class StageForm(forms.ModelForm):
 
     class Meta:

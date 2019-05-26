@@ -1,109 +1,206 @@
-{% load staticfiles i18n filters %}
+{% extends 'users/email_base.html' %}
 
-<!DOCTYPE html>
-<html>
-<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Ubuntu" />
+{% block content %}
 
-<head>
-	<title>Email</title>
-	<style type="text/css">
-	body{
-		font-family: Ubuntu;
-	}
-		#page-wrap {
-     width: 800px;
-     margin: 0 auto;
-}
-.head{
-	font-family:Ubuntu;
-	float: right;
-	margin-top: 85px;
-	font-size: 25px;
-	color:#253f8e;
-	font-weight: bold;
-}
-.title{
-	line-height: 1em;
-}
-.sub{
-	line-height: 1em;
-}
+    <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f0f0f0" align="center">
+      <tbody>
+        <tr>
+          <td style="font-size:0;" align="center">
+            <div style="display:inline-block;width:100%;max-width:800px;vertical-align:top;" class="width800 mrt-30">
+              <!-- ID:BG SECTION-1 -->
+              <table class="display-width" style="max-width:800px;" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" align="center">
+                <tbody>
+                  <tr>
+                    <td class="padding" align="center">
+                      <div style="display:inline-block;width:100%;max-width:600px;vertical-align:top;font-family:Ubuntu, sans-serif;" class="main-width">
+                        <table class="display-width-inner" style="max-width:600px;" width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+                          <tbody>
+                            <tr>
+                              <td style="mso-line-height-rule:exactly;line-height:30px;font-size:0;" height="30">
+                                 
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px;">
+                              	Hi <span>
+                                    {% if user.first_name %}
+                                        {{user.first_name}}
 
+                                    {% else %}
+                                        {{user}}
+                                    {% endif %}
+                                    </span>,
+                              </td>
+                            </tr>
 
+                            <tr>
+                              <td style="mso-line-height-rule:exactly;line-height:10px;font-size:0;" height="10">
+                                 
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px; text-align:justify;">
+                               	You have been invited to join FieldSight by <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">
+                                  {{ invite.by_user.first_name }} {{ invite.by_user.last_name }}
 
-input {
-    height: 60px;
-    width: 315px;
-    font-size: 32px;
-    background-color: #253f8e;
-    color: white;
-}
+                                  {% if invite.group.name != "Unassigned" %} </span>
+                                    as
+                                      {% if invite.group.name == "Organization Admin" %}  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">Team Admin</span>
 
+                                      {% elif invite.group.name == "Project Donor" %}  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">Project Partner</span>
 
-.body{
-	font-family: Ubuntu;
-}
-	</style>
+                                      {% else %}
+                                        <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.group.name }}</span>
+                                      {% endif %}
+                                  {% endif %}
 
+                                  {% if invite.regions.all %}
 
+                                  {% if invite.regions.all|length == 1 %}
+                                        for  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.regions.all.0.name }}</span>
 
+                                      {% else %}
+                                      {{ invite.regions.all|length }} regions
 
-</head>
-<body>
-	<div id="page-wrap">
-  
-	<span><img src="http://{{ domain }}{% static 'images/email/invite-logo.png' %}"> <font> <span class="head">Remote Monitoring And Supervision Tool </span> </font>
-	<hr>
-	<img src="http://{{ domain }}{% static 'images/email/invite-aa.jpg' %}" align="right">
-	<font class="title" color="#253f8e" size="6" >
-		<p>Welcome to FieldSight, <br> 
-		<font size="5" style="text-decoration: none!important; font-style:none;">{{ email }}!</p></font>
+                                      {% endif %}
+                                        in  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.all.0.name }}</span>
+                                        of <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.organization.name }} </span>
 
-	</font>
-	<font class="sub" size="3" color="black" style="text-decoration: none!important;">
+                                      {% elif invite.site.all %}
 
-		<p>You have been invited to join FieldSight by {{ invite.by_user.first_name }} {{ invite.by_user.last_name }} {% if invite.group.name != "Unassigned" %} as {{ invite.group.name }} {% endif %} for {% if invite.regions.all %}{% if invite.regions.all|length == 1 %} for {{ invite.regions.all.0.name }} {% else %} {{ invite.regions.all|length }} regions {% endif %} in {{ invite.project.all.0.name }} of {{ invite.organization.name }}
-		{% elif invite.site.all %}{% if invite.site.all|length == 1 %} for {{ invite.site.all.0.name }} {% else %} {{ invite.site.all|length }} sites {% endif %} in {{ invite.project.all.0.name }} of {{ invite.organization.name }} {% elif invite.project.all|length %} {% if invite.project.all|length == 1%} for {{ invite.project.all.0.name }}{% else %} for {{ invite.project.all|length }} projects {% endif %} of {{ invite.organization.name }}{% elif invite.organization %} in {{ invite.organization.name }}{% endif %}.</p>
-	</font>
+                                        {% if invite.site.all|length == 1 %}
 
-	<a href="{{ domain }}{% url 'fieldsight:activate-role' invite_id token %}
-" target="_blank"><input type="button" name="join" value="JOIN NOW"></a>
+                                  for <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.site.all.0.name }} </span>
 
-<font class="sub" size="3" color="black">
-		<p>Learn more about the services and features <br>
-			of the FieldSight platform through our <br>
-			User Manual.
-</p>
-	</font>
+                                        {% else %}
+                                            {{ invite.site.all|length }} sites
+                                   {% endif %}
 
-	<font class="sub" size="3" color="black">
-		<p>Thank you for joining our platform.<br>
-		 We hope you enjoy using FieldSight.
+                                    in  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.all.0.name }}</span> of
+                                  <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.organization.name }}</span>
+                                   {% elif invite.project.all|length %}
 
-</p>
-	</font>
+                                      {% if invite.project.all|length == 1%} for the  <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.all.0.name }}</span>
 
-	<font class="sub" size="3" color="#253f8e">
-		<b>Download FieldSight App</b><br>
-	<a href="https://play.google.com/store/search?q=fieldsight&hl=en"><img src="http://{{ domain }}{% static 'images/email/invite-andro.png' %}" width="200"></a>
-		 
+                                      {% else %}
+                                      for the  <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.all|length }} </span> projects {% endif %} of <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.organization.name }}</span>
 
-</p>
-	</font>
+                                      {% elif invite.organization %}
+                                        by <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 0 0 2px;">.{{ invite.organization.name }}</span>
+                                    {% endif %}. Sign into or create your FieldSight account below to start.
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="mso-line-height-rule:exactly;line-height:20px;font-size:0;" height="20">
+                                 
+                              </td>
+                            </tr>
+                            <tr>
+                              <td class="button-width" align="center">
+                                <!--  BUTTON -->
+                                <table class="display-button" style="border-radius:50px;" cellspacing="0" cellpadding="0" border="0" bgcolor="#1872b5" align="left">
+                                  <tbody>
+                                    <tr>
+                                      <td class="MsoNormal" style="color:#ffffff;font-family:Ubuntu, sans-serif;font-weight:500;padding:10px 16px;font-size:12px;letter-spacing:1px;" align="center">
+                                        <a href="{{ domain }}{% url 'fieldsight:activate-role' invite_id token %}" style="color:#ffffff;text-decoration:none;text-transform:uppercase;">Join now</a>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-	<font class="sub" size="4" color="#253f8e">
-		<b><p>Good Day,<br>
-		 The FieldSight Team. 
+    <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f0f0f0" align="center">
+      <tbody>
+        <tr>
+          <td style="font-size:0;" align="center">
+            <div style="display:inline-block;width:100%;max-width:800px;vertical-align:top;" class="width800">
+              <!-- ID:BG SECTION-1 -->
+              <table class="display-width" style="max-width:800px;" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" align="center">
+                <tbody>
+                  <tr>
+                    <td class="padding" align="center">
+                      <div style="display:inline-block;width:100%;max-width:600px;vertical-align:top;font-family:Ubuntu, sans-serif;" class="main-width">
+                        <table class="display-width-inner" style="max-width:600px;" width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+                          <tbody>
+                            <tr>
+                              <td style="mso-line-height-rule:exactly;line-height:15px;font-size:0;">
+                                 
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px; text-align:justify;">
+                              	As a role, once you have confirmed your registration, you will be able to manage, edit, and control all aspects of your team’s workspace and projects.
+                            </td>
+                          </tr>
+                          <tr>
+                              <td style="mso-line-height-rule:exactly;line-height:10px;font-size:0;" height="10">
+                                 
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px; text-align:justify;">
+                              	To learn more about how to use FieldSight, download our <a href="#" style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">User Manual</a> online here.
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 
-</p></b>
-	</font>
-	<table style="width:100%;background:lightgrey;">
-  <tr>
-    <th><font color="black">Contact us if you have any questions or feedback </font><br>
-  <span><img src="http://{{ domain }}{% static 'images/email/invite-mail.png' %}" width="15">  info@fieldsight.org <br> </span>
-    <span> <img src="http://{{ domain }}{% static 'images/email/invite-www.png' %}" width="15"> www.fieldsight.org</th></span>
-  </tr>
-</table>
-</div>
-</body>
-</html>
+  	<table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f0f0f0" align="center">
+	     <tbody>
+	        <tr>
+		        <td style="font-size:0;" align="center">
+		            <div style="display:inline-block;width:100%;max-width:800px;vertical-align:top;" class="width800">
+		              <!-- ID:BG SECTION-1 -->
+		              <table class="display-width" style="max-width:800px;" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" align="center">
+		                <tbody>
+		                  <tr>
+		                    <td class="padding" align="center">
+		                      <div style="display:inline-block;width:100%;max-width:600px;vertical-align:top;font-family:Ubuntu, sans-serif;" class="main-width">
+		                        <table class="display-width-inner" style="max-width:600px;" width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+		                          <tbody>
+		                            <tr>
+		                              <td style="mso-line-height-rule:exactly;line-height:15px;font-size:0;">
+		                                 
+		                              </td>
+		                            </tr>
+		                            <tr>
+		                              <td style="color:#666666;font-family:Ubuntu, sans-serif;font-weight:400;font-size:14px;line-height:24px;">
+		                              	Thank you for joining our platform.
+		                            </td>
+		                          </tr>
+		                        </tbody>
+		                      </table>
+		                    </div>
+		                  </td>
+		                </tr>
+		              	</tbody>
+		            </table>
+		          </div>
+		        </td>
+		    </tr>
+	    </tbody>
+	</table>
+{% endblock %}
