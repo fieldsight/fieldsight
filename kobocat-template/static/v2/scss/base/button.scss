@@ -1,0 +1,34 @@
+.fieldsight-new{
+  .fieldsight-btn{
+    height: 30px;
+    display: inline-block;
+    vertical-align: middle;
+    padding: 5px 10px;
+    background: $color-blue;
+    color: $color-white;
+    box-shadow: none;
+    border:none;
+    text-transform: capitalize;
+    font-size:0.875rem;
+    cursor: pointer;
+    position: relative;
+    @include radius4;
+    @include anim05;
+    &.small-btn{
+        height: 24px;
+        line-height: 24px;
+        display: inline-block;
+      }
+      
+    &:hover{
+        color:$color-white;
+        background-color: $color-yellow;
+    }
+    
+  }
+  button:focus{
+    box-shadow: none;
+    -webkit-outline:none;
+    outline:none;
+  }
+}

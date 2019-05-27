@@ -1,0 +1,87 @@
+.fieldsight-new{
+    form{
+        .form-group{
+            @include clear;
+            input.form-control{
+                border:0;
+                border-bottom:1px solid $color-bg;
+                padding: 0.625rem 0;
+                font-size: 0.8125rem;
+                line-height: 1.5;
+                color: $color-primary;
+                background-color: $color-white;
+                border-radius:0;
+                @include placeholder($color-primary);
+                &:focus{
+                    box-shadow:none;
+                    border-color:$color-blue;
+                }
+            }
+            ::-webkit-input-placeholder { 
+                color: $color-primary
+              }
+              :-moz-placeholder { 
+                color: $color-primary
+              }
+              ::-ms-input-placeholder { 
+                color: $color-primary
+              }
+            
+          }
+          .nice-select {
+            background-color: $color-white;
+            border: none;
+            border-radius: 0;
+            height: 2rem;
+            line-height: 2rem;
+            font-size: 0.8125rem;
+            padding-left: 0;
+            border-bottom: 1px solid $color-bg;
+            
+            ul{
+              @include boxshadow;
+            }
+            &::after {
+              border-bottom: 1.5px solid $color-secondary;
+              border-right: 1.5px solid $color-secondary;
+              height: 10px;
+              width: 10px;
+            }
+          }
+    }
+    .fieldsight-popup{
+        @include loadpopup;
+        overflow-y:auto;
+        .popup-body{
+            max-width: 600px;
+            width:96%;
+            @include translatey;
+            left:0;
+            right:0;
+            margin:auto;
+            z-index: 1001;
+            .card{
+                position: relative;
+                @include boxshadow13;
+                .popup-close{
+                    position: absolute;
+                    top:-0.5rem;
+                    right:-0.5rem;
+                    width:25px;
+                    height: 25px;
+                    @include flexvr;
+                    @include boxshadow;
+                    color:$color-red;
+                    @include radius50;
+                    cursor:pointer;
+                    background-color: $color-white;
+                    @include anim05;
+                    &:hover{
+                        background-color: $color-red;
+                        color:$color-white;
+                    }
+                }
+            }
+        }
+      }
+}

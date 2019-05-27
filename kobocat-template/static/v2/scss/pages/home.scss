@@ -1,0 +1,89 @@
+.fieldsight-new{
+  .left-sidebar{
+    .nav-tabs{
+      border:0;
+      .nav-item{
+          .nav-link{
+            border:0;
+            border-bottom:1px solid $color-bg;
+            padding:0.625rem 0;
+            border-radius:0;
+            @include anim05;
+            position: relative;
+            &.active{
+              color:$color-secondary;
+              border-color:$color-secondary;
+              &::after{
+                content: '';
+                border-color: transparent $color-white;
+                border-style: solid;
+                border-width: 10px 0px 10px 14px;
+                height: 0px;
+                width: 0px;
+                @include translatey;
+                right: -1.8rem;
+                display: inline-block;
+              }
+            }
+          }
+          &:first-child{
+            .nav-link{
+              padding-top:0;
+            }
+          }
+      }
+    }
+
+  }
+  .right-content{
+    background-color:$color-white;
+    margin-bottom: 2rem;
+    .identity-form{
+      padding:1rem;
+      .form-group{
+        @include clear;
+      }
+      .nice-select {
+        background-color: $color-white;
+        border: none;
+        border-radius: 0;
+        height: 2rem;
+        line-height: 2rem;
+        font-size: 0.8125rem;
+        padding-left: 0;
+        border-bottom: 1px solid $color-bg;
+        
+        ul{
+          @include boxshadow;
+        }
+        &::after {
+          border-bottom: 1.5px solid $color-secondary;
+          border-right: 1.5px solid $color-secondary;
+          height: 10px;
+          width: 10px;
+        }
+      }
+      .hide-form{
+        display: none;
+      }
+    }
+    .before-content{
+      ul{
+        li{
+          @include clear;
+          label{
+            margin:0;
+            width: 70px;
+            margin-right: 0.625rem;
+            font-weight: 500;
+            display: inline-block;
+            span{
+              width:calc(100% - 80px);
+              float: right;
+            }
+          }
+        }
+      }
+    }
+  }
+}

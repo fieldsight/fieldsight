@@ -1,0 +1,18 @@
+.fieldsight-new{
+      .nav-tabs{
+        border-bottom:1px solid $color-bg;
+        background:none;
+        .nav-item{
+            margin:0;
+          .nav-link{
+            border:0;
+            padding:0.625rem 0;
+            text-transform: capitalize;
+            font-weight: 400;
+            &.active{
+                color:$color-secondary;
+              }
+          }
+        }
+      }
+  }
