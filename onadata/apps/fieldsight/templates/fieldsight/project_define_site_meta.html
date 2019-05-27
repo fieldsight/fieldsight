@@ -1,53 +1,133 @@
-{% extends "fieldsight/manage_base.html" %}
+<!doctype html>
+<html lang="en">
 {% load i18n staticfiles %}
-{% load filters %}
-{% block content %}
-{% load filters %}
-<style type="text/css">
-    #removebutton{
-    margin-top:33px;
+{% load l10n %}
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    .dragPlaceholder {
-        padding: 10px 15px;
-      
-      background: rgb(255,240,120);
-      &:before {
-        content: "Drop here";
-        color: rgb(225,210,90);
-      }
-    }  
-}
-</style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
- <script src="{% static 'js/formparser.js' %}?v=1.1"></script>
- <script src="{% static 'js/reactjs/react.min.js' %}"></script>
- <script src="{% static 'js/reactjs/browser.min.js' %}"></script>
- <script src="{% static 'js/reactjs/react-dom.min.js' %}"></script>
+    <!-- SOCIAL MEDIA META -->
+    <meta property="og:description" content="Fieldsight">
+    <meta property="og:image" content="preview.html">
+    <meta property="og:site_name" content="Fieldsight">
+    <meta property="og:title" content="Fieldsight">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="http://naxa.com.np">
 
-
-            <div class="padding">
-
-                <section id="app" class="panel">
+    <!-- TWITTER META -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@Fieldsight">
+    <meta name="twitter:creator" content="@Fieldsight">
+    <meta name="twitter:title" content="Fieldsight">
+    <meta name="twitter:description" content="Fieldsight">
+    <meta name="twitter:image" content="preview.html">
+    
+    <!--title-->
+    <title>Fieldsight</title>
+    
+    <!-- faveicon start   -->
+    <link rel="icon" type="image/png" href="img/favicon-32x32.png" sizes="32x32">
+    
+    <!-- stylesheet start -->
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/line-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/nice-select.css">
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/js/datatable/dataTables.bs4.css">
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/main.css">
+</head>
+    <body class="">
+        <div id="fieldsight-new" class="fieldsight-new">
+            <div id="main-container" class="minified">
+                <div class="container-fluid">
+                    <nav aria-label="breadcrumb" role="navigation">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/fieldsight/organization/">Teams</a></li>
+                            <li class="breadcrumb-item"><a href="/fieldsight/organization-dashboard/13/">Build Change</a></li>
+                            
+                            <li class="breadcrumb-item active" aria-current="page">DFID 31 District Retrofitting</li>
+                        </ol>
+                    </nav>
+                    <main id="main-content">
+                        <div class="row">
+                            <div class="col-xl-3 col-lg-4">
+                                <div class="left-sidebar sidebar sticky-top">
+                                    <div class="card">
+                                        <div class="card-header main-card-header">
+                                            <h5>Meta Attributes</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="nav nav-tabs flex-column" id="myTab" role="tablist">
+                                                <li class="nav-item">
+                                                    <a class="nav-link" id="site_type_tab" data-toggle="tab" href="#site_type" role="tab" aria-controls="site_type" aria-selected="false">Site types</a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a class="nav-link active" id="site_info_tab" data-toggle="tab" href="#site_info" role="tab" aria-controls="site_info" aria-selected="true">site information</a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a class="nav-link" id="site_manage_tab" data-toggle="tab" href="#site_manage" role="tab" aria-controls="site_manage" aria-selected="false">manage sites</a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a class="nav-link" id="map_layer_tab" data-toggle="tab" href="#map_layer" role="tab" aria-controls="map_layer" aria-selected="false">manage sites</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                            <div class="col-xl-9 col-lg-8">
+                                <div class="right-content">
+                                    <div class="tab-content" id="myTabContent">
+                                        <div class="tab-pane fade" id="site_type" role="tabpanel" aria-labelledby="site_type_tab">
+                                            <div class="card">
+                                                <div class="card-header main-card-header">
+                                                    <h5>Site Type</h5>
+                                                </div>
+                                            </div> 
+                                        </div>
+                                        <div class="tab-pane fade show active" id="site_info" role="tabpanel" aria-labelledby="site_info_tab">
                    
                     
 
-                </section>
-                   
-                    <form id="theForm" action="{% url 'fieldsight:define-site-meta' obj.pk %}" method="post">
-                    {% csrf_token %}
-                      <input name="json_questions" id="json_questions" type="hidden" value="" />
-                    </form> 
-
+                                        </div>
+                                        
+                                        <div class="tab-pane fade" id="site_manage" role="tabpanel" aria-labelledby="site_manage_tab">
+                                            <div class="card">
+                                                <div class="card-header main-card-header">
+                                                    <h5>Site Mangage</h5>
+                                                </div>
+                                            </div> 
+                                        </div>
+                                        <div class="tab-pane fade" id="map_layer" role="tabpanel" aria-labelledby="map_layer_tab">
+                                            <div class="card">
+                                                <div class="card-header main-card-header">
+                                                    <h5>Map layer</h5>
+                                                </div>
+                                            </div> 
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
             </div>
-{% endblock %}
+        </div>
+      
+    <!-- jquery library start -->   
+    <script src="{{ STATIC_URL }}v2/js/vendor/jquery-3.4.1.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/popper.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/bootstrap.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/jquery.nice-select.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/jquery.slimscroll.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/script.js"></script>
+    <script src="{{ STATIC_URL }}js/formparser.js?v=1.1"></script>
+    <script src="{{ STATIC_URL }}js/reactjs/react.min.js"></script>
+    <script src="{{ STATIC_URL }}js/reactjs/browser.min.js"></script>
+    <script src="{{ STATIC_URL }}js/reactjs/react-dom.min.js"></script>
 
-{%block extrascript %}
-<script>
-{% load l10n %}
-</script>
 
-    <script type="text/babel">
+<script type="text/babel">
 
      var _json_question = JSON.parse("{{json_questions|escapejs}}");
      var project_id = "{{ obj.id|unlocalize }}";
@@ -63,7 +143,17 @@
                           {'id': 'FormSubCountQuestion', 'name':'Form submissions count'},
                           {'id': 'FormQuestionAnswerStatus', 'name':'Form question answer status'} ];
      
-     
+    var sitePictureTypes = [
+        {'id': 'upload', 'name': 'Upload'}, 
+        {'id': 'Form', 'name': 'Choose from a form'},
+        {'id': 'choose', 'name': 'Choose from Gallery'},
+    ]
+
+    var siteLocationTypes = [
+        {'id': 'choose', 'name': 'Enter a location / Choose on map'}, 
+        {'id': 'Form', 'name': 'Choose from a form'},
+    ]
+
     var SelectComponent = React.createClass({
             
             getInitialState: function () {
@@ -222,24 +312,26 @@
                     this.setState({editing:false})
                 }
                 // console.log('save');
+                
             },
 
             renderNormal:function(){
                 return(
-                    <div className="form-field-item margin-top">
-                        <div className="form-group">
-                            <label for="input11" className="col-form-label">{this.props.question}:</label>
-                            <span className="field-type"><strong>Type : </strong>{this.props.question_type}</span>
-                            <div className="clearfix"></div>
-                            <input type="text" className="form-control" id="input11" defaultValue={ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""} placeholderText={ 'question_help' in this.props ? this.props.question_help:""}/>
-                            <small id="input1Help" className="form-text text-muted">{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</small>
-                        </div>
-                        <div className="form-action">
-                            <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                            <br/>
-                            <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                        </div>
-                    </div>
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td></td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+
+                        </td>
+                    </tr>    
                 );
             },
             renderForm:function(){
@@ -404,24 +496,21 @@
 
                 })
                 return(
-                    <div className="form-field-item margin-top">
-                        <div className="form-group">
-                            <label for="input11" className="col-form-label">{this.props.question}:</label>
-                            <span className="field-type"><strong>Type : </strong> Select</span>
-                                <div className="clearfix"></div>
-                                <select className="form-control"> 
-                                  {options} 
-                                </select>   
-                                                
-                            <small id="input1Help" className="form-text text-muted">{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</small>
-                                
-                        </div>
-                        <div className="form-action">
-                            <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                            <br/>
-                            <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                        </div>
-                    </div>
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td></td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+                        </td>
+                    </tr>  
+
                 );
             },
 
@@ -530,26 +619,21 @@
                 if(this.state.isLoaded){
                     return(
 
-                             <div className="form-field-item margin-top">
-                                <div className="form-group">
-                                    <label for="input11" className="col-form-label">{this.props.question}:</label>
-                                    <span className="field-type"><strong>Type : </strong> Select</span>
-                                        <div className="clearfix"></div>
-                                        <select className="form-control" id="input13">
-                                            <option>Site 1</option>
-                                            <option>Site 2</option>
-                                            <option>Site 3</option>
-                                            <option>Site 4</option>
-                                        </select>
-                                                        
-                                    <small id="input1Help" className="form-text text-muted">{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</small>
-                                </div>
-                                <div className="form-action">
-                                    <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                    <br/>
-                                    <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                                </div>
-                            </div>
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td></td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+
+                        </td>
+                    </tr>  
                        
                    ); 
                 }else{
@@ -666,20 +750,21 @@ var FormSubStatQuestion = React.createClass({
                 if(this.state.isLoaded){
                     return(
                     
-                        <div className="form-field-item margin-top">
-                            <div className="form-group">
-                                <label className="col-form-label">{this.props.question}:</label>
-                                <span className="field-type"><strong>Type : </strong>{this.props.question_type}</span>
-                                    <div className="clearfix"></div>
-                                    <span>Yes / No</span> 
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td>{this.props.forms[this.state.form_index]}</td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
 
-                            </div>
-                            <div className="form-action">
-                                <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                <br/>
-                                <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                            </div>
-                        </div>
+                        </td>
+                    </tr>  
                    
                    ); 
                 }else{
@@ -786,20 +871,21 @@ var FormSubStatQuestion = React.createClass({
                 if(this.state.isLoaded){
                     return(
                     
-                        <div className="form-field-item margin-top">
-                            <div className="form-group">
-                                <label className="col-form-label">{this.props.question}:</label>
-                                <span className="field-type"><strong>Type : </strong>{this.props.question_type}</span>
-                                    <div className="clearfix"></div>
-                                    <span>Number of Submissions</span> 
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td>{this.props.forms[this.state.form_index]}</td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
 
-                            </div>
-                            <div className="form-action">
-                                <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                <br/>
-                                <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                            </div>
-                        </div>
+                        </td>
+                    </tr>
                    
                    ); 
                 }else{
@@ -944,21 +1030,21 @@ var FormSubStatQuestion = React.createClass({
                 if(this.state.isLoaded){
                     return(
                      
-                         <div className="form-field-item margin-top">
-                            <div className="form-group">
-                                <label for="input11" className="col-form-label">{this.props.question}:</label>
-                                <span className="field-type pull-right"><strong>Type : </strong>{this.props.question_type}</span>
-                                    <div className="clearfix"></div>
-                                    <span>Yes/No</span>
-                                                    
-                                
-                            </div>
-                            <div className="form-action">
-                                <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                <br/>
-                                <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                            </div>
-                        </div>
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td>{this.props.forms[this.state.form_index]}</td>
+                        <td>{this.state.selected_question}</td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+
+                        </td>
+                    </tr>
                     
                    ); 
                 }else{
@@ -1115,21 +1201,21 @@ var FormSubStatQuestion = React.createClass({
                 if(this.state.isLoaded){
                     return(
                      
-                         <div className="form-field-item margin-top">
-                            <div className="form-group">
-                                <label for="input11" className="col-form-label">{this.props.question}:</label>
-                                <span className="field-type pull-right"><strong>Type : </strong>{this.props.question_type}</span>
-                                    <div className="clearfix"></div>
-                                    <span>Answered / Not Answered</span>
-                                                    
-                                
-                            </div>
-                            <div className="form-action">
-                                <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                <br/>
-                                <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                            </div>
-                        </div>
+                           <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td>{this.props.forms[this.state.form_index]}</td>
+                        <td>{this.state.selected_question}</td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+
+                        </td>
+                    </tr>
                     
                    ); 
                 }else{
@@ -1195,12 +1281,241 @@ var FormSubStatQuestion = React.createClass({
             }
         });
 
+
+    var SitePictureFormQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:sitePictureTypes, editing:false | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, selected_question:this.props.selected_question, questions:[], processed_questions:{}, form_id: this.props.link_form_id}
+            },
+
+            componentDidMount() {
+                this.setState({isLoaded: false});
+                let form_index=this.state.forms.indexOf(this.state.forms.find(temp=>temp.id == this.state.form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(this.props.forms[form_index].json['children']);
+                }
+                this.setState({form_index:form_index, forms:this.props.forms,  processed_questions: questions, isLoaded: true});
+                
+            },
+
+            componentWillReceiveProps(nextProps) {
+                this.setState({isLoaded: false});
+                let form_index=nextProps.forms.indexOf(nextProps.forms.find(temp=>temp.id == nextProps.link_form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(nextProps.forms[form_index].json['children']);
+                }
+                this.setState({form_index:form_index, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
+            },
+
+            save: function () {
+                console.log(this.refs, "/////////")
+                this.props.updateQuestionType(this.refs.questionTypeSitePicture.value);
+            },
+            
+
+            sitePicturequestionChanged: function(){
+                let question_name = this.refs.formselectQuestionRefSitePicture.value;
+                let selected_question = this.state.processed_questions[question_name]
+                this.props.updateSitePictureSQuestion(selected_question);
+            },
+
+            sitePictureformChanged: function () {
+                const selectedForm = this.state.forms[this.refs.selectFormRefSitePicture.value]
+                
+                this.props.updateSitePictureForm(selectedForm.id);
+                this.setState({form_index:this.refs.selectFormRefSitePicture.value});
+                
+            },
+
+   
+            renderForm:function(){
+                // console.log(questions);
+               
+                    return(
+
+                    <form>
+                        
+                        <div className="form-group">
+                            <label for="input2" className="col-form-label">Input Type:</label>
+                            <SelectComponent inputRef={el => this.refs.questionTypeSitePicture = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                        </div>
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Form</label>                     
+                            <SelectComponent inputRef={el => this.refs.selectFormRefSitePicture = el} isProject={true} onChangeFunction={this.formChanged} defaultValue={this.state.form_index} options={this.props.forms} />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Question</label>                     
+                            <FormSelectComponent inputRef={el => this.refs.formselectQuestionRefSitePicture = el} onChangeFunction={this.questionChanged} defaultValue={this.state.selected_question} questions={this.state.processed_questions} />
+                        </div>
+
+                    </form>
+                   ); 
+                
+                
+                
+            },
+            render: function () {
+                return this.renderForm();
+                    
+            }
+        });
+
+
+    var SitePictureNormalQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:sitePictureTypes, editing:false | this.props.is_new}
+            },
+
+            save: function () {
+                console.log("yerrrro", this.refs)
+                this.props.updateQuestionType(this.refs.questionTypeSitePicture.value);
+            },
+
+            renderForm:function(){
+                return(
+
+                            <div className="form-group">
+                                <label className="col-form-label">Input Type:</label>
+                                    <SelectComponent inputRef={el => this.refs.questionTypeSitePicture = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                            </div>
+
+                    
+                );
+            },
+            render: function () {
+                        return this.renderForm();
+            }
+        });
+
+    var LocationFormQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:siteLocationTypes, editing:false | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, selected_question:this.props.selected_question, questions:[], processed_questions:{}, form_id: this.props.link_form_id}
+            },
+
+            componentDidMount() {
+                this.setState({isLoaded: false});
+                let form_index=this.state.forms.indexOf(this.state.forms.find(temp=>temp.id == this.state.form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(this.props.forms[form_index].json['children']);
+                }
+                this.setState({form_index:form_index, forms:this.props.forms,  processed_questions: questions, isLoaded: true});
+                
+            },
+
+            componentWillReceiveProps(nextProps) {
+                this.setState({isLoaded: false});
+                let form_index=nextProps.forms.indexOf(nextProps.forms.find(temp=>temp.id == nextProps.link_form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(nextProps.forms[form_index].json['children']);
+                }
+                this.setState({form_index:form_index, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
+            },
+
+            save: function () {
+                this.props.updateQuestionType(this.refs.questionTypeLocation.value);
+            },
+            
+
+            sitePicturequestionChanged: function(){
+                let question_name = this.refs.formselectQuestionRefLocation.value;
+                let selected_question = this.state.processed_questions[question_name]
+                this.props.updateSQuestionLocation(selected_question);
+            },
+
+            sitePictureformChanged: function () {
+                const selectedForm = this.state.forms[this.refs.selectFormRefLocation.value]
+                
+                this.props.updateFormLocation(selectedForm.id);
+                this.setState({form_index:this.refs.selectFormRefLocation.value});
+                
+            },
+
+   
+            renderForm:function(){
+                // console.log(questions);
+               
+                    return(
+
+                    <form>
+                        
+                        <div className="form-group">
+                            <label for="input2" className="col-form-label">Input Type:</label>
+                            <SelectComponent inputRef={el => this.refs.questionTypeLocation = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                        </div>
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Form</label>                     
+                            <SelectComponent inputRef={el => this.refs.selectFormRefLocation = el} isProject={true} onChangeFunction={this.formChanged} defaultValue={this.state.form_index} options={this.props.forms} />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Question</label>                     
+                            <FormSelectComponent inputRef={el => this.refs.formselectQuestionRefLocation = el} onChangeFunction={this.questionChanged} defaultValue={this.state.selected_question} questions={this.state.processed_questions} />
+                        </div>
+
+                    </form>
+                   ); 
+                
+                
+                
+            },
+            render: function () {
+                return this.renderForm();
+                    
+            }
+        });
+
+
+    var LocationNormalQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:siteLocationTypes, editing:false | this.props.is_new}
+            },
+
+            save: function () {
+                this.props.updateQuestionType(this.refs.questionTypeLocation.value);
+            },
+
+            renderForm:function(){
+                return(
+
+                            <div className="form-group">
+                                <label className="col-form-label">Input Type:</label>
+                                    <SelectComponent inputRef={el => this.refs.questionTypeLocation = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                            </div>
+
+                    
+                );
+            },
+            render: function () {
+                        return this.renderForm();
+            }
+        });
+
         var dragPlaceholder = document.createElement("li");
         dragPlaceholder.className = "dragPlaceholder ui-sortable-handle margin-top";
         dragPlaceholder.style.height = "100px";
         dragPlaceholder.style.background= "rgb(255,240,120)";
 
-     var Form = React.createClass({
+        var Form = React.createClass({
         getInitialState: function () {
             
             //console.log(linkTypeObjs);
@@ -1217,6 +1532,9 @@ var FormSubStatQuestion = React.createClass({
                 selectedProjectLinkIds:[],
                 isLoaded: false,
                 forms: [{id:0, name:"Select form", json:{ children: []}}],
+                editing: null,
+                site_picture: {'question_type':'upload', 'form_id':0, 'question':{}},
+                site_location: {'question_type':'choose', 'form_id':0, 'question':{}},
             }
         },
 
@@ -1342,8 +1660,11 @@ var FormSubStatQuestion = React.createClass({
         for (var key in json_convertible) {
             json_convertible[key].question_name = json_convertible[key].question_text.replace(/\W/g,"_");
         }
+        site_info = {"site_picture": this.state.site_picture, "site_location": this.state.site_location}
         var json_Question = JSON.stringify(json_convertible);
+        var json_SiteInfo = JSON.stringify(site_info)
         document.getElementById('json_questions').value = json_Question;
+        document.getElementById('site_info').value = json_SiteInfo;
         document.getElementById('theForm').submit();
     },
 
@@ -1401,6 +1722,7 @@ var FormSubStatQuestion = React.createClass({
         this.setState({Questions:arr});
     },
 
+
     updateMCQOptions: function (options, i){
         var arr = this.state.Questions;
         var newOptionsArray = options.filter(function (op) {
@@ -1434,9 +1756,6 @@ var FormSubStatQuestion = React.createClass({
             arr[i].question = {};
         }
         this.setState({Questions:arr});
-
-        //console.log("updatingLinkproject_id");
-        // console.log(this.state.forms);
     },
 
 
@@ -1444,9 +1763,49 @@ var FormSubStatQuestion = React.createClass({
         var arr = this.state.Questions;
         arr[i].question = obj;
         this.setState({Questions:arr});
+    },
 
-        //console.log("updatingLinkproject_id");
-        // console.log(this.state.forms);
+
+    updateSitePictureForm: function (form_id){
+        var arr = this.state.site_picture;
+        arr.form_id=form_id;
+        arr.question = {};
+        this.setState({site_picture:arr});
+    },
+
+
+    updateSitePictureSQuestion: function (obj){
+        var arr = this.state.site_picture;
+        arr.question = obj;
+        this.setState({site_picture:arr});
+    },
+
+    updateSitePictureQuestion: function (questionType) {
+        var arr = this.state.site_picture;
+        console.log(questionType, "-----")
+        arr.question_type=questionType;
+
+        this.setState({site_picture:arr});
+    },
+
+    updateFormLocation: function (form_id){
+        var arr = this.state.site_location;
+        arr.form_id=form_id;
+        arr.question = {};
+        this.setState({site_location:arr});
+    },
+
+
+    updateSQuestionLocation: function (obj){
+        var arr = this.state.site_location;
+        arr.question = obj;
+        this.setState({site_location:arr});
+    },
+
+    updateQuestionLocation: function (questionType) {
+        var arr = this.state.site_location;
+        arr.question_type=questionType;
+        this.setState({site_location:arr});
     },
 
 
@@ -1495,7 +1854,7 @@ var FormSubStatQuestion = React.createClass({
                         "is_new": true,
                     });
             console.log(arr);
-            
+            $('.fieldsight-popup').removeClass('open');
             this.setState({Questions:arr});
         }
     },
@@ -1503,8 +1862,6 @@ var FormSubStatQuestion = React.createClass({
 
     eachQuestion: function (is_new=false, id=false, question, i){
         
-        console.log(is_new, id, question.question_name, i);
-
         if( (!question.hasOwnProperty('is_deleted') || (question.hasOwnProperty('is_deleted') && question.is_deleted == false)) && ( is_new  || !question.hasOwnProperty('is_new')) ){
             console.log(question);
             if(question.question_type=="MCQ" ){
@@ -1559,64 +1916,285 @@ var FormSubStatQuestion = React.createClass({
                         renderedQuestion 
                    
                     );
-            }else{
-                return (
-                    <li className="ui-sortable-handle" key={is_new?id:i} data-id={is_new?id:i}
-                          draggable='true'
-                          onDragEnd={this.dragEnd.bind(this)}
-                          onDragStart={this.dragStart.bind(this)}>
-                        { renderedQuestion }
-                    </li>
+            }
 
+            else{
+                return (
+                    
+                        renderedQuestion 
+                    
                 );}
         }
     },
 
+    SiteImageQuestion: function (question){
+            if(question.question_type=="Form"){
+                
+                        
+                        var renderedQuestion= <SitePictureFormQuestion question_obj={question} question={question.question_text} updateQuestionType={this.updateSitePictureQuestion} question_type={question.question_type} updateSitePictureForm={this.updateSitePictureForm} link_form_id ={question.form_id} updateSitePictureSQuestion={this.updateSitePictureSQuestion} selected_question={question.question.name} forms={this.state.forms} />                        
+                       
+                  
+            }
+            else {
+
+                        var renderedQuestion= <SitePictureNormalQuestion question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionType={this.updateSitePictureQuestion} />
+                       
+                
+            }
+            
+            return (
+                
+                    renderedQuestion 
+                
+            );
+        
+    },
+
+    LocationQuestion: function (question){
+            if(question.question_type=="Form"){
+                
+                        
+                        var renderedQuestion= <LocationFormQuestion question_obj={question} question={question.question_text} updateQuestionType={this.updateQuestionLocation} question_type={question.question_type} updateFormLocation={this.updateFormLocation} link_form_id ={question.form_id} updateSQuestionLocation={this.updateSQuestionLocation} selected_question={question.question.name} forms={this.state.forms} />                        
+                       
+                  
+            }
+            else {
+
+                        var renderedQuestion= <LocationNormalQuestion question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionType={this.updateQuestionLocation} />
+                       
+                
+            }
+            
+            return (
+                
+                    renderedQuestion 
+                
+            );
+        
+    },
     render: function () {
         var listItems = this.state.Questions.map(this.eachQuestion.bind(this, false, false));
+        var site_picture = this.SiteImageQuestion(this.state.site_picture);
+        var site_location = this.LocationQuestion(this.state.site_location);
         return (
+                <div className="card">
+                    <div className="card-header main-card-header">
+                        <h5>Site Identification</h5>
+                    </div>
+                    
+                <div className="identity-form">
+                    <div className="row">
+                        <div className="col-lg-6">
+                            <div className="site_photo_form">
+                                <div className="card">
+                                    <div className="card-header sub-card-header">
+                                        <h5>Site information</h5>
+                                    </div>
+                                    <div className="card-body">
+                                        
+                                    {
+                                        site_picture
+                                    }
 
-            <div>
-            <header className="panel-heading clearfix">
-                <h3><i className="la la-cogs"></i>Site Meta Attributes</h3>
 
-                <button onClick={this.save.bind()} className="btn btn-success pull-right"><i className="la la-save"></i>Save Form</button>
-            </header>
-            <div className="panel-body">
-                <div className="row">
-                    <div className="col-md-4">
-                        <div className="">
-                            {   
-                                [this.state.Questions[this.state.Questions.length - 1]].map(this.eachQuestion.bind(this, true, this.state.Questions.length - 1))
-                            }  
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-lg-6">
+                            <div className="site-location">
+                                <div className="card">
+                                    <div className="card-header sub-card-header">
+                                        <h5>Site Location</h5>
+                                    </div>
+                                    <div className="card-body">
+                                        
+                                            {
+                                                site_location
+                                            }
+                                        
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div className="col-md-8">
-                        <ul id="hero" className="hero form-field-list bg-gray margin-top ui-sortable" onDragOver={this.dragOver.bind(this)}>
-                            {   
-                                listItems
-                            }
-                        </ul>
-                        
+                </div>
+                <div className="card no-boxshadow">
+                    <div className="card-header main-card-header">
+                        <h5>Site information</h5>
+                        <div className="add-btn">
+                            <a href="#" data-tab="site-info-popup">Add new <span><i className="la la-plus"></i></span></a>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        <table id="siteinfo_table" className="table  table-bordered table siteinfo_table">
+                            <thead>
+                                <tr>
+                                    <th > S.N</th>
+                                    <th >Attribute</th>
+                                    <th >Placeholder Text</th>
+                                    <th >Help Text</th>
+                                    <th >Type</th>
+                                    <th >Form</th>
+                                    <th >Question</th>
+                                    <th >Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                   
+                                        {   
+                                            listItems
+                                        }
+                                   
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="fieldsight-popup" id="site-info-popup">
+                        <div className="popup-body">
+                            <div className="card">
+                                <div className="card-header main-card-header">
+                                    <h5>Add information</h5>
+                                    <span className="popup-close"><i className="la la-close"></i></span>
+                                </div>
+                                <div className="card-body">
+                                   {   
+                                    [this.state.Questions[this.state.Questions.length - 1]].map(this.eachQuestion.bind(this, true, this.state.Questions.length - 1))
+                                    }  
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            </div>
+
+                <div className="card no-boxshadow">
+                    <div className="card-header main-card-header">
+                        <h5>featured pictures</h5>
+                        <div className="add-btn">
+                            <a href="#" data-tab="add-feature-pic">Add new <span><i className="la la-plus"></i></span></a>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        <div className="row">
+                            <div className="col-lg-3 col-md-6">
+                                <div className="card">
+                                    <div className="card-header sub-card-header">
+                                        <h5>Before</h5>
+                                        <div className="add-btn">
+                                            <a href="#" data-toggle="tooltip" data-placement="top" title="Edit"><i className="la la-edit"></i></a>
+                                            <a href="#" data-toggle="tooltip" data-placement="top" title="Delete"><i className="la la-trash-o"></i></a>
+                                        </div> 
+                                    </div>
+                                    <div className="card-body">
+                                        <div className="before-content">
+                                            <ul>
+                                                <li><label>Form :</label> <span>baseline survey</span></li>
+                                                <li><label>Question :</label> <span>Question</span></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                            <div className="col-lg-3 col-md-6">
+                                <div className="card">
+                                    <div className="card-header sub-card-header">
+                                        <h5>After</h5>
+                                        <div className="add-btn">
+                                            <a href="#" data-toggle="tooltip" data-placement="top" title="Edit"><i className="la la-edit"></i></a>
+                                            <a href="#" data-toggle="tooltip" data-placement="top" title="Delete"><i className="la la-trash-o"></i></a>
+                                        </div> 
+                                    </div>
+                                    <div className="card-body">
+                                        <div className="before-content">
+                                            <ul>
+                                                <li><label>Form :</label> <span>Final inspection form</span></li>
+                                                <li><label>Question :</label> <span>Question</span></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button onClick={this.save.bind()} className="btn btn-success pull-right"><i className="la la-save"></i>Save Form</button>
+                    <div className="fieldsight-popup" id="add-feature-pic">
+                        <div className="popup-body">
+                            <div className="card">
+                                <div className="card-header main-card-header">
+                                    <h5>Add information</h5>
+                                    <span className="popup-close"><i className="la la-close"></i></span>
+                                </div>
+                                <div className="card-body">
+                                    <form>
+                                        <div className="form-group">
+                                            <input type="text" className="form-control" placeholder="Attribute" />
+                                        </div>
+                                        <div className="form-group">
+                                            <input type="text" className="form-control" placeholder="Data Name" />
+                                        </div>
+                                        <div className="form-group">
+                                            <select className="wide">
+                                                <option selected>Type</option>
+                                                <option>Daily activity diary</option>
+                                                <option>Date</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <select className="wide">
+                                                <option selected>Question</option>
+                                                <option>Daily activity diary</option>
+                                                <option>Number of family member</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group pull-right no-margin">
+                                            <button type="submit" className="fieldsight-btn">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> 
+
+
+
+
+            // <div>
+            // <header className="panel-heading clearfix">
+            //     <h3><i className="la la-cogs"></i>Site Meta Attributes</h3>
+
+            //     <button onClick={this.save.bind()} className="btn btn-success pull-right"><i className="la la-save"></i>Save Form</button>
+            // </header>
+            // <div className="panel-body">
+            //     <div className="row">
+            //         <div className="col-md-4">
+            //             <div className="">
+            //                 {   
+            //                     [this.state.Questions[this.state.Questions.length - 1]].map(this.eachQuestion.bind(this, true, this.state.Questions.length - 1))
+            //                 }  
+            //             </div>
+            //         </div>
+            //         <div className="col-md-8">
+            //             <ul id="hero" className="hero form-field-list bg-gray margin-top ui-sortable" onDragOver={this.dragOver.bind(this)}>
+            //                 {   
+            //                     listItems
+            //                 }
+            //             </ul>
+                        
+            //         </div>
+            //     </div>
+            // </div>
+            // </div>
             );
         }
     });
 
-    ReactDOM.render(<Form /> , document.getElementById('app'));
+    ReactDOM.render(<Form /> , document.getElementById('site_info'));
 
 </script> 
-<script type="text/javascript">
-    $('.selectize').selectize();
-      $(document).ready(function(){
 
-        $("ul.nav li:nth-child(3) a" ).addClass("active");
-
-});
-</script>
-{% endblock %}
-
-
+  </body>
+</html>
