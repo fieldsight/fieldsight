@@ -2,6 +2,8 @@ import json
 from django.contrib.gis.geos import Point
 from rest_framework import serializers
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
+from onadata.apps.fieldsight.models import ProjectLevelTermsAndLabels
+
 
 class LogSerializer(serializers.ModelSerializer):
     source_uid = serializers.ReadOnlyField(source='source_id', read_only=True)
@@ -50,6 +52,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     get_absolute_url = serializers.ReadOnlyField()
     extra_json = serializers.JSONField(binary=False)
+    terms_and_labels = serializers.SerializerMethodField()
     # org_name = serializers.ReadOnlyField(source='organization.name', read_only=True)
     # get_org_url = serializers.ReadOnlyField()
 
@@ -61,10 +64,26 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FieldSightLog
-        exclude = ('description', 'is_seen', 'content_type', 'organization', 'project', 'site', 'object_id', 'extra_object_id', 'source', 'extra_content_type',)
+        exclude = ('description', 'project', 'is_seen', 'content_type', 'organization', 'site', 'object_id', 'extra_object_id', 'source', 'extra_content_type',)
 
     def get_source_name(self, obj):
         return obj.source.first_name + " " + obj.source.last_name
+
+    def get_terms_and_labels(self, obj):
+
+        if obj.project:
+            terms = ProjectLevelTermsAndLabels.objects.filter(project=obj.project).exists()
+
+            if terms:
+
+                return {'site': obj.project.terms_and_labels.site,
+                        'donor': obj.project.terms_and_labels.donor,
+                        'site_supervisor': obj.project.terms_and_labels.site_supervisor,
+                        'site_reviewer': obj.project.terms_and_labels.site_reviewer,
+                        'region': obj.project.terms_and_labels.region,
+                        'region_supervisor': obj.project.terms_and_labels.region_supervisor,
+                        'region_reviewer': obj.project.terms_and_labels.region_reviewer,
+                        }
 
 
 class TaskSerializer(serializers.ModelSerializer):
