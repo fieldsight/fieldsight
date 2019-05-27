@@ -484,9 +484,9 @@ def publish_form(callback):
         # if we don't see typical ODK validation error messages in it.
         try:
             if u"ODK Validate Errors" not in e.message:
-                e = "Non Unicode characters are not allowded in forms"
+                unicode(e)
         except:
-            e = "Non Unicode characters or symbols are not allowded in forms"
+            e = "Xform error, check for non-unicode Symbols in your form"
 
         # error in the XLS file; show an error to the user
         return {
