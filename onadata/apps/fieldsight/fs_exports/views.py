@@ -57,7 +57,7 @@ class ProjectStatsticsReport(View):
         
         task_obj=CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=11)
         if task_obj:
-            task = exportProjectstatistics.delay(task_obj.pk, user, self.kwargs.get('pk'), reportType, start_date, end_date)
+            task = exportProjectstatistics.delay(task_obj.pk, self.kwargs.get('pk'), reportType, start_date, end_date)
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'true','message':'Sucess, the report is being generated. You will be notified after the report is generated.'}
@@ -79,7 +79,7 @@ class LogsReport(View):
         
         task_obj=CeleryTaskProgress.objects.create(user=user, content_object=obj, task_type=12)
         if task_obj:
-            task = exportLogs.delay(task_obj.pk, user, self.kwargs.get('pk'), reportType, start_date, end_date)
+            task = exportLogs.delay(task_obj.pk, self.kwargs.get('pk'), reportType, start_date, end_date)
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'true','message':'Sucess, the report is being generated. You will be notified after the report is generated.'}
@@ -254,7 +254,7 @@ class UserActivityStats(DonorRoleMixin, View):
         
         task_obj=CeleryTaskProgress.objects.create(user=user, task_type=16, content_object = obj)
         if task_obj:
-            task = exportProjectUserstatistics.delay(task_obj.pk, user, obj.id, start_date, end_date)
+            task = exportProjectUserstatistics.delay(task_obj.pk, obj.id, start_date, end_date)
             task_obj.task_id = task.id
             task_obj.save()
             data = {'status':'true','message':'User Activity report is being generated. You will be notified upon completion.'}
