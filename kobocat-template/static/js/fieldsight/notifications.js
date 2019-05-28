@@ -265,8 +265,49 @@ webSocketBridgeNotifyUser.listen(function(text, byte) {
 		            additional_content = "<br/><a href='"+ url +"'>Download File</a>";
 		        	
 		        }
-		    }
-		    content = data.get_task_type_display + " of " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+			}
+			
+
+			if (data.task_type == 0 && data.terms_and_labels!=null){
+				content = "Bulk " + data.terms_and_labels.site + " Update " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+		
+			  }
+		
+			else if (data.task_type == 2 && data.terms_and_labels!=null){
+			content = "User Assign to " + data.terms_and_labels.site  +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+	
+			}
+	
+			else if (data.task_type == 3 && data.terms_and_labels!=null){
+			content = data.terms_and_labels.site + " Response Xls Report " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+	
+			}
+			else if (data.task_type == 4 && data.terms_and_labels!=null){
+			content = data.terms_and_labels.site + " Import " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+	
+			}
+	
+			else if (data.task_type == 6 && data.terms_and_labels!=null){
+			content = "Zip "+ data.terms_and_labels.site +" Image " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+	
+			}
+	
+			else if (data.task_type == 10 && data.terms_and_labels!=null){
+			content = data.terms_and_labels.site + " Progress Xls Report Image " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+	
+			}
+	
+			else if (data.task_type == 8 && data.terms_and_labels!=null){
+			content = data.terms_and_labels.site + " Data Export of " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+	
+			}
+			else if (data.task_type == 13 && data.terms_and_labels!=null){
+			content = "User Assign to " + data.terms_and_labels.region +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+	
+			}
+			else{
+			content = data.get_task_type_display + " of " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+			}
 		    return content + additional_content;
 		}
 
@@ -309,7 +350,7 @@ webSocketBridgeNotifyUser.listen(function(text, byte) {
 			    	error_msg = "<b>Error message:</b> " + data.description + "<br/><br/>" ;
 			    }
 
-			    var task_content = tasklistgenerate(data, status);
+				var task_content = tasklistgenerate(data, status);
 			   
 			    var new_li = `  <div class="task-item `+ div_class +`" id="mytask` + data.id + `">
 										<div class="task-icon `+ div_subclass +`">
@@ -407,16 +448,17 @@ webSocketBridgeNotifyUser.listen(function(text, byte) {
             type: 'GET',
             success: function (data) {
 			   $("#mytasks-ul").html( "" );
+
 			   var my_tasks_length = data.results.length;
 			   if (my_tasks_length > 0){
 				$(".zeromytasks").hide();	
 					var new_data = data.results.slice(0, 4);
+
 					new_data.forEach(populatemytasklist);
 					mytask_request_isfirst = "false";
 					speed=0;
 					$(".task-detail-handler").off("click");
 					$('.task-detail-handler').on('click', function(event){
-						console.log(event);
 						event.stopPropagation();
 						$(this).siblings('.task-detail-content').collapse('toggle');
 						var hsText = $(this).text();

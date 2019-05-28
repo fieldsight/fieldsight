@@ -216,6 +216,7 @@ function type20(data){
 
 function type21(data){
     if(data.source_uid == user_id){
+
         content = "<b>TASK INFO : </b>"+data.extra_message + ' of Team <a href="' +  data.get_event_url + '"><b>' + data.get_event_name + '</a></b> were created.';
     }else{
         content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created '+ data.extra_message +' of Team <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
@@ -233,6 +234,7 @@ function type22(data){
 }
 
 function type23(data){
+
     content = "<b>TASK INFO : </b>"+data.extra_message + ' in <a href="' +  data.get_event_url + '"><b>' + data.get_event_name + '</a></b>.';
     return content;
 }

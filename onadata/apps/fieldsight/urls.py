@@ -214,8 +214,8 @@ urlpatterns = [
     url(r'^region-list/(?P<pk>\d+)/$', RegionListView.as_view(), name='region-list'),
     url(r'^project-region-sites/(?P<pk>\d+)/$', ProjectRegionSitesView().as_view(), name='project_region_sites'),
     url(r'^project-geo-layer/(?P<pk>\d+)/$', ProjectGeoLayerView().as_view(), name='project_geo_layer'),
-    url(r'^project_terms_label_create/(?P<pk>\d+)/$', project_terms_label_create, name='project_terms_label_create'),
-    url(r'^project_terms_label_update/(?P<pk>\d+)/$', ProjectTermsLabelUpdate.as_view(), name='project_terms_label_update'),
+    url(r'^project-terms-label-create/(?P<pk>\d+)/$', project_terms_label_create, name='project_terms_label_create'),
+    url(r'^project-terms-label-update/(?P<pk>\d+)/$', ProjectTermsLabelUpdate.as_view(), name='project_terms_label_update'),
 
     url(r'^terms-and-labels/(?P<pk>\d+)/$', ProjectTermsAndLabelView.as_view(), name='terms_and_labels'),
     url(r'^api/project-terms-labels/(?P<project_id>\d+)$', ProjectTermsAndLabelApi.as_view({'get': 'list'}), name='project_terms_labels_api'),

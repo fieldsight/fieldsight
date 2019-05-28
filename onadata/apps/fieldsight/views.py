@@ -884,7 +884,7 @@ class ProjectTermsLabelUpdate(UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super(ProjectTermsLabelUpdate, self).get_context_data(**kwargs)
-        context['obj'] = self.object
+        context['obj'] = self.object.project
         context['level'] = "1"
 
         return context
