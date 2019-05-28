@@ -110,7 +110,7 @@ def upload_to_drive(file_path, title, folder_title, project):
         _project.save()
         permissions = file.GetPermissions()
 
-        user_emails = _project.project_roles.filter(ended_at__isnull = True, site=None).distinct('user').values_list('user__email', flat=True)
+        user_emails = _project.project_roles.filter(group__name__in=["Project Manager", "Project Donor"], ended_at__isnull = True, site=None).distinct('user').values_list('user__email', flat=True)
         
         all_users = set(user_emails)
 
@@ -204,7 +204,7 @@ def site_download_zipfile(task_prog_obj_id, size):
         buffer.close()                                                                      
 
 @shared_task(time_limit=300, soft_time_limit=300)
-def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, region_ids):
+def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, region_ids, sync_to_drive=False):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     project = Project.objects.get(pk=project_id)
@@ -341,12 +341,19 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         task.file.name = xl_data.name
         task.status = 2
         task.save()
-        noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report generation in Project",
+        
+        if sync_to_drive:
+            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project)
+
+            noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report sync to Google Drive",
+                                   recipient=task.user, content_object=project, extra_object=project,
+                                   extra_message="Site Stage Progress report sync to Google Drive in project")
+
+
+        else:
+            noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report generation in Project",
                                    recipient=task.user, content_object=project, extra_object=project,
                                    extra_message=" <a href='/"+ "media/stage-report/{}_stage_data.xls".format(project.id) +"'>Site Stage Progress report </a> generation in project")
-        
-        if not site_type_ids and not region_ids:
-            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project)
 
     except DriveException as e:
         print 'Report upload to drive  Unsuccesfull. %s' % e
@@ -899,7 +906,7 @@ def siteDetailsGenerator(project, sites, ws):
 # siteDetailsGenerator(project, sites, None)
 
 @shared_task(time_limit=300, soft_time_limit=300)
-def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids, type_ids=None):
+def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids, type_ids=None, sync_to_drive=False):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
@@ -942,11 +949,7 @@ def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids
         task.status = 2
         task.save()
 
-        task.logs.create(source=source_user, type=32, title="Site details xls generation in project",
-                                   recipient=source_user, content_object=task, extra_object=project,
-                                   extra_message=" <a href='" +  task.file.url +"'>Xls sites detail report</a> generation in project")
-
-        if not type_ids and not region_ids:
+        if sync_to_drive:
             
             if not os.path.exists("media/site-details-report/"):
                 os.makedirs("media/site-details-report/")
@@ -958,6 +961,15 @@ def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids
             upload_to_drive(temporarylocation, "{} - Site Information".format(project.id), "Site Information", project)
 
             os.remove(temporarylocation)
+
+            task.logs.create(source=source_user, type=32, title="Site details xls sync to Google Drive in project",
+                                   recipient=source_user, content_object=task, extra_object=project,
+                                   extra_message=" <a href='" +  task.file.url +"'>Xls sites detail report sync to Google Drive in project")
+        else:
+            task.logs.create(source=source_user, type=32, title="Site details xls generation in project",
+                                   recipient=source_user, content_object=task, extra_object=project,
+                                   extra_message=" <a href='" +  task.file.url +"'>Xls sites detail report</a> generation in project")
+
 
     except DriveException as e:
         print 'Report upload to drive  Unsuccesfull. %s' % e
@@ -2017,7 +2029,7 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
         new_enddate = end + datetime.timedelta(days=1)
 
        
-        data.insert(0, ["UserName", "Full name", "Email", "Total Submssions", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today"])
+        data.insert(0, ["UserName", "Full name", "Email", "Submssions made", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today"])
 
         site_visits = settings.MONGO_DB.instances.aggregate(
             [
@@ -2028,8 +2040,9 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
                         },
                         "start": { 
                             '$gte' : new_startdate.isoformat(),
-                            '$lte' : new_enddate.isoformat() 
-                        }
+                            '$lte' : end.isoformat() 
+                        },
+                        "fs_project": {'$in' : [str(project_id), int(project_id)]}
                     }
                 },
                 { 
@@ -2074,19 +2087,19 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
         last_month = new_enddate - datetime.timedelta(days=30)
         query['monthly'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[last_month, new_enddate], then=1),
+                When(supervisor__instance__date_created__range=[last_month, new_enddate], supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
         last_week = new_enddate - datetime.timedelta(days=7)
         query['weekly'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[last_week, new_enddate], then=1),
+                When(supervisor__instance__date_created__range=[last_week, new_enddate], supervisor__project_id=project_id,then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['daily'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate], then=1),
+                When(supervisor__instance__date_created__range=[end, new_enddate], supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
@@ -2103,7 +2116,12 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
 
         wb = Workbook()
         ws = wb.active
-        ws.title = "User Activity"
+        sheet_name = "Report "+start_date+"_"+end_date
+        sheet_name = sheet_name[:30]
+        for ch in ["[", "]", "*", "?", ":", "/"]:
+            if ch in sheet_name:
+                sheet_name=sheet_name.replace(ch,"_")
+        ws.title=sheet_name
         for row in data:
             ws.append(row)
         wb.save(buffer)

@@ -386,7 +386,7 @@ class Region(models.Model):
 
 
 class SiteType(models.Model):
-    identifier = models.IntegerField("ID")
+    identifier = models.CharField("ID", max_length=255)
     name = models.CharField("Type", max_length=256)
     project = models.ForeignKey(Project, related_name="types")
     deleted = models.BooleanField(default=False)

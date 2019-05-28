@@ -37,7 +37,7 @@ from .forms import LoginForm, ProfileForm, UserEditForm, SignUpForm
 from rest_framework import viewsets, serializers, status
 from onadata.apps.fsforms.models import FInstance
 from django.db.models import Q
-from onadata.apps.fieldsight.rolemixins import LoginRequiredMixin, EndRoleMixin
+from onadata.apps.fieldsight.rolemixins import LoginRequiredMixin, EndRoleMixin, SameOrganizationProfileRoleMixin
 from django.core.exceptions import ValidationError
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.template.loader import render_to_string
@@ -343,7 +343,7 @@ class ProfileUpdateView(MyProfileView, OwnerMixin, UpdateView):
         return HttpResponseRedirect(reverse_lazy('users:profile', kwargs={'pk': self.object.user.pk}))
 
 
-class MyProfile(LoginRequiredMixin, View):
+class MyProfile(SameOrganizationProfileRoleMixin, View):
 
     def get(self, request, pk=None):
         if not pk or pk =='0':

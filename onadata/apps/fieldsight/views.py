@@ -442,7 +442,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
         # subscribed to free plan
         if not user.is_superuser:
             free_package = Package.objects.get(plan=0)
-            customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id", initiated_at=datetime.datetime.now())
+            customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
             Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer, initiated_on=datetime.datetime.now(),
                                         package=free_package, organization=self.object)
             user_id = user_id
@@ -2028,6 +2028,142 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
             'total_submissions': line_chart_data.values()[-1],
         }
         return render(request, 'fieldsight/project_summary_report.html', dashboard_data)
+
+
+class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
+
+    def get(self, request, pk, *args, **kwargs):
+        user = User.objects.get(pk=self.kwargs.get('user_id'))
+        start_date = self.kwargs.get('start_date')
+        end_date = self.kwargs.get('end_date')
+        split_startdate = start_date.split('-')
+        split_enddate = end_date.split('-')
+
+        new_startdate = datetime.date(int(split_startdate[0]), int(split_startdate[1]), int(split_startdate[2]))
+        end = datetime.date(int(split_enddate[0]), int(split_enddate[1]), int(split_enddate[2]))
+
+        new_enddate = end + datetime.timedelta(days=1)
+
+        roles = user.user_roles.filter(project_id=pk, ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
+        # recent_images = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": "santoshkhatri"}, "start": { 
+        #                     '$gte' : new_startdate.isoformat(),
+        #                     '$lte' : end.isoformat() 
+        #                 }
+        #                 }, {"$unwind":"$_attachments"},{"$match":{"_attachments.mimetype" : "image/jpeg"}},  {"$project" : {"_attachments.download_url":1, }},{ "$sort" : { "_id": -1 }}, { "$limit": 3 }])
+        coords = settings.MONGO_DB.instances.aggregate([
+            {
+                "$match":
+                    {
+                        "_submitted_by": user.username,
+                        "_submission_time": { 
+                                '$gte' : new_startdate.isoformat(),
+                                '$lte' : end.isoformat() 
+                        },
+                        "_geolocation": {
+                                "$not":{ "$elemMatch": { "$eq": None }}
+                        },
+                        "fs_project": {'$in' : [str(pk), int(pk)]}
+                    }
+            },
+            {
+                "$project" :
+                    {
+                        "_id":0, "type": {"$literal": "Feature"},
+                        "geometry":{
+                            "type": {"$literal": "Point"},
+                            "coordinates": "$_geolocation"
+                        },
+                        "properties": {
+                            "id":"$_id",
+                            "fs_uuid":"$fs_uuid",
+                            "submitted_by":"$_submitted_by"
+                        }
+                    }
+            }])['result']
+        response_coords = {'features': coords, 'type':'FeatureCollection'}
+        submission_queryset = user.supervisor.filter(project_id=pk, instance__date_created__range=[new_startdate, new_enddate])
+        approved = submission_queryset.filter(form_status=3).count()
+        rejected = submission_queryset.filter(form_status=1).count()
+        pending = submission_queryset.filter(form_status=0).count()
+        flagged = submission_queryset.filter(form_status=2).count()
+             
+
+        total_submissions = submission_queryset.count()
+        submissions = submission_queryset.values_list(
+            'project_fxf__xf__title',
+            'instance__date_created',
+            'site__name',
+            'submitted_by__username'
+        )
+        visits_and_worked = settings.MONGO_DB.instances.aggregate(
+            [
+                {
+                    "$match":{
+                        "_submitted_by": user.username,
+                        "start": { 
+                            '$gte' : new_startdate.isoformat(),
+                            '$lte' : new_enddate.isoformat() 
+                        },
+                        "fs_project": {'$in' : [str(pk), int(pk)]}
+                    }
+                },
+                { 
+                    "$group" : { 
+                        "_id" :  { 
+                            "user": "$_submitted_by",
+                            "fs_site": "$fs_site",
+                            "date": { 
+                                "$substr": [ "$start", 0, 10 ]
+                            }
+                        },
+                            "submissions": {'$sum':1}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "_user":"$_id.user",
+                            "_fs_site": "$_id.fs_site"
+                        },
+                        "submissions": {'$sum': '$submissions'},
+                        "visits": { '$sum': 1}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$_id._user",
+                        "total_worked_days": {'$sum': '$visits'},
+                        "submissions": {'$sum': '$submissions'},
+                        "sites_visited": {'$sum': 1}
+                    }
+                }
+            ]
+        )['result']
+        try:
+            vac = visits_and_worked[0]
+        except:
+            vac = {
+                '_id': user.username,
+                'sites_visited': 0,
+                'submissions': 0,
+                'total_worked_days': 0
+            }
+
+        dashboard_data = {
+            'user': user,
+            'roles': roles,
+            # 'recent_images': recent_images,
+            'data': json.dumps(response_coords, cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8'),
+            'submissions': submissions,
+            'visits_and_worked': vac,
+            'total_submissions': total_submissions,
+            'approved': approved,
+            'pending': pending,
+            'rejected': rejected,
+            'flagged': flagged,
+            'approved': approved
+        }
+        return render(request, 'fieldsight/user_activity_report.html', dashboard_data)
 
 
 class SiteSummaryReport(LoginRequiredMixin, TemplateView):
@@ -3743,6 +3879,20 @@ def project_dashboard_peoples(request, pk):
 
 
 @api_view(["GET"])
+def project_managers(request, pk):
+
+    users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk, user_roles__group_id__in=[4, 9]).distinct('id')
+    user_data = []
+    for user in users:
+        user_data.append(dict(label=user.get_full_name(),
+                              email=user.email,
+                              id=user.id,
+                              ))
+
+
+    return Response(user_data)
+
+@api_view(["GET"])
 def project_dashboard_map(request, pk):
     sites = Site.objects.filter(project__id=pk)[:100]
     data = serialize('custom_geojson', sites, geometry_field='location', fields=('location', 'id', 'name'))
@@ -4017,7 +4167,6 @@ class UnassignUserRegionAndSites(View):
                 request_usr_project_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=2).order_by('project_id').distinct('project_id').values_list('project_id', flat=True)
                 if not request_usr_project_role:
                     return JsonResponse(data, status=status)
-
                 if projects:
                     project_ids = [k[1:] for k in projects]
                     if not set(project_ids).issubset(set(request_usr_project_role)):

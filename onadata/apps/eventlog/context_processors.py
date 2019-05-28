@@ -11,11 +11,15 @@ def events(request):
     else:
         messages = FieldSightMessage.inbox(request.user)
     oid = 0
-    if request.oganization:
-        oid = request.organization.id
     pid = 0
     sid = 0
     logs = []
+    if request.group is not None:
+        if hasattr(request, "organization") and request.organization:
+            oid = request.organization.id
+    else:
+        logs = []
+        oid = None
     channels_url = settings.WEBSOCKET_URL+":"+settings.WEBSOCKET_PORT+"/" \
     if settings.WEBSOCKET_PORT else settings.WEBSOCKET_URL+"/"
     return {
