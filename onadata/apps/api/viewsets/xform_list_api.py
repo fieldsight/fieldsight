@@ -78,7 +78,7 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
                 return super(XFormListApi, self).filter_queryset(queryset)
 
         profile = get_object_or_404(
-            UserProfile, user__username=username.lower())
+            UserProfile, user__username=username)
         # Include only the forms belonging to the specified user
         queryset = queryset.filter(user=profile.user)
         if profile.require_auth:
