@@ -956,6 +956,7 @@ var FormSubStatQuestion = React.createClass({
                 else{
                     questions = parse_form_response(this.props.forms[form_index].json['children']);
                 }
+                console.log('did mount');
                 this.setState({form_index:form_index, forms:this.props.forms,  processed_questions: questions, isLoaded: true});
                 
             },
@@ -970,6 +971,7 @@ var FormSubStatQuestion = React.createClass({
                 else{
                     questions = parse_form_response(nextProps.forms[form_index].json['children']);
                 }
+                console.log('receave` mount');
                 this.setState({form_index:form_index, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
             },
 
@@ -1027,6 +1029,7 @@ var FormSubStatQuestion = React.createClass({
             },
 
             renderNormal:function(){
+                console.log(this.props.question_obj, "objj")
                 if(this.state.isLoaded){
                     return(
                      
@@ -1036,8 +1039,8 @@ var FormSubStatQuestion = React.createClass({
                         <td>{this.props.question_type}</td>
                         <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
                         <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
-                        <td>{this.props.forms[this.state.form_index]}</td>
-                        <td>{this.state.selected_question}</td>
+                        <td>{this.props.forms[this.state.form_index]['name']}</td>
+                        <td>{this.props.question_obj['question']['label']}</td>
                         
                         <td>
                             <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
@@ -1329,7 +1332,7 @@ var FormSubStatQuestion = React.createClass({
 
             sitePictureformChanged: function () {
                 const selectedForm = this.state.forms[this.refs.selectFormRefSitePicture.value]
-                
+                console.log(selectedForm, ":::::::")
                 this.props.updateSitePictureForm(selectedForm.id);
                 this.setState({form_index:this.refs.selectFormRefSitePicture.value});
                 
@@ -1349,12 +1352,12 @@ var FormSubStatQuestion = React.createClass({
                         </div>
                         <div className="form-group">
                             <label className="col-form-label">Select a Form</label>                     
-                            <SelectComponent inputRef={el => this.refs.selectFormRefSitePicture = el} isProject={true} onChangeFunction={this.formChanged} defaultValue={this.state.form_index} options={this.props.forms} />
+                            <SelectComponent inputRef={el => this.refs.selectFormRefSitePicture = el} isProject={true} onChangeFunction={this.sitePictureformChanged} defaultValue={this.state.form_index} options={this.props.forms} />
                         </div>
 
                         <div className="form-group">
                             <label className="col-form-label">Select a Question</label>                     
-                            <FormSelectComponent inputRef={el => this.refs.formselectQuestionRefSitePicture = el} onChangeFunction={this.questionChanged} defaultValue={this.state.selected_question} questions={this.state.processed_questions} />
+                            <FormSelectComponent inputRef={el => this.refs.formselectQuestionRefSitePicture = el} onChangeFunction={this.sitePicturequestionChanged} defaultValue={this.state.selected_question} questions={this.state.processed_questions} />
                         </div>
 
                     </form>
@@ -1435,13 +1438,13 @@ var FormSubStatQuestion = React.createClass({
             },
             
 
-            sitePicturequestionChanged: function(){
+            questionChangedLocation: function(){
                 let question_name = this.refs.formselectQuestionRefLocation.value;
                 let selected_question = this.state.processed_questions[question_name]
                 this.props.updateSQuestionLocation(selected_question);
             },
 
-            sitePictureformChanged: function () {
+            formChangedLocation: function () {
                 const selectedForm = this.state.forms[this.refs.selectFormRefLocation.value]
                 
                 this.props.updateFormLocation(selectedForm.id);
@@ -1463,12 +1466,12 @@ var FormSubStatQuestion = React.createClass({
                         </div>
                         <div className="form-group">
                             <label className="col-form-label">Select a Form</label>                     
-                            <SelectComponent inputRef={el => this.refs.selectFormRefLocation = el} isProject={true} onChangeFunction={this.formChanged} defaultValue={this.state.form_index} options={this.props.forms} />
+                            <SelectComponent inputRef={el => this.refs.selectFormRefLocation = el} isProject={true} onChangeFunction={this.formChangedLocation} defaultValue={this.state.form_index} options={this.props.forms} />
                         </div>
 
                         <div className="form-group">
                             <label className="col-form-label">Select a Question</label>                     
-                            <FormSelectComponent inputRef={el => this.refs.formselectQuestionRefLocation = el} onChangeFunction={this.questionChanged} defaultValue={this.state.selected_question} questions={this.state.processed_questions} />
+                            <FormSelectComponent inputRef={el => this.refs.formselectQuestionRefLocation = el} onChangeFunction={this.questionChangedLocation} defaultValue={this.state.selected_question} questions={this.state.processed_questions} />
                         </div>
 
                     </form>
@@ -1565,7 +1568,7 @@ var FormSubStatQuestion = React.createClass({
                     }
                   )
 
-                  fetch("/fieldsight/api/project/forms/"+project_id+"/", {
+                  fetch("https://fieldsight.naxa.com.np/fieldsight/api/project/forms/137/", {
                       method: 'GET',
                       credentials: 'include'
                     })
