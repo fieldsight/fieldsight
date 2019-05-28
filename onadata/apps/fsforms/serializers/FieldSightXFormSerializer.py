@@ -114,11 +114,10 @@ class FSXFormListSerializer(serializers.ModelSerializer):
 
     @check_obj
     def get_manifest_url(self, obj):
-        site_id = obj.site.id if obj.site else 0
-        kwargs = {'pk': obj.pk, 'site_id': site_id}
+        kwargs = {'pk': obj.xf.pk, 'username': obj.xf.user.username}
         request = self.context.get('request')
 
-        return reverse('forms:manifest-url', kwargs=kwargs, request=request)
+        return reverse('manifest-url', kwargs=kwargs, request=request)
 
 class StageFormSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField('get_title', read_only=True)
