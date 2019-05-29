@@ -67,7 +67,32 @@ window.app = new Vue({
               additional_content = "<br/><a href='"+ url +"'>Download File</a>";
           }
       }
-      content = data.get_task_type_display + " of " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      if (data.task_type == 3 && data.terms_and_labels!=null){
+        content = data.terms_and_labels.site + " Response Xls Report " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+  
+      else if (data.task_type == 6 && data.terms_and_labels!=null){
+        content = "Zip "+ data.terms_and_labels.site +" Image " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+
+      else if (data.task_type == 10 && data.terms_and_labels!=null){
+        content = data.terms_and_labels.site + " Progress Xls Report Image " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+
+      else if (data.task_type == 8 && data.terms_and_labels!=null){
+
+        content = data.terms_and_labels.site + " Data Export of " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+     
+      else{
+        content = data.get_task_type_display + " of " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+        }
+
       return content + additional_content;
     },
 

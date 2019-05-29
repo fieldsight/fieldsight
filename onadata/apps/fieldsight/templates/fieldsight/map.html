@@ -250,7 +250,12 @@
                             </div>
                             <div class="panel-wrap mt-3">
                                 <div class="panel-header">
-                                    <b>View Sites By:</b>
+                                      {% if terms_and_labels %}
+                                        <b>View {{obj.terms_and_labels.site}} By:</b>
+                                      {% else %}
+                                        <b>View Sites By:</b>
+
+                                      {% endif %}
                                 </div>
                                 <div class="panel-section">
                                     <ul class="widget-list mt-3" >
@@ -258,7 +263,13 @@
                                             <div class="form-group">
                                                 <select class="select2" name="state" id="inputStatus">
                                                     <option name = "siteProgressOption">Projects</option>
-                                                    <option name = "siteProgressOption">Site Progress</option>
+                                                    <option name = "siteProgressOption">
+                                                        {% if terms_and_labels %}
+                                                            {{obj.terms_and_labels.site}} Progress
+                                                        {% else %}
+                                                            Site Progress
+                                                        {% endif %}
+                                                    </option>
                                                     <option name = "formStatusOption">Form Status</option>
                                                 </select>
                                             </div>

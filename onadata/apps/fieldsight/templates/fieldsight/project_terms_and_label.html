@@ -1,0 +1,164 @@
+{% extends 'fieldsight/manage_base.html' %}
+{% load i18n staticfiles %}
+{% load filters %}
+
+{% block extracss %}
+
+
+{% endblock %}
+
+{% block content %}
+{% load filters %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
+
+			<div class="padding">
+
+				<section class="panel">
+                    <header class="panel-heading clearfix">
+                        <h3><i class="la la-building"></i>{% trans 'Terms And Labels' %}</h3>
+						
+                    </header>
+					<div class="panel-body">
+						<!-- Project Terms And Labels-->
+						<div class="margin-top">
+                            {% if not terms_exists %}
+							<form action="{% url 'fieldsight:project_terms_label_create' obj.id %}" method="post">{% csrf_token %}
+
+								<div class="form-row">
+                                    <div class="form-group col-md-6 ">
+
+									  <label class="col-form-label">Donor <span class="text-danger">*</span></label>
+
+                                        <input class=" form-control" id="id_donor" maxlength="255" name="donor" type="text" required>
+
+									 </div>
+
+                                    <div class="form-group col-md-6 ">
+
+									  <label class="col-form-label">Site <span class="text-danger">*</span></label>
+
+                                        <input class=" form-control" id="id_site" maxlength="255" name="site" type="text" required>
+
+									 </div>
+                                    <div class="form-group col-md-6 ">
+
+									  <label class="col-form-label">Site Supervisor <span class="text-danger">*</span></label>
+
+                                        <input class=" form-control" id="id_site_supervisor" maxlength="255" name="site_supervisor" type="text" required>
+
+									 </div>
+                                    <div class="form-group col-md-6 ">
+
+									  <label class="col-form-label">Site Reviewer <span class="text-danger">*</span></label>
+
+                                        <input class=" form-control" id="id_site_reviewer" maxlength="255" name="site_reviewer" type="text" required>
+
+									 </div>
+
+                                     <div class="form-group col-md-6 ">
+
+									  <label class="col-form-label">Region <span class="text-danger">*</span></label>
+
+                                        <input class=" form-control" id="id_region" maxlength="255" name="region" type="text" required>
+
+									 </div>
+
+
+                                     <div class="form-group col-md-6 ">
+
+									  <label class="col-form-label">Region Supervisor <span class="text-danger">*</span></label>
+
+                                        <input class="form-control" id="id_region_supervisor" maxlength="255" name="region_supervisor" type="text" required>
+
+									 </div>
+
+                                   <div class="form-group col-md-6 ">
+
+									  <label class="col-form-label">Region Reviewer <span class="text-danger">*</span></label>
+
+                                        <input class=" form-control" id="id_region_reviewer" maxlength="255" name="region_reviewer" type="text" required>
+
+									 </div>
+
+								</div>
+								<button type="submit" class="btn btn-primary"><i class="la la-floppy-o"></i> {% trans ' Save' %}</button>
+
+							</form>
+                            {% else %}
+
+
+                            <table class="table">
+                                  <thead>
+                                    <tr>
+                                      <th scope="col">Terms</th>
+                                      <th scope="col">Changed To</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+
+
+                                    <tr>
+                                      <td>Donor</td>
+                                      <td>{{terms_and_labels.donor}}</td>
+                                    </tr>
+                                   <tr>
+                                      <td>Site</td>
+                                      <td>{{terms_and_labels.site}}</td>
+                                    </tr>
+
+                                   <tr>
+                                      <td>Site Supervisor</td>
+                                      <td>{{terms_and_labels.site_supervisor}}</td>
+                                    </tr>
+
+                                   <tr>
+                                      <td>Site Reviewer</td>
+                                      <td>{{terms_and_labels.site_reviewer}}</td>
+                                    </tr>
+
+                                   <tr>
+                                      <td>Region</td>
+                                      <td>{{terms_and_labels.region}}</td>
+                                    </tr>
+
+                                   <tr>
+                                      <td>Region Supervisor</td>
+                                      <td>{{terms_and_labels.region_supervisor}}</td>
+                                    </tr>
+
+                                   <tr>
+                                      <td>Region Reviewer</td>
+                                      <td>{{terms_and_labels.region_reviewer}}</td>
+                                    </tr>
+
+
+                                  </tbody>
+                                </table>
+                            <a href="{% url 'fieldsight:project_terms_label_update' terms_and_labels.pk %}"><button type="submit" class="btn btn-primary"><i class="la la-floppy-o"></i> {% trans ' Update' %}</button></a>
+
+                            {% endif %}
+
+
+						</div>
+					</div>
+
+                </section>
+
+			</div>
+{% endblock %}
+
+{%block extrascript %}
+  	<script type="text/javascript">
+
+        $(document).ready(function(){
+
+        $("ul.nav li:nth-child(6) a" ).addClass("active");
+
+
+});
+    </script>
+
+{% endblock %}
+
+

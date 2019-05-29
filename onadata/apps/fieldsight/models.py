@@ -684,3 +684,19 @@ class RequestOrganizationStatus(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     organization = models.ForeignKey(Organization, related_name='request_org_status')
     # logs = GenericRelation('eventlog.FieldSightLog')
+
+
+class ProjectLevelTermsAndLabels(models.Model):
+    project = models.OneToOneField(Project, related_name="terms_and_labels", on_delete=models.CASCADE)
+    donor = models.CharField(max_length=255)
+    site = models.CharField(max_length=255)
+    site_supervisor = models.CharField(max_length=255)
+    site_reviewer = models.CharField(max_length=255)
+    region = models.CharField(max_length=255)
+    region_supervisor = models.CharField(max_length=255)
+    region_reviewer = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.project.name
+
+

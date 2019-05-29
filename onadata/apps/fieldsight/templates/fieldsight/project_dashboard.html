@@ -91,7 +91,17 @@ assigntoken(csrf_token);
 									    </a>
 									  </li>
 									  <li class="nav-item">
-									    <a class="nav-link" id="modalTab07-tab" data-toggle="tab" href="#modalTab07" role="tab" aria-controls="modalTab07" aria-selected="false">Site Information</a>
+									    <a class="nav-link" id="modalTab07-tab" data-toggle="tab" href="#modalTab07" role="tab" aria-controls="modalTab07" aria-selected="false">
+
+											{% if terms_and_labels %}
+												{{obj.terms_and_labels.site}} Information
+
+											{% else %}
+												Site Information
+
+											{% endif %}
+
+										</a>
 									  </li>
 									  <li class="nav-item">
 									    <a class="nav-link" id="modalTab02-tab" data-toggle="tab" href="#modalTab02" role="tab" aria-controls="modalTab02" aria-selected="false">Progress Report</a>
@@ -264,14 +274,36 @@ assigntoken(csrf_token);
 								<a class="dropdown-item" href="{% url 'forms:setup-forms' 1 obj.pk %}"><i class="la la-clipboard"></i>{% trans ' Forms' %}</a>
 
 								{% if request.group.name == "Super Admin" %}
-								<button class="dropdown-item"  data-toggle="modal" data-target="#importModal"><i class="la la-clipboard"></i> {% trans 'Import Sites' %}</button>
+								<button class="dropdown-item"  data-toggle="modal" data-target="#importModal"><i class="la la-clipboard"></i>
+									{% if terms_and_labels %}
+										Import {{obj.terms_and_labels.site}}
+
+									{% else %}
+										{% trans 'Import Sites' %}
+
+									{% endif %}
+
+								</button>
 								{% endif %}
 								{% if obj.cluster_sites %}
 <!--									<a class="dropdown-item" href="{% url 'fieldsight:multi_site_region_assign' obj.id%}"><i class="la la-map-marker"></i>{% trans 'Assign' %} {% trans 'sites' %} {% trans 'to' %} {% trans 'regions' %}</a>-->
-									<a class="dropdown-item" href="{% url 'fieldsight:project_region_sites' obj.id %}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
+									<a class="dropdown-item" href="{% url 'fieldsight:project_region_sites' obj.id %}"><i class="la la-map-marker"></i>
+										{% if terms_and_labels %}
+											{{obj.terms_and_labels.site}}
+										{% else %}
+											{% trans ' Sites' %}
+										{% endif %}
+
+									</a>
 
 								{% else %}
-									<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>{% trans ' Sites' %}</a>
+									<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>
+										{% if terms_and_labels %}
+											Import {{obj.terms_and_labels.site}}
+										{% else %}
+											{% trans ' Sites' %}
+										{% endif %}
+									</a>
 								{% endif %}
 								<a class="dropdown-item" href="{% url 'fieldsight:project-edit' obj.pk %}"><i class="la la-clipboard"></i> {% trans 'Settings' %}</a>
 
@@ -321,7 +353,11 @@ assigntoken(csrf_token);
 											<i class="la la-map-marker"></i>
 											<div class="org-mini-stat-info">
 												<span>{{total_sites}}</span>
-												{% trans 'Sites' %}
+												{% if terms_and_labels %}
+													{{obj.terms_and_labels.site}}
+												{% else %}
+													{% trans ' Sites' %}
+												{% endif %}
 											</div>
 										</a>
 									</li>
@@ -334,7 +370,14 @@ assigntoken(csrf_token);
 							<div class="widget-info margin-top bg-white padding" data-mh="eq111">
 								<div class="widget-head">
 									<a href="{% url 'fieldsight:proj-loc-map' obj.pk %}" title="" class="btn btn-sm btn-xs btn-primary" target="_blank"><i class="la la-map" ></i>{% trans 'Full' %} {% trans 'Map' %}</a>
-									<h4>{% trans 'Site' %} {% trans 'Map' %}</h4>
+									<h4>
+										{% if terms_and_labels %}
+											{{obj.terms_and_labels.site}}
+										{% else %}
+											{% trans ' Site' %}
+										{% endif %}
+
+										{% trans 'Map' %}</h4>
 								</div>
 								<div class="widget-body">
 									<div class="radio-div card">
@@ -342,7 +385,14 @@ assigntoken(csrf_token);
 										<label><input class = "switch" id = "form_status" type="radio" name="status" value="male" checked="checked">{% trans 'Form' %} {% trans 'Status' %}</label><br>
 									</div>
 									<div class="radio">
-									  <label><input class = "switch" id = "project_progress" type="radio" name="progress" value="male">{% trans 'Site' %} {% trans 'Progress' %}</label><br>
+									  <label><input class = "switch" id = "project_progress" type="radio" name="progress" value="male">
+										  {% if terms_and_labels %}
+										  		{{obj.terms_and_labels.site}}
+										  {% else %}
+										  		{% trans 'Site' %}
+										  {% endif %}
+										  {% trans 'Progress' %}
+									  </label><br>
 									</div>
 							    </div>
 								<div id="map" class="full-map"></div>
@@ -356,7 +406,16 @@ assigntoken(csrf_token);
 								<div class="col-md-6 col-sm-12">
 									<div class="widget-info widget-scrolling-large-list margin-top bg-white padding" data-mh="eq111">
 										<div class="widget-head">
-											<h4>{% trans 'Regions' %}</h4>
+
+											{% if terms_and_labels %}
+											<h4>{{obj.terms_and_labels.region}}</h4>
+
+											{% else %}
+												<h4>{% trans 'Regions' %}</h4>
+
+
+											{% endif %}
+
 											<!-- <a class="btn btn-xs btn-primary" href="{% url 'fieldsight:region-add' obj.pk %} "><i class="la la-plus"></i></a> -->
 											<a class="btn btn-xs btn-primary" href="{% url 'fieldsight:region-list' obj.pk %}"><i class="la la-cog"></i></a>
 											<a class="btn btn-xs btn-primary" data-toggle="collapse" href="#searchSite" aria-expanded="false" aria-controls="searchSite"><i class="la la-search"></i></a>
@@ -392,8 +451,12 @@ assigntoken(csrf_token);
 													<!-- <img data-bind="attr:{src: logo}" width="50" height="50"/> -->
 												</div>
 												<div class="project-basic-info">
-													<h4>{% trans 'Unassigned' %} {% trans 'Sites' %}</h4>
+													{% if terms_and_labels %}
+														<h4>Unassigned {{obj.terms_and_labels.site}}</h4>
+													{% else %}
+														<h4>{% trans 'Unassigned' %} {% trans 'Sites' %}</h4>
 
+													{% endif %}
 
 												</div>
 											</a>
@@ -406,7 +469,14 @@ assigntoken(csrf_token);
 								<div class="col-md-6 col-sm-12">
 									<div class="widget-info widget-scrolling-large-list margin-top bg-white padding" data-mh="eq111">
 										<div class="widget-head">
+
+											{% if terms_and_labels %}
+												<h4> {{obj.terms_and_labels.site}}</h4>
+											{% else %}
 											<h4>{% trans 'Sites' %}</h4>
+
+											{% endif %}
+
 											<a class="btn btn-xs btn-primary" href="{% url 'fieldsight:site-add' obj.pk %} "><i class="la la-plus"></i></a>
 											<a class="btn btn-xs btn-primary" data-toggle="collapse" href="#searchSite" aria-expanded="false" aria-controls="searchSite"><i class="la la-search"></i></a>
 										</div>
@@ -469,7 +539,11 @@ assigntoken(csrf_token);
 								<span class="mini-stat-icon"><i class="la la-map-marker"></i></span>
 								<div class="mini-stat-info">
 									<span>{{ site_visits }}</span>
-									Site visits in last 7 days
+										{% if terms_and_labels %}
+											{{obj.terms_and_labels.site}} visits in last 7 days
+										{% else %}
+											Site visits in last 7 days
+										{% endif %}
 								</div>
 							</div>
 						</div>
@@ -675,6 +749,7 @@ var static_url ="{{ STATIC_URL }}";
 	configure_settings.log_report_type = "Project";
 	configure_settings.gsuit_metas = {{ gsuit_meta_json|safe }};
 	configure_settings.genarete_user_activity_report_url = "{% url 'fieldsight_export:user_activity_report' obj.pk %}";
+	configure_settings.terms_and_labels_project_id = "{{obj.id}}";
 	configure_settings.project_managers = "{% url 'fieldsight:project_managers_api' obj.pk %}";
 	//getlogdata();
 			
@@ -718,6 +793,8 @@ var static_url ="{{ STATIC_URL }}";
 <!-- <script type="text/javascript" src="{% static 'vendor/vue.js' %}"></script> -->
 <!-- <script src="{% static 'js/forms/vue-resource.min.js' %}"></script> -->
 <script src="{% static 'js/fieldsight/treeselect/vue-treeselect.min.js' %}"></script>
+
+<!-- Data Export -->
 <script src="{% static 'js/fieldsight/report_vue.js' %}?v=0.6"></script>
 
 
@@ -733,8 +810,5 @@ var static_url ="{{ STATIC_URL }}";
 
 
 <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" /> -->
-
-
-
 {% endblock %}
 

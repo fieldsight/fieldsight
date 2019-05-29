@@ -68,14 +68,25 @@ function type2(data){
     content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the Project Manager of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
     return content;
 }
-
 function type3(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as Reviewer of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as '+ data.terms_and_labels.site_reviewer +' of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as Reviewer of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
     return content;
 
 }
 function type4(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as Site Supervisor of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as '+ data.terms_and_labels.site_supervisor +' of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as Site Supervisor of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
     return content;
 
 }
@@ -88,11 +99,23 @@ function type6(data){
     return content;
 }
 function type7(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was assigned as a Reviewer in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was assigned as a '+ data.terms_and_labels.site_reviewer +' in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was assigned as a Reviewer in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+
+    }
     return content;
 }
 function type8(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was assigned as a Site Supervisor in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was assigned as a '+ data.terms_and_labels.site_supervisor +' in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was assigned as a Site Supervisor in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+
+    }
     return content;
 }
 
@@ -109,7 +132,13 @@ function type10(data){
 
 
 function type11(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created a new site named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> in Project named <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created a new '+ data.terms_and_labels.site +' named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> in Project named <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created a new site named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> in Project named <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
     return content;
 }
 
@@ -134,7 +163,14 @@ function type14(data){
 } 
 
 function type15(data, detail=false){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> changed the details of site named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> changed the details of ' + data.terms_and_labels.site + ' named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> changed the details of site named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
+
+    }
     if (data.extra_json && detail) {
         const updated = data.extra_json;
         content += Object.keys(updated).map(
@@ -180,6 +216,7 @@ function type20(data){
 
 function type21(data){
     if(data.source_uid == user_id){
+
         content = "<b>TASK INFO : </b>"+data.extra_message + ' of Team <a href="' +  data.get_event_url + '"><b>' + data.get_event_name + '</a></b> were created.';
     }else{
         content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created '+ data.extra_message +' of Team <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b>.';
@@ -197,6 +234,7 @@ function type22(data){
 }
 
 function type23(data){
+
     content = "<b>TASK INFO : </b>"+data.extra_message + ' in <a href="' +  data.get_event_url + '"><b>' + data.get_event_name + '</a></b>.';
     return content;
 }
@@ -208,7 +246,13 @@ function type24(data){
 }
 
 function type25(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as <b>Partner</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as <b>'+ data.terms_and_labels.donor +'</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as <b>Partner</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
     return content;
 
 }
@@ -219,14 +263,26 @@ function type26(data){
 }
 
 function type27(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as Reviewer in '+ data.extra_message +' sites of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
-        return content;
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as '+ data.terms_and_labels.site_reviewer +' in '+ data.extra_message +' sites of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as Reviewer in '+ data.extra_message +' sites of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
+    return content;
 
 }
 
 function type28(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as Site Supervisor in '+ data.extra_message +' sites of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
-        return content;
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as '+ data.terms_and_labels.site_supervisor +' '+ data.extra_message +' sites of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as Site Supervisor in '+ data.extra_message +' sites of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
+    return content;
 
 }
 
@@ -288,22 +344,46 @@ function type36(data){
 }
 
 function type37(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the Region Reviewer in region <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the '+ data.terms_and_labels.region_reviewer +' in region <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the Region Reviewer in region <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
     return content;
 }
 
 function type38(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the Region Supervisor in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the ' + data.terms_and_labels.region_supervisor +' in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the Region Supervisor in <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
     return content;
 }
 
 function type39(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the Region Reviewer in <b>'+ data.extra_message +' Regions</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the '+ data.terms_and_labels.region_reviewer +' in <b>'+ data.extra_message + ' '+ data.terms_and_labels.region +'</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the Region Reviewer in <b>'+ data.extra_message +' Regions</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
     return content;
 }
 
 function type40(data){
-    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the Region Supervisor in <b>'+ data.extra_message +' Regions</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    if(data.terms_and_labels!=null){
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the '+ data.terms_and_labels.region_supervisor +' in <b>'+ data.extra_message +' '+ data.terms_and_labels.region +'</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> was added as the Region Supervisor in <b>'+ data.extra_message +' Regions</b> of <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> by <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
     return content;
 }
 

@@ -67,7 +67,47 @@ window.app = new Vue({
               additional_content = "<br/><a href='"+ url +"'>Download File</a>";
           }
       }
-      content = data.get_task_type_display + " of " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      if (data.task_type == 0 && data.terms_and_labels!=null){
+        content = "Bulk " + data.terms_and_labels.site + " Update " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+
+      else if (data.task_type == 2 && data.terms_and_labels!=null){
+        content = "User Assign to " + data.terms_and_labels.site  +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+
+      else if (data.task_type == 3 && data.terms_and_labels!=null){
+        content = data.terms_and_labels.site + " Response Xls Report " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+      else if (data.task_type == 4 && data.terms_and_labels!=null){
+        content = data.terms_and_labels.site + " Import " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+
+      else if (data.task_type == 6 && data.terms_and_labels!=null){
+        content = "Zip "+ data.terms_and_labels.site +" Image " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+
+      else if (data.task_type == 10 && data.terms_and_labels!=null){
+        content = data.terms_and_labels.site + " Progress Xls Report Image " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+
+      else if (data.task_type == 8 && data.terms_and_labels!=null){
+        content = data.terms_and_labels.site + " Data Export of " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+      else if (data.task_type == 13 && data.terms_and_labels!=null){
+        content = "User Assign to " + data.terms_and_labels.region +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+
+      }
+      else{
+        content = data.get_task_type_display + " of " +  "<a href='"+ data.get_event_url +"'>" + data.get_event_name + "</a>" + status;
+        }
       return content + additional_content;
     },
 
