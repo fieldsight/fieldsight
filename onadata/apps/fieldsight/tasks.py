@@ -46,7 +46,7 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-
+from django.utils import timezone
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
@@ -58,7 +58,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
 from onadata.apps.users.signup_tokens import account_activation_token
-from onadata.apps.subscriptions.models import Subscription, Package
+from onadata.apps.subscriptions.models import Subscription, Package, TrackPeriodicWarningEmail
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -69,7 +69,7 @@ def cleanhtml(raw_html):
    cleanr = re.compile('<\S.*?>')
    cleantext = re.sub(cleanr, '', raw_html)
    return cleantext
-   
+
 class DriveException(Exception):
     pass
 
@@ -2205,7 +2205,7 @@ def warning_emails(subscriber, plan_name, total_submissions, extra_submissions_c
         'extra_submissions_charge': extra_submissions_charge,
         'usage_rates': usage_rates,
         'period_type': period_type,
-        'renewal_date': renewal_date
+        'renewal_date': renewal_date.strftime('%B-%d-%Y')
     })
     to_email = email
     email = EmailMessage(
@@ -2215,6 +2215,7 @@ def warning_emails(subscriber, plan_name, total_submissions, extra_submissions_c
     email.send()
 
 
+@shared_task()
 def warning_overage_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email):
 
     mail_subject = 'Warning'
@@ -2223,7 +2224,7 @@ def warning_overage_emails(subscriber, plan_name, total_submissions, extra_submi
         'plan_name': plan_name,
         'total_submissions': total_submissions,
         'extra_submissions_charge': extra_submissions_charge,
-        'renewal_date': renewal_date
+        'renewal_date': renewal_date.strftime('%B-%d-%Y')
 
     })
     to_email = email
@@ -2232,6 +2233,39 @@ def warning_overage_emails(subscriber, plan_name, total_submissions, extra_submi
     )
     email.content_subtype = "html"
     email.send()
+
+
+
+@shared_task()
+def warning_overage_emails_monthly(subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email):
+
+    mail_subject = 'Warning'
+    message = render_to_string('subscriptions/warning_overage_email.html', {
+        'user': subscriber.stripe_customer.user.first_name,
+        'plan_name': plan_name,
+        'total_submissions': total_submissions,
+        'extra_submissions_charge': extra_submissions_charge,
+        'renewal_date': renewal_date.strftime('%B-%d-%Y')
+
+    })
+    to_email = email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.content_subtype = "html"
+    email.send()
+
+    length_of_day = renewal_date - datetime.datetime.today()
+
+    if length_of_day.days > 30:
+        """
+            Send email after 30 days if upcoming renewal date is more than 30 days.
+        """
+
+    after_one_month = datetime.datetime.today() + datetime.timedelta(days=30)
+    warning_overage_emails_monthly.apply_async(
+        args=[subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email],
+        eta=after_one_month)
 
 
 @shared_task()
@@ -2250,10 +2284,21 @@ def check_usage_rates():
         started_data = subscriber.initiated_on
 
         if period_type == "Month":
-            renewal_date = started_data + dateutil.relativedelta.relativedelta(months=1).strftime('%B-%d-%Y')
+            today_month = datetime.datetime.now().date().month
+            today_year = datetime.datetime.now().date().year
+            renewal_date = started_data + dateutil.relativedelta.relativedelta(months=1)
+            track_periodic_warning_email_obj = TrackPeriodicWarningEmail.objects.filter(subscriber=subscriber,
+                                                                                        is_email_send=True,
+                                                                                        date__month=today_month,
+                                                                                        date__year=today_year
+                                                                                        ).exists()
 
         elif period_type == "Year":
-            renewal_date = started_data + dateutil.relativedelta.relativedelta(months=12).strftime('%B-%d-%Y')
+            today = datetime.datetime.now().date().year
+            renewal_date = started_data + dateutil.relativedelta.relativedelta(months=12)
+            track_periodic_warning_email_obj = TrackPeriodicWarningEmail.objects.filter(subscriber=subscriber,
+                                                                                        is_email_send=True,
+                                                                                        date__year=today).exists()
 
         if 75 <= usage_rates < 76:
             warning_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, period_type, usage_rates, renewal_date, email)
@@ -2264,5 +2309,44 @@ def check_usage_rates():
         elif 95 <= usage_rates < 96:
             warning_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, period_type, usage_rates, renewal_date, email)
 
-        elif usage_submission == total_submissions:
-            warning_overage_emails(subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email)
+        elif usage_submission >= total_submissions:
+
+            if not track_periodic_warning_email_obj:
+                """
+                    Send Warning E-Mails when total usage reached and overage charges begin, and then at 1 day, 3 days, 1 week,
+                    and then monthly (for annual plans)
+                """
+                TrackPeriodicWarningEmail.objects.create(subscriber=subscriber, is_email_send=True, date=datetime.datetime.now().date())
+                warning_overage_emails.delay(subscriber, plan_name, total_submissions, extra_submissions_charge,
+                                             renewal_date, email)
+
+                length_of_day = renewal_date - datetime.datetime.today()
+
+                if length_of_day.days > 3:
+                    """
+                        Send email after 3 days if upcoming renewal date is more than 3 days.
+                    """
+                    after_3_days = datetime.datetime.today() + datetime.timedelta(days=3)
+
+                    warning_overage_emails.apply_async(args=[subscriber, plan_name, total_submissions, extra_submissions_charge,
+                                                             renewal_date, email], eta=after_3_days)
+
+                elif length_of_day.days > 7:
+                    """
+                        Send email after 7 days if upcoming renewal date is more than 7 days.
+                    """
+                    after_one_week = datetime.datetime.today() + datetime.timedelta(days=7)
+                    warning_overage_emails.apply_async(args=[subscriber, plan_name, total_submissions, extra_submissions_charge,
+                                                             renewal_date, email], eta=after_one_week)
+
+                elif period_type == "Year" and length_of_day.days > 30:
+                    """
+                        Send email after 30 days if upcoming renewal date is more than 30 days.
+                    """
+                    after_one_month = datetime.datetime.today() + datetime.timedelta(days=30)
+                    warning_overage_emails_monthly.apply_async(
+                        args=[subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email],
+                        eta=after_one_month)
+
+
+
