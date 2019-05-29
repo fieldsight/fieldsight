@@ -75,7 +75,7 @@ def has_permission(xform, owner, request, shared=False):
         (hasattr(request, 'session') and
          request.session.get('public_link') == xform.uuid) or\
         owner == user or\
-        same_organization(owner, request)
+        same_organization(owner, request) or request.user.is_superuser
 
 
 def has_edit_permission(xform, owner, request, shared=False):
