@@ -12,6 +12,7 @@ from guardian.shortcuts import get_perms_for_model, assign_perm
 from onadata.apps.api.models import Project, Team, OrganizationProfile
 from onadata.apps.main.models import UserProfile
 from onadata.apps.logger.models import XForm, Note
+from onadata.apps.userrole.models import UserRole
 
 
 class HttpResponseNotAuthorized(HttpResponse):
@@ -58,14 +59,23 @@ def set_profile_data(data, content_user):
                  'content_user': content_user})
 
 
+def same_organization(owner, request):
+    request_user_organizations = request.roles.values_list('organization', flat=True).order_by().distinct()
+    user_organizations = UserRole.objects.filter(user_id=owner.id).values_list('organization',
+                                                                              flat=True).order_by().distinct()
+    commonalities = set(user_organizations) - (set(user_organizations) - set(request_user_organizations))
+    if list(commonalities):
+        return True
+    return False
+
+
 def has_permission(xform, owner, request, shared=False):
     user = request.user
     return shared or xform.shared_data or\
         (hasattr(request, 'session') and
          request.session.get('public_link') == xform.uuid) or\
         owner == user or\
-        user.has_perm('logger.view_xform', xform) or\
-        user.has_perm('logger.change_xform', xform)
+        same_organization(owner, request)
 
 
 def has_edit_permission(xform, owner, request, shared=False):
