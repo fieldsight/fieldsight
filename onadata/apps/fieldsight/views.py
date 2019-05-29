@@ -195,9 +195,7 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         line_chart = [] #LineChartGeneratorOrganization(obj)
         line_chart_data = {} #line_chart.data()
         # user = User.objects.filter(pk=self.kwargs.get('pk'))
-        roles_org = UserRole.objects.filter(organization_id = self.kwargs.get('pk'), project__isnull=True,
-                                            site__isnull = True,
-                                            ended_at__isnull=True)
+        roles_org = UserRole.objects.filter(organization_id = self.kwargs.get('pk'), ended_at__isnull=True, group__name="Organization Admin")
         key = settings.STRIPE_PUBLISHABLE_KEY
         has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user).exists()
         is_owner = obj.owner == self.request.user
@@ -3854,18 +3852,17 @@ def project_dashboard_peoples(request, pk):
 
     new_people_url = reverse('fieldsight:manage-people-project', kwargs={'pk': pk})
     if name:
-        roles = UserRole.objects.filter(organization__isnull=False, project_id=pk,
-                                    site__isnull=True, ended_at__isnull=True, user__first_name__icontains=name).\
-            select_related("user", "user__user_profile")
+        roles = UserRole.objects.filter(project_id=pk, ended_at__isnull=True, group__name="Project Manager",
+                                        user__first_name__icontains=name).select_related("user", "user__user_profile")
     else:
-        roles = UserRole.objects.filter(organization__isnull=False, project_id=pk,
-                                    site__isnull=True, ended_at__isnull=True).\
+        roles = UserRole.objects.filter(project_id=pk, ended_at__isnull=True, group__name="Project Manager").\
             select_related("user", "user__user_profile")
 
     users = []
     user_data = []
     for role in roles:
         if role.user.username not in users:
+            profile = UserProfile.objects.get_or_create(user=role.user)
             user_data.append(dict(roles=[role.group.name],
                                   name=role.user.get_full_name(),
                                   email=role.user.email,
@@ -3873,7 +3870,6 @@ def project_dashboard_peoples(request, pk):
                                   url=reverse("users:profile",args=(role.user.id,)),
                                   image=role.user.user_profile.profile_picture.url))
             users.append(role.user.username)
-
 
     return Response({'peoples':user_data, 'new_people_url':new_people_url})
 
