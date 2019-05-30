@@ -1744,7 +1744,7 @@ def sendmultiroleuserinvite(request):
 
         subject = 'Invitation for Role'
         data = {
-            'user': User.objects.get(email=invite.email),
+            'user': invite.email,
             'domain': settings.SITE_URL,
             'invite_id': urlsafe_base64_encode(force_bytes(invite.pk)),
             'token': invite.token,
