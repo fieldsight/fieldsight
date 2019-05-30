@@ -38,7 +38,7 @@ class LoginRequiredMixin(object):
 
 class SameOrganizationProfileRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(SameOrganizationProfileRoleMixin, self).dispatch(request, *args, **kwargs)
         user_id = self.kwargs.get('pk')
         if not user_id or user_id =='0':
@@ -53,7 +53,7 @@ class SameOrganizationProfileRoleMixin(LoginRequiredMixin):
 
 class OrganizationRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(OrganizationRoleMixin, self).dispatch(request, *args, **kwargs)
         organization_id = self.kwargs.get('pk')
         user_id = request.user.id
@@ -65,14 +65,14 @@ class OrganizationRoleMixin(LoginRequiredMixin):
 
 class SuperUserRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(SuperUserRoleMixin, self).dispatch(request, *args, **kwargs)    
         raise PermissionDenied()
 
 
 class ProjectRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(ProjectRoleMixin, self).dispatch(request, *args, **kwargs)
         
         project_id = self.kwargs.get('pk')
@@ -93,7 +93,7 @@ class ProjectRoleMixin(LoginRequiredMixin):
 class RegionSupervisorReviewerMixin(LoginRequiredMixin):
 
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(RegionSupervisorReviewerMixin, self).dispatch(request, *args, **kwargs)
 
         project_id = self.kwargs.get('pk')
@@ -117,7 +117,7 @@ class RegionSupervisorReviewerMixin(LoginRequiredMixin):
 
 class RegionalMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(RegionalMixin, self).dispatch(request, *args, **kwargs)
         
         region_id = self.kwargs.get('pk')
@@ -139,7 +139,7 @@ class RegionalMixin(LoginRequiredMixin):
 
 class ReadonlyProjectLevelRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
         
         project_id = self.kwargs.get('pk')
@@ -168,7 +168,7 @@ class ReadonlyProjectLevelRoleMixin(LoginRequiredMixin):
 class ReadonlySiteLevelRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
 
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
         site_id = self.kwargs.get('pk')
@@ -205,7 +205,7 @@ class ReadonlySiteLevelRoleMixin(LoginRequiredMixin):
 #use when doner role is required to load site dashboard
 class DonorSiteViewRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(DonorSiteViewRoleMixin, self).dispatch(request, *args, **kwargs)
         
         site = get_object_or_404(Site, pk=self.kwargs.get('pk'))
@@ -225,7 +225,7 @@ class DonorSiteViewRoleMixin(LoginRequiredMixin):
 # Use when doner role is required to load donor dashboard
 class DonorRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(DonorRoleMixin, self).dispatch(request, *args, **kwargs)
         
         project_id = self.kwargs.get('pk')
@@ -246,7 +246,7 @@ class DonorRoleMixin(LoginRequiredMixin):
 class ReviewerRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
 
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
         
         site_id = self.kwargs.get('pk')
@@ -281,7 +281,7 @@ class ReviewerRoleMixin(LoginRequiredMixin):
 class SiteRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
 
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
         
         site_id = self.kwargs.get('pk')
@@ -320,7 +320,7 @@ class SiteRoleMixin(LoginRequiredMixin):
 class SiteDeleteRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
 
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(SiteDeleteRoleMixin, self).dispatch(request, *args, **kwargs)
         
         site_id = self.kwargs.get('pk')
@@ -345,7 +345,7 @@ class SiteDeleteRoleMixin(LoginRequiredMixin):
 class ProjectRoleMixinDeleteView(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
 
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(ProjectRoleMixinDeleteView, self).dispatch(request, *args, **kwargs)
         
         project_id = self.kwargs.get('pk')
@@ -362,7 +362,7 @@ class ProjectRoleMixinDeleteView(LoginRequiredMixin):
 class ReviewerRoleMixinDeleteView(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
 
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(ReviewerRoleMixinDeleteView, self).dispatch(request, *args, **kwargs)
         
         site_id = self.kwargs.get('pk')
@@ -398,7 +398,7 @@ class ProjectRoleView(LoginRequiredMixin):
 
 class SPFmixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
                 return super(SPFmixin, self).dispatch(request, *args, **kwargs)
 
         user_id = request.user.id
@@ -427,7 +427,7 @@ class SPFmixin(LoginRequiredMixin):
 
 class FormMixin(LoginRequiredMixin):
     def dispatch(self, request, fsxf_id, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
                 return super(FormMixin, self).dispatch(request, fsxf_id, *args, **kwargs)
 
         user_id = request.user.id
@@ -457,7 +457,7 @@ class FormMixin(LoginRequiredMixin):
 
 class ReadonlyFormMixin(LoginRequiredMixin):
     def dispatch(self, request, fsxf_id, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
                 return super(ReadonlyFormMixin, self).dispatch(request, fsxf_id, *args, **kwargs)
 
         form = get_object_or_404(FieldSightXF, pk=fsxf_id)
@@ -493,7 +493,7 @@ class ReadonlyFormMixin(LoginRequiredMixin):
 class ConditionalFormMixin(LoginRequiredMixin):
     def dispatch(self, request, fsxf_id, *args, **kwargs):
         is_doner = False
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(ConditionalFormMixin, self).dispatch(request, fsxf_id,*args, is_read_only= False,  **kwargs)
 
         form = get_object_or_404(FieldSightXF, pk=fsxf_id)
@@ -549,7 +549,7 @@ class ConditionalFormMixin(LoginRequiredMixin):
 
 class MyFormMixin(LoginRequiredMixin):
     def dispatch(self, request, xf_id, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(MyFormMixin, self).dispatch(request, xf_id, *args, **kwargs)
 
         user_id = request.user.id
@@ -564,7 +564,7 @@ class MyFormMixin(LoginRequiredMixin):
 class EndRoleMixin(LoginRequiredMixin):
 
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(EndRoleMixin, self).dispatch(request, *args, **kwargs)
         role_to_end = UserRole.objects.get(pk=self.kwargs.get('pk'))
         if role_to_end.group_id == 2:
@@ -591,7 +591,7 @@ class EndRoleMixin(LoginRequiredMixin):
 
 class FInstanceRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(FInstanceRoleMixin, self).dispatch(request, *args, **kwargs)
         finstance = get_object_or_404(FInstance, instance_id=self.kwargs.get('instance_pk'))
         if finstance.site or finstance.project:
@@ -630,7 +630,7 @@ class FInstanceRoleMixin(LoginRequiredMixin):
 
 class FullMapViewMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(FullMapViewMixin, self).dispatch(request, *args, **kwargs)
             
         user_id = request.user.id
@@ -645,7 +645,7 @@ class FullMapViewMixin(LoginRequiredMixin):
 class RegionRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
 
-        if request.group.name == "Super Admin":
+        if request.group and request.group.name == "Super Admin":
             return super(RegionRoleMixin, self).dispatch(request, *args, **kwargs)
         
         region_id = self.kwargs.get('pk')
@@ -668,7 +668,7 @@ class RegionRoleMixin(LoginRequiredMixin):
 
 # class ProjectPermission(BasePermission):
 #     def has_permission(self, request, view):
-#         if request.group.name == "Super Admin":
+#         if request.group and request.group.name == "Super Admin":
 #             return super(ProjectRoleMixin, self).dispatch(request, *args, **kwargs)
         
 #         project_id = self.kwargs.get('pk')
