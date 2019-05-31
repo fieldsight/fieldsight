@@ -11,7 +11,7 @@ def get_notifications_queryset(email, date=None):
     query = {'emails': email}
     if date:
         query = {"$and": [{"date": {"$gt": date}}, query]}
-    qs = noti.find(query, {'message': 1, '_id': 0, 'date': 1})
+    qs = noti.find(query, {'message': 1, '_id': 0, 'date': 1}).sort("date", 1)
     return [n for n in qs]
 
 
