@@ -1643,6 +1643,7 @@ def senduserinvite(request):
             terms_and_labels = False
 
         subject = 'Invitation for Role'
+        is_user = User.objects.filter(email=invite.email).exists()
         data ={
             'email': invite.email,
             # 'domain': current_site.domain,
@@ -1651,7 +1652,8 @@ def senduserinvite(request):
             'token': invite.token,
             'invite': invite,
             'terms_and_labels': terms_and_labels,
-            'project': project
+            'project': project,
+            'is_user': is_user
             }
         message = get_template('fieldsight/email_sample.html').render(Context(data))
         email_to = (invite.email,)
@@ -1743,6 +1745,8 @@ def sendmultiroleuserinvite(request):
         current_site = get_current_site(request)
 
         subject = 'Invitation for Role'
+        is_user = User.objects.filter(email=invite.email).exists()
+
         data = {
             'user': invite.email,
             'domain': settings.SITE_URL,
@@ -1750,7 +1754,8 @@ def sendmultiroleuserinvite(request):
             'token': invite.token,
             'invite': invite,
             'terms_and_labels': terms_and_labels,
-            'project': project
+            'project': project,
+            'is_user': is_user
             }
         message = get_template('fieldsight/email_sample.html').render(Context(data))
         email_to = (invite.email,)
