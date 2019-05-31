@@ -260,6 +260,19 @@ a.disabled {
 		<script>
 			$(document).ready(function(){
 
+			var invited='{{invited}}';
+				if (invited=='true'){
+					$('#pills-login-tab').removeClass('active');
+					$('#pills-login').removeClass('show active');
+					$("pills-login-tab").attr("aria-expanded","false");
+
+					$('#pills-signup-tab').addClass('active');
+					$('#pills-signup').addClass('show active');
+					$("pills-login-tab").attr("aria-expanded","true");
+
+
+				}
+
 				// enabled and disabled signup button checking checkbox value
 
 				$('#id_agree').click(function(){

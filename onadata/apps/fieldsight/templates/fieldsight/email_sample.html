@@ -125,7 +125,7 @@
                                       {% if invite.project.all|length == 1%} for the  <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.all.0.name }}</span>
 
                                       {% else %}
-                                      for the  <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.all|length }} </span> projects {% endif %} of <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.organization.name }}</span>
+                                      for the  <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.project.alill|length }} </span> projects {% endif %} of <span style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 2px 0 2px;">{{ invite.organization.name }}</span>
 
                                       {% elif invite.organization %}
                                         by <span  style="color:#1872b5; text-decoration: none; text-transform: capitalize;  margin:0 0 0 2px;">{{ invite.organization.name }}</span>
@@ -144,7 +144,16 @@
                                   <tbody>
                                     <tr>
                                       <td class="MsoNormal" style="color:#ffffff;font-family:Ubuntu, sans-serif;font-weight:500;padding:10px 16px;font-size:12px;letter-spacing:1px;" align="center">
-                                        <a href="{{ domain }}{% url 'fieldsight:activate-role' invite_id token %}" style="color:#ffffff;text-decoration:none;text-transform:uppercase;">Join now</a>
+
+                                          {% if is_user %}
+
+                                                <a href="{{ domain }}{% url 'fieldsight:activate-role' invite_id token %}" style="color:#ffffff;text-decoration:none;text-transform:uppercase;">Join now</a>
+
+                                            {% else %}
+                                                <a href="{{ domain }}{% url 'users:web_signup' %}?invite" style="color:#ffffff;text-decoration:none;text-transform:uppercase;">Join now</a>
+
+                                          {% endif %}
+
                                       </td>
                                     </tr>
                                   </tbody>
