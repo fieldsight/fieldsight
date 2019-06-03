@@ -2944,8 +2944,11 @@ class DefineProjectSiteMeta(RegionSupervisorReviewerMixin, TemplateView):
         project_obj = Project.objects.get(pk=pk)
         level = "1"
         json_questions = json.dumps(project_obj.site_meta_attributes)
+        site_basic_info = json.dumps(project_obj.site_basic_info)
+        site_featured_images = json.dumps(project_obj.site_featured_images)
+        
         return render(request, 'fieldsight/project_define_site_meta.html', {'obj': project_obj, 'json_questions':
-            json_questions, 'level': level})
+            json_questions, 'site_basic_info': site_basic_info, 'site_featured_images': site_featured_images, 'level': level})
 
     def post(self, request, pk, *args, **kwargs):
         project = Project.objects.get(pk=pk)
@@ -2953,6 +2956,8 @@ class DefineProjectSiteMeta(RegionSupervisorReviewerMixin, TemplateView):
         # print old_meta
         # print "----"
         project.site_meta_attributes = request.POST.get('json_questions');
+        project.site_basic_info = request.POST.get('site_basic_info');
+        project.site_featured_images = request.POST.get('site_featured_images');
         new_meta = json.loads(project.site_meta_attributes)
         # print new_meta
         updated_json = None

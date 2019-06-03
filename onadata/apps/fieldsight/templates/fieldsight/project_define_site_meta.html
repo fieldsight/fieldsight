@@ -86,10 +86,13 @@
                                             </div> 
                                         </div>
                                         <div class="tab-pane fade show active" id="site_info" role="tabpanel" aria-labelledby="site_info_tab">
-                   
-                    
-
                                         </div>
+                                        <form id="theForm" action="{% url 'fieldsight:define-site-meta' obj.pk %}" method="post">
+                                            {% csrf_token %}
+                                            <input name="json_questions" id="json_questions" type="hidden" value="" />
+                                            <input name="site_basic_info" id="site_basic_info" type="hidden" value="" />
+                                            <input name="site_featured_images" id="site_featured_images" type="hidden" value="" />
+                                        </form> 
                                         
                                         <div class="tab-pane fade" id="site_manage" role="tabpanel" aria-labelledby="site_manage_tab">
                                             <div class="card">
@@ -132,6 +135,8 @@
      var _json_question = JSON.parse("{{json_questions|escapejs}}");
      var project_id = "{{ obj.id|unlocalize }}";
      var org_id = "{{ obj.organization_id|unlocalize }}";
+     var site_basic_info = JSON.parse("{{site_basic_info|escapejs}}");
+     var site_featured_images = JSON.parse("{{site_featured_images|escapejs}}");
 
      var questionTypes = [{'id': 'Text', 'name': 'Text'}, 
                           {'id': 'Number', 'name': 'Number'},
@@ -1706,7 +1711,6 @@ var FormSubStatQuestion = React.createClass({
         dragPlaceholder.className = "dragPlaceholder ui-sortable-handle margin-top";
         dragPlaceholder.style.height = "100px";
         dragPlaceholder.style.background= "rgb(255,240,120)";
-        var featuredImages = [];
         var Form = React.createClass({
         getInitialState: function () {
             
@@ -1725,11 +1729,11 @@ var FormSubStatQuestion = React.createClass({
                 isLoaded: false,
                 forms: [{id:0, name:"Select form", json:{ children: []}}],
                 editing: null,
-                site_picture: {'question_type':'upload', 'form_id':0, 'question':{}},
-                site_location: {'question_type':'choose', 'form_id':0, 'question':{}},
+                site_picture: site_basic_info.hasOwnProperty('site_picture') ? site_basic_info.site_picture : {'question_type':'upload', 'form_id':0, 'question':{}},
+                site_location: site_basic_info.hasOwnProperty('site_location') ? site_basic_info.site_location : {'question_type':'choose', 'form_id':0, 'question':{}},
                 featured_editing: -1,
                 primary_editing: -1,
-                FeaturedImgs: featuredImages.concat([{
+                FeaturedImgs: site_featured_images.concat([{
                     "question_text": "",
                     "question_type": "choose",
                     "question_name": "",
@@ -1740,53 +1744,53 @@ var FormSubStatQuestion = React.createClass({
             }
         },
 
-            componentDidMount() {
-                
-                const linkTypeObjs =_json_question.filter(function (obj) {
-                        return obj.question_type == "Link" ;
-                    }).map(x => x.project_id);
+        componentDidMount() {
+            
+            const linkTypeObjs =_json_question.filter(function (obj) {
+                    return obj.question_type == "Link" ;
+                }).map(x => x.project_id);
 
-                fetch("/fieldsight/api/organization/"+org_id+"/my_projects/"+project_id+"/", {
-                      method: 'GET',
-                      credentials: 'include'
-                    })
-                  .then(res => res.json())
-                  .then(
-                    (result) => {
-                        const project_options = this.state.projects.concat(result);
-                        this.setState({
-                            projects: project_options,
-                            selectedProjectLinkIds: linkTypeObjs,
-                            isLoaded: true,
-                        });
-                    },
-                    (error) => {
-                      this.setState({
+            fetch("/fieldsight/api/organization/"+org_id+"/my_projects/"+project_id+"/", {
+                  method: 'GET',
+                  credentials: 'include'
+                })
+              .then(res => res.json())
+              .then(
+                (result) => {
+                    const project_options = this.state.projects.concat(result);
+                    this.setState({
+                        projects: project_options,
+                        selectedProjectLinkIds: linkTypeObjs,
                         isLoaded: true,
-                      });
-                    }
-                  )
+                    });
+                },
+                (error) => {
+                  this.setState({
+                    isLoaded: true,
+                  });
+                }
+              )
 
-                  fetch("https://fieldsight.naxa.com.np/fieldsight/api/project/forms/137/", {
-                      method: 'GET',
-                      credentials: 'include'
-                    })
-                  .then(res => res.json())
-                  .then(
-                    (result) => {
-                        const form_options = this.state.forms.concat(result);
-                        this.setState({
-                            forms: form_options,
-                            isLoaded: true,
-                        });
-                    },
-                    (error) => {
-                        this.setState({
-                            isLoaded: true,
-                        });
-                    }
-                  )
-              },
+              fetch("https://fieldsight.naxa.com.np/fieldsight/api/project/forms/137/", {
+                  method: 'GET',
+                  credentials: 'include'
+                })
+              .then(res => res.json())
+              .then(
+                (result) => {
+                    const form_options = this.state.forms.concat(result);
+                    this.setState({
+                        forms: form_options,
+                        isLoaded: true,
+                    });
+                },
+                (error) => {
+                    this.setState({
+                        isLoaded: true,
+                    });
+                }
+              )
+          },
 
     // var question = {
     //         "question_text": "",
@@ -1863,8 +1867,8 @@ var FormSubStatQuestion = React.createClass({
             json_convertible[key].question_name = json_convertible[key].question_text.replace(/\W/g,"_");
         }
         
+        var active_forms = []
         var json_featured_convertible = this.state.FeaturedImgs.filter(function(item) {
-           
             if (item.hasOwnProperty('is_deleted') && item.is_deleted == false){
                 delete item.is_deleted;
             }
@@ -1872,20 +1876,33 @@ var FormSubStatQuestion = React.createClass({
             if (!item.hasOwnProperty('is_deleted') && !item.hasOwnProperty('is_new')){
                 return item;
             }
+
+            if (item.question_type == 'Form'){
+                active_forms.push(item.form_id)
+            }
         });
         
         for (var key in json_featured_convertible) {
             json_featured_convertible[key].question_name = json_featured_convertible[key].question_text.replace(/\W/g,"_");
         }
-
-        site_info = {"site_picture": this.state.site_picture, "site_location": this.state.site_location}
+        if (this.state.site_picture.question_text == 'Form'){
+            active_forms.push(this.state.site_picture.form_id)
+        }
+        if (this.state.site_location.question_text == 'Form'){
+            active_forms.push(this.state.site_picture.form_id)
+        }
+        site_info = {
+            "active_forms": active_forms,
+            "site_picture": this.state.site_picture,
+            "site_location": this.state.site_location
+        }
         
         var json_Question = JSON.stringify(json_convertible);
         var json_SiteFeatured = JSON.stringify(json_featured_convertible);
         var json_SiteInfo = JSON.stringify(site_info)
         document.getElementById('json_questions').value = json_Question;
-        document.getElementById('site_info').value = json_SiteInfo;
-        document.getElementById('site_featured').value = json_SiteFeatured;
+        document.getElementById('site_basic_info').value = json_SiteInfo;
+        document.getElementById('site_featured_images').value = json_SiteFeatured;
         document.getElementById('theForm').submit();
     },
 
@@ -2293,6 +2310,7 @@ var FormSubStatQuestion = React.createClass({
 
     featuredPopUp: function(){
         if (this.state.featured_editing > -1){
+            console.log('here--fukkkkkk');
             var index = this.state.featured_editing
         }
         else{

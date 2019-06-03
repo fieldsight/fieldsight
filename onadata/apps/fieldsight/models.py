@@ -244,6 +244,8 @@ class Project(models.Model):
     date_created = models.DateTimeField(auto_now_add=True, blank=True)
     cluster_sites = models.BooleanField(default=False)
     site_meta_attributes = JSONField(default=list)
+    site_basic_info = JSONField(default={})
+    site_featured_images = JSONField(default=list)
     gsuit_meta = JSONField(default={})
     # gsuit_meta sample = {'site_progress':{'link':'', 'last_updated':''}}
     logs = GenericRelation('eventlog.FieldSightLog')
