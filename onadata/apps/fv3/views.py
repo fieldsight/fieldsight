@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
-from onadata.apps.fieldsight.models import Project, Region, Site
+from onadata.apps.fieldsight.models import Project, Region, Site, SiteType
 from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer
 from onadata.apps.userrole.models import UserRole
@@ -30,7 +30,10 @@ def supervisor_projects(request):
     "Projects where a user is assigned as Region Supervisor or Site Supervisor"
 
     projects = Project.objects.filter(pk__in=project_ids).select_related('organization').prefetch_related(
-        Prefetch("project_region", queryset=Region.objects.filter(pk__in=regions)))
+        Prefetch("project_region", queryset=Region.objects.filter(pk__in=regions)),
+        Prefetch("types", queryset=SiteType.objects.filter(deleted=False)),
+
+    )
     "Distinct Projects Where a user can be site supervisor or region reviewer"
 
     site_supervisor_role = UserRole.objects.filter(user=request.user,
