@@ -94,11 +94,13 @@ def supervisor_logs(request):
     email = request.user.email
     date = None
     last_updated = request.query_params.get('last_updated')
+    previous_next_type = request.query_params.get('type')
     if last_updated:
         try:
             date = datetime.fromtimestamp(int(last_updated))  # notifications newer than this date.
+            print(date)
         except:
             return Response({'notifications': []})
-    notifications = get_notifications_queryset(email, date)
+    notifications = get_notifications_queryset(email, date, previous_next_type)
     return Response({'notifications': notifications})
 
