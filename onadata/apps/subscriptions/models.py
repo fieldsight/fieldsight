@@ -60,3 +60,16 @@ class Invoice(models.Model):
     roll_over = models.IntegerField(default=0)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
+
+
+class TrackPeriodicWarningEmail(models.Model):
+    """
+        Track Warning E-Mails when total usage reached and overage charges begin, and then at 1 day, 3 days, 1 week,
+        and then monthly (for annual plans)
+    """
+    subscriber = models.ForeignKey(Subscription, on_delete=models.CASCADE, related_name="periodic_warning_email")
+    is_email_send = models.BooleanField(default=False)
+    date = models.DateField()
+
+
+

@@ -33,6 +33,7 @@ class ManagePeoplePermission(permissions.BasePermission):
             return False
         return request.role.organization == obj.organization
 
+
 class DonorRoleViewSet(viewsets.ModelViewSet):
     queryset = UserRole.objects.filter(organization__isnull=False, ended_at__isnull=True)
     serializer_class = UserRoleSerializer
@@ -41,10 +42,11 @@ class DonorRoleViewSet(viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         try:
             pk = self.kwargs.get('pk', None)   
-            queryset = queryset.filter(project__id=pk, group_id=7)
+            queryset = queryset.filter(project__id=pk, group__name="Project Donor", ended_at__isnull=True)
         except:
             queryset = []
         return queryset
+
 
 class UserRoleViewSet(viewsets.ModelViewSet):
     queryset = UserRole.objects.filter(organization__isnull=False, ended_at__isnull=True)
@@ -56,11 +58,11 @@ class UserRoleViewSet(viewsets.ModelViewSet):
             level = self.kwargs.get('level', None)
             pk = self.kwargs.get('pk', None)
             if level == "0":
-                queryset = queryset.filter(site__id=pk, group__name__in=['Site Supervisor', 'Reviewer'])
+                queryset = queryset.filter(site__id=pk,  ended_at__isnull=True, group__name__in=['Site Supervisor', 'Reviewer'])
             elif level == "1":
-                queryset = queryset.filter(project__id=pk, site__id=None, group__name='Project Manager').distinct('user_id')
+                queryset = queryset.filter(project__id=pk, group__name='Project Manager', ended_at__isnull=True).distinct('user_id')
             elif level == "2":
-                queryset = queryset.filter(organization__id=pk, project__id=None, site__id=None, group__name='Organization Admin').distinct('user_id')
+                queryset = queryset.filter(organization__id=pk, group__name='Organization Admin', ended_at__isnull=True).distinct('user_id')
         except:
             queryset = []
         return queryset
@@ -252,6 +254,7 @@ class MultiUserAssignRoleViewSet(View):
 class LargeResultsSetPagination(PageNumberPagination):
     page_size = 2
 
+
 class MultiUserlistViewSet(viewsets.ModelViewSet):
     serializer_class = UserRoleSerializer
     permission_classes = (IsAuthenticated, ManagePeoplePermission)
@@ -267,7 +270,7 @@ class MultiUserlistViewSet(viewsets.ModelViewSet):
                 raise ValidationError({
                     "No such site exists ".format(str(e)),
                 })
-            queryset = queryset.filter(organization__id=site.project.organization_id).distinct('user_id')
+            queryset = queryset.filter(organization__id=site.project.organization_id, ended_at__isnull=True).distinct('user_id')
         elif level == "1":
             try:
                 project = Project.objects.get(pk=pk)
@@ -275,7 +278,7 @@ class MultiUserlistViewSet(viewsets.ModelViewSet):
                 raise ValidationError({
                     "No such project exists ".format(str(e)),
                 })
-            queryset = queryset.filter(organization__id=project.organization_id).distinct('user_id')
+            queryset = queryset.filter(organization__id=project.organization_id, ended_at__isnull=True).distinct('user_id')
         elif level == "2":
             try:
                 organization = Organization.objects.get(pk=pk)
@@ -283,7 +286,7 @@ class MultiUserlistViewSet(viewsets.ModelViewSet):
                 raise ValidationError({
                     "No such Team exists ".format(str(e)),
                 })
-            queryset = queryset.filter(organization__id=organization.id).distinct('user_id')
+            queryset = queryset.filter(organization__id=organization.id, ended_at__isnull=True).distinct('user_id')
         return queryset
 
 class MultiOPSlistViewSet(viewsets.ModelViewSet):

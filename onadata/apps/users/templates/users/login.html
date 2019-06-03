@@ -21,7 +21,11 @@ input,
 input::-webkit-input-placeholder {
     font-size: 12px;
     line-height: 3;
-}
+};
+a.disabled {
+	pointer-events: none;
+	cursor: default;
+  }
 
 </style>
     <body>
@@ -107,7 +111,13 @@ input::-webkit-input-placeholder {
 																	  <a href="#" title="" id="help-me">Need help?</a>
 														  		</p>
 														  	</div> 
-												  		</div>
+														  </div>
+												  	<div class="col-sm-12">
+														<p class="mt-6 additional-info">
+																Terms and Conditions Agreement</a> | <a href="https://www.fieldsight.org/privacy-policy" title="" target="_blank">Privacy Policy</a>.
+														</p>
+													</div>
+														
 												  	</div>
 													  <ul class="list-inline">
 														<li class="list-inline-item">
@@ -185,18 +195,19 @@ input::-webkit-input-placeholder {
 													</div>
 													<!-- <button type="submit" class="btn btn-secondary" name="signup" value="signup"><i class="la la-user-plus"></i> Signup</button> -->
 													<p class="mt-3 additional-info">
-														By signing up, you’re agreeing with FieldSight’s <a href="#" title="" target="_blank">Terms and Conditions Agreement</a> | <a href="https://www.fieldsight.org/privacy-policy" title="" target="_blank">Privacy Policy</a>.
+														<input type="checkbox" id="id_agree">  I agree with FieldSight’s Terms and Conditions Agreement | <a href="https://www.fieldsight.org/privacy-policy" title="" target="_blank">Privacy Policy</a>.
 													</p>
+
 													<ul class="list-inline">
 														<li class="list-inline-item">
-															<button type="submit" class="btn btn-secondary" id="btn-signup" name="signup" value="signup"><i class="la la-user-plus"></i> Sign Up</button>
+															<button type="submit" class="btn btn-secondary" id="btn-signup" name="signup" value="signup" disabled><i class="la la-user-plus"></i> Sign Up</button>
 														</li>
 														<li class="list-inline-item">or</li>
 														<!-- <li class="list-inline-item">
 															<button type="button" class="btn btn-secondary"><i class="la la-facebook"></i></button>
 														</li> -->
 														<li class="list-inline-item">
-															<a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-secondary"><i class="la la-google"></i>Sign Up with Google</a>
+															<a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-secondary disabled" id="id_signup_google"><i class="la la-google"></i>Sign Up with Google</a>
 														</li>
 													</ul>
 												</form>
@@ -248,6 +259,34 @@ input::-webkit-input-placeholder {
 		<script src="{{ STATIC_URL }}dummy/assets/js/plugins.js"></script>
 		<script>
 			$(document).ready(function(){
+
+			var invited='{{invited}}';
+				if (invited=='true'){
+					$('#pills-login-tab').removeClass('active');
+					$('#pills-login').removeClass('show active');
+					$("pills-login-tab").attr("aria-expanded","false");
+
+					$('#pills-signup-tab').addClass('active');
+					$('#pills-signup').addClass('show active');
+					$("pills-login-tab").attr("aria-expanded","true");
+
+
+				}
+
+				// enabled and disabled signup button checking checkbox value
+
+				$('#id_agree').click(function(){
+					var val = $(this).is(':checked');
+					if(val==true){
+						$('#btn-signup').attr("disabled", false);
+						$('#id_signup_google').removeClass('disabled');
+					}
+					else{
+						$('#btn-signup').attr("disabled", true);
+						$('#id_signup_google').addClass('disabled');
+					}
+				});
+
 				//
 				fn_login_vertically_center();
 

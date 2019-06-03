@@ -6,7 +6,7 @@ window.app = new Vue({
   template: `
     <div class="widget-info widget-scrolling-large-list margin-top bg-white padding" data-mh="eq111">
         <div class="widget-head">
-            <h4> User </h4>
+            <h4> Users </h4>
             <a class="btn btn-xs btn-primary" :href="new_people_url"><i class="la la-plus"></i></a>
 
             <a class="btn btn-xs btn-primary" data-toggle="collapse" href="#searchProjectManager" aria-expanded="false" aria-controls="searchProjectManager"><i class="la la-search"></i></a>
@@ -116,7 +116,8 @@ window.app = new Vue({
 						<div class="col-md-6">
 							<div class="widget-info margin-top bg-white padding">
 								<div class="widget-head">
-									<h4>Site Progress</h4>
+									<h4 v-if="this.terms_and_labels.length==0">School Progress</h4>
+									<h4 v-else >{{this.terms_and_labels[0].site}} Progress</h4>
 								</div>
 								<div class="widget-body">
 									 <highcharts :options="progress_data" ref="highcharts"></highcharts>
@@ -132,6 +133,8 @@ window.app = new Vue({
         loading: false,
         project_id: configure_settings.project_id,
         scrolled: false,
+        terms_and_labels: [],
+        site: "School"
   },
 
   methods:{
@@ -150,7 +153,7 @@ window.app = new Vue({
                     type: 'column'
                 },
               title: {
-                text: 'Site Progress',
+                text: this.site + ' Progress',
                 x: -20 //center
               },
               subtitle: {
@@ -266,6 +269,8 @@ window.app = new Vue({
               niceScroll({cursorborder:"",cursorcolor:"#00628e"});
             }.bind(self));
       },
+
+
   },
   created(){
     var self= this;
@@ -273,6 +278,24 @@ window.app = new Vue({
     window.addEventListener('scroll', this.handleScroll);
     self.heightLevel();
   },
+
+  mounted() {
+     function errorCallback() {
+            callback(new Error('Failed to load Project Terms and Labels data.'))
+        }
+
+     function successCallback(response) {
+        this.terms_and_labels = response.body;
+        if(response.body[0]){
+             this.site=response.body[0].site;
+
+        }
+
+    }
+    this.$http.get('/fieldsight/api/project-terms-labels/'+ this.project_id).then(successCallback, errorCallback)
+
+    },
+
   destroyed () {
   window.removeEventListener('scroll', this.handleScroll);
     }
