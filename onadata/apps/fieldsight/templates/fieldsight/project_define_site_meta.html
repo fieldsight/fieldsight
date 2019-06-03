@@ -1557,7 +1557,7 @@ var FormSubStatQuestion = React.createClass({
             },
 
             edit:function(){
-                $('#add-feature-pic').addClass('open');
+                this.props.edit(this.props.index);
             },
 
             editDone: function () {
@@ -2345,9 +2345,6 @@ var FormSubStatQuestion = React.createClass({
                                     {
                                         site_picture
                                     }
-
-
-
                                     </div>
                                 </div>
                             </div>
@@ -2359,11 +2356,9 @@ var FormSubStatQuestion = React.createClass({
                                         <h5>Site Location</h5>
                                     </div>
                                     <div className="card-body">
-                                        
                                             {
                                                 site_location
                                             }
-                                        
                                     </div>
                                 </div>
                             </div>
@@ -2395,7 +2390,6 @@ var FormSubStatQuestion = React.createClass({
                                         {   
                                             listItems
                                         }
-                                   
                             </tbody>
                         </table>
                     </div>
@@ -2403,10 +2397,18 @@ var FormSubStatQuestion = React.createClass({
                     <div className="fieldsight-popup" id="site-info-popup">
                         <div className="popup-body">
                             <div className="card">
-                                <div className="card-header main-card-header">
-                                    <h5>Add information</h5>
-                                    <span className="popup-close"><i className="la la-close"></i></span>
-                                </div>
+        
+                                    {
+                                        this.state.primary_editing < 0 ? 
+                                            <div className="card-header main-card-header">
+                                                <h5>Add Site Information</h5>
+                                                <span className="popup-close"><i className="la la-close"></i></span>
+                                            </div>
+                                            : <div className="card-header main-card-header">
+                                                <h5>Edit Site Information</h5>    
+                                            </div>
+                                    }   
+                                 
                                 <div className="card-body">
                                    {   
                                         primaryPopUp
@@ -2434,10 +2436,18 @@ var FormSubStatQuestion = React.createClass({
                     <div className="fieldsight-popup featured" id="add-feature-pic">
                         <div className="popup-body">
                             <div className="card">
-                                <div className="card-header main-card-header">
-                                    <h5>Add Featured Images</h5>
-                                    <span className="popup-close"><i className="la la-close"></i></span>
-                                </div>
+                                
+                                {
+                                    this.state.featured_editing < 0 ? 
+                                        <div className="card-header main-card-header">
+                                            <h5>Add Featured Image</h5>
+                                            <span className="popup-close"><i className="la la-close"></i></span>
+                                        </div>
+                                        : <div className="card-header main-card-header">
+                                            <h5>Edit featured Image</h5>    
+                                        </div>
+                                }
+                               
                                 <div className="card-body">
                                     {   
                                        featuredPopUp 
