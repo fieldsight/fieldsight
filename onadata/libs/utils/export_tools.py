@@ -34,7 +34,7 @@ from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
     DELETEDAT, USERFORM_ID, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
     SUBMISSION_TIME, UUID, TAGS, NOTES, SITE, FS_STATUS, FS_UUID, FS_PROJECT_UUID, FS_SITE_IDENTIFIER, FS_SITE_NAME,
-    FS_SITE_ADDRESS, FS_SITE_PHONE, FS_SITE_SUPERVISOR)
+    FS_SITE_PHONE, FS_SITE_SUPERVISOR, FS_COMMENT)
 from onadata.libs.exceptions import J2XException
 from .analyser_export import generate_analyser
 from onadata.apps.fsforms.XFormMediaAttributes import get_questions_and_media_attributes
@@ -180,7 +180,7 @@ class ExportBuilder(object):
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
                     PARENT_INDEX, TAGS, NOTES, SITE, FS_PROJECT_UUID, FS_UUID,
-                    FS_STATUS, FS_SITE_IDENTIFIER, FS_SITE_NAME, FS_SITE_ADDRESS, FS_SITE_PHONE, FS_SITE_SUPERVISOR]
+                    FS_STATUS, FS_COMMENT,FS_SITE_IDENTIFIER, FS_SITE_NAME, FS_SITE_PHONE, FS_SITE_SUPERVISOR]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
 
@@ -421,14 +421,12 @@ class ExportBuilder(object):
             site_id = int(row['fs_site'])
             site = postgres_data['sites'].get(site_id)
             row['site_name'] = site.get("name", "")
-            row['address'] = site.get("address", "")
             row['phone'] = site.get("phone", "")
             row['identifier'] = site.get("identifier", "")
         except Exception as e:
             pass
             # print(str(row))
             row['site_name'] = ""
-            row['address'] = ""
             row['phone'] = ""
             row['identifier'] = ""
         return row
@@ -546,18 +544,17 @@ class ExportBuilder(object):
         try:
             fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_project_uuid'])
             if __version__:
-                submissions = fxf_form.project_form_instances.filter(version=__version__).select_related("site").values("form_status", "instance", "site", "site__name", "site__address", "site__phone", "site__identifier")
+                submissions = fxf_form.project_form_instances.filter(version=__version__).select_related("site").values("form_status","comment", "instance", "site", "site__name", "site__phone", "site__identifier")
             else:
-                submissions =fxf_form.project_form_instances.select_related("site").values("form_status", "instance","site", "site__name", "site__address", "site__phone", "site__identifier")
+                submissions =fxf_form.project_form_instances.select_related("site").values("form_status","comment", "instance","site", "site__name", "site__phone", "site__identifier")
         except Exception as e: # SITE LEVEL FORM
             fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_uuid'])
             if __version__:
                 submissions = fxf_form.site_form_instances.filter(version=__version__).select_related("site").values(
-                    "form_status", "instance", "site", "site__name", "site__address", "site__phone", "site__identifier")
+                    "form_status", "comment", "instance", "site", "site__name", "site__phone", "site__identifier")
             else:
-                submissions = fxf_form.site_form_instances.select_related("site").values("form_status", "instance",
+                submissions = fxf_form.site_form_instances.select_related("site").values("form_status","comment", "instance",
                                                                                             "site", "site__name",
-                                                                                            "site__address",
                                                                                             "site__phone",
                                                                                             "site__identifier")
 
@@ -567,12 +564,14 @@ class ExportBuilder(object):
         postgres_data = {
                 'sites': {},
                  'username': username,
-                 'status_display': {}
+                 'status_display': {},
+                 'comment': {}
                  }
         for s in submissions:
             if s['site'] not in postgres_data['sites']:
-                postgres_data['sites'][s['site']] = {"name":s['site__name'], "address":s['site__address'], "identifier":s['site__identifier'], "phone":s['site__phone']}
+                postgres_data['sites'][s['site']] = {"name":s['site__name'], "identifier":s['site__identifier'], "phone":s['site__phone']}
             postgres_data['status_display'][s['instance']] = submission_status_dict.get(s['form_status'])
+            postgres_data['comment'][s['instance']] = s['comment']
 
         json_question = json.loads(question_json)
         parsedQuestions = get_questions_and_media_attributes(json_question['children'])
@@ -597,6 +596,8 @@ class ExportBuilder(object):
                             except:
                                 status_display="No Status"
                             data_new.append(status_display)
+                        elif f == "comment":
+                            data_new.append(postgres_data['comment'].get(data.get('_id'), ""))
                         else:         
                             data_new.append(data.get(f,''))
             work_sheet.append(data_new)
