@@ -156,7 +156,7 @@ class ReadonlyProjectLevelRoleMixin(LoginRequiredMixin):
 
         user_role_pm = request.roles.filter(project_id=project_id, group__name="Project Manager")
         if user_role_pm:
-            return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
+            return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
         user_role_asdonor = request.roles.filter(project_id = project_id, group__name="Project Donor")
         if user_role_asdonor:
