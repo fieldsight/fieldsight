@@ -89,7 +89,7 @@ class DataInstanceSerializer(serializers.Serializer):
         returned_dict ={}
         if (len(records)):
             returned_dict = records[0]
-
+        #break code fix
         # returned_dict = (len(records) and records[0]) or records
         return MongoHelper.to_readable_dict(returned_dict)
 
