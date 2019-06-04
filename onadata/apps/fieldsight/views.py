@@ -1794,7 +1794,8 @@ class ActivateRole(TemplateView):
                 invite.save()
                 return HttpResponseRedirect(reverse('login'))
             user = user_exists[0]
-            profile = user.user_profile
+            profile, created = UserProfile.objects.get_or_create(user=user)
+
             if not profile.organization:
                 profile.organization = invite.organization
                 profile.save()
