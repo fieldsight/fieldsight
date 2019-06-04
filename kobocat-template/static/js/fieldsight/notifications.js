@@ -257,10 +257,6 @@ webSocketBridgeNotifyUser.listen(function(text, byte) {
 		            status = " is ready to download. "
 		            
 		            var url  = data.file
-		            if (data.task_type == 10){
-		            	var new_url = url.split("/media/")
-		            	url = "/media/" + new_url[1];
-		            }
 		            
 		            additional_content = "<br/><a href='"+ url +"'>Download File</a>";
 		        	
