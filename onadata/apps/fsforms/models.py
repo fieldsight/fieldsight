@@ -431,6 +431,7 @@ class FInstance(models.Model):
     site_fxf = models.ForeignKey(FieldSightXF, null=True, related_name='site_form_instances', on_delete=models.SET_NULL)
     project_fxf = models.ForeignKey(FieldSightXF, null=True, related_name='project_form_instances')
     form_status = models.IntegerField(null=True, blank=True, choices=FORM_STATUS)
+    comment = models.TextField(null=True, blank=True)
     date = models.DateTimeField(auto_now=True)
     submitted_by = models.ForeignKey(User, related_name="supervisor")
     is_deleted = models.BooleanField(default=False)
@@ -617,6 +618,11 @@ class InstanceStatusChanged(models.Model):
 
     def getname(self):
         return '{0} form {1}'.format(self.finstance.site_fxf.form_type(), self.finstance.site_fxf.xf.title)
+
+    def save(self, *args, **kwargs):
+        self.finstance.comment = self.message
+        self.finstance.save()
+        super(InstanceStatusChanged, self).save(*args, **kwargs)
 
 
 class InstanceImages(models.Model):
