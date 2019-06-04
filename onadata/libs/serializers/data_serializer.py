@@ -86,8 +86,11 @@ class DataInstanceSerializer(serializers.Serializer):
         }
         cursor = ParsedInstance.query_mongo_minimal(**query_kwargs)
         records = list(record for record in cursor)
+        returned_dict ={}
+        if (len(records)):
+            returned_dict = records[0]
 
-        returned_dict = (len(records) and records[0]) or records
+        # returned_dict = (len(records) and records[0]) or records
         return MongoHelper.to_readable_dict(returned_dict)
 
 
