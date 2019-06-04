@@ -619,6 +619,11 @@ class InstanceStatusChanged(models.Model):
     def getname(self):
         return '{0} form {1}'.format(self.finstance.site_fxf.form_type(), self.finstance.site_fxf.xf.title)
 
+    def save(self, *args, **kwargs):
+        self.finstance.comment = self.message
+        self.finstance.save()
+        super(InstanceStatusChanged, self).save(*args, **kwargs)
+
 
 class InstanceImages(models.Model):
     instance_status = models.ForeignKey(InstanceStatusChanged, related_name="images")
