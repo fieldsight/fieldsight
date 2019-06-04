@@ -172,9 +172,8 @@
 					this.forms_loaded = true
 	        		
 	        		var processed_survey = [{'id':[0], 'label':'All Survey Forms', 'children':[]} ]
-	        		console.log(response.body.survey);
 	        		response.body.survey.forEach(function(val,index){ 
-				       // processed_survey[0]['id'].push(val.id)
+				       processed_survey[0]['id'].push(val.id)
 				       var child = {'id':val.id, 'label':val.xf__title}
 				       processed_survey[0]['children'].push(child)
 					   
