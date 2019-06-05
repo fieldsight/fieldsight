@@ -31,5 +31,5 @@ class MyProjectFormsViewSet(viewsets.ReadOnlyModelViewSet):
         projects = self.request.roles.filter(
             ended_at__isnull=False).values_list("project", flat=True).order_by('project').distinct('project')
         forms = FieldSightXF.objects.filter(
-            project__in=projects).exclude().order_by("xf").values('xf').distinct()
+            project__in=projects).exclude(xf__user=self.request.user).order_by("xf").values('xf').distinct()
         return forms
