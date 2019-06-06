@@ -2108,7 +2108,7 @@ def set_deploy_main_stage(request, is_project, pk, stage_id):
     if True:
         if is_project == "1":
             main_stage = Stage.objects.get(pk=stage_id)
-            copy_stage_to_sites.apply_async((), {'main_stage': main_stage, 'pk': pk}, countdown=2)
+            copy_stage_to_sites.apply_async((), {'main_stage': main_stage.id, 'pk': pk}, countdown=2)
             serializer = StageSerializer(main_stage)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
@@ -2137,7 +2137,7 @@ def set_deploy_sub_stage(request, is_project, pk, stage_id):
     try:
         sub_stage = Stage.objects.get(pk=stage_id)
         if is_project == "1":
-            copy_sub_stage_to_sites.apply_async((), {'sub_stage':sub_stage, 'pk':pk},  countdown=2)
+            copy_sub_stage_to_sites.apply_async((), {'sub_stage':sub_stage.id, 'pk':pk},  countdown=2)
             serializer = SubStageDetailSerializer(sub_stage)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:

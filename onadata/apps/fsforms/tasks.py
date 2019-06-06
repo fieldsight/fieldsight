@@ -34,6 +34,7 @@ def copy_allstages_to_sites(pk):
 @shared_task(max_retries=10, soft_time_limit=60)
 def copy_stage_to_sites(main_stage, pk):
     try:
+        main_stage = Stage.objects.get(pk=main_stage)
         project = Project.objects.get(pk=pk)
         project_sub_stages = Stage.objects.filter(stage__id=main_stage.pk, stage_forms__is_deleted=False)
         sub_stages_id = [s.id for s in project_sub_stages]
@@ -66,6 +67,7 @@ def copy_stage_to_sites(main_stage, pk):
 @shared_task(max_retries=10, soft_time_limit=60)
 def copy_sub_stage_to_sites(sub_stage, pk):
     try:
+        sub_stage = Stage.objects.get(pk=sub_stage)
         project = Project.objects.get(pk=pk)
         main_stage = sub_stage.stage
         stage_form = sub_stage.stage_forms
