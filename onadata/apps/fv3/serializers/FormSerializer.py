@@ -10,10 +10,11 @@ class XFormSerializer(serializers.ModelSerializer):
     preview_url = serializers.SerializerMethodField()
     replace_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
+    media_url = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
-        fields = ('id_string','title', 'edit_url', 'preview_url', 'replace_url', 'download_url', 'date_created')
+        fields = ('id_string','title', 'edit_url', 'preview_url', 'replace_url', 'download_url', 'media_url', 'date_created')
 
     def get_edit_url(self, obj):
         return "{}#forms/{}/edit/".format(settings.KPI_URL, obj.id_string)
@@ -22,7 +23,10 @@ class XFormSerializer(serializers.ModelSerializer):
         return "{}/forms/preview/{}/".format(settings.KOBOCAT_URL, obj.id_string)
 
     def get_replace_url(self, obj):
-        return obj.id_string
+        return "{}{}/".format(settings.KPI_URL,"import")
 
     def get_download_url(self, obj):
         return "{}{}.{}".format(settings.KPI_ASSET_URL, obj.id_string, "xls")
+
+    def get_media_url(self, obj):
+        return "{}/{}/forms/{}/form_settings".format(settings.KOBOCAT_URL, obj.user.username, obj.id_string)
