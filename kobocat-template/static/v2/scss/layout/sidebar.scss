@@ -1,0 +1,111 @@
+.fieldsight-new{
+    .new-sidebar{
+      &.submission-sidebar{
+        .submission-header{
+          position: relative;
+          .head-icon{
+            @include translatey;
+            right:0;
+            a{
+              font-weight: bold;
+              font-size: 1.2rem;
+              margin-left: 0.5rem;
+              color:$color-blue;
+
+            }
+          }
+        }
+        .status-view{
+          margin:1rem 0;
+          a{
+            font-size: 1rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            i{
+              margin-left:0.5rem;
+              font-size: 1.2rem;
+            }
+          }
+        }
+        .status{
+          label{
+            font-size:0.875rem;
+            text-transform: capitalize;
+            font-weight: 500;
+          }
+        }
+      }
+      &.profile-sidebar{
+        .profile-content{
+          figure{
+            max-width: 150px;
+            @include radius50;
+            margin:0 auto;
+            img{
+              height:150px;
+              width:150px;
+              @include radius50;
+            }
+          }
+          .user-info{
+            text-align: center;
+            padding:1rem 0;
+            border-bottom: 1px solid $color-bg;
+            h4{
+              font-size:0.875rem;
+              margin:0;
+              text-transform: capitalize;
+            }
+            span{
+              font-size:0.775rem;
+              margin:0.5rem 0 0.6125rem 0;
+              display: inline-block;
+            }
+            .profile-social-icon{
+              a{
+                width:34px;
+                height: 34px;
+                line-height: 34px;
+                text-align: center;
+                @include boxshadow;
+                @include radius50;
+                font-size:1.2rem;
+                display: inline-block;
+                margin-right: 0.6125rem;
+                &:last-child{
+                  margin-right: 0;
+                }
+              }
+            }
+          }
+          .profile-address{
+            margin-top:1rem;
+            ul{
+              li {
+                display: -webkit-box;
+                display: -moz-box;
+                display: -ms-flexbox;
+                display: -webkit-flex;
+                display: flex;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+                align-items: center;
+                padding: 0.5rem 0;
+                i {
+                  width: 1.5rem;
+                  height: 1.5rem;
+                  line-height: 1.5rem;
+                  text-align: center;
+                  border: 1px solid $color-bg;
+                  @include radius4;
+                  margin-right: 0.6125rem;
+              }
+            }
+            }
+          }
+        }
+      }
+
+    }
+    
+  }

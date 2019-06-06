@@ -21,6 +21,7 @@
         }
       }
       .breadcrumb-item{
+        text-transform: capitalize;
           &.active{
             color:$color-secondary;
           }

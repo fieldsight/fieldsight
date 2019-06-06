@@ -33,6 +33,7 @@
     <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/line-awesome.min.css">
     <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/nice-select.css">
     <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/js/datatable/dataTables.bs4.css">
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/main.css">
 </head>
     <body class="">
@@ -50,13 +51,13 @@
                     <main id="main-content">
                         <div class="row">
                             <div class="col-xl-3 col-lg-4">
-                                <div class="left-sidebar sidebar sticky-top">
+                                <div class="left-sidebar new-sidebar sticky-top">
                                     <div class="card">
                                         <div class="card-header main-card-header">
                                             <h5>Meta Attributes</h5>
                                         </div>
                                         <div class="card-body">
-                                            <ul class="nav nav-tabs flex-column" id="myTab" role="tablist">
+                                            <ul class="nav nav-tabs flex-column border-tabs" id="myTab" role="tablist">
                                                 <li class="nav-item">
                                                     <a class="nav-link" id="site_type_tab" data-toggle="tab" href="#site_type" role="tab" aria-controls="site_type" aria-selected="false">Site types</a>
                                                 </li>
@@ -120,6 +121,7 @@
     <!-- jquery library start -->   
     <script src="{{ STATIC_URL }}v2/js/vendor/jquery-3.4.1.min.js"></script>
     <script src="{{ STATIC_URL }}v2/js/vendor/popper.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/select2.min.js"></script>
     <script src="{{ STATIC_URL }}v2/js/vendor/bootstrap.min.js"></script>
     <script src="{{ STATIC_URL }}v2/js/vendor/jquery.nice-select.min.js"></script>
     <script src="{{ STATIC_URL }}v2/js/vendor/jquery.slimscroll.min.js"></script>
@@ -128,6 +130,9 @@
     <script src="{{ STATIC_URL }}js/reactjs/react.min.js"></script>
     <script src="{{ STATIC_URL }}js/reactjs/browser.min.js"></script>
     <script src="{{ STATIC_URL }}js/reactjs/react-dom.min.js"></script>
+    <script src="{{ STATIC_URL }}js/datatable/dataTables.min.js"></script>
+    <script src="{{ STATIC_URL }}js/datatable/custom-datatables.js"></script>
+
 
 
 <script type="text/babel">

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from onadata.apps.fieldsight.models import Project, Organization, Region, Site, ProjectLevelTermsAndLabels
+from onadata.apps.fieldsight.models import Project, Organization, Region, Site, Sector, SiteType, \
+    ProjectLevelTermsAndLabels
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -63,3 +64,52 @@ class ProjectSerializer(serializers.ModelSerializer):
                     'region_supervisor': obj.terms_and_labels.region_supervisor,
                     'region_reviewer': obj.terms_and_labels.region_reviewer,
                     }
+
+
+class ProjectUpdateSerializer(serializers.ModelSerializer):
+   
+    class Meta:
+        model = Project
+        fields = ('id', 'name', 'phone', 'fax', 'email', 'address', 'website', 'donor', 'public_desc', 'logo',
+                  'location', 'cluster_sites', 'sector', 'sub_sector', 'organization')
+
+
+class SectorSerializer(serializers.ModelSerializer):
+    subSectors = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Sector
+        fields = ('id', 'name', 'subSectors')
+
+    def get_subSectors(self, obj):
+        if obj.sectors:
+            return obj.sectors.all().values('id', 'name')
+
+
+class SiteTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SiteType
+        exclude = ()
+
+
+class ProjectLevelTermsAndLabelsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProjectLevelTermsAndLabels
+        exclude = ()
+
+
+class ProjectSiteSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Site
+        fields = ('id', 'project', 'identifier', 'name', 'type', 'phone', 'address', 'public_desc', 'logo', 'longitude',
+                  'latitude')
+
+
+class ProjectRegionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Region
+        fields = ('id', 'project', 'identifier', 'name', 'date_created', 'parent')

@@ -8,6 +8,11 @@ $color-grey:#EFEFEF;
 $color-yellow:#ffc107;
 $color-red:#fc5661;
 $color-green:#28a745;
+$skype:#00aff0;
+$twitter:#55aded;
+$google:#e94235;
+$color-hide:rgba($color-red, 0.8);
+$color-download:rgba($color-yellow, 0.8);
 
 
 // font-family
@@ -16,13 +21,13 @@ $ubuntu:'Ubuntu', sans-serif;
  
 
 //Break point
-$mb-sm:375px;
-$mb-md:480px;
+$mb-sm:376px;
+$mb-md:481px;
 $mb-lg:576px;
 $mb-xl:767px;
 $pt-tab:768px;
-$md-tab:768px 991px;
-$lg-tab:991px;
+$md-tab:768px 992px;
+$lg-tab:992px;
 $ls-tab:1024px;
 $desktop:1200px;
 $md-desktop:1440px;

@@ -1,18 +1,18 @@
 .fieldsight-new{
   .mr-0, .no-margin{
-    margin:0;
+    margin:0 !important;
   }
   .pdtb-60{
-      padding:4rem 0;
+      padding:4rem 0 !important;
   }
   .pdtb-50{
-    padding:3rem 0;
+    padding:3rem 0 !important;
   }
   .pdt-50{
-    padding-top:3rem;
+    padding-top:3rem !important;
   }
   .pdb-50{
-    padding-bottom:3rem;
+    padding-bottom:3rem !important;
   }
   .mrtb-50{
     margin:3rem 0!important;
@@ -27,16 +27,22 @@
     margin:2rem 0;
   }
   .mrt-30{
-    margin-top:2rem;
+    margin-top:2rem !important;
   }
   .mrb-30{
-    margin-bottom:2rem;
+    margin-bottom:2rem !important;
   }
   .pdb-30{
-    margin-bottom:2rem;
+    margin-bottom:2rem !important;
   }
   .pdt-30{
-    margin-top:2rem;
+    margin-top:2rem !important;
+  }
+  .pdt-0{
+    padding-top:0 !important;
+  }
+  .pd-0{
+    padding:0;
   }
   .container {
     width: 100%;
@@ -45,6 +51,12 @@
     margin-right: auto;
     margin-left: auto;
   }
+  .no-bg{
+    background-color:none !important;
+  }
+  .sticky-top {
+    z-index: 999;
+}
   
   @media (min-width: 576px) {
     .container {
@@ -108,7 +120,7 @@
       align-items: center;
       h5{
         margin:0;
-        font-size: 0.875rem;
+        font-size: 1rem;
         text-transform: capitalize;
         font-weight: 600;
       }
@@ -133,13 +145,91 @@
           }
         }
       }
+      .submitted-header{
+        @include flexjust;
+        justify-content: flex-end;
+        align-items: center;
+        text-transform: capitalize;
+        margin-top:0.15rem;
+        .submit-by{
+          margin-right: 1rem;
+        }
+        label{
+          margin:0;
+          margin-right: 0.25rem;
+          font-weight: 600;
+        }
+        
+      }
+      
+      .head-icon{
+        a{
+          font-weight:bold;
+          font-size:1.2rem;
+          margin-left:0.5rem;
+        }
+      }
+      &.tab-header{
+        position: relative;
+        padding-bottom: 0;
+        border-bottom: 0;
+        display: initial;
+        .dash-btn{
+          @include translatey;
+          right:1rem;;
+        }
+        .nav-tabs{
+          li{
+            a{
+              padding: 0.625rem 1rem;
+            }
+          }
+        }
+      }
+      &.dashboard-header{
+        .dash-pf{
+          @include flex_start;
+          align-items: center;
+          figure{
+            max-width: 80px;
+            @include radius50;
+            margin:0 1rem 0 0;
+            img{
+              @extend figure;
+              height: 80px;
+            }
+          }
+          .dash-pf-content{
+            span{
+              font-size: 0.775rem;
+              color:rgba($color-primary, 0.7);
+              margin:0.25rem 0;
+              display: inline-block;
+            }
+          }
+        }
+      }
     }
     .sub-card-header{
       @extend .main-card-header;
       h5{
         font-weight: 500;
       }
+      form{
+        .form-group{
+          input.form-control{
+            padding:0.225rem 0;
+          }
+          i{
+            position: absolute;
+            bottom:0.6125rem;
+            right:0.6125rem;
+            color:$color-blue;
+          }
+        }
+      }
     }
+    
     .card-body{
       padding: 1rem;
     }
@@ -147,5 +237,23 @@
       box-shadow:none
     }
   }
+  .display-inline{
+    @include flexjust;
+    justify-content: flex-start;
+    align-items: center;
+  }
+  .skype{
+    color:$skype;
+  }
+  .whatsapp{
+    color:$color-green;
+  }
+  .google{
+    color:$google;
+  }
+  .twitter{
+    color:$twitter;
+  }
+  
 }
 

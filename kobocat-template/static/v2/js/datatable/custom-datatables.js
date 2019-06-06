@@ -17,8 +17,87 @@ $(function(){
 		
 	});
 });
+$(function(){
+	$('#paging7_table').DataTable({
+		"scrollX": true,
+		"scrollCollapse": true,
+		"paging": true,
+		"info": false,
+		'iDisplayLength': 7,
+		"language": {
+            "lengthMenu": "Show _MENU_ Regions",
+        }
+		
+	});
+});
+$(function(){
+	$('#no_paging_table').DataTable({
+		"scrollX": true,
+		"scrollCollapse": true,
+		"paging": false,
+		"lengthChange": false,
+		// "searching": false,
+		"info":false,
+		'iDisplayLength': 7,
+		
+		
+	});
+});
+$(function(){
+	$('#substage_table').DataTable({
+		"scrollX": true,
+		"scrollCollapse": true,
+		"paging": false,
+		'iDisplayLength': 6,
+		
+	});
+});
 
-
+$(function(){
+	$('#substage1_table').DataTable({
+		"scrollX": true,
+		"scrollCollapse": true,
+		"paging": false,
+		'iDisplayLength': 6,
+		
+	});
+});
+$(function(){
+	$('#substage2_table').DataTable({
+		"scrollX": true,
+		"scrollCollapse": true,
+		"paging": false,
+		'iDisplayLength': 6,
+		
+	});
+});
+$(function(){
+	$('#manage_table').DataTable({
+		"scrollX": true,
+		"scrollCollapse": true,
+		"paging": true,
+		'iDisplayLength': 6,
+		
+	});
+});
+$(function(){
+	$('#survey_table').DataTable({
+		"scrollX": true,
+		"scrollCollapse": true,
+		"paging": true,
+		'iDisplayLength': 6,
+		
+	});
+});
+$(function(){
+	$('#general_table').DataTable({
+		"scrollX": true,
+		"scrollCollapse": true,
+		"paging": true,
+		'iDisplayLength': 6,
+		
+	});
+});
 // Vertical Scroll
 $(function(){
 	$('#scrollVertical').DataTable({

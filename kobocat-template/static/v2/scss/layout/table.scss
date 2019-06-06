@@ -13,16 +13,20 @@
             }
         }
         div.dataTables_info {
+            margin-top:1rem;
             color: $color-blue;
             float:left;
         }
     }
-    .dataTables_paginate{
+    div.dataTables_paginate{
+        margin-top:1rem !important;
+        float:right;
         a, span span{
             height: 34px;
             display: inline-block;
             border:1px solid rgba(140, 144, 154, 0.2);
             padding:5px 10px;
+            @include radius4;
             cursor:pointer;
             &:hover,
             &.current{
@@ -69,6 +73,28 @@
                     position: relative;
                     padding:0.625rem;
                     border-color:$color-bg;
+                    .progress{
+                        overflow: visible;
+                        background-color: $color-bg;
+                        position: relative;
+                        height: 4px;
+                        @include radius4;
+                        .progress-bar{
+                            background-color: $color-green;
+                            -webkit-transition: width 1.5s ease-in-out;
+                            transition: width 1.5s ease-in-out;
+                            position: relative;
+                            height: 4px;
+                            @include radius4;
+                        }
+                        .progress-count{
+                            position: absolute;
+                            bottom: 5px;
+                            right: -15px;
+                            color: $color-primary;
+                            font-size: 0.675rem;
+                        }
+                    }
                     a{
                         
                         &.td-edit-btn{
@@ -89,6 +115,16 @@
                 }
                 &.selected{
                     background-color: $color-bg;;
+                }
+                &.sub-row{
+                    td:first-child{
+                        padding-left:0.775rem;
+                    }
+                }
+                &.heading-row{
+                    td{
+                        font-weight: 500;
+                    }
                 }
             }
             &.table-bordered{
@@ -141,6 +177,10 @@
                     padding:0.625rem;
                     border:none;
                     border-bottom:1px solid $color-bg;
+                    .td-doc-icon{
+                        font-size:1.2rem;
+                        margin-right:0.25rem;
+                    }
                 }
             }
         }
