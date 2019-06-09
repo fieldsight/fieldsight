@@ -73,6 +73,25 @@ def cleanhtml(raw_html):
 class DriveException(Exception):
     pass
 
+@shared_task()
+def gsuit_assign_perm(title, emails):
+    time.sleep(5)
+    try:
+        gauth = GoogleAuth()
+        drive = GoogleDrive(gauth)
+        file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()[0]
+        for perm in emails:
+            time.sleep(1)
+            file.InsertPermission({
+                'type':'user',
+                'value':perm,
+                'role': 'writer'
+            })
+    except:
+        pass
+
+
+
 def upload_to_drive(file_path, title, folder_title, project):
     # pass
     """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
@@ -128,29 +147,21 @@ def upload_to_drive(file_path, title, folder_title, project):
             if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "exports.fieldsight@gmail.com":
                 file.DeletePermission(permission['id'])
 
-        # file.InsertPermission({
-        #             'type':'user',
-        #             'value':'aashish.baidya.c3@gmail.com',
-        #             'role': 'writer'
-        #         })
-
-        # file.InsertPermission({
-        #             'type':'user',
-        #             'value':'skhatri.np@gmail.com',
-        #             'role': 'writer'
-        #         })
-
-
-        for perm in perm_to_add:
-            file.InsertPermission({
-                        'type':'user',
-                        'value':perm,
-                        'role': 'writer'
-                    })
-
+        try:
+            index = 0
+            for perm in perm_to_add:
+                file.InsertPermission({
+                            'type':'user',
+                            'value':perm,
+                            'role': 'writer'
+                        })
+                index += 1
+        except:
+            gsuit_assign_perm.delay(title, perm[index:])
 
     except Exception as e:
         raise DriveException({"message":e})
+
 
 
 @shared_task()
