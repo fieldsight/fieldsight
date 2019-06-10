@@ -4102,76 +4102,83 @@ class SubRegionAndSitesAPI(View):
         content={'sub_regions':list(sub_regions), 'sites':list(sites)}
         return JsonResponse(content, status=200)
 
+
 class UnassignUserRegionAndSites(View):
     def post(self, request, pk, **kwargs):
         data = json.loads(self.request.body)
         ids = data.get('ids')
-        projects = [k for k in ids if 'p' in str(k)] 
-        ids = list(set(ids) - set(projects))
-        regions = [k for k in ids if 'r' in str(k)]
-        sites = list(set(ids) - set(regions))
-        user_id= pk
-        group_id = data.get('group')
+        try:
+            projects = [k for k in ids if 'p' in str(k)]
 
-        status, data = 200, {'status':'false','message':'PermissionDenied. You do not have sufficient rights.'}
-        
-        if request.group.name != "Super Admin":        
-            
-            request_usr_org_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=1).order_by('organization_id').distinct('organization_id').values_list('organization_id', flat=True)
-            if not request_usr_org_role:
-                
-                request_usr_project_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=2).order_by('project_id').distinct('project_id').values_list('project_id', flat=True)
-                if not request_usr_project_role:
-                    return JsonResponse(data, status=status)
-                if projects:
-                    project_ids = [k[1:] for k in projects]
-                    if not set(project_ids).issubset(set(request_usr_project_role)):
-                        return JsonResponse(data, status=status)  
+            ids = list(set(ids) - set(projects))
+            regions = [k for k in ids if 'r' in str(k)]
+            sites = list(set(ids) - set(regions))
+            user_id= pk
+            group_id = data.get('group')
 
-                if regions:
-                    region_ids = [k[1:] for k in regions]
+            status, data = 200, {'status':'false','message':'PermissionDenied. You do not have sufficient rights.'}
 
-                    if len(region_ids) != Region.objects.filter(pk__in=region_ids, project_id__in=request_usr_project_role).count(): 
-                        return JsonResponse(data, status=status)   
+            if request.group.name != "Super Admin":
 
+                request_usr_org_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=1).order_by('organization_id').distinct('organization_id').values_list('organization_id', flat=True)
+                if not request_usr_org_role:
 
-                if sites:
-                    if len(sites) != Site.objects.filter(pk__in=sites, project_id__in=request_usr_project_role).count():
-                        return JsonResponse(data, status=status) 
+                    request_usr_project_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=2).order_by('project_id').distinct('project_id').values_list('project_id', flat=True)
+                    if not request_usr_project_role:
+                        return JsonResponse(data, status=status)
+                    if projects:
+                        project_ids = [k[1:] for k in projects]
+                        if not set(project_ids).issubset(set(request_usr_project_role)):
+                            return JsonResponse(data, status=status)
+
+                    if regions:
+                        region_ids = [k[1:] for k in regions]
+
+                        if len(region_ids) != Region.objects.filter(pk__in=region_ids, project_id__in=request_usr_project_role).count():
+                            return JsonResponse(data, status=status)
 
 
-            else:
-
-                if projects:
-                    project_ids = [k[1:] for k in projects]
-
-                    if len(project_ids) != Project.objects.filter(pk__in=project_ids, organization_id__in=request_usr_org_role).count(): 
-                        return JsonResponse(data, status=status)         
-                
-                if regions:
-                    region_ids = [k[1:] for k in regions]
-
-                    if len(region_ids) != Region.objects.filter(pk__in=region_ids, project__organization_id__in=request_usr_org_role).count(): 
-                        return JsonResponse(data, status=status)   
+                    if sites:
+                        if len(sites) != Site.objects.filter(pk__in=sites, project_id__in=request_usr_project_role).count():
+                            return JsonResponse(data, status=status)
 
 
-                if sites:
-                    if len(sites) != Site.objects.filter(pk__in=sites, project__organization_id__in=request_usr_org_role).count():
-                        return JsonResponse(data, status=status) 
+                else:
+
+                    if projects:
+                        project_ids = [k[1:] for k in projects]
+
+                        if len(project_ids) != Project.objects.filter(pk__in=project_ids, organization_id__in=request_usr_org_role).count():
+                            return JsonResponse(data, status=status)
+
+                    if regions:
+                        region_ids = [k[1:] for k in regions]
+
+                        if len(region_ids) != Region.objects.filter(pk__in=region_ids, project__organization_id__in=request_usr_org_role).count():
+                            return JsonResponse(data, status=status)
 
 
-        status, data = 401, {'status':'false','message':'Error occured try again.'}
-        
-        if int(group_id) in [3,4]:
-            user = get_object_or_404(User, pk=pk)
-            task_obj=CeleryTaskProgress.objects.create(user=request.user, description="Removal of UserRoles", content_object = user, task_type=7)
-            if task_obj:
-                task = UnassignUser.delay(task_obj.id, sites, regions, projects, group_id)
-                task_obj.task_id = task.id
-                task_obj.save()
-                status, data = 200, {'status':'True', 'ids':ids, 'projects':projects, 'regions':regions, 'sites': sites, 'message':'Sucess, the roles are being removed. You will be notified after all the roles are removed. '}
-        
-        return JsonResponse(data, status=status)
+                    if sites:
+                        if len(sites) != Site.objects.filter(pk__in=sites, project__organization_id__in=request_usr_org_role).count():
+                            return JsonResponse(data, status=status)
+
+
+            status, data = 401, {'status':'false','message':'Error occured try again.'}
+
+            if int(group_id) in [3,4]:
+                user = get_object_or_404(User, pk=pk)
+                task_obj=CeleryTaskProgress.objects.create(user=request.user, description="Removal of UserRoles", content_object = user, task_type=7)
+                if task_obj:
+                    task = UnassignUser.delay(task_obj.id, user_id, sites, regions, projects, group_id)
+                    task_obj.task_id = task.id
+                    task_obj.save()
+                    status, data = 200, {'status':'True', 'ids':ids, 'projects':projects, 'regions':regions, 'sites': sites, 'message':'Sucess, the roles are being removed. You will be notified after all the roles are removed. '}
+
+            return JsonResponse(data, status=status)
+
+        except Exception as e:
+            return HttpResponseRedirect(reverse('fieldsight:UnassignUserRegionAndSites', kwargs={'pk': pk}, ))
+
 
 #class ProjectSiteListGeoJSON(ReadonlyProjectLevelRoleMixin, View):
 
