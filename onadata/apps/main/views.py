@@ -5,6 +5,7 @@ import json
 from bson import json_util
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
 from django.core.files.storage import default_storage
 from django.core.files.storage import get_storage_class
@@ -433,7 +434,7 @@ def show_form_settings(request, username=None, id_string=None, uuid=None):
         username, id_string, request)
     # no access
     if not (xform.shared or can_view or request.session.get('public_link')):
-        return HttpResponseRedirect(reverse(home))
+        raise PermissionDenied()
 
     data = {}
     data['cloned'] = len(
