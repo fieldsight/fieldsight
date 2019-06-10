@@ -51,7 +51,7 @@ Vue.component('treeselect', VueTreeselect.Treeselect)
 				    callback()
 				}
 	        	
-	        	this.$http.get('/fieldsight/api/user/projects/' + configure_settings.user_id + '/4/').then(successCallback, errorCallback);
+	        	this.$http.get('/fieldsight/api/user/projects/' +  parseInt(configure_settings.user_id) + '/4/').then(successCallback, errorCallback);
 
 		  }
 
