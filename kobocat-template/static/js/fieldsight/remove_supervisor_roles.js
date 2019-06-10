@@ -1,6 +1,9 @@
 Vue.component('treeselect', VueTreeselect.Treeselect)
     var LOAD_CHILDREN_OPTIONS = this.VueTreeselect.LOAD_CHILDREN_OPTIONS
     var LOAD_ROOT_OPTIONS = this.VueTreeselect.LOAD_ROOT_OPTIONS
+    var id = configure_settings.user_id
+	var user_id = parseInt(id.split(',').join(''))
+
     window.exportSitesToProject=new Vue({
       el: '#removeSRole',
       template: `
@@ -50,9 +53,6 @@ Vue.component('treeselect', VueTreeselect.Treeselect)
 					this.options = projects
 				    callback()
 				}
-				id = configure_settings.user_id;
-			    user_id = parseInt(id.split(',').join(''));
-
 	        	
 	        	this.$http.get('/fieldsight/api/user/projects/' + user_id + '/4/').then(successCallback, errorCallback);
 
@@ -67,7 +67,7 @@ Vue.component('treeselect', VueTreeselect.Treeselect)
 				    callback()
 				}
 	        	
-	        	this.$http.get('/fieldsight/api/project/user/sites/' + parentNode.id.slice( 1 ) +'/' + configure_settings.user_id + '/4/').then(successCallback, errorCallback);
+	        	this.$http.get('/fieldsight/api/project/user/sites/' + parentNode.id.slice( 1 ) +'/' + user_id + '/4/').then(successCallback, errorCallback);
 
 				
 
@@ -86,7 +86,7 @@ Vue.component('treeselect', VueTreeselect.Treeselect)
 				    callback()
 				}
 	        	
-	        	this.$http.get('/fieldsight/api/project/user/regions/' + parentNode.id.slice( 1 ) +'/' + configure_settings.user_id + '/4/').then(successCallback, errorCallback);
+	        	this.$http.get('/fieldsight/api/project/user/regions/' + parentNode.id.slice( 1 ) +'/' + user_id + '/4/').then(successCallback, errorCallback);
 
 	        }
 	        else if(parentNode.level == "region")
@@ -104,7 +104,7 @@ Vue.component('treeselect', VueTreeselect.Treeselect)
 
 				}
 	        	
-	        	this.$http.get('/fieldsight/api/region/' + parentNode.id.slice( 1 ) +'/subregionsandsites/' + configure_settings.user_id + '/4/').then(successCallback, errorCallback);
+	        	this.$http.get('/fieldsight/api/region/' + parentNode.id.slice( 1 ) +'/subregionsandsites/' + user_id + '/4/').then(successCallback, errorCallback);
 	        }
 
 	      }
@@ -132,7 +132,7 @@ Vue.component('treeselect', VueTreeselect.Treeselect)
 				body = {'ids': this.values, 'group': group_id }
 			}
 			console.log(body)
-			this.$http.post('/fieldsight/api/remove_roles/'+configure_settings.user_id +'/', body, options).then(successCallback, errorCallback);     
+			this.$http.post('/fieldsight/api/remove_roles/'+ user_id +'/', body, options).then(successCallback, errorCallback);
 
 			}
 		},
