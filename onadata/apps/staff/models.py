@@ -108,8 +108,8 @@ class Staff(models.Model):
     contract_end = models.DateField(blank=True, null=True)
     logs = GenericRelation('eventlog.FieldSightLog')
     is_deleted = models.BooleanField(default=False)
-
-
+    IdPassDID = models.CharField(max_length=100, null=True, blank=True)
+    IdPassProof = models.TextField(null=True, blank=True)
 
     @property
     def latitude(self):
