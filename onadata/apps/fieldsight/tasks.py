@@ -567,7 +567,7 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 region_idf = site.get("region_id", None)
                 
 
-                type_identifier = get_site_type(site.get("type", "0"))
+                type_identifier = site.get("type", None)
 
                 _site, created = Site.objects.get_or_create(identifier=str(site.get("identifier")),
                                                                 project=project)
@@ -577,7 +577,7 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 else:
                     updated_sites += 1
 
-                if type_identifier > 0:
+                if type_identifier:
                      site_type = SiteType.objects.get(identifier=type_identifier, project=project)
                      _site.type = site_type
                 
