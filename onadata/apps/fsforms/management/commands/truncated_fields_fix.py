@@ -47,10 +47,25 @@ CORRECTION_ACTION = {"construction_material": "construction_m",
                      "vertical_reinforcement": "vertical_reinf",
                      "horizontal_bands": "horizontal_ban"}
 
+SANTOSH = {
+    "Though_more_advanced_paragraph_structure":"Though_more",
+    "Though_it_may_seem_f_ost_relevant_to_them":"Though_it_may_seem",
+
+    "the_middle_par":"the_mi",
+    "and__as_allude":"and_a",
+    "a_one_sentence":"a_one",
+    "_lebron_james_":"_lebro",
+    "o_or_what_an_e":"o_or_wh",
+    "having_done_th":"having",
+    "ample_proves_y":"ample",
+    "you_are_provid":"you_are"
+}
+
 DICT = {"1422133": TOLL_FREE_TRACKING,
         "1422297": EVENTS,
         "992794": STFC_SERVICES,
-        "894808": CORRECTION_ACTION}
+        "894808": CORRECTION_ACTION,
+        "1640392": SANTOSH}
 
 
 def replace_all_pattern(project_form, xml):
@@ -91,15 +106,15 @@ class Command(BaseCommand):
                 function='regexp_matches'
             )
         ).values_list('pk', flat=True)
-        if not instances():
+        if not instances:
             self.stderr.write('No Instances found.')
             return
-        self.stderr.write('{} instance fro pattern {}'.format(len(instances), pattern))
+        self.stderr.write('{} instance found for  pattern {}'.format(len(instances), pattern))
 
         for instance_id in instances:
 
             queryset = Instance.objects.filter(pk=instance_id).only('xml')
-            InstanceHistory(instance=queryset[0],xml=queryset[0].xml)
+            InstanceHistory(xform_instance=queryset[0],xml=queryset[0].xml)
             fixed_xml = replace_all_pattern(project_fxf,queryset[0].xml)
             new_xml_hash = Instance.get_hash(fixed_xml)
             queryset.update(xml=fixed_xml, xml_hash=new_xml_hash)
