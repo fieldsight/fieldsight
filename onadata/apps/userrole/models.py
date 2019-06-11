@@ -15,6 +15,7 @@ from django.conf import settings
 from onadata.apps.fieldsight.models import Site, Project, Organization, Region
 from onadata.apps.fsforms.notifications import save_notification
 from onadata.apps.staff.models import StaffProject
+from onadata.apps.eventlog.models import CeleryTaskProgress
 
 
 class UserRole(models.Model):
@@ -203,5 +204,16 @@ def create_messages(sender, instance, created,  **kwargs):
                 Device.objects.filter(name=email).send_message(message)
             except:
                 pass
+    
+    if created and instance.group.name == "Project Manager":
+        from onadata.apps.fsforms.tasks import created_manager_form_share
+        task_obj = CeleryTaskProgress.objects.create(
+            user=instance.user,
+            description='Share all forms',
+            task_type=18,
+            content_object=instance
+            )
+        if task_obj:
+            created_manager_form_share.delay(instance, task_obj.id)
 
 post_save.connect(create_messages, sender=UserRole)
