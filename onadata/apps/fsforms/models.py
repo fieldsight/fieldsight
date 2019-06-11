@@ -4,6 +4,7 @@ import os
 
 import json
 import re
+import six
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.postgres.fields import ArrayField
@@ -22,16 +23,26 @@ from xml.dom import Node
 from onadata.apps.fieldsight.models import Site, Project, Organization
 from onadata.apps.fsforms.fieldsight_models import IntegerRangeField
 from onadata.apps.fsforms.utils import send_message, send_message_project_form, check_version
+from onadata.apps.fsforms.share_xform import share_form
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models import ParsedInstance
 from onadata.apps.fsforms.fsxform_responses import get_instances_for_field_sight_form
 from onadata.settings.local_settings import XML_VERSION_MAX_ITER
+from onadata.apps.userrole.models import UserRole
+from onadata.apps.eventlog.models import CeleryTaskProgress
 
 #To get domain to give complete url for app devs to make them easier.
 from django.contrib.sites.models import Site as DjangoSite
 
 from onadata.libs.utils.model_tools import set_uuid
+from shortuuid import ShortUUID
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+import jsonbfield.fields
+from jsonbfield.fields import JSONField as JSONBField
+from django.core.exceptions import FieldError
+
 
 SHARED_LEVEL = [(0, 'Global'), (1, 'Organization'), (2, 'Project'),]
 SCHEDULED_LEVEL = [(0, 'Daily'), (1, 'Weekly'), (2, 'Monthly'),]
@@ -367,6 +378,14 @@ def create_messages(sender, instance, created,  **kwargs):
         send_message_project_form(instance)
     elif created and instance.site is not None and not instance.is_staged:
         send_message(instance)
+
+    if instance.project is not None and created:
+        from onadata.apps.fsforms.tasks import share_form_managers
+        task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
+                                                     description="Share Forms",
+                                                     task_type=17, content_object=instance)
+        if task_obj:
+            share_form_managers.delay(instance, task_obj.id)
 
 
 @receiver(pre_delete, sender=FieldSightXF)
@@ -898,3 +917,87 @@ class SubmissionOfflineSite(models.Model):
         if self.instance:
             return u"%s ---------------%s" % (str(self.instance.id) ,self.offline_site_id)
         return u"%s" % str(self.offline_site_id)
+
+
+UUID_LENGTH = 21
+
+
+class KpiUidField(models.CharField):
+    ''' If empty, automatically populates itself with a UID before saving '''
+    def __init__(self, uid_prefix):
+        self.uid_prefix = uid_prefix
+        total_length = len(uid_prefix) + UUID_LENGTH
+        super(KpiUidField, self).__init__(max_length=total_length, unique=True)
+
+    def deconstruct(self):
+        name, path, args, kwargs = super(KpiUidField, self).deconstruct()
+        kwargs['uid_prefix'] = self.uid_prefix
+        del kwargs['max_length']
+        del kwargs['unique']
+        return name, path, args, kwargs
+
+    def generate_uid(self):
+        return self.uid_prefix + ShortUUID().random(UUID_LENGTH)
+        # When UID_LENGTH is 22, that should be changed to:
+        # return self.uid_prefix + shortuuid.uuid()
+
+    def pre_save(self, model_instance, add):
+        value = getattr(model_instance, self.attname)
+        if value == '':
+            value = self.generate_uid()
+            setattr(model_instance, self.attname, value)
+        return value
+
+
+class ObjectPermission(models.Model):
+    ''' An application of an auth.Permission instance to a specific
+    content_object. Call ObjectPermission.objects.get_for_object() or
+    filter_for_object() to run queries using the content_object field. '''
+    user = models.ForeignKey('auth.User')
+    permission = models.ForeignKey('auth.Permission')
+    deny = models.BooleanField(
+        default=False,
+        help_text='Blocks inheritance of this permission when set to True'
+    )
+    inherited = models.BooleanField(default=False)
+    object_id = models.PositiveIntegerField()
+    # We can't do something like GenericForeignKey('permission__content_type'),
+    # so duplicate the content_type field here.
+    content_type = models.ForeignKey(ContentType)
+    content_object = GenericForeignKey('content_type', 'object_id')
+    uid = KpiUidField(uid_prefix='p')
+
+    @property
+    def kind(self):
+        return 'objectpermission'
+
+    class Meta:
+        db_table = 'kpi_objectpermission'
+        managed = False
+
+    def save(self, *args, **kwargs):
+        if self.permission.content_type_id is not self.content_type_id:
+            raise ValidationError('The content type of the permission does '
+                'not match that of the object.')
+        super(ObjectPermission, self).save(*args, **kwargs)
+
+    def __unicode__(self):
+        for required_field in ('user', 'permission'):
+            if not hasattr(self, required_field):
+                return u'incomplete ObjectPermission'
+        return u'{}{} {} {}'.format(
+            'inherited ' if self.inherited else '',
+            unicode(self.permission.codename),
+            'denied from' if self.deny else 'granted to',
+            unicode(self.user)
+        )
+
+
+class Asset(models.Model):
+    uid = KpiUidField(uid_prefix='a')
+
+    class Meta:
+        db_table = 'kpi_asset'
+        managed = False 
+
+
