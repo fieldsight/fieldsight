@@ -4,7 +4,6 @@ import os
 
 import json
 import re
-import six
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.postgres.fields import ArrayField
@@ -39,10 +38,6 @@ from onadata.libs.utils.model_tools import set_uuid
 from shortuuid import ShortUUID
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-import jsonbfield.fields
-from jsonbfield.fields import JSONField as JSONBField
-from django.core.exceptions import FieldError
-
 
 SHARED_LEVEL = [(0, 'Global'), (1, 'Organization'), (2, 'Project'),]
 SCHEDULED_LEVEL = [(0, 'Daily'), (1, 'Weekly'), (2, 'Monthly'),]
