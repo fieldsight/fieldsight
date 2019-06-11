@@ -99,13 +99,16 @@ class Command(BaseCommand):
         project_fxf = options["project_fxf"]
         pattern = options["pattern"]
         instances = Instance.objects.filter(fieldsight_instance__project_fxf=project_fxf).only('xml')
-        instances = instances.annotate(
-            root_node_name=Func(
+        matches = instances.annotate(
+            match=Func(
                 F('xml'),
                 Value(pattern),
                 function='regexp_matches'
             )
-        ).values_list('pk', flat=True)
+        ).values_list('pk', 'match')
+
+        instances = [i[0] for i in matches]
+
         if not instances:
             self.stderr.write('No Instances found.')
             return
