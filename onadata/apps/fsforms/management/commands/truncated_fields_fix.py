@@ -3,7 +3,10 @@ import time
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connections
 from django.db.models import Func, F, Value
+
+from onadata.apps.api.viewsets.xform_submission_api import update_mongo
 from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models.instance import InstanceHistory
 
 TOLL_FREE_TRACKING = {"project_details": "project_detail",
                        "drawing_document": "drawing_docume",
@@ -96,9 +99,14 @@ class Command(BaseCommand):
         for instance_id in instances:
 
             queryset = Instance.objects.filter(pk=instance_id).only('xml')
+            InstanceHistory(instance=queryset[0],xml=queryset[0].xml)
             fixed_xml = replace_all_pattern(project_fxf,queryset[0].xml)
             new_xml_hash = Instance.get_hash(fixed_xml)
             queryset.update(xml=fixed_xml, xml_hash=new_xml_hash)
+            new_instance = queryset[0]
+            new_instance.xml = fixed_xml
+            new_instance.xml_hash=new_xml_hash
+            update_mongo(new_instance)
 
         self.stderr.write(
             '\nFinished {} '.format(
