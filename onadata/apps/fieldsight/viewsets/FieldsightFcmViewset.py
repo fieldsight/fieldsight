@@ -35,19 +35,16 @@ class FcmDeviceViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         try:
-            instance = Device.objects.get(dev_id=kwargs["pk"])
-            self.perform_destroy(instance)
+            Device.objects.filter(dev_id=kwargs["pk"]).update(is_active=False)
             return response.Response(status=status.HTTP_200_OK)
         except Device.DoesNotExist:
             return response.Response(status=status.HTTP_404_NOT_FOUND)
 
-    def inactivate(self, request, *args, **kwargs):
+    def inactivate(self, request):
         try:
-            instance = Device.objects.get(dev_id=request.data.get("dev_id"))
-            self.perform_destroy(instance)
+            Device.objects.filter(dev_id=request.data.get("dev_id")).update(is_active=False)
             return response.Response(status=status.HTTP_200_OK)
         except Device.DoesNotExist:
-            # return response.Response(status=status.HTTP_404_NOT_FOUND)
             return response.Response(status=status.HTTP_200_OK)
 
     def perform_destroy(self, instance):
