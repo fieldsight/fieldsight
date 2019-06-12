@@ -1,6 +1,7 @@
 import json
 from rest_framework import serializers
 
+from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import XformHistory, FORM_STATUS
 from onadata.apps.fsforms.utils import get_version
 from onadata.apps.logger.models import Instance
@@ -9,17 +10,30 @@ from django.contrib.sites.models import Site as DjangoSite
 BASEURL = DjangoSite.objects.get_current().domain
 
 
+class SiteSerializer(serializers.ModelSerializer):
+    site_information = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Site
+        fields = ('name', 'identifier', 'id', 'logo', 'site_information')
+        
+    def get_site_information(self, obj):
+        if not obj.site_meta_attributes_ans:
+            return {}
+        return obj.site_meta_attributes_ans
+
+
 class SubmissionSerializer(serializers.ModelSerializer):
     submission_data = serializers.SerializerMethodField()
     submitted_by = serializers.SerializerMethodField()
-    submitted_from = serializers.SerializerMethodField()
+    site = serializers.SerializerMethodField()
     submmition_history = serializers.SerializerMethodField()
     status_data = serializers.SerializerMethodField()
     form_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Instance
-        fields = ('submission_data', 'date_created',  'submitted_by', 'submitted_from', 'submmition_history',
+        fields = ('submission_data', 'date_created',  'submitted_by', 'site', 'submmition_history',
                   'status_data','form_type')
 
     def get_submitted_by(self, obj):
@@ -38,9 +52,12 @@ class SubmissionSerializer(serializers.ModelSerializer):
         finstance = obj.fieldsight_instance
         return {}
 
-    def get_submitted_from(self, obj):
+    def get_site(self, obj):
         finstance = obj.fieldsight_instance
-        return {'name':finstance.site.name} if finstance.site else {}
+        if not finstance.site:
+            return {}
+        return SiteSerializer(finstance.site).data
+
 
     def get_form_type(self, obj):
         finstance = obj.fieldsight_instance
