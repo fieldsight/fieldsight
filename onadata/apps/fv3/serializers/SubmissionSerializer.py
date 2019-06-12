@@ -1,8 +1,9 @@
 import json
+from django.core.urlresolvers import reverse_lazy
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
-from onadata.apps.fsforms.models import XformHistory, FORM_STATUS
+from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged
 from onadata.apps.fsforms.utils import get_version
 from onadata.apps.logger.models import Instance
 
@@ -21,6 +22,17 @@ class SiteSerializer(serializers.ModelSerializer):
         if not obj.site_meta_attributes_ans:
             return {}
         return obj.site_meta_attributes_ans
+
+
+class HistorySerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InstanceStatusChanged
+        fields = ('message', 'date', 'get_new_status_display', 'user_name')
+
+    def get_user_name(self, obj):
+        return obj.user.username
 
 
 class SubmissionSerializer(serializers.ModelSerializer):
@@ -50,7 +62,46 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     def get_submmition_history(self, obj):
         finstance = obj.fieldsight_instance
-        return {}
+        pk_list = [finstance.id]
+        finstances = []
+        previous = finstance.new_edits.all()
+        if len(previous):
+            previous_edit = previous[0].old
+            pk_list.append(previous_edit.id)
+            finstances.append(previous_edit)
+            p_previous = previous_edit.new_edits.all()
+            if len(p_previous):
+                p_previous_edit = p_previous[0].old
+                pk_list.append(p_previous_edit.id)
+                finstances.append(p_previous_edit)
+                p_p_previous = p_previous_edit.new_edits.all()
+                if len(p_p_previous):
+                    p_p_previous_edit = p_p_previous[0].old
+                    pk_list.append(p_p_previous_edit.id)
+                    finstances.append(p_p_previous_edit)
+
+        comments = InstanceStatusChanged.objects.filter(finstance__id__in=pk_list)
+        comment_data = []
+        for c in comments:
+            comment_data.append(
+                {
+                    "message": c.message,
+                    "date": c.date,
+                    "get_new_status_display": "Rejected",
+                    "user_name": "fsadmin"
+                },
+                )
+        instances_data = []
+        for fi in finstances:
+            instances_data.append(
+                {"comment": reverse_lazy("fv3:submission", args=(fi.id,)),
+                 "date": fi.date,
+                 "get_new_status_display": "New Submission",
+                 "user_name":fi.submitted_by.username})
+        # sort data past _ data
+        comment_data.extend(instances_data)
+        comment_data.sort(key=lambda item: item['date'], reverse=True)
+        return comment_data
 
     def get_site(self, obj):
         finstance = obj.fieldsight_instance
