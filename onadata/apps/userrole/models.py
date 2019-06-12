@@ -214,6 +214,6 @@ def create_messages(sender, instance, created,  **kwargs):
             content_object=instance
             )
         if task_obj:
-            created_manager_form_share.delay(instance, task_obj.id)
+            created_manager_form_share.delay(instance.id, task_obj.id)
 
 post_save.connect(create_messages, sender=UserRole)

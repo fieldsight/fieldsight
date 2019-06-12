@@ -380,7 +380,7 @@ def create_messages(sender, instance, created,  **kwargs):
                                                      description="Share Forms",
                                                      task_type=17, content_object=instance)
         if task_obj:
-            share_form_managers.delay(instance, task_obj.id)
+            share_form_managers.delay(instance.id, task_obj.id)
 
 
 @receiver(pre_delete, sender=FieldSightXF)
