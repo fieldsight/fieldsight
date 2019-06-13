@@ -1,10 +1,12 @@
+import datetime
+
 import json
-from django.core.urlresolvers import reverse_lazy
+from django.core.urlresolvers import reverse_lazy, reverse
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged, InstanceImages
-from onadata.apps.fsforms.utils import get_version
+from onadata.apps.fsforms.utils import get_version, send_message_flagged
 from onadata.apps.logger.models import Instance
 
 from django.contrib.sites.models import Site as DjangoSite
@@ -31,6 +33,32 @@ class AlterInstanceStatusSerializer(serializers.ModelSerializer):
         instance_status = InstanceStatusChanged.objects.create(**validated_data)
         for image in images:
             InstanceImages.objects.create(instance_status=instance_status, image=image)
+        fi = instance_status.finstance
+        fi.form_status = instance_status.new_status
+        fi.date = datetime.date.today()
+        fi.save()
+        if fi.site:
+            fi.site.update_current_progress()
+            extra_object = fi.site
+            extra_message = ""
+        else:
+            extra_object = fi.project
+            extra_message = "project"
+
+        org = fi.project.organization if fi.project else fi.site.project.organization
+        instance_status.logs.create(source=self.context['request'].user,
+                                    type=17,
+                                    title="form status changed",
+                                      organization=org,
+                                      project=fi.project,
+                                      site=fi.site,
+                                      content_object=fi,
+                                      extra_object=extra_object,
+                                      extra_message=extra_message
+                                      )
+        comment_url = reverse("forms:instance_status_change_detail",
+                              kwargs={'pk': instance_status.id})
+        send_message_flagged(fi, instance_status.message, comment_url)
         return instance_status
 
 
