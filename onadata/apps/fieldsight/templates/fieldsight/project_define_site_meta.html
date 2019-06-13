@@ -25,16 +25,16 @@
     <!--title-->
     <title>Fieldsight</title>
     
-    <!-- faveicon start   -->
-    <link rel="icon" type="image/png" href="img/favicon-32x32.png" sizes="32x32">
-    
-    <!-- stylesheet start -->
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/line-awesome.min.css">
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/nice-select.css">
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/js/datatable/dataTables.bs4.css">
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/select2.min.css">
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/main.css">
+<!-- faveicon start   -->
+<link rel="icon" type="image/png" href="img/favicon-32x32.png" sizes="32x32">
+
+<!-- stylesheet start -->
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/line-awesome.min.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/nice-select.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/js/datatable/dataTables.bs4.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/select2.min.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/main.css">
 </head>
     <body class="">
         <div id="fieldsight-new" class="fieldsight-new">
@@ -42,10 +42,8 @@
                 <div class="container-fluid">
                     <nav aria-label="breadcrumb" role="navigation">
                         <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="/fieldsight/organization/">Teams</a></li>
-                            <li class="breadcrumb-item"><a href="/fieldsight/organization-dashboard/13/">Build Change</a></li>
-                            
-                            <li class="breadcrumb-item active" aria-current="page">DFID 31 District Retrofitting</li>
+                            <li class="breadcrumb-item"><a href="/fieldsight/organization-dashboard/13/">{{ obj.organization.name }}</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">{{ obj.name }}</li>
                         </ol>
                     </nav>
                     <main id="main-content">
@@ -153,15 +151,14 @@
                           {'id': 'FormSubCountQuestion', 'name':'Form submissions count'},
                           {'id': 'FormQuestionAnswerStatus', 'name':'Form question answer status'} ];
      
-    var sitePictureTypes = [
-        {'id': 'upload', 'name': 'Upload'}, 
+    var sitePictureTypes = [ 
         {'id': 'Form', 'name': 'Choose from a form'},
-        {'id': 'choose', 'name': 'Choose from Gallery'},
+        {'id': 'choose', 'name': 'Upload / Choose from Gallery'},
     ]
 
     var siteFeaturedTypes = [
         {'id': 'Form', 'name': 'Choose from a form'},
-        {'id': 'choose', 'name': 'Choose from Gallery'},
+        {'id': 'choose', 'name': 'Upload / Choose from Gallery'},
     ]
 
     var siteLocationTypes = [
@@ -1291,7 +1288,7 @@ var FormSubStatQuestion = React.createClass({
                     form_index = 0; 
                 }
                 else{
-                    questions = parse_form_response(this.props.forms[form_index].json['children']);
+                    questions = parse_form_response(this.props.forms[form_index].json['children'], "image");
                 }
                 this.setState({form_index:form_index, forms:this.props.forms,  processed_questions: questions, isLoaded: true});
                 
@@ -1305,7 +1302,7 @@ var FormSubStatQuestion = React.createClass({
                     form_index = 0; 
                 }
                 else{
-                    questions = parse_form_response(nextProps.forms[form_index].json['children']);
+                    questions = parse_form_response(nextProps.forms[form_index].json['children'], "image");
                 }
                 this.setState({form_index:form_index, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
             },
@@ -1405,7 +1402,7 @@ var FormSubStatQuestion = React.createClass({
                     form_index = 0; 
                 }
                 else{
-                    questions = parse_form_response(this.props.forms[form_index].json['children']);
+                    questions = parse_form_response(this.props.forms[form_index].json['children'], "location");
                 }
                 this.setState({form_index:form_index, forms:this.props.forms,  processed_questions: questions, isLoaded: true});
                 
@@ -1419,7 +1416,7 @@ var FormSubStatQuestion = React.createClass({
                     form_index = 0; 
                 }
                 else{
-                    questions = parse_form_response(nextProps.forms[form_index].json['children']);
+                    questions = parse_form_response(nextProps.forms[form_index].json['children'], "location");
                 }
                 this.setState({form_index:form_index, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
             },
@@ -1519,7 +1516,7 @@ var FormSubStatQuestion = React.createClass({
                     form_index = 0; 
                 }
                 else{
-                    questions = parse_form_response(this.props.forms[form_index].json['children']);
+                    questions = parse_form_response(this.props.forms[form_index].json['children'], "image");
                 }
                 this.setState({form_index:form_index, editing:this.props.editing | this.props.is_new,forms:this.props.forms,  processed_questions: questions, isLoaded: true});
                 
@@ -1533,7 +1530,7 @@ var FormSubStatQuestion = React.createClass({
                     form_index = 0; 
                 }
                 else{
-                    questions = parse_form_response(nextProps.forms[form_index].json['children']);
+                    questions = parse_form_response(nextProps.forms[form_index].json['children'], "image");
                 }
                 this.setState({form_index:form_index, editing:this.props.editing | this.props.is_new, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
             },
@@ -1734,7 +1731,7 @@ var FormSubStatQuestion = React.createClass({
                 isLoaded: false,
                 forms: [{id:0, name:"Select form", json:{ children: []}}],
                 editing: null,
-                site_picture: site_basic_info.hasOwnProperty('site_picture') ? site_basic_info.site_picture : {'question_type':'upload', 'form_id':0, 'question':{}},
+                site_picture: site_basic_info.hasOwnProperty('site_picture') ? site_basic_info.site_picture : {'question_type':'choose', 'form_id':0, 'question':{}},
                 site_location: site_basic_info.hasOwnProperty('site_location') ? site_basic_info.site_location : {'question_type':'choose', 'form_id':0, 'question':{}},
                 featured_editing: -1,
                 primary_editing: -1,
@@ -2370,6 +2367,47 @@ var FormSubStatQuestion = React.createClass({
                         </div>
                     </div>
                 </div>
+
+                <div className="card no-boxshadow">
+                    <div className="card-header main-card-header">
+                        <h5>featured pictures</h5>
+                        <div className="add-btn">
+                            <a href="#" data-tab="add-feature-pic">Add new <span><i className="la la-plus"></i></span></a>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        <div className="row">
+                            {
+                                listFeaturedImgs
+                            }
+                        </div>
+                    </div>
+                    <div className="fieldsight-popup featured" id="add-feature-pic">
+                        <div className="popup-body">
+                            <div className="card">
+                                
+                                {
+                                    this.state.featured_editing < 0 ? 
+                                        <div className="card-header main-card-header">
+                                            <h5>Add Featured Image</h5>
+                                            <span className="popup-close"><i className="la la-close"></i></span>
+                                        </div>
+                                        : <div className="card-header main-card-header">
+                                            <h5>Edit featured Image</h5>    
+                                        </div>
+                                }
+                               
+                                <div className="card-body">
+                                    {   
+                                       featuredPopUp 
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
                 <div className="card no-boxshadow">
                     <div className="card-header main-card-header">
                         <h5>Site information</h5>
@@ -2423,46 +2461,6 @@ var FormSubStatQuestion = React.createClass({
                         </div>
                     </div>
                 </div>
-
-                <div className="card no-boxshadow">
-                    <div className="card-header main-card-header">
-                        <h5>featured pictures</h5>
-                        <div className="add-btn">
-                            <a href="#" data-tab="add-feature-pic">Add new <span><i className="la la-plus"></i></span></a>
-                        </div>
-                    </div>
-                    <div className="card-body">
-                        <div className="row">
-                            {
-                                listFeaturedImgs
-                            }
-                        </div>
-                    </div>
-                    <div className="fieldsight-popup featured" id="add-feature-pic">
-                        <div className="popup-body">
-                            <div className="card">
-                                
-                                {
-                                    this.state.featured_editing < 0 ? 
-                                        <div className="card-header main-card-header">
-                                            <h5>Add Featured Image</h5>
-                                            <span className="popup-close"><i className="la la-close"></i></span>
-                                        </div>
-                                        : <div className="card-header main-card-header">
-                                            <h5>Edit featured Image</h5>    
-                                        </div>
-                                }
-                               
-                                <div className="card-body">
-                                    {   
-                                       featuredPopUp 
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
 
                 <button onClick={this.save.bind()} className="btn btn-success pull-right"><i className="la la-save"></i>
                     Save Form</button>

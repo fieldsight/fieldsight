@@ -430,6 +430,7 @@ class Site(models.Model):
     region = models.ForeignKey(
         Region, related_name='regions', blank=True, null=True)
     site_meta_attributes_ans = JSONField(default=dict)
+    site_featured_images = JSONField(default=dict)
     current_progress = models.IntegerField(default=0)
     current_status = models.IntegerField(default=0)
     all_objects = SiteAllManager()
