@@ -26,6 +26,7 @@ from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
+from .role_api_permissions import ProjectRoleApiPermissions
 
 
 @permission_classes([IsAuthenticated])
@@ -117,35 +118,14 @@ def supervisor_logs(request):
     return Response({'notifications': notifications})
 
 
-class ProjectRoleMixinApi(BasePermission):
-
-    def has_object_permission(self, request, view, obj, *args, **kwargs):
-        if request.group.name == "Super Admin":
-            return super(ProjectRoleMixinApi, self).has_object_permission(request, *args, **kwargs)
-
-        project_id = self.kwargs.get('pk')
-        user_id = request.user.id
-        user_role = request.roles.filter(user_id=user_id, project_id=project_id, group_id=2)
-
-        if user_role:
-            return super(ProjectRoleMixinApi, self).has_object_permission(request, *args, **kwargs)
-        organization_id = Project.objects.get(pk=project_id).organization.id
-        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id,
-                                                    group_id=1)
-
-        if user_role_asorgadmin:
-            return super(ProjectRoleMixinApi, self).has_object_permission(request, *args, **kwargs)
-
-        raise PermissionDenied()
-
-
-class ProjectUpdateViewset(ProjectRoleMixin, generics.RetrieveUpdateDestroyAPIView):
+class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
     """
     A simple ViewSet for viewing and editing project. Allowed methods 'get', 'put', 'delete'.
     """
     queryset = Project.objects.all()
     serializer_class = ProjectUpdateSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -196,61 +176,69 @@ class sectors_subsectors(viewsets.ModelViewSet):
 
 class ProjectSiteTypesViewset(viewsets.ModelViewSet):
     """
-    A simple ViewSet for viewing and creating site types of project. Allowed methods 'get', 'post'.
+    A simple ViewSet for viewing and creating site types of project. Allowed methods 'get', 'post', 'put', 'delete'.
     """
     queryset = SiteType.objects.all()
     serializer_class = SiteTypeSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
-    def filter_queryset(self, queryset):
-        return queryset.filter(project_id=self.kwargs.get('pk', None))
+    def get_queryset(self):
 
-
-class SiteTypesViewset(generics.RetrieveUpdateDestroyAPIView):
-    """
-    A simple ViewSet for viewing, editing and deleting site types. Allowed methods 'get', 'put', 'delete'.
-    """
-    queryset = SiteType.objects.all()
-    serializer_class = SiteTypeSerializer
-    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+        project_id = self.request.query_params.get('project', None)
+        if project_id:
+            project = get_object_or_404(Project, id=project_id)
+            return self.queryset.filter(project=project)
+        else:
+            return self.queryset
 
 
 class ProjectTermsLabelsViewset(viewsets.ModelViewSet):
     """
-    A simple ViewSet for viewing, creating terms and labels. Allowed methods 'get', 'post'.
+    A simple ViewSet for viewing, creating, updating and deleting terms and labels. Allowed methods 'get', 'post', 'put',
+    'delete'.
     """
-    queryset = ProjectLevelTermsAndLabels.objects.all()
+    queryset = ProjectLevelTermsAndLabels.objects.filter(project__is_active=True)
     serializer_class = ProjectLevelTermsAndLabelsSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
-    def filter_queryset(self, queryset):
-        return queryset.filter(project_id=self.kwargs.get('pk', None))
+    def get_queryset(self):
 
-
-class TermsLabelsViewset(generics.RetrieveUpdateAPIView):
-    """
-    A simple ViewSet for viewing, editing and deleting terms and labels. Allowed methods 'get', 'put'.
-    """
-    queryset = ProjectLevelTermsAndLabels.objects.all()
-    serializer_class = ProjectLevelTermsAndLabelsSerializer
-    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+        project_id = self.request.query_params.get('project', None)
+        if project_id:
+            project = get_object_or_404(Project, id=project_id)
+            return self.queryset.filter(project=project)
+        else:
+            return self.queryset
 
 
 class ProjectRegionsViewset(viewsets.ModelViewSet):
     """
-    A simple ViewSet for viewing, creating regions. Allowed methods 'get', 'post'.
+    A simple ViewSet for viewing, creating, updating and deleting regions. Allowed methods 'get', 'post', 'put', 'delete'.
     """
-    queryset = Region.objects.filter(parent=None)
+    queryset = Region.objects.all()
     serializer_class = ProjectRegionSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
-    def filter_queryset(self, queryset):
+    def get_queryset(self):
 
+        project_id = self.request.query_params.get('project', None)
         region_id = self.request.query_params.get('region', None)
-        if region_id:
-            return Region.objects.filter(project_id=self.kwargs.get('pk', None), parent_id=region_id)
+
+        if project_id and region_id:
+
+            region = get_object_or_404(Region, id=region_id)
+            project = get_object_or_404(Project, id=project_id)
+            return self.queryset.filter(project=project, parent_id=region.id)
+
+        elif project_id:
+            project = get_object_or_404(Project, id=project_id)
+            return self.queryset.filter(project=project)
+
         else:
-            return queryset.filter(project_id=self.kwargs.get('pk', None))
+            return self.queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -287,9 +275,12 @@ class GeoLayerView(APIView):
     A simple view for viewing organization geo layers and add geo-layers from project. Allowed methods 'get', 'post'.
     """
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
-    def get(self, request, pk, format=None):
-        project = get_object_or_404(Project, id=pk)
+    def get(self, request, format=None):
+
+        project_id = request.query_params.get('project', None)
+        project = get_object_or_404(Project, id=project_id)
 
         organization = project.organization
         data = GeoLayer.objects.filter(organization=organization).values('title')
