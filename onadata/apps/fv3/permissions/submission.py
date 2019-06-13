@@ -9,3 +9,13 @@ class SubmissionDetailPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         pk = request.user
         return True
+
+
+class SubmissionChangePermission(permissions.BasePermission):
+    """
+    Object-level permission to only allow owners of an object to View it.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        pk = request.user
+        return True

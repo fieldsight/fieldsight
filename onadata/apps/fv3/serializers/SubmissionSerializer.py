@@ -3,12 +3,35 @@ from django.core.urlresolvers import reverse_lazy
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
-from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged
+from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged, InstanceImages
 from onadata.apps.fsforms.utils import get_version
 from onadata.apps.logger.models import Instance
 
 from django.contrib.sites.models import Site as DjangoSite
 BASEURL = DjangoSite.objects.get_current().domain
+
+
+class ImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InstanceImages
+        fields = ('image',)
+
+
+class AlterInstanceStatusSerializer(serializers.ModelSerializer):
+    images = ImageSerializer(many=True)
+
+    class Meta:
+        model = InstanceStatusChanged
+        fields = ('finstance', 'message', 'old_status', 'new_status', 'images')
+        extra_kwargs = {'images': {'write_only': True}}
+
+    def create(self, validated_data):
+        images = self.context['images']
+        validated_data.pop("images")
+        instance_status = InstanceStatusChanged.objects.create(**validated_data)
+        for image in images:
+            InstanceImages.objects.create(instance_status=instance_status, image=image)
+        return instance_status
 
 
 class SiteSerializer(serializers.ModelSerializer):
@@ -42,11 +65,12 @@ class SubmissionSerializer(serializers.ModelSerializer):
     submmition_history = serializers.SerializerMethodField()
     status_data = serializers.SerializerMethodField()
     form_type = serializers.SerializerMethodField()
+    form_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Instance
         fields = ('submission_data', 'date_created',  'submitted_by', 'site', 'submmition_history',
-                  'status_data','form_type')
+                  'status_data', 'form_type','form_name','fieldsight_instance')
 
     def get_submitted_by(self, obj):
         return obj.user.username
@@ -119,6 +143,9 @@ class SubmissionSerializer(serializers.ModelSerializer):
             'is_survey': finstance.site_fxf.is_survey if finstance.site_fxf else finstance.project_fxf.is_survey,
         }
 
+    def get_form_name(self, obj):
+
+        return obj.xform.title
     def get_submission_data(self, instance):
         data = []
         finstance = instance.fieldsight_instance
