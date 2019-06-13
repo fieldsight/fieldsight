@@ -7,8 +7,25 @@ from rest_framework.permissions import IsAuthenticated
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
 from onadata.apps.fv3.permissions.submission import SubmissionDetailPermission, SubmissionChangePermission
-from onadata.apps.fv3.serializers.SubmissionSerializer import SubmissionSerializer, AlterInstanceStatusSerializer
+from onadata.apps.fv3.serializers.SubmissionSerializer import SubmissionSerializer, AlterInstanceStatusSerializer, \
+    SubmissionAnswerSerializer
 from onadata.apps.logger.models import Instance
+
+
+class SubmissionAnswerViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Instance.objects.all()
+    serializer_class = SubmissionAnswerSerializer
+    permission_classes = [IsAuthenticated, SubmissionDetailPermission]
+
+    def get_queryset(self):
+        return self.queryset.select_related("xform","xform__user", "user").prefetch_related(
+            Prefetch('fieldsight_instance',
+                     queryset=FInstance.objects.all().select_related(
+                         'site', 'site_fxf', 'project_fxf')
+                     ))
+
+    def get_serializer_context(self):
+        return {'request': self.request, 'kwargs': self.kwargs,}
 
 
 class SubmissionViewSet(viewsets.ReadOnlyModelViewSet):
