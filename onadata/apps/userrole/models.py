@@ -5,7 +5,7 @@ from fcm.utils import get_device_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.fields import GenericRelation
-from django.db import models
+from django.db import models, IntegrityError, transaction
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -214,6 +214,10 @@ def create_messages(sender, instance, created,  **kwargs):
             content_object=instance
             )
         if task_obj:
-            created_manager_form_share.delay(instance, task_obj.id)
+            try:
+                with transaction.atomic():
+                    created_manager_form_share.delay(instance.id, task_obj.id)
+            except IntegrityError:
+                pass
 
 post_save.connect(create_messages, sender=UserRole)

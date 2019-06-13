@@ -13,32 +13,13 @@ def share_m2m(users, forms):
 
 
 def share_forms(user, forms):
-    from onadata.appps.fsforms.models import ObjectPermission, Asset
-    for xform in forms:
+    from onadata.apps.fsforms.models import ObjectPermission, Asset
+    for fxf in forms:
         try:
             codenames = ['view_asset', 'change_asset']
             permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
             for perm in permissions:
-                existing_perms = ObjectPermission.objects.filter(
-                    user=user,
-                )
-                identical_existing_perm = existing_perms.filter(
-                    inherited=False,
-                    permission_id=perm.pk,
-                    deny=False,
-                )
-                if identical_existing_perm.exists():
-                    # The user already has this permission directly applied
-                    return identical_existing_perm.first()
-                # Remove any explicitly-defined contradictory grants or denials
-                contradictory_perms = existing_perms.filter(user=user,
-                                                            permission_id=perm.pk,
-                                                            deny=not False,
-                                                            inherited=False
-                                                            )
-                contradictory_perms.delete()
-
-                object_id = Asset.objects.get(uid=xform.xf.id_string).id
+                object_id = Asset.objects.get(uid=fxf.xf.id_string).id
                 content_type = ContentType.objects.get(id=21)
 
                 # Create the new permission
@@ -51,8 +32,7 @@ def share_forms(user, forms):
                     inherited=False
                 )
 
-        except Exception as e:
-            print(e)
+        except:
             return False
         else:
             return True
@@ -65,25 +45,6 @@ def share_form(users, xform):
             codenames = ['view_asset', 'change_asset']
             permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
             for perm in permissions:
-                existing_perms = ObjectPermission.objects.filter(
-                    user=user,
-                )
-                identical_existing_perm = existing_perms.filter(
-                    inherited=False,
-                    permission_id=perm.pk,
-                    deny=False,
-                )
-                if identical_existing_perm.exists():
-                    # The user already has this permission directly applied
-                    return identical_existing_perm.first()
-                # Remove any explicitly-defined contradictory grants or denials
-                contradictory_perms = existing_perms.filter(user=user,
-                                                            permission_id=perm.pk,
-                                                            deny=not False,
-                                                            inherited=False
-                                                            )
-                contradictory_perms.delete()
-
                 object_id = Asset.objects.get(uid=xform.id_string).id
                 content_type = ContentType.objects.get(id=21)
 
