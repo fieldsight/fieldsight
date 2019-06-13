@@ -109,7 +109,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
         for c in comments:
             comment_data.append(
                 {
-                    "message": c.message,
+                    "comment": c.message,
                     "date": c.date,
                     "get_new_status_display": "Rejected",
                     "user_name": "fsadmin"
