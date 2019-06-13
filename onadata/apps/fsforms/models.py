@@ -9,7 +9,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
-from django.db import models
+from django.db import models, IntegrityError, transaction
 from django.db.models import Max
 from django.db.models.signals import post_save, pre_delete
 from django.utils.translation import ugettext_lazy as _
@@ -380,7 +380,11 @@ def create_messages(sender, instance, created,  **kwargs):
                                                      description="Share Forms",
                                                      task_type=17, content_object=instance)
         if task_obj:
-            share_form_managers.delay(instance.id, task_obj.id)
+            try:
+                with transaction.atomic():
+                    share_form_managers.delay(instance.id, task_obj.id)
+            except IntegrityError as e:
+                print(e)
 
 
 @receiver(pre_delete, sender=FieldSightXF)

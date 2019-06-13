@@ -13,13 +13,13 @@ def share_m2m(users, forms):
 
 
 def share_forms(user, forms):
-    from onadata.appps.fsforms.models import ObjectPermission, Asset
-    for xform in forms:
+    from onadata.apps.fsforms.models import ObjectPermission, Asset
+    for fxf in forms:
         try:
             codenames = ['view_asset', 'change_asset']
             permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
             for perm in permissions:
-                object_id = Asset.objects.get(uid=xform.xf.id_string).id
+                object_id = Asset.objects.get(uid=fxf.xf.id_string).id
                 content_type = ContentType.objects.get(id=21)
 
                 # Create the new permission
@@ -32,8 +32,7 @@ def share_forms(user, forms):
                     inherited=False
                 )
 
-        except Exception as e:
-            print(e)
+        except:
             return False
         else:
             return True

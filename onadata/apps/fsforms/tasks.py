@@ -171,7 +171,7 @@ def clone_form(user_id, project_id, task_id):
 @shared_task(max_retires=5)
 def share_form_managers(fxf, task_id):
     fxf = FieldSightXF.objects.get(pk=fxf)
-    userrole = UserRole.objects.filter(project=fxf.project, group__name='Project Manager')
+    userrole = UserRole.objects.filter(project=fxf.project, group__name='Project Manager', ended_at__isnull=True)
     users = User.objects.filter(user_roles__in=userrole)
     shared = share_form(users, fxf.xf)
     if shared:
