@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from django.db.models import Prefetch
@@ -14,7 +15,7 @@ from rest_framework.authentication import BasicAuthentication
 from rest_framework import generics, status
 from rest_framework.permissions import BasePermission
 from rest_framework.views import APIView
-
+from django.http import JsonResponse
 from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels
 from onadata.apps.fieldsight.rolemixins import ProjectRoleMixin
 from onadata.apps.fsforms.notifications import get_notifications_queryset
@@ -300,4 +301,61 @@ class GeoLayerView(APIView):
                     return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(data='Error: POST requires only geo_layers field.', status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProjectDefineSiteMeta(APIView):
+    """
+    A simple view for viewing and adding project site meta. Allowed methods 'get', 'post'.
+    """
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, ]
+
+    def get(self, request, pk, format=None):
+        project_obj = Project.objects.get(pk=pk)
+        level = "1"
+        project_data = Project.objects.filter(pk=pk).values('id', 'name', 'organization_id', 'organization__name', )
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project_obj).exists()
+
+        return Response({'json_questions': project_obj.site_meta_attributes, 'site_basic_info': project_obj.site_basic_info,
+                         'site_featured_images': project_obj.site_featured_images, 'level': level,
+                         'terms_and_labels': terms_and_labels, 'obj': project_data})
+
+    def post(self, request, pk, format=None):
+
+        try:
+            project = Project.objects.get(pk=pk)
+            old_meta = project.site_meta_attributes
+            # print old_meta===================================
+            # print "----"
+            project.site_meta_attributes = request.POST.get('json_questions');
+            project.site_basic_info = request.POST.get('site_basic_info');
+            project.site_featured_images = request.POST.get('site_featured_images');
+            new_meta = json.loads(project.site_meta_attributes)
+            # print new_meta
+            updated_json = None
+
+            if old_meta != new_meta:
+                deleted = []
+
+                for meta in old_meta:
+                    if meta not in new_meta:
+                        deleted.append(meta)
+
+                for other_project in Project.objects.filter(organization_id=project.organization_id):
+
+                    for meta in other_project.site_meta_attributes:
+
+                        if meta['question_type'] == "Link":
+                            if str(project.id) in meta['metas']:
+                                for del_meta in deleted:
+                                    if del_meta in meta['metas'][str(project.id)]:
+                                        del meta['metas'][str(project.id)][meta['metas'][str(project.id)].index(del_meta)]
+
+                    other_project.save()
+            project.save()
+            return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
+
+        except Exception as e:
+            return Response(data='Error: ' + str(e))
+
 
