@@ -7,7 +7,17 @@
 
 				<section class="panel">
                     <header class="panel-heading clearfix">
-                        <h3><i class="la la-globe"></i>{% trans 'New' %} {% trans 'Region' %}</h3>
+                        <h3><i class="la la-globe"></i>
+
+                            {% if terms_and_labels %}
+                                New {{obj.terms_and_labels.region}}
+
+                            {% else %}
+                                {% trans 'New' %} {% trans 'Region' %}
+
+                            {% endif %}
+
+                        </h3>
                     </header>
 					{% if messages %}
 					<ul class="">
@@ -63,7 +73,17 @@
                         {% if form.instance.id %}
                         <br/>
                         <br/>
-                        <h5>Sub regions</h5>
+                        <h5>
+                            {% if terms_and_labels %}
+                                Sub {{obj.terms_and_labels.region}}
+
+                            {% else %}
+                                Sub regions
+
+                            {% endif %}
+
+
+                        </h5>
                         <div style="text-align: right; padding: 2px 8px 8px 0;">
                             <a href="{% url 'fieldsight:sub-region-add' obj.id form.instance.id %}">
                                 <button type="button" class="btn btn-primary "><i class="la la-plus"></i>{% trans 'Add' %}</button>
@@ -72,8 +92,15 @@
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th class="text-center">{% trans 'Region' %} {% trans 'ID' %}</th>
-                                    <th class="text-center">{% trans 'Region' %} {% trans 'Name' %}</th>
+                                     {% if terms_and_labels %}
+                                        <th class="text-center"> {{obj.terms_and_labels.region}} ID </th>
+                                        <th class="text-center">{{obj.terms_and_labels.region}} Name</th>
+
+                                    {% else %}
+                                        <th class="text-center">{% trans 'Region' %} {% trans 'ID' %}</th>
+                                        <th class="text-center">{% trans 'Region' %} {% trans 'Name' %}</th>
+
+                                    {% endif %}
                                     <th class="text-center"> {% trans 'Created' %} {% trans 'Date' %}</th>
                                     <th class="text-center">{% trans 'Actions' %}</th>
                                 </tr>

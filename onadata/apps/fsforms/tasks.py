@@ -15,6 +15,8 @@ from onadata.apps.fsforms.utils import send_sub_stage_deployed_project, send_bul
 from onadata.apps.logger.models import XForm
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.libs.utils.fieldsight_tools import clone_kpi_form
+
+import time
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.fsforms.share_xform import share_form, share_forms
 
@@ -132,6 +134,7 @@ def post_update_xform(xform_id, user):
 
 @shared_task(max_retries=5)
 def clone_form(user_id, project_id, task_id):
+    time.sleep(10)
     user = User.objects.get(id=user_id)
     project = Project.objects.get(id=project_id)
 

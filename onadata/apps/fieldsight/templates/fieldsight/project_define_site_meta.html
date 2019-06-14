@@ -1578,7 +1578,16 @@ var FormSubStatQuestion = React.createClass({
 
             <div>
             <header className="panel-heading clearfix">
-                <h3><i className="la la-cogs"></i>Site Meta Attributes</h3>
+                <h3><i className="la la-cogs"></i>
+                {% if terms_and_labels %}
+                    {{obj.terms_and_labels.site}} Meta Attributes
+
+                {% else %}
+                    Site Meta Attributes
+
+                {% endif %}
+
+                </h3>
 
                 <button onClick={this.save.bind()} className="btn btn-success pull-right"><i className="la la-save"></i>Save Form</button>
             </header>

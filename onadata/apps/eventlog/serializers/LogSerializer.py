@@ -2,6 +2,10 @@ import json
 from django.contrib.gis.geos import Point
 from rest_framework import serializers
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
+from onadata.apps.fieldsight.models import ProjectLevelTermsAndLabels, Project
+
+from django.shortcuts import get_object_or_404
+
 
 class LogSerializer(serializers.ModelSerializer):
     source_uid = serializers.ReadOnlyField(source='source_id', read_only=True)
@@ -50,6 +54,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     get_absolute_url = serializers.ReadOnlyField()
     extra_json = serializers.JSONField(binary=False)
+    terms_and_labels = serializers.SerializerMethodField()
     # org_name = serializers.ReadOnlyField(source='organization.name', read_only=True)
     # get_org_url = serializers.ReadOnlyField()
 
@@ -61,10 +66,26 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FieldSightLog
-        exclude = ('description', 'is_seen', 'content_type', 'organization', 'project', 'site', 'object_id', 'extra_object_id', 'source', 'extra_content_type',)
+        exclude = ('description', 'project', 'is_seen', 'content_type', 'organization', 'site', 'object_id', 'extra_object_id', 'source', 'extra_content_type',)
 
     def get_source_name(self, obj):
         return obj.source.first_name + " " + obj.source.last_name
+
+    def get_terms_and_labels(self, obj):
+
+        if obj.project:
+            terms = ProjectLevelTermsAndLabels.objects.filter(project=obj.project).exists()
+
+            if terms:
+
+                return {'site': obj.project.terms_and_labels.site,
+                        'donor': obj.project.terms_and_labels.donor,
+                        'site_supervisor': obj.project.terms_and_labels.site_supervisor,
+                        'site_reviewer': obj.project.terms_and_labels.site_reviewer,
+                        'region': obj.project.terms_and_labels.region,
+                        'region_supervisor': obj.project.terms_and_labels.region_supervisor,
+                        'region_reviewer': obj.project.terms_and_labels.region_reviewer,
+                        }
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -74,7 +95,7 @@ class TaskSerializer(serializers.ModelSerializer):
     get_task_type_display = serializers.ReadOnlyField()
     get_event_name = serializers.ReadOnlyField()
     get_event_url = serializers.ReadOnlyField()
-
+    terms_and_labels = serializers.SerializerMethodField()
 
     class Meta:
         model = CeleryTaskProgress
@@ -82,4 +103,22 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def get_source_name(self, obj):
         return obj.user.first_name + " " + obj.user.last_name
-        
+
+    def get_terms_and_labels(self, obj):
+
+        if obj.task_type in [0, 2, 3, 4, 6, 8, 10, 13]:
+            project_id = int(obj.get_event_url().split('/')[3])
+            project = get_object_or_404(Project, id=project_id)
+            terms = ProjectLevelTermsAndLabels.objects.filter(project_id=project_id).exists()
+
+            if terms:
+
+                return {'site': project.terms_and_labels.site,
+                        'donor': project.terms_and_labels.donor,
+                        'site_supervisor': project.terms_and_labels.site_supervisor,
+                        'site_reviewer': project.terms_and_labels.site_reviewer,
+                        'region': project.terms_and_labels.region,
+                        'region_supervisor': project.terms_and_labels.region_supervisor,
+                        'region_reviewer': project.terms_and_labels.region_reviewer,
+                        }
+

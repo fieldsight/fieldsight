@@ -23,6 +23,8 @@ window.app = new Vue({
         reportType: "Monthly",
         minDate: configure_settings.start_date_min_value,
         maxDate: configure_settings.end_date_max_value,
+        terms_and_labels: [],
+	    project_id: configure_settings.terms_and_labels_project_id,
      },
 
   template: `
@@ -35,8 +37,11 @@ window.app = new Vue({
                 <div class="rounded-circle p-4 bg-light" style="height: 150px;width: 150px;margin: 32px auto;">
                   <i style="font-size: 52px;" class="la la-file-excel-o ml-2 text-success m-4"></i>
                 </div>
-                <p>
+                <p v-if="this.terms_and_labels.length==0">
                                 Export of site visits, submissions and active users <br> in a selected time interval.
+                </p>
+                 <p v-else>
+                                Export of {{this.terms_and_labels[0].site.toLowerCase().trim()}} visits, submissions and active users <br> in a selected time interval.
                 </p>
               </div>
 
@@ -114,6 +119,20 @@ window.app = new Vue({
     
     console.log(body)
     this.$http.post(configure_settings.genarete_statstics_report_url, body, options).then(successCallback, errorCallback);     
-    },
-  }
+    }
+  },
+
+  mounted() {
+             function errorCallback() {
+                    callback(new Error('Failed to load Project Terms and Labels data.'))
+                }
+
+             function successCallback(response) {
+                this.terms_and_labels = response.body;
+            }
+            this.$http.get('/fieldsight/api/project-terms-labels/'+ this.project_id).then(successCallback, errorCallback)
+
+            },
+
+
 })

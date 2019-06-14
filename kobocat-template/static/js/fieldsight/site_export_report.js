@@ -8,14 +8,23 @@
 				<div class="modal-body p-3">
 					<div class="text-center">
 					<div class="form-group">
-						<h5><label for="startdate">Site Information</label></h5>
-						  
+						<h5 v-if="this.terms_and_labels.length==0">
+						    <label for="startdate">Site Information</label>
+						</h5>
+						<h5 v-else>
+							<label for="startdate">{{this.terms_and_labels[0].site}} Information</label>
+						</h5>
 				              <div class="rounded-circle p-4 bg-light" style="height: 150px;width: 150px;margin: 32px auto;">
 				                <i style="font-size: 52px;" class="la la-file-excel-o ml-2 text-success m-4"></i>
 				              </div>
-				              <p>
+				              <p v-if="this.terms_and_labels.length==0">
 				                    Export of all site information in an spreadsheet.
 				              </p>
+				                <p v-else>
+				                     Export of all {{this.terms_and_labels[0].site.toLowerCase().trim()}} information in an spreadsheet.
+
+				              </p>
+
 				           
 
 					</div>
@@ -29,7 +38,7 @@
 					<div class="p-3 border bg-light">
 					<div class="form-row">
 					    
-				        <div class="form-group col-md-6">
+				        <div v-if="this.terms_and_labels.length==0" class="form-group col-md-6">
 								<label for="startdate">Region:</label>
 							<treeselect :multiple="true"
 								  :options="regionOptions"
@@ -39,8 +48,20 @@
 								  v-model="regionValues" />
 
 						</div>
+						 <div v-else class="form-group col-md-6">
+								<label for="startdate">{{this.terms_and_labels[0].region}}:</label>
+							<treeselect :multiple="true"
+								  :options="regionOptions"
+								  :load-options="loadRegionOptions"
+								  :auto-load-root-options="false"
+								  :placeholder=this.terms_and_labels[0].region
+								  v-model="regionValues" />
+
+						</div>
 				        <div class="form-group col-md-6">
-								<label for="startdate">Site Type:</label>
+								<label v-if="this.terms_and_labels.length==0" for="startdate">Site Type:</label>
+								<label v-else for="startdate">{{this.terms_and_labels[0].site}} Type:</label>
+
 							<treeselect :multiple="true"
 								  :options="siteTypeOptions"
 								  :load-options="loadSiteTypeOptions"
@@ -68,6 +89,8 @@
 	    siteTypeValues: null,
 	    siteTypeOptions: null,
 	    is_loading: false,
+	    terms_and_labels: [],
+	    project_id: configure_settings.terms_and_labels_project_id,
 	  }),
 
 	  methods: {
@@ -111,7 +134,7 @@
 		  }
 	    },
 
-	  
+
 
 
 	    generateReport: function (){
@@ -135,5 +158,17 @@
 
 			}
 		},
+
+		 mounted() {
+             function errorCallback() {
+                    callback(new Error('Failed to load Project Terms and Labels data.'))
+                }
+
+             function successCallback(response) {
+	            this.terms_and_labels = response.body;
+			}
+            this.$http.get('/fieldsight/api/project-terms-labels/'+ this.project_id).then(successCallback, errorCallback)
+
+            },
 
 	 })

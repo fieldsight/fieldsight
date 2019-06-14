@@ -8,7 +8,16 @@
 				<section class="panel">
 
                     <header class="panel-heading clearfix">
-                    <h3><i class="la la-map-marker"></i>{% trans 'Regions' %}</h3>
+                    <h3><i class="la la-map-marker"></i>
+						{% if terms_and_labels %}
+							Manage {{obj.terms_and_labels.region}}
+
+						{% else %}
+							{% trans 'Regions' %}
+
+						{% endif %}
+
+					</h3>
 
                     <div class="panel-heading-right">
 							<a class="btn btn-sm btn-primary" data-toggle="collapse" href="#searchSite" aria-expanded="false" aria-controls="searchSite"><i class="la la-search"></i> {% trans 'Search' %}</a>
@@ -55,7 +64,16 @@
 						    {% empty %}
 							<div class="col-md-4 col-sm-6">
 
-							<h3>No Regions</h3>
+							<h3>
+
+							{% if terms_and_labels %}
+                                No {{obj.terms_and_labels.region}}
+
+                            {% else %}
+								No Regions
+								
+                            {% endif %}
+							</h3>
 
 							</div>
 

@@ -24,7 +24,16 @@
 		                        <div class="basic-info clearfix">
 		                            <h4 class="detail-text1">{{ child.name }}</h4>
 		                            <h6 class="detail-text0">{{ child.identifier }}</h6>
-		                            <div>Total sites: {{ child.get_sites_count }}</div>
+		                            <div>
+
+									 {% if terms_and_labels %}
+										Total {{obj.terms_and_labels.site}}
+
+									{% else %}
+										Total sites: {{ child.get_sites_count }}
+
+									{% endif %}
+									</div>
 		                        </div>
 		                    </a>
 		                </div>
@@ -36,7 +45,19 @@
 				<section class="panel">
 
                     <header class="panel-heading clearfix">
-                    <h3><i class="la la-map-marker"></i>{% if request.GET.q %}{% trans 'Search' %} {% trans 'result' %} {% trans 'for' %} "{{request.GET.q}}"{% else %}{% trans 'Sites' %}{% endif %}</h3>
+                    <h3><i class="la la-map-marker"></i>
+						{% if request.GET.q %}{% trans 'Search' %} {% trans 'result' %} {% trans 'for' %} "{{request.GET.q}}"
+						{% else %}
+
+							 {% if terms_and_labels %}
+								{{obj.terms_and_labels.site}}
+
+							{% else %}
+								{% trans 'Sites' %}
+
+							{% endif %}
+
+						{% endif %}</h3>
 
                     <div class="panel-heading-right">
                     		<!-- <select name ="sortby" class="form-control form-control-sm" data-bind="value:sortby, valueUpdate:'afterkeydown'">
@@ -55,8 +76,27 @@
 							<a href="{% url 'fieldsight:site-add' pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-plus"></i> {% trans 'Add' %} {% trans 'New' %}</a>
 
 							<a href="{% url 'fieldsight:define-site-meta' pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-cogs"></i> {% trans 'Meta' %} {% trans 'Attributes' %}</a>
-							<a href="{% url 'fieldsight:site-upload' pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-files-o"></i> {% trans 'Bulk' %} {% trans 'Upload' %} {% trans 'Sites' %}</a>
-							<a href="{% url 'fieldsight:bulk-edit-site' pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-files-o"></i> {% trans 'Bulk' %} {% trans 'edit' %} {% trans 'Sites' %}</a>
+							<a href="{% url 'fieldsight:site-upload' pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-files-o"></i>
+
+								 {% if terms_and_labels %}
+									Bulk Upload {{obj.terms_and_labels.site}}
+
+								{% else %}
+									{% trans 'Bulk' %} {% trans 'Upload' %} {% trans 'Sites' %}
+
+								{% endif %}
+							</a>
+							<a href="{% url 'fieldsight:bulk-edit-site' pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-files-o"></i>
+
+								 {% if terms_and_labels %}
+									Bulk edit {{obj.terms_and_labels.site}}
+
+								{% else %}
+									{% trans 'Bulk' %} {% trans 'edit' %} {% trans 'Sites' %}
+
+								{% endif %}
+
+							</a>
 							{% verbatim %}
 							<div id="export_button"></div>
 							{% endverbatim %}
@@ -156,7 +196,15 @@
 							{% empty %}
 							<div class="col-md-4 col-sm-6">
 
-							<h3>No Site</h3>
+							<h3>
+							 {% if terms_and_labels %}
+								No {{obj.terms_and_labels.site}}
+
+							{% else %}
+								No Site
+
+							{% endif %}
+							</h3>
 
 							</div>
 
