@@ -1,6 +1,7 @@
 import datetime
 
 import json
+import re
 from django.core.urlresolvers import reverse_lazy, reverse
 from rest_framework import serializers
 
@@ -355,7 +356,21 @@ class SubmissionSerializer(serializers.ModelSerializer):
             data.append(submission_time)
 
         parse_individual_questions(json_question['children'])
-        return data
+        pattern = r"\{(.*?)\}"
+        calculations_dict = [d for d in data if d['type'] == "calculate"]
+        calculated_data = []
+        for d in data:
+            for k, v in d.items():
+                if "${" in v:
+                    calcluate_keys = re.findall(pattern, v)
+                    for key in calcluate_keys:
+                        for cd in calculations_dict:
+                            if cd["question"] == key:
+                                answer = cd['answer']
+                                v = v.replace("${" + key + "}", answer)
+                d[k] = v
+            calculated_data.append(d)
+        return calculated_data
 
 
 class SubmissionAnswerSerializer(serializers.ModelSerializer):
@@ -550,4 +565,18 @@ class SubmissionAnswerSerializer(serializers.ModelSerializer):
             data.append(submission_time)
 
         parse_individual_questions(json_question['children'])
-        return data
+        pattern = r"\{(.*?)\}"
+        calculations_dict = [d for d in data if d['type'] == "calculate"]
+        calculated_data = []
+        for d in data:
+            for k, v in d.items():
+                if "${" in v:
+                    calcluate_keys = re.findall(pattern, v)
+                    for key in calcluate_keys:
+                        for cd in calculations_dict:
+                            if cd["question"] == key:
+                                answer = cd['answer']
+                                v = v.replace("${"+key+"}", answer)
+                d[k] = v
+            calculated_data.append(d)
+        return calculated_data
