@@ -1,13 +1,13 @@
 import datetime
 from collections import OrderedDict
-
+strptime = datetime.datetime.strptime
 from django.db.models import Count
 
 from .models import FInstance
 
 def date_range(start, end, intv):
-    start = datetime.datetime.strptime(start,"%Y%m%d")
-    end = datetime.datetime.strptime(end,"%Y%m%d")
+    start = strptime(start,"%Y%m%d")
+    end = strptime(end,"%Y%m%d")
     diff = (end  - start ) / intv
     for i in range(intv):
         yield (start + diff * i)

@@ -15,7 +15,10 @@ from onadata.apps.fsforms.utils import send_sub_stage_deployed_project, send_bul
 from onadata.apps.logger.models import XForm
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.libs.utils.fieldsight_tools import clone_kpi_form
+
 import time
+from onadata.apps.userrole.models import UserRole
+from onadata.apps.fsforms.share_xform import share_form, share_forms
 
 
 @shared_task(max_retries=10, soft_time_limit=60)
@@ -35,6 +38,7 @@ def copy_allstages_to_sites(pk):
 @shared_task(max_retries=10, soft_time_limit=60)
 def copy_stage_to_sites(main_stage, pk):
     try:
+        main_stage = Stage.objects.get(pk=main_stage)
         project = Project.objects.get(pk=pk)
         project_sub_stages = Stage.objects.filter(stage__id=main_stage.pk, stage_forms__is_deleted=False)
         sub_stages_id = [s.id for s in project_sub_stages]
@@ -67,6 +71,7 @@ def copy_stage_to_sites(main_stage, pk):
 @shared_task(max_retries=10, soft_time_limit=60)
 def copy_sub_stage_to_sites(sub_stage, pk):
     try:
+        sub_stage = Stage.objects.get(pk=sub_stage)
         project = Project.objects.get(pk=pk)
         main_stage = sub_stage.stage
         stage_form = sub_stage.stage_forms
@@ -165,6 +170,28 @@ def clone_form(user_id, project_id, task_id):
         raise ValueError(" Failed  clone and deploy")
     CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
 
+
+@shared_task(max_retires=5)
+def share_form_managers(fxf, task_id):
+    fxf = FieldSightXF.objects.get(pk=fxf)
+    userrole = UserRole.objects.filter(project=fxf.project, group__name='Project Manager', ended_at__isnull=True)
+    users = User.objects.filter(user_roles__in=userrole)
+    shared = share_form(users, fxf.xf)
+    if shared:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    else:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+
+@shared_task(max_retires=5)
+def created_manager_form_share(userrole, task_id):
+    userrole = UserRole.objects.get(pk=userrole)
+    fxf = FieldSightXF.objects.filter(project=userrole.project)
+    shared = share_forms(userrole.user, fxf)
+    if shared:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    else:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
 # @shared_task(max_retries=10)

@@ -60,10 +60,6 @@ window.app = new Vue({
         if ([3,6,8,9,10,11,12,16].indexOf(data.task_type) >= 0){
               status = " is ready to download. "
               var url  = data.file
-              if (data.task_type == 10){
-                var new_url = url.split("/media/")
-                url = "/media/" + new_url[1];
-              }
               additional_content = "<br/><a href='"+ url +"'>Download File</a>";
           }
       }

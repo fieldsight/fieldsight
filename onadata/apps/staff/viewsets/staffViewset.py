@@ -38,7 +38,7 @@ class TeamAccessPermission(BasePermission):
 class BankViewSet(viewsets.ModelViewSet):
     queryset = Bank.objects.all()
     serializer_class = BankSerializer
-    authentication_classes = (BasicAuthentication,)
+    # authentication_classes = (BasicAuthentication,)
     def filter_queryset(self, queryset):
         return queryset
 

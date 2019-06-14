@@ -334,11 +334,17 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         gc.collect()
 
         p.save_as(array=data, dest_file_name="media/stage-report/{}_stage_data.xls".format(project.id))
-        xl_data = open("media/stage-report/{}_stage_data.xls".format(project.id), "rb")
         
-        #Its only quick fix for now, save it in aws bucket whenever possible.
+        with open("media/stage-report/{}_stage_data.xls".format(project.id), 'rb') as fin:
+            buffer = BytesIO(fin.read())
+            buffer.seek(0)
+            path = default_storage.save(
+                "media/stage-report/{}_stage_data.xls".format(project.id),
+                ContentFile(buffer.getvalue())
+            )
+            buffer.close()
 
-        task.file.name = xl_data.name
+        task.file.name = path
         task.status = 2
         task.save()
         
@@ -525,7 +531,7 @@ def get_site_type(value):
         return 0    
 
 @shared_task()
-def bulkuploadsites(task_prog_obj_id, source_user, sites, pk):
+def bulkuploadsites(task_prog_obj_id, sites, pk):
     time.sleep(2)
     project = Project.objects.get(pk=pk)
     # task_id = bulkuploadsites.request.id
@@ -561,7 +567,7 @@ def bulkuploadsites(task_prog_obj_id, source_user, sites, pk):
                 region_idf = site.get("region_id", None)
                 
 
-                type_identifier = get_site_type(site.get("type", "0"))
+                type_identifier = site.get("type", None)
 
                 _site, created = Site.objects.get_or_create(identifier=str(site.get("identifier")),
                                                                 project=project)
@@ -571,7 +577,7 @@ def bulkuploadsites(task_prog_obj_id, source_user, sites, pk):
                 else:
                     updated_sites += 1
 
-                if type_identifier > 0:
+                if type_identifier:
                      site_type = SiteType.objects.get(identifier=type_identifier, project=project)
                      _site.type = site_type
                 
@@ -615,7 +621,7 @@ def bulkuploadsites(task_prog_obj_id, source_user, sites, pk):
                 extra_message = " updated " + str(updated_sites) + " Sites"
             
 
-            noti = project.logs.create(source=source_user, type=12, title="Bulk Sites",
+            noti = project.logs.create(source=task.user, type=12, title="Bulk Sites",
                                        organization=project.organization,
                                        project=project, content_object=project, extra_object=project,
                                        extra_message=extra_message)
@@ -625,13 +631,13 @@ def bulkuploadsites(task_prog_obj_id, source_user, sites, pk):
         task.save()
         print 'Site Upload Unsuccesfull. %s' % e
         print e.__dict__
-        noti = project.logs.create(source=source_user, type=412, title="Bulk Sites",
-                                       content_object=project, recipient=source_user,
+        noti = project.logs.create(source=task.user, type=412, title="Bulk Sites",
+                                       content_object=project, recipient=task.user,
                                        extra_message=str(count) + " Sites @error " + u'{}'.format(e.message))
         
 
 @shared_task()
-def generateCustomReportPdf(task_prog_obj_id, source_user, site_id, base_url, fs_ids, start_date, end_date, removeNullField):
+def generateCustomReportPdf(task_prog_obj_id, site_id, base_url, fs_ids, start_date, end_date, removeNullField):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
@@ -653,8 +659,8 @@ def generateCustomReportPdf(task_prog_obj_id, source_user, site_id, base_url, fs
         task.status = 2
         task.save()
 
-        noti = task.logs.create(source=source_user, type=32, title="Pdf Report generation in site",
-                                   recipient=source_user, content_object=task, extra_object=site,
+        noti = task.logs.create(source=task.user, type=32, title="Pdf Report generation in site",
+                                   recipient=task.user, content_object=task, extra_object=site,
                                    extra_message=" <a href='"+ task.file.url +"'>Pdf report</a> generation in site")
     except Exception as e:
         task.description = "ERROR: " + str(e.message) 
@@ -662,8 +668,8 @@ def generateCustomReportPdf(task_prog_obj_id, source_user, site_id, base_url, fs
         task.save()
         print 'Report Gen Unsuccesfull. %s' % e
         print e.__dict__
-        noti = task.logs.create(source=source_user, type=432, title="Pdf Report generation in site",
-                                       content_object=site, recipient=source_user,
+        noti = task.logs.create(source=task.user, type=432, title="Pdf Report generation in site",
+                                       content_object=site, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()        
 
@@ -906,7 +912,7 @@ def siteDetailsGenerator(project, sites, ws):
 # siteDetailsGenerator(project, sites, None)
 
 @shared_task(time_limit=300, soft_time_limit=300)
-def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids, type_ids=None, sync_to_drive=False):
+def generateSiteDetailsXls(task_prog_obj_id, project_id, region_ids, type_ids=None, sync_to_drive=False):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
@@ -962,12 +968,12 @@ def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids
 
             os.remove(temporarylocation)
 
-            task.logs.create(source=source_user, type=32, title="Site details xls sync to Google Drive in project",
-                                   recipient=source_user, content_object=task, extra_object=project,
+            task.logs.create(source=task.user, type=32, title="Site details xls sync to Google Drive in project",
+                                   recipient=task.user, content_object=task, extra_object=project,
                                    extra_message=" <a href='" +  task.file.url +"'>Xls sites detail report sync to Google Drive in project")
         else:
-            task.logs.create(source=source_user, type=32, title="Site details xls generation in project",
-                                   recipient=source_user, content_object=task, extra_object=project,
+            task.logs.create(source=task.user, type=32, title="Site details xls generation in project",
+                                   recipient=task.user, content_object=task, extra_object=project,
                                    extra_message=" <a href='" +  task.file.url +"'>Xls sites detail report</a> generation in project")
 
 
@@ -986,14 +992,14 @@ def generateSiteDetailsXls(task_prog_obj_id, source_user, project_id, region_ids
         task.status = 3
         print e.__dict__
         task.save()
-        task.logs.create(source=source_user, type=432, title="Xls Site Information Report generation in project",
-                                   content_object=project, recipient=source_user,
+        task.logs.create(source=task.user, type=432, title="Xls Site Information Report generation in project",
+                                   content_object=project, recipient=task.user,
                                    extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
 
 
 @shared_task(time_limit=300, soft_time_limit=300)
-def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_url, fs_ids, start_date, end_date, filterRegion, filterSiteTypes):
+def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, start_date, end_date, filterRegion, filterSiteTypes):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
@@ -1007,10 +1013,6 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
         
         if filterRegion:
             sites = sites.filter(region_id__in=filterRegion)
-        
-        # fs_ids = FieldSightXF.objects.filter(project_id = project.id).values('id')
-        # startdate="2016-05-01"
-        # enddate= "2018-06-05"
 
         if filterSiteTypes:
             sites = sites.filter(type_id__in=filterSiteTypes)
@@ -1027,7 +1029,7 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
 
         new_enddate = end + datetime.timedelta(days=1)
 
-        forms = FieldSightXF.objects.select_related('xf', 'xf__user').filter(pk__in=fs_ids, is_survey=False, is_deleted=False)
+        forms = FieldSightXF.objects.select_related('xf', 'xf__user').filter(pk__in=fs_ids, is_deleted=False)
         wb = Workbook()
         ws_site_details = wb.active
         ws_site_details.title = "Site Details"
@@ -1058,29 +1060,39 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
 
             ws.append(['Header'])
 
-            formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, date__range=[new_startdate, new_enddate])
+            
+            if filterRegion or filterSiteTypes:
+                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, date__range=[new_startdate, new_enddate])
+            else:
+                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, date__range=[new_startdate, new_enddate])
 
             for formresponse in formresponses.iterator():
-                if formresponse.site_id:
-                    if not formresponse.site_id in response_sites:
-                        response_sites.append(formresponse.site_id)
-                    
-                    questions, answers, r_question_answers = parse_form_response(json.loads(form.xf.json)['children'], formresponse.instance.json, base_url, form.xf.user.username)
+                
+                if formresponse.site_id and not formresponse.site_id in response_sites:
+                    response_sites.append(formresponse.site_id)
+                
+                questions, answers, r_question_answers = parse_form_response(json.loads(form.xf.json)['children'], formresponse.instance.json, base_url, form.xf.user.username)
 
+                answers['uid'] = formresponse.instance_id
+                if formresponse.site_id:
                     answers['identifier'] = formresponse.site.identifier
                     answers['name'] = formresponse.site.name
-                    answers['status'] = form_status_map[formresponse.form_status]
-                    
-                    if r_question_answers:
-                        repeat_answers.append({'name': formresponse.site.name, 'identifier': formresponse.site.identifier, 'repeated': r_question_answers })
+                else:
+                    answers['identifier'] = 'Na'
+                    answers['name'] = 'Na'
 
-                    if len([{'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}] + questions) > len(head_columns):
-                        head_columns = [{'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}, {'question_name':'status','question_label':'status'}] + questions  
-                    row=[]
+                answers['status'] = form_status_map[formresponse.form_status]
+                
+                if r_question_answers:
+                    repeat_answers.append({'uid':formresponse.instance_id, 'name': answers['name'], 'identifier': answers['identifier'], 'repeated': r_question_answers })
 
-                    for col_num in range(len(head_columns)):
-                        row.append(answers.get(head_columns[col_num]['question_name'], ""))    
-                    ws.append(row)
+                if len(questions) + 3 > len(head_columns):
+                    head_columns = [{'question_name':'uid','question_label':'uid'}, {'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}, {'question_name':'status','question_label':'status'}] + questions  
+                row=[]
+
+                for col_num in range(len(head_columns)):
+                    row.append(answers.get(head_columns[col_num]['question_name'], ""))    
+                ws.append(row)
 
             for col_num in range(len(head_columns)):
                 if isinstance(head_columns[col_num].get('question_label', ""), dict):
@@ -1094,20 +1106,20 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
                 for group_id, group in repeat_answers[0]['repeated'].items():
                     
                     sheet_name = generate_sheet_name("rep-"+group_id)
-                    print sheet_name
                     wr=wb.create_sheet(title=sheet_name)
                     wr.append(['Header'])
                     for repeat in repeat_answers:
 
                         for answer in repeat['repeated'][group_id]['answers']:
-                            row = [repeat['identifier'], repeat['name']]
+                            row = [repeat['uid'], repeat['identifier'], repeat['name']]
                             for question in group['questions']:
                                 row.append(answer.get(question['question_name'], ""))    
                             wr.append(row)
                                 
 
-                    wr.cell(row=1, column=1).value = 'Identifier'
-                    wr.cell(row=1, column=2).value = 'Name'
+                    wr.cell(row=1, column=1).value = 'uid'
+                    wr.cell(row=1, column=2).value = 'Identifier'
+                    wr.cell(row=1, column=3).value = 'Name'
 
                     #for loop needed.
                     for col_num in range(len(group['questions'])):
@@ -1142,8 +1154,8 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
         task.status = 2
         task.file.name = xls_url
         task.save()
-        noti = task.logs.create(source=source_user, type=32, title="Xls Report generation in project",
-                                   recipient=source_user, content_object=task, extra_object=project,
+        noti = task.logs.create(source=task.user, type=32, title="Xls Report generation in project",
+                                   recipient=task.user, content_object=task, extra_object=project,
                                    extra_message=" <a href='"+ task.file.url +"'>Xls report</a> generation in project")
         
 
@@ -1153,14 +1165,14 @@ def exportProjectSiteResponses(task_prog_obj_id, source_user, project_id, base_u
         task.save()
         print 'Report Gen Unsuccesfull. %s' % e
         print e.__dict__
-        noti = task.logs.create(source=source_user, type=432, title="Xls Report generation in project",
-                                       content_object=project, recipient=source_user,
+        noti = task.logs.create(source=task.user, type=432, title="Xls Report generation in project",
+                                       content_object=project, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
 
         
 @shared_task()
-def importSites(task_prog_obj_id, source_user, f_project, t_project, meta_attributes, regions, ignore_region):
+def importSites(task_prog_obj_id, f_project, t_project, meta_attributes, regions, ignore_region):
     time.sleep(2)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.content_object = t_project
@@ -1252,12 +1264,12 @@ def importSites(task_prog_obj_id, source_user, f_project, t_project, meta_attrib
         task.save()
 
         if f_project.cluster_sites and not ignore_region:
-            noti = FieldSightLog.objects.create(source=source_user, type=30, title="Bulk Project import sites",
-                                       content_object=t_project, recipient=source_user,
+            noti = FieldSightLog.objects.create(source=task.user, type=30, title="Bulk Project import sites",
+                                       content_object=t_project, recipient=task.user,
                                        extra_object=f_project, extra_message="Project Sites import from " + str(len(regions))+" Regions of ")
         else:
-            noti = FieldSightLog.objects.create(source=source_user, type=29, title="Bulk Project import sites",
-                                       content_object=t_project, recipient=source_user,
+            noti = FieldSightLog.objects.create(source=task.user, type=29, title="Bulk Project import sites",
+                                       content_object=t_project, recipient=task.user,
                                        extra_object=f_project)        
     except Exception as e:
         task.description = "ERROR: " + str(e.message) 
@@ -1265,19 +1277,18 @@ def importSites(task_prog_obj_id, source_user, f_project, t_project, meta_attrib
         task.save()
         print e.__dict__
         if f_project.cluster_sites and not ignore_region:
-            noti = FieldSightLog.objects.create(source=source_user, type=430, title="Bulk Project import sites",
-                                       content_object=t_project, recipient=source_user,
+            noti = FieldSightLog.objects.create(source=task.user, type=430, title="Bulk Project import sites",
+                                       content_object=t_project, recipient=task.user,
                                        extra_object=f_project, extra_message="Project Sites import from "+str(len(regions))+" Regions of ")
         else:
             
-            noti = FieldSightLog.objects.create(source=source_user, type=429, title="Bulk Project import sites",
-                                       content_object=t_project, recipient=source_user,
+            noti = FieldSightLog.objects.create(source=task.user, type=429, title="Bulk Project import sites",
+                                       content_object=t_project, recipient=task.user,
                                        extra_object=f_project)           
         
 
 @shared_task()
-def multiuserassignproject(task_prog_obj_id, source_user_id, org_id, projects, users, group_id):
-    source_user = User.objects.get(id=source_user_id)
+def multiuserassignproject(task_prog_obj_id, org_id, projects, users, group_id):
     time.sleep(2)
     org = Organization.objects.get(pk=org_id)
     projects_count = len(projects)
@@ -1322,12 +1333,12 @@ def multiuserassignproject(task_prog_obj_id, source_user_id, org_id, projects, u
         task.status = 2
         task.save()
         if roles_created == 0:
-            noti = FieldSightLog.objects.create(source=source_user, type=23, title="Task Completed.",
-                                       content_object=org, recipient=source_user,
+            noti = FieldSightLog.objects.create(source=task.user, type=23, title="Task Completed.",
+                                       content_object=org, recipient=task.user,
                                        extra_message=str(roles_created) + " new Project Manager Roles in " + str(projects_count) + " projects ")
         
         else:
-            noti = FieldSightLog.objects.create(source=source_user, type=21, title="Bulk Project User Assign",
+            noti = FieldSightLog.objects.create(source=task.user, type=21, title="Bulk Project User Assign",
                                            content_object=org, organization=org, 
                                            extra_message=str(roles_created) + " new Project Manager Roles in " + str(projects_count) + " projects ")
         
@@ -1336,12 +1347,12 @@ def multiuserassignproject(task_prog_obj_id, source_user_id, org_id, projects, u
         task.status = 3
         task.save()
         print e.__dict__
-        noti = FieldSightLog.objects.create(source=source_user, type=421, title="Bulk Project User Assign",
-                                       content_object=org, recipient=source_user,
+        noti = FieldSightLog.objects.create(source=task.user, type=421, title="Bulk Project User Assign",
+                                       content_object=org, recipient=task.user,
                                        extra_message=str(users_count)+" people in "+str(projects_count)+" projects ")
 
 @shared_task()
-def multiuserassignsite(task_prog_obj_id, source_user, project_id, sites, users, group_id):
+def multiuserassignsite(task_prog_obj_id, project_id, sites, users, group_id):
     time.sleep(2)
     project = Project.objects.get(pk=project_id)
     group_name = Group.objects.get(pk=group_id).name
@@ -1398,13 +1409,13 @@ def multiuserassignsite(task_prog_obj_id, source_user, project_id, sites, users,
         task.status = 2
         task.save()
         if roles_created == 0:
-            noti = FieldSightLog.objects.create(source=source_user, type=23, title="Task Completed.",
-                                       content_object=project, recipient=source_user, 
+            noti = FieldSightLog.objects.create(source=task.user, type=23, title="Task Completed.",
+                                       content_object=project, recipient=task.user, 
                                        extra_message="All "+str(users_count) +" users were already assigned as "+ group_name +" in " + str(sites_count) + " selected sites ")
         
         else:
 
-            noti = FieldSightLog.objects.create(source=source_user, type=22, title="Bulk site User Assign",
+            noti = FieldSightLog.objects.create(source=task.user, type=22, title="Bulk site User Assign",
                                            content_object=project, organization=project.organization, project=project, 
                                            extra_message=str(roles_created) + " new "+ group_name +" Roles in " + str(sites_count) + " sites ")
         
@@ -1413,12 +1424,12 @@ def multiuserassignsite(task_prog_obj_id, source_user, project_id, sites, users,
         task.description = "ERROR: " + str(e.message) 
         print e.__dict__
         task.save()
-        noti = FieldSightLog.objects.create(source=source_user, type=422, title="Bulk Sites User Assign",
-                                       content_object=project, recipient=source_user,
+        noti = FieldSightLog.objects.create(source=task.user, type=422, title="Bulk Sites User Assign",
+                                       content_object=project, recipient=task.user,
                                        extra_message=group_name +" for "+str(users_count)+" people in "+str(sites_count)+" sites ")
         
 @shared_task()
-def multiuserassignregion(task_prog_obj_id, source_user, project_id, regions, users, group_id):
+def multiuserassignregion(task_prog_obj_id, project_id, regions, users, group_id):
     time.sleep(2)
     project = Project.objects.get(pk=project_id)
     group_name = Group.objects.get(pk=group_id).name
@@ -1482,13 +1493,13 @@ def multiuserassignregion(task_prog_obj_id, source_user, project_id, regions, us
         task.status = 2
         task.save()
         if roles_created == 0:
-            noti = FieldSightLog.objects.create(source=source_user, type=23, title="Task Completed.",
-                                       content_object=project, recipient=source_user, 
+            noti = FieldSightLog.objects.create(source=task.user, type=23, title="Task Completed.",
+                                       content_object=project, recipient=task.user, 
                                        extra_message="All "+str(users_count) +" users were already assigned as "+ group_name +" in " + str(sites_count) + " selected regions ")
         
         else:
 
-            noti = FieldSightLog.objects.create(source=source_user, type=22, title="Bulk site User Assign",
+            noti = FieldSightLog.objects.create(source=task.user, type=22, title="Bulk site User Assign",
                                            content_object=project, organization=project.organization, project=project, 
                                            extra_message=str(roles_created) + " new "+ group_name +" Roles in " + str(sites_count) + " regions ")
         
@@ -1498,15 +1509,13 @@ def multiuserassignregion(task_prog_obj_id, source_user, project_id, regions, us
         task.status = 3
         task.save()
         print e.__dict__
-        noti = FieldSightLog.objects.create(source=source_user, type=422, title="Bulk Region User Assign",
-                                       content_object=project, recipient=source_user,
+        noti = FieldSightLog.objects.create(source=task.user, type=422, title="Bulk Region User Assign",
+                                       content_object=project, recipient=task.user,
                                        extra_message=group_name +" for "+str(users_count)+" people in "+str(sites_count)+" regions ")
 
 
 @shared_task()
-def multi_users_assign_regions(task_prog_obj_id, source_user_id, project_id, regions, users, group_id):
-    source_user = User.objects.get(pk=source_user_id)
-
+def multi_users_assign_regions(task_prog_obj_id, project_id, regions, users, group_id):
     time.sleep(2)
     project = Project.objects.get(pk=project_id)
     group_name = Group.objects.get(pk=group_id).name
@@ -1545,15 +1554,15 @@ def multi_users_assign_regions(task_prog_obj_id, source_user_id, project_id, reg
         task.status = 2
         task.save()
         if roles_created == 0:
-            noti = FieldSightLog.objects.create(source=source_user, type=23, title="Task Completed.",
-                                                content_object=project, recipient=source_user,
+            noti = FieldSightLog.objects.create(source=task.user, type=23, title="Task Completed.",
+                                                content_object=project, recipient=task.user,
                                                 extra_message="All " + str(
                                                     users_count) + " users were already assigned as " + group_name + " in " + str(
                                                     regions_count) + " selected regions ")
 
         else:
 
-            noti = FieldSightLog.objects.create(source=source_user, type=22, title="Bulk Region User Assign",
+            noti = FieldSightLog.objects.create(source=task.user, type=22, title="Bulk Region User Assign",
                                                 content_object=project, organization=project.organization,
                                                 project=project,
                                                 extra_message=str(
@@ -1567,14 +1576,14 @@ def multi_users_assign_regions(task_prog_obj_id, source_user_id, project_id, reg
         task.status = 3
         task.save()
         print e.__dict__
-        noti = FieldSightLog.objects.create(source=source_user, type=422, title="Bulk Region User Assign",
-                                            content_object=project, recipient=source_user,
+        noti = FieldSightLog.objects.create(source=task.user, type=422, title="Bulk Region User Assign",
+                                            content_object=project, recipient=task.user,
                                             extra_message=group_name + " for " + str(users_count) + " people in " + str(
                                                 regions_count) + " regions ")
 
 
 @shared_task()
-def multi_users_assign_to_entire_project(task_prog_obj_id, source_user, project_id, regions, users, unassigned_sites):
+def multi_users_assign_to_entire_project(task_prog_obj_id, project_id, regions, users, unassigned_sites):
 
     time.sleep(2)
     project = Project.objects.get(pk=project_id)
@@ -1613,15 +1622,15 @@ def multi_users_assign_to_entire_project(task_prog_obj_id, source_user, project_
         task.status = 2
         task.save()
         if roles_created == 0:
-            noti = FieldSightLog.objects.create(source=source_user, type=23, title="Task Completed.",
-                                                content_object=project, recipient=source_user,
+            noti = FieldSightLog.objects.create(source=task.user, type=23, title="Task Completed.",
+                                                content_object=project, recipient=task.user,
                                                 extra_message="All " + str(
                                                     users_count) + " users were already assigned as " + region_supervisor.name + " in " + str(
                                                     regions_count) + " selected regions ")
 
         else:
 
-            noti = FieldSightLog.objects.create(source=source_user, type=22, title="Bulk Region User Assign",
+            noti = FieldSightLog.objects.create(source=task.user, type=22, title="Bulk Region User Assign",
                                                 content_object=project, organization=project.organization,
                                                 project=project,
                                                 extra_message=str(
@@ -1635,8 +1644,8 @@ def multi_users_assign_to_entire_project(task_prog_obj_id, source_user, project_
         task.status = 3
         task.save()
         print e.__dict__
-        noti = FieldSightLog.objects.create(source=source_user, type=422, title="Bulk Region User Assign",
-                                            content_object=project, recipient=source_user,
+        noti = FieldSightLog.objects.create(source=task.user, type=422, title="Bulk Region User Assign",
+                                            content_object=project, recipient=task.user,
                                             extra_message=region_supervisor.name + " for " + str(users_count) + " people in " + str(
                                                 regions_count) + " regions ")
 
@@ -1737,7 +1746,7 @@ def sendNotification(notification, recipient):
 
 
 @shared_task(time_limit=120, soft_time_limit=120)
-def exportProjectstatistics(task_prog_obj_id, source_user, project_id, reportType, start_date, end_date):
+def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date, end_date):
     # time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
@@ -1877,8 +1886,8 @@ def exportProjectstatistics(task_prog_obj_id, source_user, project_id, reportTyp
         task.status = 2
         task.file.name = xls_url
         task.save()
-        noti = task.logs.create(source=source_user, type=32, title="Xls Project stastics Report generation in project",
-                                 recipient=source_user, content_object=task, extra_object=project,
+        noti = task.logs.create(source=task.user, type=32, title="Xls Project stastics Report generation in project",
+                                 recipient=task.user, content_object=task, extra_object=project,
                                  extra_message=" <a href='"+ task.file.url +"'>Xls project statistics report</a> generation in project")
 
     except Exception as e:
@@ -1887,14 +1896,14 @@ def exportProjectstatistics(task_prog_obj_id, source_user, project_id, reportTyp
         task.save()
         print 'Report Gen Unsuccesfull. %s' % e
         print e.__dict__
-        noti = task.logs.create(source=source_user, type=432, title="Xls project statistics report generation in project",
-                                       content_object=project, recipient=source_user,
+        noti = task.logs.create(source=task.user, type=432, title="Xls project statistics report generation in project",
+                                       content_object=project, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
 
 
 @shared_task(time_limit=120, soft_time_limit=120)
-def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_date):
+def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
     # time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
@@ -1923,7 +1932,7 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
         ws = wb.active
         ws.append(["Date", "Day and Time", "User", "Log"])
         try:
-            offset_time = source_user.user_profile.timezone.offset_time if source_user.user_profile.timezone.offset_time else "UTC +05:45"
+            offset_time = task.user.user_profile.timezone.offset_time if task.user.user_profile.timezone.offset_time else "UTC +05:45"
         except:
             offset_time = "UTC +05:45"
 
@@ -1989,8 +1998,8 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
         task.status = 2
         task.file.name = xls_url
         task.save()
-        noti = task.logs.create(source=source_user, type=32, title="Xls "+ reportType +" Logs Report generation",
-                                 recipient=source_user, content_object=task, extra_object=obj,
+        noti = task.logs.create(source=task.user, type=32, title="Xls "+ reportType +" Logs Report generation",
+                                 recipient=task.user, content_object=task, extra_object=obj,
                                  extra_message=" <a href='"+ task.file.url +"'>Xls "+ reportType +" statistics report</a> generation in ")
 # user = User.objects.get(username="fsadmin")
 # exportLogs( 2143, user , 137, "Project", "2018-08-11", "2018-12-12")
@@ -2000,14 +2009,14 @@ def exportLogs(task_prog_obj_id, source_user, pk, reportType, start_date, end_da
         task.save()
         print 'Report Gen Unsuccesfull. %s' % e
         print e.__dict__
-        noti = task.logs.create(source=source_user, type=432, title="Xls "+ reportType +" logs report generation in ",
-                                       content_object=obj, recipient=source_user,
+        noti = task.logs.create(source=task.user, type=432, title="Xls "+ reportType +" logs report generation in ",
+                                       content_object=obj, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
 
 
 @shared_task(time_limit=120, soft_time_limit=120)
-def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start_date, end_date):
+def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_date):
     # time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
@@ -2133,8 +2142,8 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
         task.status = 2
         task.file.name = xls_url
         task.save()
-        noti = task.logs.create(source=source_user, type=32, title="Xls Project User stastics Report generation in project",
-                                 recipient=source_user, content_object=task, extra_object=project,
+        noti = task.logs.create(source=task.user, type=32, title="Xls Project User stastics Report generation in project",
+                                 recipient=task.user, content_object=task, extra_object=project,
                                  extra_message=" <a href='"+ task.file.url +"'>Xls project user statistics report</a> generation in project")
 
     except Exception as e:
@@ -2143,8 +2152,8 @@ def exportProjectUserstatistics(task_prog_obj_id, source_user, project_id, start
         task.save()
         print 'Report Gen Unsuccesfull. %s' % e
         print e.__dict__
-        noti = task.logs.create(source=source_user, type=432, title="Xls project user statistics report generation in project",
-                                       content_object=project, recipient=source_user,
+        noti = task.logs.create(source=task.user, type=432, title="Xls project user statistics report generation in project",
+                                       content_object=project, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
 

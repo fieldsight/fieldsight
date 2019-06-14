@@ -1211,7 +1211,7 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                 if task_obj:
                     # import ipdb
                     # ipdb.set_trace()
-                    task = bulkuploadsites.delay(task_obj.pk, user, sites, pk)
+                    task = bulkuploadsites.delay(task_obj.pk, sites, pk)
                     task_obj.task_id = task.id
                     task_obj.save()
                     messages.success(request, 'Sites are being uploaded. You will be notified in notifications list as well.')
@@ -1815,7 +1815,8 @@ class ActivateRole(TemplateView):
                 invite.save()
                 return HttpResponseRedirect(reverse('login'))
             user = user_exists[0]
-            profile = user.user_profile
+            profile, created = UserProfile.objects.get_or_create(user=user)
+
             if not profile.organization:
                 profile.organization = invite.organization
                 profile.save()
@@ -2225,7 +2226,7 @@ class MultiUserAssignSiteView(ProjectRoleMixin, TemplateView):
         project = get_object_or_404(Project, pk=pk, is_active=True)
         task_obj =CeleryTaskProgress.objects.create(user=user, content_object = project, task_type=2)
         if task_obj:
-            task = multiuserassignsite.delay(task_obj.pk, user, pk, sites, users, group.id)
+            task = multiuserassignsite.delay(task_obj.pk, pk, sites, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('sucess')
@@ -2295,7 +2296,7 @@ class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
         org = get_object_or_404(Organization, pk=pk)
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object = org, task_type=1)
         if task_obj:
-            task = multiuserassignproject.delay(task_obj.pk, user.id, pk, projects, users, group_id)
+            task = multiuserassignproject.delay(task_obj.pk, pk, projects, users, group_id)
             task_obj.task_id=task.id
             task_obj.save()
             return HttpResponse("Success")
@@ -2776,7 +2777,7 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
 #         project = get_object_or_404(Project, pk=pk, is_active=True)
 #         task_obj = CeleryTaskProgress.objects.create(user=user, content_object = project, task_type=2)
 #         if task_obj:
-#             task = multiuserassignregion.delay(task_obj.pk, user, pk, regions, users, group.id)
+#             task = multiuserassignregion.delay(task_obj.pk, pk, regions, users, group.id)
 #             task_obj.task_id = task.id
 #             task_obj.save()
 #             return HttpResponse('sucess')
@@ -2800,7 +2801,7 @@ class MultiUserAssignRegionView(ProjectRoleMixin, TemplateView):
         project = get_object_or_404(Project, pk=pk, is_active=True)
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=2)
         if task_obj:
-            task = multiuserassignregion.delay(task_obj.pk, user, pk, regions, users, group.id)
+            task = multiuserassignregion.delay(task_obj.pk, pk, regions, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('sucess')
@@ -2830,7 +2831,7 @@ class AssignUsersToRegionsView(ProjectRoleMixin, TemplateView):
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=13)
 
         if task_obj:
-            task = multi_users_assign_regions.delay(task_obj.pk, user.id, pk, regions, users, group.id)
+            task = multi_users_assign_regions.delay(task_obj.pk, pk, regions, users, group.id)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('Success')
@@ -2860,7 +2861,7 @@ class AssignUsersToEntireProjectView(ProjectRoleMixin, TemplateView):
         task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=14)
 
         if task_obj:
-            task = multi_users_assign_to_entire_project.delay(task_obj.pk, user, pk, regions, users, unassigned_sites)
+            task = multi_users_assign_to_entire_project.delay(task_obj.pk, pk, regions, users, unassigned_sites)
             task_obj.task_id = task.id
             task_obj.save()
             return HttpResponse('Success')
@@ -3098,7 +3099,7 @@ class ExcelBulkSiteSample(ProjectRoleMixin, View):
             regions = regions.split(',')
         task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
         if task_obj:
-            task = generateSiteDetailsXls.delay(task_obj.pk, source_user, self.kwargs.get('pk'), regions)
+            task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), regions)
             task_obj.task_id = task.id
             task_obj.save()
             #status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
@@ -3534,7 +3535,7 @@ class FormlistAPI(View):
 
         task_obj=CeleryTaskProgress.objects.create(user=request.user, content_object = site, task_type=9)
         if task_obj:
-            task = generateCustomReportPdf.delay(task_obj.id, request.user, pk, base_url, fs_ids, start_date, end_date, removeNullField)
+            task = generateCustomReportPdf.delay(task_obj.id, pk, base_url, fs_ids, start_date, end_date, removeNullField)
             task_obj.task_id = task.id
             task_obj.save()
             status, data = 200, {'status':'True','message':'Sucess, the report is being generated. You will be notified after the report is generated. '}
@@ -4147,76 +4148,83 @@ class SubRegionAndSitesAPI(View):
         content={'sub_regions':list(sub_regions), 'sites':list(sites)}
         return JsonResponse(content, status=200)
 
+
 class UnassignUserRegionAndSites(View):
     def post(self, request, pk, **kwargs):
         data = json.loads(self.request.body)
         ids = data.get('ids')
-        projects = [k for k in ids if 'p' in str(k)] 
-        ids = list(set(ids) - set(projects))
-        regions = [k for k in ids if 'r' in str(k)]
-        sites = list(set(ids) - set(regions))
-        user_id= pk
-        group_id = data.get('group')
+        try:
+            projects = [k for k in ids if 'p' in str(k)]
 
-        status, data = 200, {'status':'false','message':'PermissionDenied. You do not have sufficient rights.'}
-        
-        if request.group.name != "Super Admin":        
-            
-            request_usr_org_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=1).order_by('organization_id').distinct('organization_id').values_list('organization_id', flat=True)
-            if not request_usr_org_role:
-                
-                request_usr_project_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=2).order_by('project_id').distinct('project_id').values_list('project_id', flat=True)
-                if not request_usr_project_role:
-                    return JsonResponse(data, status=status)
-                if projects:
-                    project_ids = [k[1:] for k in projects]
-                    if not set(project_ids).issubset(set(request_usr_project_role)):
-                        return JsonResponse(data, status=status)  
+            ids = list(set(ids) - set(projects))
+            regions = [k for k in ids if 'r' in str(k)]
+            sites = list(set(ids) - set(regions))
+            user_id= pk
+            group_id = data.get('group')
 
-                if regions:
-                    region_ids = [k[1:] for k in regions]
+            status, data = 200, {'status':'false','message':'PermissionDenied. You do not have sufficient rights.'}
 
-                    if len(region_ids) != Region.objects.filter(pk__in=region_ids, project_id__in=request_usr_project_role).count(): 
-                        return JsonResponse(data, status=status)   
+            if request.group.name != "Super Admin":
 
+                request_usr_org_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=1).order_by('organization_id').distinct('organization_id').values_list('organization_id', flat=True)
+                if not request_usr_org_role:
 
-                if sites:
-                    if len(sites) != Site.objects.filter(pk__in=sites, project_id__in=request_usr_project_role).count():
-                        return JsonResponse(data, status=status) 
+                    request_usr_project_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=2).order_by('project_id').distinct('project_id').values_list('project_id', flat=True)
+                    if not request_usr_project_role:
+                        return JsonResponse(data, status=status)
+                    if projects:
+                        project_ids = [k[1:] for k in projects]
+                        if not set(project_ids).issubset(set(request_usr_project_role)):
+                            return JsonResponse(data, status=status)
+
+                    if regions:
+                        region_ids = [k[1:] for k in regions]
+
+                        if len(region_ids) != Region.objects.filter(pk__in=region_ids, project_id__in=request_usr_project_role).count():
+                            return JsonResponse(data, status=status)
 
 
-            else:
-
-                if projects:
-                    project_ids = [k[1:] for k in projects]
-
-                    if len(project_ids) != Project.objects.filter(pk__in=project_ids, organization_id__in=request_usr_org_role).count(): 
-                        return JsonResponse(data, status=status)         
-                
-                if regions:
-                    region_ids = [k[1:] for k in regions]
-
-                    if len(region_ids) != Region.objects.filter(pk__in=region_ids, project__organization_id__in=request_usr_org_role).count(): 
-                        return JsonResponse(data, status=status)   
+                    if sites:
+                        if len(sites) != Site.objects.filter(pk__in=sites, project_id__in=request_usr_project_role).count():
+                            return JsonResponse(data, status=status)
 
 
-                if sites:
-                    if len(sites) != Site.objects.filter(pk__in=sites, project__organization_id__in=request_usr_org_role).count():
-                        return JsonResponse(data, status=status) 
+                else:
+
+                    if projects:
+                        project_ids = [k[1:] for k in projects]
+
+                        if len(project_ids) != Project.objects.filter(pk__in=project_ids, organization_id__in=request_usr_org_role).count():
+                            return JsonResponse(data, status=status)
+
+                    if regions:
+                        region_ids = [k[1:] for k in regions]
+
+                        if len(region_ids) != Region.objects.filter(pk__in=region_ids, project__organization_id__in=request_usr_org_role).count():
+                            return JsonResponse(data, status=status)
 
 
-        status, data = 401, {'status':'false','message':'Error occured try again.'}
-        
-        if int(group_id) in [3,4]:
-            user = get_object_or_404(User, pk=pk)
-            task_obj=CeleryTaskProgress.objects.create(user=request.user, description="Removal of UserRoles", content_object = user, task_type=7)
-            if task_obj:
-                task = UnassignUser.delay(task_obj.id, user_id, sites, regions, projects, group_id)
-                task_obj.task_id = task.id
-                task_obj.save()
-                status, data = 200, {'status':'True', 'ids':ids, 'projects':projects, 'regions':regions, 'sites': sites, 'message':'Sucess, the roles are being removed. You will be notified after all the roles are removed. '}
-        
-        return JsonResponse(data, status=status)
+                    if sites:
+                        if len(sites) != Site.objects.filter(pk__in=sites, project__organization_id__in=request_usr_org_role).count():
+                            return JsonResponse(data, status=status)
+
+
+            status, data = 401, {'status':'false','message':'Error occured try again.'}
+
+            if int(group_id) in [3,4]:
+                user = get_object_or_404(User, pk=pk)
+                task_obj=CeleryTaskProgress.objects.create(user=request.user, description="Removal of UserRoles", content_object = user, task_type=7)
+                if task_obj:
+                    task = UnassignUser.delay(task_obj.id, user_id, sites, regions, projects, group_id)
+                    task_obj.task_id = task.id
+                    task_obj.save()
+                    status, data = 200, {'status':'True', 'ids':ids, 'projects':projects, 'regions':regions, 'sites': sites, 'message':'Sucess, the roles are being removed. You will be notified after all the roles are removed. '}
+
+            return JsonResponse(data, status=status)
+
+        except Exception as e:
+            return HttpResponseRedirect(reverse('fieldsight:UnassignUserRegionAndSites', kwargs={'pk': pk}, ))
+
 
 #class ProjectSiteListGeoJSON(ReadonlyProjectLevelRoleMixin, View):
 

@@ -12,7 +12,7 @@ def clear_roles(request):
     request.__class__.project = None
     request.__class__.site = None
     request.__class__.group = None
-    request.__class__.roles = []
+    request.__class__.roles = Role.objects.none()
     request.__class__.is_super_admin = False
     # request.__class__.groups = []
     return request
