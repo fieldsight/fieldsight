@@ -473,5 +473,5 @@ def update_card(request):
 
 
 def email(request):
-    return render(request, 'subscriptions/warning_email.html')
+    return render(request, 'subscriptions/warning_overage_email.html')
 

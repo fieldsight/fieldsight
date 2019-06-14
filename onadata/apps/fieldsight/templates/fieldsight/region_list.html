@@ -13,7 +13,17 @@
 
 				<section class="panel">
                     <header class="panel-heading clearfix">
-                        <h3><i class="la la-globe"></i>{% trans 'Manage' %} {% trans 'Regions'%}</h3>
+                        <h3><i class="la la-globe"></i>
+
+                             {% if terms_and_labels %}
+                                Manage {{obj.terms_and_labels.site}}
+
+                            {% else %}
+                                {% trans 'Manage' %} {% trans 'Regions'%}
+
+                            {% endif %}
+
+                        </h3>
 						<div class="panel-heading-right">
 							<a href="{% url 'fieldsight:region-add' pk%}" title="" class="btn btn-sm btn-primary"><i class="la la-plus"></i>{% trans 'Add' %} {% trans 'New'%} </a>
 						</div>
@@ -34,8 +44,16 @@
                       <table class="table">
                         <thead>
                           <tr>
-                            <th class="text-center">{% trans 'Region' %} {% trans 'ID' %}</th>
-                            <th class="text-center">{% trans 'Region' %} {% trans 'Name' %}</th>
+                            {% if terms_and_labels %}
+                                <th class="text-center">{{obj.terms_and_labels.region}} ID</th>
+                                <th class="text-center">{{obj.terms_and_labels.region}} Name</th>
+
+                            {% else %}
+                                <th class="text-center">{% trans 'Region' %} {% trans 'ID' %}</th>
+                                <th class="text-center">{% trans 'Region' %} {% trans 'Name' %}</th>
+
+                            {% endif %}
+
                             <th class="text-center"> {% trans 'Created' %} {% trans 'Date' %}</th>
                             <th class="text-center">{% trans 'Actions' %}</th>
                           </tr>

@@ -366,25 +366,60 @@
 										<a class="nav-link" href="{% url 'fieldsight:project-edit' obj.pk %}" data-load="org-manage-detail.html">{{obj.name}} Information</a>
 									</li>
 									<li class="nav-item">
-										<a class="nav-link" href="{% url 'fieldsight:site-types' obj.pk %}" data-load="org-manage-detail.html">Site Types</a>
+										<a class="nav-link" href="{% url 'fieldsight:site-types' obj.pk %}" data-load="org-manage-detail.html">
+											{% if terms_and_labels %}
+												{{obj.terms_and_labels.site}} Types
+
+											{% else %}
+												Site Types
+											{% endif %}
+
+											</a>
 									</li>
 
 									<li class="nav-item">
-										<a class="nav-link" href="{% url 'fieldsight:define-site-meta' obj.pk %}" data-load="org-manage-detail.html">Site Information</a>
+										<a class="nav-link" href="{% url 'fieldsight:define-site-meta' obj.pk %}" data-load="org-manage-detail.html">
+											{% if terms_and_labels %}
+												{{obj.terms_and_labels.site}} Information
+
+											{% else %}
+												Site Information
+											{% endif %}
+										</a>
 									</li>
 
 									{% if obj.cluster_sites %}
 										<li class="nav-item">
-											<a class="nav-link" href="{% url 'fieldsight:region-list' obj.pk %}" data-load="org-manage-detail.html">Manage Regions</a>
+											<a class="nav-link" href="{% url 'fieldsight:region-list' obj.pk %}" data-load="org-manage-detail.html">
+												{% if terms_and_labels %}
+													Manage {{obj.terms_and_labels.region}}
+
+													{% else %}
+														Manage Regions
+
+												{% endif %}
+
+											</a>
 										</li>
 										{% else %}
 										<li class="nav-item">
-											<a class="nav-link" href="{% url 'fieldsight:manage_project_sites' obj.id %}" data-load="org-manage-detail.html">Manage Sites</a>
+											<a class="nav-link" href="{% url 'fieldsight:manage_project_sites' obj.id %}" data-load="org-manage-detail.html">
+												{% if terms_and_labels %}
+													Manage {{obj.terms_and_labels.site}}
+
+													{% else %}
+														Manage Sites
+												{% endif %}
+												</a>
 										</li>
 									{% endif %}
 									<li class="nav-item">
 										<a class="nav-link" href="{% url 'fieldsight:project_geo_layer' obj.pk %}" data-load="org-manage-detail.html">Map Layers</a>
 									</li>
+									<li class="nav-item">
+										<a class="nav-link" href="{% url 'fieldsight:terms_and_labels' obj.pk %}" data-load="#">Terms And Labels</a>
+									</li>
+
 
 
 								  {% elif level == "0" %}

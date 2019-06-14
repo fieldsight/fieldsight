@@ -2,7 +2,8 @@ from django.conf.urls import url
 
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, MyProjectFormsViewSet, ShareFormViewSet
-from onadata.apps.fv3.viewsets.SubmissionViewSet import SubmissionViewSet
+from onadata.apps.fv3.viewsets.SubmissionViewSet import SubmissionViewSet, AlterSubmissionStatusViewSet, \
+    SubmissionAnswerViewSet, SubmissionViewSet
 
 
 urlpatterns = [
@@ -17,6 +18,10 @@ urlpatterns = [
 
 
     url(r'^api/submission/(?P<pk>\d+)/$', SubmissionViewSet.as_view({'get':'retrieve'}), name='submission'),
+    url(r'^api/submission-answers/(?P<pk>\d+)/$', SubmissionAnswerViewSet.as_view({'get':'retrieve'}), name='submission-data'),
+    url(r'^api/change/submission/status/$', AlterSubmissionStatusViewSet.as_view({'post':'create'}), name='submission-flag'),
+
+
     url(r'^api/share/(?P<pk>\d+)/$', ShareFormViewSet.as_view(), name='share_form'),
     ]
 
