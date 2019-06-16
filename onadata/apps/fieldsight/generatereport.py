@@ -81,7 +81,7 @@ class PDFReport:
         self.project_name = ''
         self.project_logo = ''
         self.removeNullField = False
-
+        self.instance_id = 0
         self.centered = PS(name = 'centered',
         fontSize = 14,
         leading = 16,
@@ -206,7 +206,7 @@ class PDFReport:
 
                 size = "small"
                 try:
-                    result = Attachment.objects.filter(media_file=self.media_folder +'/attachments/'+ answer_dict[question_name])[0:1]
+                    result = Attachment.objects.filter(instance_id=self.instance_id, media_file_basename=answer_dict[question_name])[0:1]
                     attachment = result[0]
 
                     if not attachment.mimetype.startswith('image'):
@@ -409,10 +409,12 @@ class PDFReport:
 
             if not form.from_project and form.site_form_instances.all():
                 for instance in form.site_form_instances.all():
+                    self.instance_id = instance.instance_id
                     self.append_answers(json_question, instance, sub_count)
 
             elif form.project_form_instances.all():
                 for instance in form.project_form_instances.all():
+                    self.instance_id = instance.instance_id
                     self.append_answers(json_question, instance, sub_count)
 
             else:
@@ -442,7 +444,7 @@ class PDFReport:
         
         self.project_name = project.name
         self.project_logo = project.logo.url
-        
+        self.instance_id = instance.instance_id
 
         styNormal = styleSheet['Normal']
         styBackground = ParagraphStyle('background', parent=styNormal, backColor=colors.white)
@@ -627,11 +629,13 @@ class PDFReport:
             sub_count = 0
             if not form.from_project and form.site_form_instances.all():
                 for instance in form.site_form_instances.all():
+                    self.instance_id = instance.instance_id
                     new_elements = self.append_answers(json_question, instance, sub_count)
                     elements+=new_elements
                     
             elif form.project_form_instances.all():
                 for instance in form.project_form_instances.all():
+                    self.instance_id = instance.instance_id
                     new_elements = self.append_answers(json_question, instance, sub_count)
                     elements+=new_elements
 
