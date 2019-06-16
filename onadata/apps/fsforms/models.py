@@ -400,6 +400,21 @@ def send_delete_message(sender, instance, using, **kwargs):
 post_save.connect(create_messages, sender=FieldSightXF)
 
 
+class SyncSchedule(models.Model):
+    DAILY = "D"
+    WEEKLY = "W"
+    FORTNIGHT = "F"
+    MONTHLY = "M"
+    SCHEDULES = [
+        ("Daily", DAILY),
+        ("Weekly", WEEKLY),
+        ("Fortnightly", FORTNIGHT),
+        ("Monthyl", MONTHLY),
+    ]
+    fxf = models.OneToOneField(FieldSightXF, related_name="sync_schedule")
+    schedule = models.CharField(choices=SCHEDULES)
+
+
 class FieldSightParsedInstance(ParsedInstance):
     _update_fs_data = None
 

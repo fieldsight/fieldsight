@@ -73,7 +73,7 @@ def cleanhtml(raw_html):
 class DriveException(Exception):
     pass
 
-def upload_to_drive(file_path, title, folder_title, project):
+def upload_to_drive(file_path, title, folder_title, project, user):
     # pass
     """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
     try:
@@ -105,7 +105,15 @@ def upload_to_drive(file_path, title, folder_title, project):
         
         _project = Project.objects.get(pk=project.id) 
         gsuit_meta = _project.gsuit_meta
-        gsuit_meta[folder_title] = {'link':file['alternateLink'], 'updated_at':datetime.datetime.now().isoformat()}
+        gsuit_meta[folder_title] = {
+            'link':file['alternateLink'],
+            'updated_at':datetime.datetime.now().isoformat(),
+        }
+        if user:
+            gsuit_meta[folder_title]['user'] = {
+                'username': user.username,
+                'full_name': user.get_full_name()
+            }
         _project.gsuit_meta = gsuit_meta
         _project.save()
         permissions = file.GetPermissions()
@@ -349,7 +357,7 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         task.save()
         
         if sync_to_drive:
-            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project)
+            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project, task.user)
 
             noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report sync to Google Drive",
                                    recipient=task.user, content_object=project, extra_object=project,
@@ -964,7 +972,7 @@ def generateSiteDetailsXls(task_prog_obj_id, project_id, region_ids, type_ids=No
             with open(temporarylocation,'wb') as out: ## Open temporary file as bytes
                 out.write(xls)                ## Read bytes into file
 
-            upload_to_drive(temporarylocation, "{} - Site Information".format(project.id), "Site Information", project)
+            upload_to_drive(temporarylocation, "{} - Site Information".format(project.id), "Site Information", project, task.user)
 
             os.remove(temporarylocation)
 
