@@ -12,8 +12,11 @@ Vue.component('treeselect', VueTreeselect.Treeselect)
 			              <div class="rounded-circle p-4 bg-light" style="height: 150px;width: 150px;margin: 32px auto;">
 			                <i style="font-size: 52px;" class="la la-file-pdf-o ml-2 text-success m-4"></i>
 			              </div>
-			              <p>
+			              <p v-if="this.terms_and_labels.length==0">
 			                    Export of forms data and site information an PDF File, generated with filters in time range <br> and option to remove unanswered questions.
+			              </p>
+			              <p v-else>
+			                    Export of forms data and {{this.terms_and_labels[0].site.toLowerCase().trim()}} information an PDF File, generated with filters in time range <br> and option to remove unanswered questions.
 			              </p>
 			            </div>
 
@@ -117,6 +120,8 @@ Vue.component('treeselect', VueTreeselect.Treeselect)
 	    end_date_value: configure_settings.end_date_value,
 	    end_date_max_value: configure_settings.end_date_max_value,
 	    end_date_min_value: configure_settings.end_date_min_value,
+	    terms_and_labels: [],
+	    project_id: configure_settings.terms_and_labels_project_id,
 
 	  }),
 
@@ -228,6 +233,18 @@ Vue.component('treeselect', VueTreeselect.Treeselect)
 
 			}
 		},
+
+		mounted() {
+             function errorCallback() {
+                    callback(new Error('Failed to load Project Terms and Labels data.'))
+                }
+
+             function successCallback(response) {
+                this.terms_and_labels = response.body;
+            }
+            this.$http.get('/fieldsight/api/project-terms-labels/'+ this.project_id).then(successCallback, errorCallback)
+
+            },
 
 	 })
 

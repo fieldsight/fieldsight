@@ -13,7 +13,16 @@
 
         <section class="panel">
             <header class="panel-heading clearfix">
-                <h3><i class="la la-building"></i>Site Types</h3>
+                <h3><i class="la la-building"></i>
+                {% if terms_and_labels %}
+                    {{obj.terms_and_labels.site}} Types
+
+                {% else %}
+                    Site Types
+
+                {% endif %}
+
+                </h3>
                 <div class="panel-heading-right">
                     <a href="{% url 'fieldsight:project-type-add' obj.pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-plus"></i> Add Types </a>
                 </div>
@@ -48,7 +57,16 @@
                 </div>
                 <div class="modal-body">
                     <h4 style="color:red; text-align: center;">{% trans 'Warning' %}</h4>
-                    <p>{% trans '"All the Sites / Stage forms within this type will be type less. Do you still want to continue?"' %}</p>
+
+                    {% if terms_and_labels %}
+
+                        <p> "All the {{obj.terms_and_labels.site}} / Stage forms within this type will be type less. Do you still want to continue?" </p>
+
+                    {% else %}
+                        <p>{% trans '"All the Sites / Stage forms within this type will be type less. Do you still want to continue?"' %}</p>
+
+                    {% endif %}
+
                   </div>
                 <div class="modal-footer">
                     {% if type.id %}
@@ -67,7 +85,15 @@
             {% endfor %}
             </table>
             {% else %}
-            <h1>No Site Types In this Project</h1>
+            <h1>
+                {% if terms_and_labels %}
+                    No {{obj.terms_and_labels.site}} Types In this Project
+
+                {% else %}
+                    No Site Types In this Project
+
+                {% endif %}
+            </h1>
             {% endif %}
              </div>
         </section>

@@ -56,14 +56,37 @@
 	      				<ul class="nav nav-pills flex-column" id="myTab" role="tablist">
 						  <li class="nav-item">
 						    <a class="nav-link active" id="modalTab01-tab" data-toggle="tab" href="#modalTab01" role="tab" aria-controls="modalTab01" aria-selected="true">
-						    	Site Summary
+
+								{% if terms_and_labels %}
+									{{obj.project.terms_and_labels.site}} Summary
+
+								{% else %}
+						    		Site Summary
+
+								{% endif %}
+
 						    </a>
 						  </li>
 						  <li class="nav-item">
-						    <a class="nav-link" id="modalTab02-tab" data-toggle="tab" href="#modalTab02" role="tab" aria-controls="modalTab03" aria-selected="false">Site Report</a>
+						    <a class="nav-link" id="modalTab02-tab" data-toggle="tab" href="#modalTab02" role="tab" aria-controls="modalTab03" aria-selected="false">
+										{% if terms_and_labels %}
+											{{obj.project.terms_and_labels.site}} Report
+
+										{% else %}
+											Site Report
+
+										{% endif %}</a>
 						  </li>
 						  <li class="nav-item">
-						    <a class="nav-link" id="modalTab03-tab" data-toggle="tab" href="#modalTab03" role="tab" aria-controls="modalTab05" aria-selected="false">Site Logs</a>
+						    <a class="nav-link" id="modalTab03-tab" data-toggle="tab" href="#modalTab03" role="tab" aria-controls="modalTab05" aria-selected="false">
+								{% if terms_and_labels %}
+									{{obj.project.terms_and_labels.site}} Logs
+
+								{% else %}
+									Site Logs
+
+								{% endif %}
+								</a>
 						  </li>
 						</ul>
 	      			</div>
@@ -72,13 +95,27 @@
 							<div class="tab-pane fade show active text-center" id="modalTab01" role="tabpanel" aria-labelledby="modalTab01-tab">
 								<div class="modal-body">
 									<div class="form-group">
-										<h5>Site Summary Report</h5>
+										{% if terms_and_labels %}
+											{{obj.project.terms_and_labels.site}} Summary Report
+
+										{% else %}
+											Site Summary Report
+
+										{% endif %}
 										  <div class="text-center">
 								              <div class="rounded-circle p-4 bg-light" style="height: 150px;width: 150px;margin: 32px auto;">
 								                <i style="font-size: 52px;" class="la la-file-pdf-o ml-2 text-danger m-4"></i>
 								              </div>
 								              <p>
-								                    Contains high level overview of the site in form of numbers, graphs and map.
+								                    Contains high level overview of the
+												  	{% if terms_and_labels %}
+														{{obj.project.terms_and_labels.site}}
+
+													{% else %}
+														site
+
+													{% endif %}
+												  in form of numbers, graphs and map.
 								              </p>
 								            </div>
 
@@ -156,10 +193,39 @@
 										<i class="la la-cogs"></i> {% trans 'Manage' %}
 									</a>
 									<div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButtonManage">
-										<a class="dropdown-item" href="{% url 'fieldsight:site-edit' obj.pk %}"><i class="la la-edit"></i>{% trans 'Edit Site Information' %}</a>
-										<a class="dropdown-item" href="{% url 'fieldsight:site-blue-prints' obj.pk %}"><i class="la la-file-text-o"></i>{% trans 'Site' %} {% trans 'Documents' %}</a>
+										<a class="dropdown-item" href="{% url 'fieldsight:site-edit' obj.pk %}"><i class="la la-edit"></i>
+
+											{% if terms_and_labels %}
+												Edit {{obj.project.terms_and_labels.site}} Information
+
+											{% else %}
+											   {% trans 'Edit Site Information' %}
+
+											{% endif %}
+
+										</a>
+										<a class="dropdown-item" href="{% url 'fieldsight:site-blue-prints' obj.pk %}"><i class="la la-file-text-o"></i>
+											{% if terms_and_labels %}
+											  	{{obj.project.terms_and_labels.site}} Documents
+
+											{% else %}
+												{% trans 'Site' %} {% trans 'Documents' %}
+
+											{% endif %}
+
+										</a>
 										<a class="dropdown-item" href="{% url 'fieldsight:manage-people-site' obj.pk %}"><i class="la la-user"></i>{% trans 'User' %}</a>
-										<a class="dropdown-item" href="{% url 'forms:setup-forms' 0 obj.pk %}"><i class="la la-clipboard"></i>{% trans 'Forms (for this site only)' %}</a>
+										<a class="dropdown-item" href="{% url 'forms:setup-forms' 0 obj.pk %}"><i class="la la-clipboard"></i>
+
+											{% if terms_and_labels %}
+											  	Forms (for this {{obj.project.terms_and_labels.site}} only)
+
+											{% else %}
+												{% trans 'Forms (for this site only)' %}
+
+											{% endif %}
+
+										</a>
 
 										
 									</div>
@@ -238,7 +304,15 @@
 
 								<div class="widget-info widget-scrolling-list margin-top bg-white padding gh-col">
 									<div class="widget-head">
-										<h6><strong>Site Details</strong></h6>
+										<h6><strong>
+											{% if terms_and_labels %}
+												{{obj.project.terms_and_labels.site}} Details
+
+											{% else %}
+												Site Details
+
+											{% endif %}
+											</strong></h6>
 										<!-- <h4><a href="#">{% trans 'About' %}</a></h4> -->
 									<!-- 	<a href="#" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#moreMetaAttribute">
 											<i class="la la-plus"></i>
@@ -313,7 +387,14 @@
 								<div class="widget-info widget-site-map margin-top bg-white padding">
 									<div class="widget-head">
 										<a href="{% url 'fieldsight:site_response_cords' obj.pk %}" title="" class="btn btn-sm btn-xs btn-primary" target="_blank"><i class="la la-map"></i>{% trans ' Full Map' %}</a>
+
+										{% if terms_and_labels %}
+											<h4>{{obj.project.terms_and_labels.site}} Map </h4>
+
+										{% else %}
 										<h4>{% trans 'Site' %} {% trans 'Map' %}</h4>
+
+										{% endif %}
 									</div>
 									<div class="widget-body">
 										<div id="map" class="full-map ah-col" style="z-index:0;"></div>
@@ -546,7 +627,14 @@
 	<div class="col-md-6">
 		<div class="widget-info margin-top bg-white padding">
 			<div class="widget-head">
-				<h4>{% trans 'Site' %} {% trans 'Progress' %}</h4>
+				{% if terms_and_labels %}
+					<h4>{{obj.project.terms_and_labels.site}} Progress</h4>
+
+				{% else %}
+					<h4>{% trans 'Site' %} {% trans 'Progress' %}</h4>
+
+				{% endif %}
+
 			</div>
 			<div class="widget-body">
 				{% if has_progress_chart %}
@@ -753,6 +841,8 @@
 				configure_settings.end_date_min_value = "{{ obj.date_created.date|date:'Y-m-d'}}";
 				configure_settings.genarete_logs_report_url = "{% url 'fieldsight_export:logs_report' obj.pk %}";
 				configure_settings.log_report_type = "Site";
+				configure_settings.terms_and_labels_project_id = "{{obj.project.id}}";
+
 					var height = 0;
 					$(".gh-col" ).each(function() {
 						height += $(this).height();

@@ -572,10 +572,15 @@ def web_signup(request):
                 })
     else:
         signup_form = SignUpForm()
+        if 'invite' in request.GET:
+            invited = 'true'
+        else:
+            invited = 'false'
         return render(request, 'users/login.html', {'signup_form':signup_form,
         'valid_email':True,
         'email_error': False,
-        'success_signup':0})
+        'success_signup':0,
+        'invited': invited})
 
 
 def create_role(request):

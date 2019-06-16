@@ -19,7 +19,16 @@
     <div class="padding">
         <section class="panel">
             <header class="panel-heading clearfix">
-                        <h3><i class="la la-building"></i> {{scenario}} Site Type</h3>
+                        <h3><i class="la la-building"></i>
+                             {% if terms_and_labels %}
+                                 {{scenario}} {{obj.terms_and_labels.site}} Type
+
+                            {% else %}
+                                {{scenario}} Site Type
+
+                            {% endif %}
+
+                        </h3>
             </header>
             <div class="panel-body">
                 {% for error in form.non_field_errors %}
