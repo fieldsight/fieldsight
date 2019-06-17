@@ -120,10 +120,15 @@ class Stage(models.Model):
     def active_substages(self):
         return self.parent.filter(stage_forms__isnull=False)
 
-    def get_sub_stage_list(self):
+    def get_sub_stage_list(self, sync_details=False):
         if not self.stage:
-            return Stage.objects.select_related('stage_forms__xf').filter(stage=self).values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username')
+            qs= Stage.objects.select_related('stage_forms__xf').filter(stage=self)
+            if sync_details:
+                return qs.values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username', 'sync_schedule__id', 'sync_schedule__schedule', 'sync_schedule__day')
+
+            return qs.values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username')
         return []
+
 
     @property
     def xf(self):
@@ -406,13 +411,14 @@ class SyncSchedule(models.Model):
     FORTNIGHT = "F"
     MONTHLY = "M"
     SCHEDULES = [
-        ("Daily", DAILY),
-        ("Weekly", WEEKLY),
-        ("Fortnightly", FORTNIGHT),
-        ("Monthyl", MONTHLY),
+        (DAILY, "Daily"),
+        (WEEKLY, "Weekly"),
+        (FORTNIGHT, "Fortnightly"),
+        (MONTHLY, "Monthly"),
     ]
     fxf = models.OneToOneField(FieldSightXF, related_name="sync_schedule")
-    schedule = models.CharField(choices=SCHEDULES)
+    schedule = models.CharField(choices=SCHEDULES,  default=MONTHLY, max_length=2)
+    day = models.PositiveIntegerField(default=0)
 
 
 class FieldSightParsedInstance(ParsedInstance):

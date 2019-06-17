@@ -52,7 +52,7 @@ from .models import ProjectGeoJSON, Organization, Project, Site, BluePrints, Use
     ProjectType, Sector, ProjectLevelTermsAndLabels
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
-                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm)
+                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm, ProjectGsuitSyncForm, FieldsightFormGsuitSyncForm, )
 
 from onadata.apps.subscriptions.models import Subscription, Customer, Package
 from django.views.generic import TemplateView
@@ -80,7 +80,7 @@ from onadata.apps.staff.models import Team
 from .metaAttribsGenerator import generateSiteMetaAttribs
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from onadata.apps.fsforms.models import SyncSchedule
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -4279,3 +4279,68 @@ def auto_create_project_site(instance, created, **kwargs):
         project_type_id = ProjectType.objects.first().id
         project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id)
         Site.objects.create(name="Example Site", project=project, identifier="example site")
+
+
+
+class ProjectSyncScheduleUpdateView(UpdateView):
+    template_name = 'fieldsight/project_sync_schedule.html'
+    model = Project
+    form_class = ProjectGsuitSyncForm
+
+    def get_success_url(self):
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        context = super(ProjectSyncScheduleUpdateView, self).get_context_data(**kwargs)
+        
+        context['schedule'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = True, is_staged=False, is_survey=False, sync_schedule__isnull=False).values('id','schedule__name', 'xf__id_string', 'xf__user__username','sync_schedule__id', 'sync_schedule__schedule', 'sync_schedule__day')
+
+        stages = Stage.objects.filter(project_id=pk)
+        for stage in stages:
+            if stage.stage_id is None:
+                substages=stage.get_sub_stage_list(sync_details=True)
+                main_stage = {'id':stage.id, 'title':stage.name, 'sub_stages':list(substages)}
+                # stagegroup = {'main_stage':main_stage,}
+                mainstage.append(main_stage)
+
+        context['survey'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=True, sync_schedule__isnull=False).values('id','xf__title', 'xf__id_string', 'xf__user__username', 'sync_schedule__id','sync_schedule__schedule', 'sync_schedule__day')
+        context['general'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=False, sync_schedule__isnull=False).values('id','xf__title', 'xf__id_string', 'xf__user__username', 'sync_schedule__id', 'sync_schedule__schedule', 'sync_schedule__day')
+
+        context['base_template'] = "fieldsight/manage_base.html"
+        return context
+
+
+class SyncScheduleCreateView(CreateView):
+    template_name = 'fieldsight/form_sync_schedule_form.html'
+    model = SyncSchedule
+    form_class = FieldsightFormGsuitSyncForm
+
+    def get_context_data(self, **kwargs):
+        context = super(SyncScheduleCreateView, self).get_context_data(**kwargs)
+        context['pk'] = self.kwargs.get('pk')
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        return context
+
+    def get_success_url(self):
+        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+
+
+class SyncScheduleUpdateView(UpdateView):
+    template_name = 'fieldsight/form_sync_schedule_form.html'
+    model = SyncSchedule
+    form_class = FieldsightFormGsuitSyncForm
+
+
+    def get_success_url(self):
+        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        context = super(SyncScheduleUpdateView, self).get_context_data(**kwargs)
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        return context
+
+
+class SyncScheduleDeleteView(DeleteView):
+    def get_success_url(self):
+        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+    

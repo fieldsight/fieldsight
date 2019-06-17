@@ -1,0 +1,99 @@
+{% extends base_template %}
+{% load i18n staticfiles %}
+{% load filters %}
+
+{% block extracss %}
+
+
+{% endblock %}
+
+{% block content %}
+{% load filters %}
+
+	<div class="padding">
+
+		<section class="panel">
+            <header class="panel-heading clearfix">
+				{% if form.instance.id %}
+                <h3><i class="la la-building"></i>{% trans 'Schedule Settings' %}</h3>
+				{% else %}
+				<h3><i class="la la-building"></i>{% trans 'New' %} {% trans 'Project' %}</h3>
+				{% endif %}
+				
+            </header>
+			<div class="panel-body">
+				<!-- Add New Organization-->
+				<div id="newOrganization" class="margin-top">
+					{% if form.errors %}
+					    {% for field in form %}
+					        {% for error in field.errors %}
+					            <div class="alert alert-danger">
+					                <strong>{{ error|escape }}</strong>
+					            </div>
+					        {% endfor %}
+					    {% endfor %}
+					    {% for error in form.non_field_errors %}
+					        <div class="alert alert-danger">
+					            <strong>{{ error|escape }}</strong>
+					        </div>
+					    {% endfor %}
+					{% endif %}
+					
+					<form enctype="multipart/form-data" method="post">
+	                
+		                {% csrf_token %}
+		                {{ form }}
+		                <br>
+		                 <input type="submit" value="Submit">
+					</form>
+				</div>
+			</div>
+	
+			<hr>
+			<h3>Custom Schedule</h3>
+			<h5>General Forms</h5>
+			{% for form in general_forms %}
+				<div>
+					<a href="">{{ form.xf__title }}</a>
+					<br>
+					{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
+				</div>
+			{% endfor %}
+
+			<h5>Schedule Forms</h5>
+			{% for form in schedule_forms %}
+				<div>
+					<a href="">{{ form.schedule_nam }}</a>
+					<br>
+					{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
+				</div>
+			{% endfor %}
+
+			<h5>Survey Forms</h5>
+			{% for form in survey_forms %}
+				<div>
+					<a href="">{{ form.xf__title }}</a>
+					<br>
+					{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
+				</div>
+			{% endfor %}
+
+			<h5>Stage Forms</h5>
+			{% for stage in stage_forms %}
+				{{ stage.title }}
+				{% for form in stage.sub_stages %}
+					<div>
+						<a href="">{{ form.name }}</a>
+						<br>
+						{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
+					</div>
+				{% endfor %}
+			{% endfor %}
+
+        </section>
+
+	</div>
+{% endblock %}
+
+
+

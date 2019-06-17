@@ -65,7 +65,8 @@ from .views import (
     SiteBulkEditView, site_refrenced_metas, UnassignUserRegionAndSites, MainRegionsAndSitesAPI, redirectToSite,
     municipality_data, FormResponseSite, DonorRegionalSitelist, SubRegionAndSitesAPI, SiteSearchLiteView,
     EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites,
-    ProjectTermsAndLabelView, project_terms_label_create, ProjectTermsLabelUpdate
+    ProjectTermsAndLabelView, project_terms_label_create, ProjectSyncScheduleUpdateView, ProjectTermsLabelUpdate,
+    SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView
 )
 
 
@@ -335,5 +336,11 @@ urlpatterns = [
     url(r'^api/project/(?P<pk>\d+)/sites/geoJSON/$', ProjectSiteListGeoJSON.as_view(), name="ProjectSiteListGeoJSON"),    
     url(r'^getGeoJson/(?P<pk>\d+)/$', GeoJSONContent.as_view(), name="geojsoncontent"),
 
+    url(r'^sync_schedule/(?P<pk>\d+)/$', ProjectSyncScheduleUpdateView.as_view(), name='sync_schedule'),
+    url(r'^sync_schedule/form/(?P<pk>\d+)/create/$', SyncScheduleCreateView.as_view(), name='sync_schedule'),
+    url(r'^sync_schedule/form/(?P<pk>\d+)/$', SyncScheduleUpdateView.as_view(), name='sync_schedule'),
+    url(r'^sync_schedule/form/(?P<pk>\d+)/$', ProjectSyncScheduleDeleteView.as_view(), name='sync_schedule'),
+
 ]
 
+    

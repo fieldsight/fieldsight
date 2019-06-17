@@ -25,6 +25,7 @@ import mimetypes
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Q
+from onadata.apps.fsforms.models import SyncSchedule, FieldSightXF
 
 USERNAME_REGEX = r'^[a-z][a-z0-9_]+$'
 USERNAME_MAX_LENGTH = 30
@@ -523,3 +524,96 @@ class SiteBulkEditForm(forms.Form):
 
             self.fields[q_name] = field
 
+
+class ProjectGsuitSyncForm(forms.ModelForm):
+    
+    class Meta:
+        model = Project
+        fields = ('gsuit_sync', 'sync_day',)
+
+    def clean(self):
+        day = self.data.get("sync_day", 0)
+        schedule = self.data.get("schedule", "D")
+        if schedule == "D":
+            self.cleaned_data["sync_day"] = 0
+        elif schedule == "W":
+            if day  < 1 or day > 7:
+                raise forms.ValidationError(
+                    "Day must be within a week i.e; between 1 to 7."
+                )
+        elif schedule == "F":
+            if day  < 1 or day > 14:
+                raise forms.ValidationError(
+                    "Day must be within a fortnight i.e; between 1 to 14."
+                )
+
+        elif schedule == "M":
+            if day  < 1 or day > 31:
+                raise forms.ValidationError(
+                    "Day must be within a month i.e; between 1 to 31."
+                )
+        super(ProjectGsuitSyncForm, self).clean()
+        
+
+class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        project_id = kwargs.pop('pk')
+        super(FieldsightFormGsuitSyncNewForm, self).__init__(*args, **kwargs)
+        self.fields['fxf'].queryset = FieldSightXF.objects.filter(project_id=project_id, sync_schedule__isnull=True)
+
+    class Meta:
+        model = SyncSchedule
+        exclude = ()
+
+    def clean(self):
+        day = self.data.get("day", 0)
+        schedule = self.data.get("schedule", "D")
+        if schedule == "D":
+            self.cleaned_data["day"] = 0
+        elif schedule == "W":
+            if day  < 1 or day > 7:
+                raise forms.ValidationError(
+                    "Day must be within a week i.e; between 1 to 7."
+                )
+        elif schedule == "F":
+            if day  < 1 or day > 14:
+                raise forms.ValidationError(
+                    "Day must be within a fortnight i.e; between 1 to 14."
+                )
+
+        elif schedule == "M":
+            if day  < 1 or day > 31:
+                raise forms.ValidationError(
+                    "Day must be within a month i.e; between 1 to 31."
+                )
+        super(FieldsightFormGsuitSyncNewForm, self).clean()
+
+class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
+    
+    class Meta:
+        model = SyncSchedule
+        exclude = ('fxf')
+
+    def clean(self):
+        day = self.data.get("day", 0)
+        schedule = self.data.get("schedule", "D")
+        if schedule == "D":
+            self.cleaned_data["day"] = 0
+        elif schedule == "W":
+            if day  < 1 or day > 7:
+                raise forms.ValidationError(
+                    "Day must be within a week i.e; between 1 to 7."
+                )
+        elif schedule == "F":
+            if day  < 1 or day > 14:
+                raise forms.ValidationError(
+                    "Day must be within a fortnight i.e; between 1 to 14."
+                )
+
+        elif schedule == "M":
+            if day  < 1 or day > 31:
+                raise forms.ValidationError(
+                    "Day must be within a month i.e; between 1 to 31."
+                )
+
+        super(FieldsightFormGsuitSyncEditForm, self).clean()
