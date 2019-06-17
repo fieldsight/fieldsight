@@ -38,3 +38,7 @@ class ShareFormSerializer(serializers.Serializer):
 
 class ShareProjectFormSerializer(serializers.Serializer):
     project = serializers.IntegerField()
+
+
+class ShareTeamFormSerializer(serializers.Serializer):
+    team = serializers.IntegerField()
