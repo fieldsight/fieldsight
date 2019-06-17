@@ -330,7 +330,10 @@ class ProjectDefineSiteMeta(APIView):
         project.site_meta_attributes = request.POST.get('json_questions');
         project.site_basic_info = request.POST.get('site_basic_info');
         project.site_featured_images = request.POST.get('site_featured_images');
-        new_meta = json.loads(project.site_meta_attributes)
+        try:
+            new_meta = json.loads(project.site_meta_attributes)
+        except Exception as e:
+            new_meta = project.site_meta_attributes
         # print new_meta
         updated_json = None
 
