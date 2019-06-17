@@ -56,7 +56,7 @@ class ShareFormViewSet(APIView):
         A ViewSet for sharing the form to users
         """
     authentication_classes = (SessionAuthentication, BasicAuthentication)
-    permission_classes = [IsAuthenticated, XFormSharePermission]
+    permission_classes = (IsAuthenticated, XFormSharePermission)
 
     def get_queryset(self):
         return ObjectPermission.objects.filter()
@@ -65,6 +65,7 @@ class ShareFormViewSet(APIView):
         serializer = ShareFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         fxf = FieldSightXF.objects.get(pk=kwargs.get('pk'))
+        self.check_object_permissions(request, fxf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                      description="Share Forms Individual",
                                                      task_type=19, content_object=fxf)
@@ -90,6 +91,7 @@ class ShareProjectFormViewSet(APIView):
         serializer = ShareProjectFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         fxf = FieldSightXF.objects.get(pk=kwargs.get('pk'))
+        self.check_object_permissions(request, fxf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                      description="Share Forms Project Manager and Admin",
                                                      task_type=20, content_object=fxf)
@@ -124,6 +126,7 @@ class ShareTeamFormViewSet(APIView):
         serializer = ShareTeamFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         fxf = FieldSightXF.objects.get(pk=kwargs.get('pk'))
+        self.check_object_permissions(request, fxf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Share XForm to Team",
                                                      task_type=21, content_object=fxf)
         if task_obj:
