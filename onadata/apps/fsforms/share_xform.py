@@ -14,6 +14,7 @@ def share_m2m(users, forms):
 
 def share_forms(user, forms):
     from onadata.apps.fsforms.models import ObjectPermission, Asset
+    success = False
     for fxf in forms:
         try:
             codenames = ['view_asset', 'change_asset']
@@ -23,23 +24,33 @@ def share_forms(user, forms):
                 content_type = ContentType.objects.get(id=21)
 
                 # Create the new permission
-                new_permission = ObjectPermission.objects.create(
-                    object_id=object_id,
-                    content_type=content_type,
-                    user=user,
-                    permission_id=perm.pk,
-                    deny=False,
-                    inherited=False
-                )
+                if not ObjectPermission.objects.filter(object_id=object_id,
+                                                   content_type=content_type,
+                                                   user=user,
+                                                   permission_id=perm.pk,
+                                                   deny=False,
+                                                   inherited=False).exists():
+                    ObjectPermission.objects.create(
+                        object_id=object_id,
+                        content_type=content_type,
+                        user=user,
+                        permission_id=perm.pk,
+                        deny=False,
+                        inherited=False
+                    )
+                else:
+                    continue
 
-        except:
-            return False
+        except Exception:
+            success = False
         else:
-            return True
+            success = True
+    return success
 
 
 def share_form(users, xform):
     from onadata.apps.fsforms.models import ObjectPermission, Asset
+    success = False
     for user in users:
         try:
             codenames = ['view_asset', 'change_asset']
@@ -49,19 +60,28 @@ def share_form(users, xform):
                 content_type = ContentType.objects.get(id=21)
 
                 # Create the new permission
-                new_permission = ObjectPermission.objects.create(
-                    object_id=object_id,
-                    content_type=content_type,
-                    user=user,
-                    permission_id=perm.pk,
-                    deny=False,
-                    inherited=False
-                )
+                if not ObjectPermission.objects.filter(object_id=object_id,
+                                                       content_type=content_type,
+                                                       user=user,
+                                                       permission_id=perm.pk,
+                                                       deny=False,
+                                                       inherited=False).exists():
+                    ObjectPermission.objects.create(
+                        object_id=object_id,
+                        content_type=content_type,
+                        user=user,
+                        permission_id=perm.pk,
+                        deny=False,
+                        inherited=False
+                    )
+                else:
+                    continue
 
-        except Exception as e:
-            return False
+        except Exception:
+            success = False
         else:
-            return True
+            success = True
+    return success
 
 
 def share_o2o(user, xform):

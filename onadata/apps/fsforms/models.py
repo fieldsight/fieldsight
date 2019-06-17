@@ -1000,6 +1000,7 @@ class ObjectPermission(models.Model):
 
 class Asset(models.Model):
     uid = KpiUidField(uid_prefix='a')
+    owner = models.ForeignKey('auth.User', related_name='assets', null=True)
 
     class Meta:
         db_table = 'kpi_asset'
