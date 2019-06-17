@@ -121,10 +121,12 @@ class MetaData(models.Model):
         unique_together = ('xform', 'data_type', 'data_value')
 
     def save(self, *args, **kwargs):
-        if MetaData.objects.filter(xform=self.xform,data_type=self.data_type, data_value=self.data_value).exists():
-            raise ValidationError("Validation Error: File Duplicate for this Form")
         self._set_hash()
-        super(MetaData, self).save(*args, **kwargs)
+        if MetaData.objects.filter(xform=self.xform,data_type=self.data_type, data_value=self.data_value).exists():
+            MetaData.objects.filter(xform=self.xform,data_type=self.data_type, data_value=self.data_value).update(
+                data_file=self.data_file,data_file_type=self.data_file_type)
+        else:
+            super(MetaData, self).save(*args, **kwargs)
 
     @property
     def hash(self):
