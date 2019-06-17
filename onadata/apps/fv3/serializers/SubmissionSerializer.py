@@ -141,14 +141,17 @@ class SubmissionSerializer(serializers.ModelSerializer):
                     "comment": c.message,
                     "date": c.date,
                     "get_new_status_display": "Rejected",
-                    "user_name": "fsadmin"
+                    "user_name": c.user.user_name,
+                    "url": reverse_lazy("forms:instance_status_change_detail",
+                                                kwargs={'pk': c.id}),
                 },
                 )
         instances_data = []
         for fi in finstances:
             instances_data.append(
-                {"comment": reverse_lazy("fv3:submission", args=(fi.id,)),
+                {"url": reverse_lazy("fv3:submission", args=(fi.id,)),
                  "date": fi.date,
+                 "comment": "",
                  "get_new_status_display": "New Submission",
                  "user_name":fi.submitted_by.username})
         # sort data past _ data
