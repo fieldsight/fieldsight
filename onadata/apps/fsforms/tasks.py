@@ -195,7 +195,7 @@ def created_manager_form_share(userrole, task_id):
 
 
 @shared_task(max_retries=5)
-def share_form_individuals(fxf, users, task_id):
+def api_share_form(fxf, users, task_id):
     fxf = FieldSightXF.objects.get(pk=fxf)
     users = User.objects.filter(id__in=users)
     shared = share_form(users, fxf.xf)

@@ -229,6 +229,7 @@ class CeleryTaskProgress(models.Model):
         (17, 'Share XForm'),
         (18, 'Share XForm to Created Manager'),
         (19, 'Share XForm to Individuals'),
+        (20, 'Share XForm to Project Managers and Admin of Project'),
 
     )
     task_id = models.CharField(max_length=255, blank=True, null=True)

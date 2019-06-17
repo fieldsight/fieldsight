@@ -34,3 +34,7 @@ class XFormSerializer(serializers.ModelSerializer):
 
 class ShareFormSerializer(serializers.Serializer):
     user_ids = serializers.ListField(child=serializers.IntegerField())
+
+
+class ShareProjectFormSerializer(serializers.Serializer):
+    project = serializers.IntegerField()

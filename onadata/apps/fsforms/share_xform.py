@@ -23,7 +23,7 @@ def share_forms(user, forms):
                 content_type = ContentType.objects.get(id=21)
 
                 # Create the new permission
-                new_permission = ObjectPermission.objects.create(
+                new_permission, created = ObjectPermission.objects.get_or_create(
                     object_id=object_id,
                     content_type=content_type,
                     user=user,
@@ -49,7 +49,7 @@ def share_form(users, xform):
                 content_type = ContentType.objects.get(id=21)
 
                 # Create the new permission
-                new_permission = ObjectPermission.objects.create(
+                new_permission, created = ObjectPermission.objects.get_or_create(
                     object_id=object_id,
                     content_type=content_type,
                     user=user,
