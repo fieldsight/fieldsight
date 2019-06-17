@@ -330,35 +330,30 @@ class ProjectDefineSiteMeta(APIView):
         project.site_meta_attributes = request.POST.get('json_questions');
         project.site_basic_info = request.POST.get('site_basic_info');
         project.site_featured_images = request.POST.get('site_featured_images');
+        new_meta = json.loads(project.site_meta_attributes)
         try:
-            new_meta = json.loads(project.site_meta_attributes)
+            if old_meta != new_meta:
+                deleted = []
+
+                for meta in old_meta:
+                    if meta not in new_meta:
+                        deleted.append(meta)
+
+                for other_project in Project.objects.filter(organization_id=project.organization_id):
+
+                    for meta in other_project.site_meta_attributes:
+
+                        if meta['question_type'] == "Link":
+                            if str(project.id) in meta['metas']:
+                                for del_meta in deleted:
+                                    if del_meta in meta['metas'][str(project.id)]:
+                                        del meta['metas'][str(project.id)][meta['metas'][str(project.id)].index(del_meta)]
+
+                    other_project.save()
+            project.save()
+            return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
+
         except Exception as e:
-            new_meta = project.site_meta_attributes
-        # print new_meta
-        updated_json = None
-
-        if old_meta != new_meta:
-            deleted = []
-
-            for meta in old_meta:
-                if meta not in new_meta:
-                    deleted.append(meta)
-
-            for other_project in Project.objects.filter(organization_id=project.organization_id):
-
-                for meta in other_project.site_meta_attributes:
-
-                    if meta['question_type'] == "Link":
-                        if str(project.id) in meta['metas']:
-                            for del_meta in deleted:
-                                if del_meta in meta['metas'][str(project.id)]:
-                                    del meta['metas'][str(project.id)][meta['metas'][str(project.id)].index(del_meta)]
-
-                other_project.save()
-        project.save()
-        return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
-
-        # except Exception as e:
-        #     return Response(data='Error: ' + str(e))
+            return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
 
 
