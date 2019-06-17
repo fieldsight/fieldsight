@@ -123,8 +123,7 @@ class MetaData(models.Model):
     def save(self, *args, **kwargs):
         self._set_hash()
         if MetaData.objects.filter(xform=self.xform,data_type=self.data_type, data_value=self.data_value).exists():
-            MetaData.objects.filter(xform=self.xform,data_type=self.data_type, data_value=self.data_value).update(
-                data_file=self.data_file,data_file_type=self.data_file_type)
+            pass
         else:
             super(MetaData, self).save(*args, **kwargs)
 
