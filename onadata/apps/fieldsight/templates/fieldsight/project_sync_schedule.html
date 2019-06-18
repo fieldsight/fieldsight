@@ -86,7 +86,7 @@
 					<div>
 						<a href="{% url 'fieldsight:sync_schedule_update' form.stage_forms.sync_schedule.id %}">{{ form.stage_forms.xf.title }}</a>
 						<br>
-						{{ form.sync_schedule.get_schedule_display }} - {{ form.sync_schedule.day }}
+						{{ form.stage_forms.sync_schedule.get_schedule_display }} - {{ form.stage_forms.sync_schedule.day }}
 					</div>
 				{% endfor %}
 			{% endfor %}
