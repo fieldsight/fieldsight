@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from django.db.models import Prefetch
+
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -106,4 +107,3 @@ def supervisor_logs(request):
             return Response({'notifications': []})
     notifications = get_notifications_queryset(email, date, previous_next_type)
     return Response({'notifications': notifications})
-
