@@ -50,14 +50,14 @@
 			</div>
 	
 			<hr>
-			<a href="{% url 'fieldsight:sync_schedule_add' obj.pk %}">Add Cutom Schedule for individual form.</a>
+			<a href="{% url 'fieldsight:sync_schedule_add' obj.pk %}">Add Custom Schedule handler for individual form.</a>
 			<h3>Custom Schedule</h3>
 			<h5>General Forms</h5>
 			{% for form in general_forms %}
 				<div>
-					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.xf__title }}</a>
+					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.xf.title }}</a>
 					<br>
-					{{ form.sync_schedule.schedule.get_gender_display }} - {{ form.sync_schedule.day }}
+					{{ form.sync_schedule.get_schedule_display }} - {{ form.sync_schedule.day }}
 				</div>
 			{% endfor %}
 
@@ -66,7 +66,7 @@
 				<div>
 					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.schedule.name }}</a>
 					<br>
-					{{ form.sync_schedule.schedule.get_gender_display }} - {{ form.sync_schedule.day }}
+					{{ form.sync_schedule.get_schedule_display }} - {{ form.sync_schedule.day }}
 				</div>
 			{% endfor %}
 
@@ -75,7 +75,7 @@
 				<div>
 					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.xf.title }}</a>
 					<br>
-					{{ form.sync_schedule.schedule.get_gender_display }} - {{ form.sync_schedule.day }}
+					{{ form.sync_schedule.get_schedule_display }} - {{ form.sync_schedule.day }}
 				</div>
 			{% endfor %}
 
@@ -84,9 +84,9 @@
 				{{ stage.title }}
 				{% for form in stage.sub_stages %}
 					<div>
-						<a href="{% url 'fieldsight:sync_schedule_update' form.stage_forms.sync_schedule.id %}">{{ form.name }}</a>
+						<a href="{% url 'fieldsight:sync_schedule_update' form.stage_forms.sync_schedule.id %}">{{ form.stage_forms.xf.title }}</a>
 						<br>
-						{{ form.sync_schedule.schedule.get_gender_display }} - {{ form.sync_schedule.day }}
+						{{ form.sync_schedule.get_schedule_display }} - {{ form.sync_schedule.day }}
 					</div>
 				{% endfor %}
 			{% endfor %}

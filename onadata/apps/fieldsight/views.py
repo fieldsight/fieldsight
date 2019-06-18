@@ -4330,7 +4330,7 @@ class SyncScheduleCreateView(CreateView):
           return kwargs
 
     def get_success_url(self):
-        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.kwargs['pk']})
 
 
 class SyncScheduleUpdateView(UpdateView):
@@ -4340,7 +4340,7 @@ class SyncScheduleUpdateView(UpdateView):
 
 
     def get_success_url(self):
-        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.instance.fxf.project.id})
 
     def get_context_data(self, **kwargs):
         context = super(SyncScheduleUpdateView, self).get_context_data(**kwargs)
@@ -4350,5 +4350,5 @@ class SyncScheduleUpdateView(UpdateView):
 
 class SyncScheduleDeleteView(DeleteView):
     def get_success_url(self):
-        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.instance.fxf.project.id})
     
