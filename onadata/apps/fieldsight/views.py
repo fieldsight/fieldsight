@@ -4294,7 +4294,7 @@ class ProjectSyncScheduleUpdateView(UpdateView):
         pk = self.kwargs['pk'] 
         context = super(ProjectSyncScheduleUpdateView, self).get_context_data(**kwargs)
         
-        context['schedule_forms'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = True, is_staged=False, is_survey=False, sync_schedule__isnull=False).values('id','schedule__name', 'xf__id_string', 'xf__user__username','sync_schedule__id', 'sync_schedule__schedule', 'sync_schedule__day')
+        context['schedule_forms'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = True, is_staged=False, is_survey=False, sync_schedule__isnull=False).only('id','schedule__name', 'xf__id_string', 'xf__user__username','sync_schedule__id', 'sync_schedule__schedule', 'sync_schedule__day')
         mainstage=[]
         stages = Stage.objects.filter(project_id=pk)
         for stage in stages:
@@ -4305,8 +4305,8 @@ class ProjectSyncScheduleUpdateView(UpdateView):
                 mainstage.append(main_stage)
 
         context['stage_forms'] = mainstage
-        context['survey_forms'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=True, sync_schedule__isnull=False).values('id','xf__title', 'xf__id_string', 'xf__user__username', 'sync_schedule__id','sync_schedule__schedule', 'sync_schedule__day')
-        context['general_forms'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=False, sync_schedule__isnull=False).values('id','xf__title', 'xf__id_string', 'xf__user__username', 'sync_schedule__id', 'sync_schedule__schedule', 'sync_schedule__day')
+        context['survey_forms'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=True, sync_schedule__isnull=False).only('id','xf__title', 'xf__id_string', 'xf__user__username', 'sync_schedule__id','sync_schedule__schedule', 'sync_schedule__day')
+        context['general_forms'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=False, sync_schedule__isnull=False).only('id','xf__title', 'xf__id_string', 'xf__user__username', 'sync_schedule__id', 'sync_schedule__schedule', 'sync_schedule__day')
 
         context['base_template'] = "fieldsight/manage_base.html"
         context['obj'] = Project.objects.get(pk=pk)
