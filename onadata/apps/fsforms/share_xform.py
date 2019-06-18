@@ -21,7 +21,7 @@ def share_forms(user, forms):
             permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
             for perm in permissions:
                 object_id = Asset.objects.get(uid=fxf.xf.id_string).id
-                content_type = ContentType.objects.get(id=21)
+                content_type = ContentType.objects.get(id=20)  # content type for asset has id 20 in live server
 
                 # Create the new permission
                 if not ObjectPermission.objects.filter(object_id=object_id,
@@ -57,7 +57,7 @@ def share_form(users, xform):
             permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
             for perm in permissions:
                 object_id = Asset.objects.get(uid=xform.id_string).id
-                content_type = ContentType.objects.get(id=21)
+                content_type = ContentType.objects.get(id=20)  # content type for asset has id 20 in live server
 
                 # Create the new permission
                 if not ObjectPermission.objects.filter(object_id=object_id,
