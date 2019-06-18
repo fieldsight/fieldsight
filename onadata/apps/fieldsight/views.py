@@ -411,7 +411,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
     @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if request.group.name == "Super Admin" or request.group.name == "Unassigned":
+            if request.group.name == "Super Admin" or request.group.name == "form_fform_orm_Unassiform_form_form_form_form_form_form_gned":
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
@@ -4291,6 +4291,7 @@ class ProjectSyncScheduleUpdateView(UpdateView):
         return reverse('fieldsight:sync_schedule', kwargs={'pk': self.kwargs['pk']})
 
     def get_context_data(self, **kwargs):
+        pk = self.kwargs['pk'] 
         context = super(ProjectSyncScheduleUpdateView, self).get_context_data(**kwargs)
         
         context['schedule'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = True, is_staged=False, is_survey=False, sync_schedule__isnull=False).values('id','schedule__name', 'xf__id_string', 'xf__user__username','sync_schedule__id', 'sync_schedule__schedule', 'sync_schedule__day')
@@ -4307,6 +4308,7 @@ class ProjectSyncScheduleUpdateView(UpdateView):
         context['general'] = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=False, sync_schedule__isnull=False).values('id','xf__title', 'xf__id_string', 'xf__user__username', 'sync_schedule__id', 'sync_schedule__schedule', 'sync_schedule__day')
 
         context['base_template'] = "fieldsight/manage_base.html"
+        context['obj'] = Project.objects.get(pk=pk)
         return context
 
 
@@ -4320,6 +4322,11 @@ class SyncScheduleCreateView(CreateView):
         context['pk'] = self.kwargs.get('pk')
         context['base_template'] = "fieldsight/fieldsight_base.html"
         return context
+
+    def get_form_kwargs(self):
+          kwargs = super(SyncScheduleCreateView, self).get_form_kwargs()
+          kwargs['pk'] = self.kwargs.get('pk')
+          return kwargs
 
     def get_success_url(self):
         return reverse('fieldsight:project-dashboard', kwargs={'pk': self.kwargs['pk']})

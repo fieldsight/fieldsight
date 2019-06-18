@@ -558,7 +558,7 @@ class ProjectGsuitSyncForm(forms.ModelForm):
 class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         project_id = kwargs.pop('pk')
-        super(FieldsightFormGsuitSyncNewForm, self).__init__(*args, **kwargs)
+        super(FieldsightFormGsuitSyncNewForm, self).__init__(*args, **kwargs)  
         self.fields['fxf'].queryset = FieldSightXF.objects.filter(project_id=project_id, sync_schedule__isnull=True)
 
     class Meta:
