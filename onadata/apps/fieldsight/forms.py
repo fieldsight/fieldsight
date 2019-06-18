@@ -562,7 +562,7 @@ class FieldsightXFChoiceField(ModelChoiceField):
         return obj.xf.title
 
 class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
-    fxf = FieldsightXF(queryset=None)
+    fxf = FieldsightXFChoiceField(queryset=None)
 
     def __init__(self, *args, **kwargs):
         project_id = kwargs.pop('pk')
