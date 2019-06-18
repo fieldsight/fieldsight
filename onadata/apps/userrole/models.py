@@ -214,10 +214,6 @@ def create_messages(sender, instance, created,  **kwargs):
             content_object=instance
             )
         if task_obj:
-            try:
-                with transaction.atomic():
-                    created_manager_form_share.apply_async(kwargs={'userrole': instance.id, 'task_id': task_obj.id}, countdown=5)
-            except IntegrityError:
-                pass
+            created_manager_form_share.delay(instance.id, task_obj.id)
 
 post_save.connect(create_messages, sender=UserRole)
