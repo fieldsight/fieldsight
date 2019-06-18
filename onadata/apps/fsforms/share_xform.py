@@ -25,9 +25,7 @@ def share_forms(user, forms):
             if not ObjectPermission.objects.filter(object_id=object_id,
                                                content_type=content_type,
                                                user=user,
-                                               permission_id=perm.pk,
-                                               deny=False,
-                                               inherited=False).exists():
+                                               permission_id=perm.pk).exists():
                 ObjectPermission.objects.create(
                     object_id=object_id,
                     content_type=content_type,
@@ -55,9 +53,7 @@ def share_form(users, xform):
             if not ObjectPermission.objects.filter(object_id=object_id,
                                                    content_type=content_type,
                                                    user=user,
-                                                   permission_id=perm.pk,
-                                                   deny=False,
-                                                   inherited=False).exists():
+                                                   permission_id=perm.pk).exists():
                 ObjectPermission.objects.create(
                     object_id=object_id,
                     content_type=content_type,
