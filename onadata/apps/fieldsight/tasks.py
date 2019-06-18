@@ -2170,6 +2170,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def email_after_signup(user_id, to_email):
+    time.sleep(10)
     user = User.objects.get(id=user_id)
     mail_subject = 'Activate your account.'
     message = render_to_string('users/acc_active_email.html', {
