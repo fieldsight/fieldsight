@@ -911,7 +911,7 @@ class Deploy_survey(SPFmixin, View):
         try:
             schedule = Schedule.objects.get(pk=id)
             if is_project == "1":
-                arguments = {'schedule': schedule,  'fxf_status':fxf_status, 'pk':pk}
+                arguments = {'schedule_id': schedule.id,  'fxf_status':fxf_status, 'pk':pk}
                 copy_schedule_to_sites.apply_async((), arguments, countdown=2)
                 return HttpResponse({'msg': 'ok'}, status=status.HTTP_200_OK)
             else:
@@ -922,6 +922,7 @@ class Deploy_survey(SPFmixin, View):
                 send_message_un_deploy(form)
                 return HttpResponse({'msg': 'ok'}, status=status.HTTP_200_OK)
         except Exception as e:
+            print("dddddddddddd",str(e))
             return HttpResponse({'error':e.message}, status=status.HTTP_400_BAD_REQUEST)
 
 
