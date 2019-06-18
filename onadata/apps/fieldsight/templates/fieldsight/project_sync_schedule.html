@@ -57,25 +57,25 @@
 				<div>
 					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.xf__title }}</a>
 					<br>
-					{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
+					{{ form.sync_schedule.schedule.get_gender_display }} - {{ form.sync_schedule.day }}
 				</div>
 			{% endfor %}
 
 			<h5>Schedule Forms</h5>
 			{% for form in schedule_forms %}
 				<div>
-					<a href="{% url 'fieldsight:sync_schedule_update' form.id %}">{{ form.schedule_name }}</a>
+					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.schedule.name }}</a>
 					<br>
-					{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
+					{{ form.sync_schedule.schedule.get_gender_display }} - {{ form.sync_schedule.day }}
 				</div>
 			{% endfor %}
 
 			<h5>Survey Forms</h5>
 			{% for form in survey_forms %}
 				<div>
-					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.xf__title }}</a>
+					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.xf.title }}</a>
 					<br>
-					{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
+					{{ form.sync_schedule.schedule.get_gender_display }} - {{ form.sync_schedule.day }}
 				</div>
 			{% endfor %}
 
@@ -86,7 +86,7 @@
 					<div>
 						<a href="{% url 'fieldsight:sync_schedule_update' form.stage_forms.sync_schedule.id %}">{{ form.name }}</a>
 						<br>
-						{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
+						{{ form.sync_schedule.schedule.get_gender_display }} - {{ form.sync_schedule.day }}
 					</div>
 				{% endfor %}
 			{% endfor %}
