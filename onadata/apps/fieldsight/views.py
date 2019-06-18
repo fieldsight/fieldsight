@@ -4300,7 +4300,7 @@ class ProjectSyncScheduleUpdateView(UpdateView):
         for stage in stages:
             if stage.stage_id is None:
                 substages=stage.get_sub_stage_list(sync_details=True)
-                main_stage = {'id':stage.id, 'title':stage.name, 'sub_stages':list(substages)}
+                main_stage = {'id':stage.id, 'title':stage.name, 'sub_stages':substages}
                 # stagegroup = {'main_stage':main_stage,}
                 mainstage.append(main_stage)
 
