@@ -30,7 +30,12 @@ class FcmDeviceViewSet(viewsets.ModelViewSet):
             device = Device(dev_id=serializer.data["dev_id"])
         device.is_active = True
         device.reg_id = serializer.data["reg_id"]
-        device.name = serializer.data["name"]
+        username_email = serializer.data["name"]
+        if User.objects.filter(email=username_email).exists():
+            device.name = username_email
+        else:
+            email = User.objects.get(username=username_email).email
+            device.name = email
         device.save()
 
     def destroy(self, request, *args, **kwargs):
