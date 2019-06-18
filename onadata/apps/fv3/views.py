@@ -288,8 +288,9 @@ class GeoLayerView(APIView):
 
         return Response(data)
 
-    def post(self, request, pk, format=None):
-        project = get_object_or_404(Project, id=pk)
+    def post(self, request, format=None):
+        project_id = request.query_params.get('project', None)
+        project = get_object_or_404(Project, id=project_id)
         try:
             geo_layers = eval(request.data.get('geo_layers'))
             if geo_layers:
