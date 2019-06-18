@@ -380,8 +380,11 @@ def create_messages(sender, instance, created,  **kwargs):
                                                      description="Share Forms",
                                                      task_type=17, content_object=instance)
         if task_obj:
-            share_form_managers.delay(instance.id, task_obj.id)
-
+            try:
+                with transaction.atomic():
+                    share_form_managers.apply_async(kwargs={'fxf': instance.id, 'task_id': task_obj.id}, countdown=5)
+            except IntegrityError as e:
+                print(e)
 
 @receiver(pre_delete, sender=FieldSightXF)
 def send_delete_message(sender, instance, using, **kwargs):
