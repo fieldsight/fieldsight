@@ -124,7 +124,7 @@ class Stage(models.Model):
         if not self.stage:
             qs= Stage.objects.select_related('stage_forms__xf').filter(stage=self)
             if sync_details:
-                return qs.values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username', 'stage_forms__sync_schedule__id', 'stage_forms__sync_schedule__schedule', 'stage_forms__sync_schedule__day')
+                return qs.filter(stage_forms__sync_schedule__isnull=False).values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username', 'stage_forms__sync_schedule__id', 'stage_forms__sync_schedule__schedule', 'stage_forms__sync_schedule__day')
 
             return qs.values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username')
         return []
@@ -406,11 +406,13 @@ post_save.connect(create_messages, sender=FieldSightXF)
 
 
 class SyncSchedule(models.Model):
+    MANUAL = "NA"
     DAILY = "D"
     WEEKLY = "W"
     FORTNIGHT = "F"
     MONTHLY = "M"
     SCHEDULES = [
+        (MANUAL, "Manual"),
         (DAILY, "Daily"),
         (WEEKLY, "Weekly"),
         (FORTNIGHT, "Fortnightly"),

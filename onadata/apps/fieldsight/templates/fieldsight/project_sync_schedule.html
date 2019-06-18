@@ -55,7 +55,7 @@
 			<h5>General Forms</h5>
 			{% for form in general_forms %}
 				<div>
-					<a href="{% url 'fieldsight:sync_schedule_update' form.id %}">{{ form.xf__title }}</a>
+					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.xf__title }}</a>
 					<br>
 					{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
 				</div>
@@ -73,7 +73,7 @@
 			<h5>Survey Forms</h5>
 			{% for form in survey_forms %}
 				<div>
-					<a href="{% url 'fieldsight:sync_schedule_update' form.id %}">{{ form.xf__title }}</a>
+					<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">{{ form.xf__title }}</a>
 					<br>
 					{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
 				</div>
@@ -84,7 +84,7 @@
 				{{ stage.title }}
 				{% for form in stage.sub_stages %}
 					<div>
-						<a href="{% url 'fieldsight:sync_schedule_update' form.stage_forms__id %}">{{ form.name }}</a>
+						<a href="{% url 'fieldsight:sync_schedule_update' form.stage_forms.sync_schedule.id %}">{{ form.name }}</a>
 						<br>
 						{{ form.sync_schedule.schedule }} - {{ form.sync_schedule.day }}
 					</div>
