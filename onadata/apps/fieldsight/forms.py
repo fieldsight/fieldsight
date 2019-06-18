@@ -529,13 +529,13 @@ class ProjectGsuitSyncForm(forms.ModelForm):
     
     class Meta:
         model = Project
-        fields = ('gsuit_sync', 'sync_day',)
+        fields = ('gsuit_sync', 'gsuit_sync_day',)
 
     def clean(self):
-        day = self.data.get("sync_day", 0)
+        day = self.data.get("gsuit_sync_day", 0)
         schedule = self.data.get("schedule", "D")
         if schedule == "D":
-            self.cleaned_data["sync_day"] = 0
+            self.cleaned_data["gsuit_sync_day"] = 0
         elif schedule == "W":
             if day  < 1 or day > 7:
                 raise forms.ValidationError(
@@ -592,7 +592,7 @@ class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
     
     class Meta:
         model = SyncSchedule
-        exclude = ('fxf')
+        exclude = ('fxf',)
 
     def clean(self):
         day = self.data.get("day", 0)

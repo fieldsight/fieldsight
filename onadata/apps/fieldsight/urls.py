@@ -337,9 +337,9 @@ urlpatterns = [
     url(r'^getGeoJson/(?P<pk>\d+)/$', GeoJSONContent.as_view(), name="geojsoncontent"),
 
     url(r'^sync_schedule/(?P<pk>\d+)/$', ProjectSyncScheduleUpdateView.as_view(), name='sync_schedule'),
-    url(r'^sync_schedule/form/(?P<pk>\d+)/create/$', SyncScheduleCreateView.as_view(), name='sync_schedule'),
-    url(r'^sync_schedule/form/(?P<pk>\d+)/$', SyncScheduleUpdateView.as_view(), name='sync_schedule'),
-    url(r'^sync_schedule/form/(?P<pk>\d+)/$', ProjectSyncScheduleDeleteView.as_view(), name='sync_schedule'),
+    url(r'^sync_schedule/form/(?P<pk>\d+)/create/$', SyncScheduleCreateView.as_view(), name='sync_schedule_add'),
+    url(r'^sync_schedule/form/(?P<pk>\d+)/update/$', SyncScheduleUpdateView.as_view(), name='sync_schedule_update'),
+    url(r'^sync_schedule/form/(?P<pk>\d+)/delete/$', SyncScheduleDeleteView.as_view(), name='sync_schedule_delete'),
 
 ]
 

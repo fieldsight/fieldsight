@@ -52,7 +52,7 @@ from .models import ProjectGeoJSON, Organization, Project, Site, BluePrints, Use
     ProjectType, Sector, ProjectLevelTermsAndLabels
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
-                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm, ProjectGsuitSyncForm, FieldsightFormGsuitSyncForm, )
+                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm, ProjectGsuitSyncForm, FieldsightFormGsuitSyncEditForm, FieldsightFormGsuitSyncNewForm )
 
 from onadata.apps.subscriptions.models import Subscription, Customer, Package
 from django.views.generic import TemplateView
@@ -4313,7 +4313,7 @@ class ProjectSyncScheduleUpdateView(UpdateView):
 class SyncScheduleCreateView(CreateView):
     template_name = 'fieldsight/form_sync_schedule_form.html'
     model = SyncSchedule
-    form_class = FieldsightFormGsuitSyncForm
+    form_class = FieldsightFormGsuitSyncNewForm
 
     def get_context_data(self, **kwargs):
         context = super(SyncScheduleCreateView, self).get_context_data(**kwargs)
@@ -4328,7 +4328,7 @@ class SyncScheduleCreateView(CreateView):
 class SyncScheduleUpdateView(UpdateView):
     template_name = 'fieldsight/form_sync_schedule_form.html'
     model = SyncSchedule
-    form_class = FieldsightFormGsuitSyncForm
+    form_class = FieldsightFormGsuitSyncEditForm
 
 
     def get_success_url(self):
