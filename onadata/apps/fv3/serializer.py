@@ -70,7 +70,7 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
    
     class Meta:
         model = Project
-        fields = ('id', 'name', 'phone', 'fax', 'email', 'address', 'website', 'donor', 'public_desc', 'logo',
+        fields = ('id', 'name', 'phone', 'email', 'address', 'website', 'donor', 'public_desc', 'logo',
                   'location', 'cluster_sites', 'sector', 'sub_sector', 'organization')
 
 

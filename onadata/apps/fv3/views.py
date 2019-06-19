@@ -15,7 +15,7 @@ from rest_framework.authentication import BasicAuthentication
 from rest_framework import generics, status
 from rest_framework.permissions import BasePermission
 from rest_framework.views import APIView
-from django.http import JsonResponse
+from django.contrib.gis.geos import Point
 from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels
 from onadata.apps.fieldsight.rolemixins import ProjectRoleMixin
 from onadata.apps.fsforms.notifications import get_notifications_queryset
@@ -133,6 +133,12 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+        long = request.POST.get('longitude', None)
+        lat = request.POST.get('latitude', None)
+        if lat and long is not None:
+            p = Point(round(float(long), 6), round(float(lat), 6), srid=4326)
+            instance.location = p
+            instance.save()
         noti = instance.logs.create(source=self.request.user, type=14, title="Edit Project",
                                        organization=instance.organization,
                                        project=instance, content_object=instance,
