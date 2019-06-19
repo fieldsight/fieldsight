@@ -2364,6 +2364,40 @@ def check_usage_rates():
                     warning_overage_emails_monthly.apply_async(
                         args=[subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email],
                         eta=after_one_month)
+import calendar
+from django.utils import timezone
+
+def sync_form(fxf):
+    #sync
+    create_async_export(xform, export_type, query, force_xlsx, options, is_project, id, site_id, version, sync_to_gsuit, user)
+
+    pass
+
+def sync_form_controller(sync_type, sync_day, fxf, month_days):
+    date = timezone.date()
+    if sync_type == Project.MONTHLY:
+        if date.day == sync_day or sync_day > month_days:
+            sync_form(fxf)
+
+    elif sync_type == project.FORTNIGHT:
+        pass
+
+    elif sync_type == WEEKLY:
+        if (((date.weekday() + 1) % 7) + 1) == sync_day:
+            sync_form(fxf)
+    else:
+        sync_form(fxf)
 
 
+def scheduled_gsuit_sync():
+    month_days = calendar.monthrange(now.year, now.month)[1]
+    projects = Project.objects.filter(is_active=True).exclude(gsuit_sync=Project.MANUAL)
 
+    for project in projects:
+        #generate reports
+        for fxf in project.project_forms.exclude(sync_schedule__schedule=Project.MANUAL):
+            if fxf.sync_schedule:
+                sync_form_controller(fxf.sync_schedule.schedule, fxf.sync_schedule.day, fxf, month_days)
+            else:
+                sync_form_controller(project.gsuit_sync, project.gsuit_sync_day, fxf, month_days)
+        project.gsuit_sync
