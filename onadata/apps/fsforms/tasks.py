@@ -101,8 +101,9 @@ def copy_sub_stage_to_sites(sub_stage, pk):
 
 
 @shared_task(max_retries=10, soft_time_limit=60)
-def copy_schedule_to_sites(schedule, fxf_status, pk):
+def copy_schedule_to_sites(schedule_id, fxf_status, pk):
     try:
+        schedule = Schedule.objects.get(pk=schedule_id)
         fxf = schedule.schedule_forms
         with transaction.atomic():
             if not fxf_status:
@@ -188,6 +189,17 @@ def created_manager_form_share(userrole, task_id):
     userrole = UserRole.objects.get(pk=userrole)
     fxf = FieldSightXF.objects.filter(project=userrole.project)
     shared = share_forms(userrole.user, fxf)
+    if shared:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    else:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+
+@shared_task(max_retries=5)
+def api_share_form(fxf, users, task_id):
+    fxf = FieldSightXF.objects.get(pk=fxf)
+    users = User.objects.filter(id__in=users)
+    shared = share_form(users, fxf.xf)
     if shared:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     else:

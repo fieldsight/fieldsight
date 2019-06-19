@@ -15,15 +15,18 @@ def share_m2m(users, forms):
 def share_forms(user, forms):
     from onadata.apps.fsforms.models import ObjectPermission, Asset
     for fxf in forms:
-        try:
-            codenames = ['view_asset', 'change_asset']
-            permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
-            for perm in permissions:
-                object_id = Asset.objects.get(uid=fxf.xf.id_string).id
-                content_type = ContentType.objects.get(id=21)
+        codenames = ['view_asset', 'change_asset']
+        permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
+        for perm in permissions:
+            object_id = Asset.objects.get(uid=fxf.xf.id_string).id
+            content_type = ContentType.objects.get(id=20)  # content type for asset has id 20 in live server
 
-                # Create the new permission
-                new_permission = ObjectPermission.objects.create(
+            # Create the new permission
+            if not ObjectPermission.objects.filter(object_id=object_id,
+                                               content_type=content_type,
+                                               user=user,
+                                               permission_id=perm.pk).exists():
+                ObjectPermission.objects.create(
                     object_id=object_id,
                     content_type=content_type,
                     user=user,
@@ -31,25 +34,27 @@ def share_forms(user, forms):
                     deny=False,
                     inherited=False
                 )
+            else:
+                continue
 
-        except:
-            return False
-        else:
-            return True
+    return True
 
 
 def share_form(users, xform):
     from onadata.apps.fsforms.models import ObjectPermission, Asset
     for user in users:
-        try:
-            codenames = ['view_asset', 'change_asset']
-            permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
-            for perm in permissions:
-                object_id = Asset.objects.get(uid=xform.id_string).id
-                content_type = ContentType.objects.get(id=21)
+        codenames = ['view_asset', 'change_asset']
+        permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
+        for perm in permissions:
+            object_id = Asset.objects.get(uid=xform.id_string).id
+            content_type = ContentType.objects.get(id=20)  # content type for asset has id 20 in live server
 
-                # Create the new permission
-                new_permission = ObjectPermission.objects.create(
+            # Create the new permission
+            if not ObjectPermission.objects.filter(object_id=object_id,
+                                                   content_type=content_type,
+                                                   user=user,
+                                                   permission_id=perm.pk).exists():
+                ObjectPermission.objects.create(
                     object_id=object_id,
                     content_type=content_type,
                     user=user,
@@ -57,11 +62,10 @@ def share_form(users, xform):
                     deny=False,
                     inherited=False
                 )
+            else:
+                continue
 
-        except Exception as e:
-            return False
-        else:
-            return True
+    return True
 
 
 def share_o2o(user, xform):

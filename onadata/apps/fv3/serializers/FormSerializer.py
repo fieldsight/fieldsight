@@ -30,3 +30,15 @@ class XFormSerializer(serializers.ModelSerializer):
 
     def get_media_url(self, obj):
         return "{}/{}/forms/{}/form_settings".format(settings.KOBOCAT_URL, obj.user.username, obj.id_string)
+
+
+class ShareFormSerializer(serializers.Serializer):
+    user_ids = serializers.ListField(child=serializers.IntegerField())
+
+
+class ShareProjectFormSerializer(serializers.Serializer):
+    project = serializers.IntegerField()
+
+
+class ShareTeamFormSerializer(serializers.Serializer):
+    team = serializers.IntegerField()
