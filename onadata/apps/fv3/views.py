@@ -68,7 +68,7 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
         elif project_id:  # Site Supervisor Roles
             sites = Site.all_objects.filter(project=project_id, site_roles__region__isnull=True,
                                             site_roles__group__name="Site Supervisor",
-                                            site_roles__user=self.request.user).order_by('id').distinct('id').count()
+                                            site_roles__user=self.request.user).order_by('id').distinct('id')
 
         else:
             sites = []
