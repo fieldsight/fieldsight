@@ -31,10 +31,10 @@ class FcmDeviceViewSet(viewsets.ModelViewSet):
         device.is_active = True
         device.reg_id = serializer.data["reg_id"]
         username_email = serializer.data["name"]
-        if User.objects.filter(email=username_email).exists():
+        if User.objects.filter(email__iexact=username_email).exists():
             device.name = username_email
         else:
-            email = User.objects.get(username=username_email).email
+            email = User.objects.get(username__iexact=username_email).email
             device.name = email
         device.save()
 
