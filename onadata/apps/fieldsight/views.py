@@ -4349,6 +4349,8 @@ class SyncScheduleUpdateView(UpdateView):
 
 
 class SyncScheduleDeleteView(DeleteView):
+    model = SyncSchedule
+    
     def get_success_url(self):
         return reverse('fieldsight:sync_schedule', kwargs={'pk': self.object.fxf.project.id})
     

@@ -50,42 +50,47 @@
 			</div>
 	
 			<hr>
-			<a href="{% url 'fieldsight:sync_schedule_add' obj.pk %}">Add Custom Schedule handler for individual form.</a>
-			<h3>Custom Schedule</h3>
-			
-			<div class="form-group">
-				<h5>General Report</h5>
-				<div>
-					<table id="dynamic-table2" class="table table-striped table-bordered table-hover margin-top table-sync">
-						<thead>
-							<tr>
-								<th>Form Name</th>
-								<th>Sync</th>
-							</tr>
-						</thead>
-						<tbody>
-							{% for form in general_forms %}
-							<tr>
-								<td>
-									{{ form.xf.title }}  -  {{ form.sync_schedule.get_schedule_display }}
-								</td>
-								<td>
-									<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">
-										<button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Edit</button>
-									</a>
-									<a href="{% url 'fieldsight:sync_schedule_delete' form.sync_schedule.id %}">
-										<button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Delete</button>
-									</a>
-								</td>
-							</tr>
-							{% endfor %}
-						</tbody>
-					</table>
-				</div>
-			</div>
+			<a href="{% url 'fieldsight:sync_schedule_add' obj.pk %}"><button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Add Custom Schedule handler for individual form</button></a>
 			<hr>
-				
+			{% if general_forms or schedule_forms or survey_forms or stage_forms %}
+			<h3>Custom Schedule</h3>
+			{% endif %}
+			{% if general_forms %}
+				<div class="form-group">
+					<h5>General Report</h5>
+					<div>
+						<table id="dynamic-table2" class="table table-striped table-bordered table-hover margin-top table-sync">
+							<thead>
+								<tr>
+									<th>Form Name</th>
+									<th>Sync</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for form in general_forms %}
+								<tr>
+									<td>
+										{{ form.xf.title }}  -  {{ form.sync_schedule.get_schedule_display }}
+									</td>
+									<td>
+										<a href="{% url 'fieldsight:sync_schedule_update' form.sync_schedule.id %}">
+											<button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Edit</button>
+										</a>
+										<a href="{% url 'fieldsight:sync_schedule_delete' form.sync_schedule.id %}">
+											<button type="button" class="btn btn-danger"><i class="la la-refresh ml-2"></i>Delete</button>
+										</a>
+									</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<hr>
 			
+			{% endif %}
+				
+			{% if schedule_forms %}
 			<div class="form-group">
 				<h5>Schedule Report</h5>
 				<div>
@@ -107,7 +112,7 @@
 										<button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Edit</button>
 									</a>
 									<a href="{% url 'fieldsight:sync_schedule_delete' form.sync_schedule.id %}">
-										<button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Delete</button>
+										<button type="button" class="btn btn-danger"><i class="la la-refresh ml-2"></i>Delete</button>
 									</a>
 								</td>
 							</tr>
@@ -117,8 +122,9 @@
 				</div>
 			</div>
 			<hr>
-			
+			{% endif %}
 
+			{% if survey_forms %}
 			<div class="form-group">
 				<h5>Survey Forms</h5>
 				<div>
@@ -140,7 +146,7 @@
 										<button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Edit</button>
 									</a>
 									<a href="{% url 'fieldsight:sync_schedule_delete' form.sync_schedule.id %}">
-										<button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Delete</button>
+										<button type="button" class="btn btn-danger"><i class="la la-refresh ml-2"></i>Delete</button>
 									</a>
 								</td>
 							</tr>
@@ -150,8 +156,9 @@
 				</div>
 			</div>
 			<hr>
-			
-			
+			{% endif %}
+
+			{% if stage_forms %}
 			<div class="form-group">
 				<h5>Stage Forms</h5>
 				<div>
@@ -163,13 +170,14 @@
 							</tr>
 						</thead>
 						<tbody>
-							{% for form in stage_forms %}
-							{{ stage.title }}
+							{% for stage in stage_forms %}
+							{% if stage.sub_stages %}
 							<tr>
 								<td>
 									{{ stage.title }}
 								</td>
 							</tr>
+							{% endif %}
 							{% for form in stage.sub_stages %}
 							<tr>
 								<td>
@@ -180,7 +188,7 @@
 										<button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Edit</button>
 									</a>
 									<a href="{% url 'fieldsight:sync_schedule_delete' form.stage_forms.sync_schedule.id %}">
-										<button type="button" class="btn btn-success"><i class="la la-refresh ml-2"></i>Delete</button>
+										<button type="button" class="btn btn-danger"><i class="la la-refresh ml-2"></i>Delete</button>
 									</a>
 								</td>
 							</tr>
@@ -191,10 +199,11 @@
 				</div>
 			</div>
 			<hr>
-
+			{% endif %}
 				
 
         </section>
+			}
 
 	</div>
 {% endblock %}
