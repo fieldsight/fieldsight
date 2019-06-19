@@ -14,7 +14,14 @@
 </style>
 {% endblock %}
 {% block head %}
-<a class="btn btn-success btn-raised" href="{% url 'fieldsight:sites-list' project %}">{% trans 'Sites' %}</a>
+{% if terms_and_labels %}
+    <a class="btn btn-success btn-raised" href="{% url 'fieldsight:sites-list' project %}">{{obj.terms_and_labels.site}}</a>
+
+{% else %}
+    <a class="btn btn-success btn-raised" href="{% url 'fieldsight:sites-list' project %}">{% trans 'Sites' %}</a>
+
+{% endif %}
+
 {% endblock %}
 
 
@@ -25,7 +32,13 @@
         {% block breadcrumbs %}
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' project %}">{{ obj.name }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{% trans 'Bulk' %} {% trans 'Site' %} {% trans 'Upload' %}</li>
+            {% if terms_and_labels %}
+                <li class="breadcrumb-item active" aria-current="page">{% trans 'Bulk' %} {{obj.terms_and_labels.site}} {% trans 'Upload' %}</li>
+
+            {% else %}
+                <li class="breadcrumb-item active" aria-current="page">{% trans 'Bulk' %} {% trans 'Site' %} {% trans 'Upload' %}</li>
+
+            {% endif %}
         </ol>
         {% endblock %}
     </nav>
@@ -47,7 +60,12 @@
 
     <section class="panel">
         <header class="panel-heading clearfix">
-            <h3><i class="la la-files-o"></i>{% trans 'Bulk' %} {% trans 'Site' %} {% trans 'Upload' %}</h3>
+            {% if terms_and_labels %}
+                <h3><i class="la la-files-o"></i>{% trans 'Bulk' %} {{obj.terms_and_labels.site}} {% trans 'Upload' %}</h3>
+
+            {% else %}
+                <h3><i class="la la-files-o"></i>{% trans 'Bulk' %} {% trans 'Site' %} {% trans 'Upload' %}</h3>
+            {% endif %}
         </header>
 
         <div class="panel-body">
@@ -65,8 +83,16 @@
                     <legend>
                         {% trans 'Download' %} {% trans 'for' %} {% trans 'editing:' %}
                     </legend>
-                    {% trans 'Filter' %} {% trans 'by' %} {% trans 'regions' %}
-                    <select id="regions" placeholder="Filter by regions" multiple>
+                    {% if terms_and_labels %}
+                        {% trans 'Filter' %} {% trans 'by' %} {{obj.terms_and_labels.region}}
+                        <select id="regions" placeholder="Filter by {{obj.terms_and_labels.region}}" multiple>
+
+                    {% else %}
+                        {% trans 'Filter' %} {% trans 'by' %} {% trans 'regions' %}
+                        <select id="regions" placeholder="Filter by regions" multiple>
+
+                    {% endif %}
+
                         {% for region in regions %}
                         <option value="{{ region.id }}">{{ region.name }}</option>
                         {% endfor %}

@@ -927,7 +927,14 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         context['pk'] = self.kwargs.get('pk')
         context['json_questions'] = json.dumps(project.site_meta_attributes)
         context['obj'] = project
-        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        context['terms_and_labels'] = terms_and_labels
+        if terms_and_labels:
+
+            context['site_name'] = project.terms_and_labels.site
+
+        else:
+            context['site_name'] = "Site"
 
         return context
         
@@ -983,7 +990,13 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
         context['pk'] = self.kwargs.get('pk')
         context['json_questions'] = json.dumps(site.project.site_meta_attributes)
         context['json_answers'] = json.dumps(site.site_meta_attributes_ans)
-        context['terms_and_labels'] = ProjectLevelTermsAndLabels.objects.filter(project=site.project).exists()
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=site.project).exists()
+        context['terms_and_labels'] = terms_and_labels
+
+        if terms_and_labels:
+            context['site_name'] = site.project.terms_and_labels.site
+        else:
+            context['site_name'] = 'Site'
 
         return context
 
@@ -1179,11 +1192,13 @@ def ajax_save_project(request):
         return Response({'msg': 'ok'}, status=status.HTTP_200_OK)
     return Response({'error': 'Invalid Project Data'}, status=status.HTTP_400_BAD_REQUEST)
 
+
 class UploadSitesView(ProjectRoleMixin, TemplateView):
     def get(self, request, pk):
         obj = get_object_or_404(Project, pk=pk, is_active=True)
         form = UploadFileForm()
         regions = obj.project_region.filter(is_active=True)
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=obj).exists()
         selected_regions = request.GET.get('regions')
         if selected_regions:
             selected_regions = selected_regions.split(',')
@@ -1196,12 +1211,15 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                 'project': pk,
                 'regions': regions,
                 'selected_regions': selected_regions,
+                'terms_and_labels': terms_and_labels
             }
         )
 
     def post(self, request, pk=id):
         obj = get_object_or_404(Project, pk=pk, is_active=True)
         form = UploadFileForm(request.POST, request.FILES)
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=obj).exists()
+
         if form.is_valid():
             try:
                 sitefile = request.FILES['file']
@@ -1214,14 +1232,28 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                     task = bulkuploadsites.delay(task_obj.pk, sites, pk)
                     task_obj.task_id = task.id
                     task_obj.save()
-                    messages.success(request, 'Sites are being uploaded. You will be notified in notifications list as well.')
+                    if terms_and_labels:
+                        messages.success(request, obj.terms_and_labels.site + ' are being uploaded. You will be notified in notifications list as well.')
+                    else:
+                        messages.success(request, 'Sites are being uploaded. You will be notified in notifications list as well.')
+
                 else:
-                    messages.success(request, 'Sites cannot be updated a the moment.')
+                    if terms_and_labels:
+
+                        messages.success(request, obj.terms_and_labels.site +' cannot be updated a the moment.')
+                    else:
+                        messages.success(request, 'Sites cannot be updated a the moment.')
+
                 return HttpResponseRedirect(reverse('fieldsight:proj-site-list', kwargs={'pk': pk}))
             except Exception as e:
                 form.full_clean()
-                form._errors[NON_FIELD_ERRORS] = form.error_class(['Sites Upload Failed, UnSupported Data', e])
-                messages.warning(request, 'Site Upload Failed, UnSupported Data ')
+                if terms_and_labels:
+                    form._errors[NON_FIELD_ERRORS] = form.error_class([obj.terms_and_labels.site + ' Upload Failed, UnSupported Data', e])
+                    messages.warning(request, obj.terms_and_labels.site + ' Upload Failed, UnSupported Data ')
+                else:
+                    form._errors[NON_FIELD_ERRORS] = form.error_class(['Sites Upload Failed, UnSupported Data', e])
+                    messages.warning(request, 'Site Upload Failed, UnSupported Data ')
+
         return render(request, 'fieldsight/upload_sites.html', {'obj': obj, 'form': form, 'project': pk})
 
 
@@ -3064,6 +3096,8 @@ class ExcelBulkSiteSample(ProjectRoleMixin, View):
     def get(self, request, pk, edit=0):
         source_user = self.request.user   
         project = get_object_or_404(Project, pk=self.kwargs.get('pk'))
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
         content_type = ContentType.objects.get(model='project', app_label='fieldsight')
         regions = request.GET.get('regions', None)
 
@@ -3102,11 +3136,13 @@ class ExcelBulkSiteSample(ProjectRoleMixin, View):
             task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), regions)
             task_obj.task_id = task.id
             task_obj.save()
-            #status, data = 200, {'status':'true','message':'The sites details xls file is being generated. You will be notified after the file is generated.'}
-            messages.info(request, 'The sites details xls file is being generated. You will be notified after the file is generated.')
+            if terms_and_labels:
+                messages.info(request, 'The '+ project.terms_and_labels.site +' details xls file is being generated. You will be notified after the file is generated.')
+            else:
+                messages.info(request, 'The sites details xls file is being generated. You will be notified after the file is generated.')
+
 
         else:
-            #status, data = 401, {'status':'false','message':'Error occured please try again.'}
             messages.info(request, 'Error occured please try again.')
 
         return HttpResponseRedirect(reverse('fieldsight:site-upload', kwargs={'pk': project.pk}))
@@ -4041,6 +4077,8 @@ class SiteBulkEditView(View):
             'project': project,
             'regions': SiteBulkEditView.get_regions_filter(project),
             'form': SiteBulkEditForm(project=project),
+            'terms_and_labels': ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+
         }
 
         return render(

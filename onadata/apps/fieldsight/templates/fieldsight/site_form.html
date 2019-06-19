@@ -141,6 +141,7 @@
  									{% if not field.label == 'Location' %}
                                     {% if not field.label == 'Is active' %}
 									{% if not field.label == 'Project' %}
+
 									<div class="form-group col-md-6 {% if field.errors %} alert alert-danger {% endif %}">
 									  <label class="col-form-label">{{ field.label }}</label>
 
@@ -216,17 +217,16 @@
                             </div>
                             <div class="modal-body">
 								<h4 style="color:red; text-align: center;">{% trans 'Warning' %}</h4>
-                                <p>{% trans '"All the form submissions and user roles within this
-									{% if terms_and_labels %}
-											{{obj.terms_and_labels.site}}
+								{% if terms_and_labels %}
+									<p>
+										All the form submissions and user roles within this {{project.terms_and_labels.site}} will be completely removed. Do you still want to continue?
+									</p>
 
+								{% else %}
+									 <p>{% trans 'All the form submissions and user roles within this site will be completely removed. Do you still want to continue?' %}
+									 </p>
+								{% endif %}
 
-										{% else %}
-											site
-
-									{% endif %}
-
-									will be completely removed. Do you still want to continue?"' %}</p>
 							</div>
                             <div class="modal-footer">
                                 {% if form.instance.id %}
@@ -564,6 +564,9 @@
      var static_url ="{{ STATIC_URL }}";
      var elat = "{{form.instance.latitude}}";
      var elong = "{{form.instance.longitude}}";
+
+     var label_site_type = $('#id_type').parent().find('label');
+     label_site_type.html('Type of '+ '{{site_name}}');
 
     </script>
 
