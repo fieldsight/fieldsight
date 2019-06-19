@@ -65,7 +65,7 @@ class ShareFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = ShareFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        fxf = FieldSightXF.objects.get(pk=kwargs.get('pk'))
+        fxf = FieldSightXF.objects.get(pk=request.data['form'])
         self.check_object_permissions(request, fxf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                      description="Share Forms Individual",
@@ -74,7 +74,7 @@ class ShareFormViewSet(APIView):
             from onadata.apps.fsforms.tasks import api_share_form
             try:
                 with transaction.atomic():
-                    api_share_form.delay(fxf.id, request.data['user_ids'], task_obj.id)
+                    api_share_form.delay(fxf.id, request.data['users'], task_obj.id)
             except IntegrityError:
                 pass
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -91,7 +91,7 @@ class ShareProjectFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = ShareProjectFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        fxf = FieldSightXF.objects.get(pk=kwargs.get('pk'))
+        fxf = FieldSightXF.objects.get(pk=request.data['form'])
         self.check_object_permissions(request, fxf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                      description="Share Forms Project Manager and Admin",
@@ -126,7 +126,7 @@ class ShareTeamFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = ShareTeamFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        fxf = FieldSightXF.objects.get(pk=kwargs.get('pk'))
+        fxf = FieldSightXF.objects.get(pk=request.data['form'])
         self.check_object_permissions(request, fxf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Share XForm to Team",
                                                      task_type=21, content_object=fxf)
