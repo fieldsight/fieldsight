@@ -2,11 +2,12 @@ from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.db import models, IntegrityError, transaction
+from django.conf import settings
 
 from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset
 from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
-    ShareProjectFormSerializer, ShareTeamFormSerializer
+    ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -144,6 +145,28 @@ class ShareTeamFormViewSet(APIView):
             except IntegrityError:
                 pass
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class ShareGlobalFormViewSet(APIView):
+    """
+        A ViewSet for sharing a form globally
+        """
+
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAuthenticated, XFormSharePermission)
+
+    def post(self, request, **kwargs):
+        serializer = ShareGlobalFormSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        fxf = FieldSightXF.objects.get(pk=request.data['form'])
+        self.check_object_permissions(request, fxf)
+
+        from onadata.apps.fsforms.share_xform import share_form_global
+        shared = share_form_global(fxf.xf)
+        if shared:
+            return Response({'share_link': settings.KPI_URL + '#/forms/' + fxf.xf.id_string}, status=status.HTTP_201_CREATED)
+
+
 
 
 
