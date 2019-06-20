@@ -427,8 +427,12 @@ class GeoLayerView(APIView):
         project = get_object_or_404(Project, id=project_id)
         try:
             geo_layers = eval(request.data.get('geo_layers'))
+            previous_geo_layers = project.geo_layers.all().values_list('id', flat=True)
+
             if geo_layers:
                 try:
+                    project.geo_layers.remove(*previous_geo_layers)
+
                     project.geo_layers.add(*geo_layers)
 
                     return Response(status=status.HTTP_201_CREATED)
