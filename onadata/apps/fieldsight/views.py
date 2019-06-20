@@ -4317,3 +4317,7 @@ def auto_create_project_site(instance, created, **kwargs):
         project_type_id = ProjectType.objects.first().id
         project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id)
         Site.objects.create(name="Example Site", project=project, identifier="example site")
+
+
+class ApplicationView(LoginRequiredMixin, TemplateView):
+    template_name = "fieldsight/application.html"
