@@ -4,6 +4,7 @@ import os
 
 import json
 import re
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.postgres.fields import ArrayField
@@ -1003,6 +1004,14 @@ class Asset(models.Model):
 
     class Meta:
         db_table = 'kpi_asset'
-        managed = False 
+        managed = False
+
+
+class SharedFieldSightForm(models.Model):
+    fxf = models.OneToOneField(FieldSightXF)
+    shared = models.BooleanField(default=False)
+
+    def get_shareable_link(self):
+        return settings.KPI_URL + '#/forms/' + self.fxf.xf.id_string
 
 

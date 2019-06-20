@@ -162,11 +162,8 @@ class ShareGlobalFormViewSet(APIView):
         self.check_object_permissions(request, fxf)
 
         from onadata.apps.fsforms.share_xform import share_form_global
-        shared = share_form_global(fxf.xf)
+        shared = share_form_global(fxf)
         if shared:
             return Response({'share_link': settings.KPI_URL + '#/forms/' + fxf.xf.id_string}, status=status.HTTP_201_CREATED)
-
-
-
 
 
