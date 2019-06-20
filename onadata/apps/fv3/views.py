@@ -435,11 +435,12 @@ class GeoLayerView(APIView):
 
                     project.geo_layers.add(*geo_layers)
 
-                    return Response(status=status.HTTP_201_CREATED)
+                    return Response(status=status.HTTP_200_OK)
                 except Exception as e:
                     return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({'message': 'empty geolayers', 'status': status.HTTP_200_OK})
+                project.geo_layers.remove(*previous_geo_layers)
+                return Response(status=status.HTTP_200_OK)
         except Exception as e:
             return Response(data='Error: POST requires only geo_layers field.', status=status.HTTP_400_BAD_REQUEST)
 
