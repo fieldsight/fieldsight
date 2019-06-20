@@ -7,7 +7,7 @@ from django.conf import settings
 from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset
 from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
-    ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer
+    ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, CloneFormSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -58,9 +58,6 @@ class ShareFormViewSet(APIView):
         """
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     permission_classes = (IsAuthenticated, XFormSharePermission)
-
-    def get_queryset(self):
-        return ObjectPermission.objects.filter()
 
     def post(self, request, **kwargs):
         serializer = ShareFormSerializer(data=request.data)
@@ -165,6 +162,28 @@ class ShareGlobalFormViewSet(APIView):
         shared = share_form_global(fxf.xf)
         if shared:
             return Response({'share_link': settings.KPI_URL + '#/forms/' + fxf.xf.id_string}, status=status.HTTP_201_CREATED)
+
+
+class CloneFormViewSet(APIView):
+    """
+        A ViewSet for cloning a form
+        """
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAuthenticated, )
+
+    def post(self, request, **kwargs):
+        serializer = CloneFormSerializer(data=request.data)
+        if serializer.is_valid():
+            fxf = FieldSightXF.objects.get(id=request.data['form'])
+            task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Share XForm to Team",
+                                                         task_type=21, content_object=fxf)
+            if task_obj:
+                from onadata.apps.fsforms.tasks import api_clone_form
+                api_clone_form.delay(fxf.id, request.user.id, task_obj.id)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
