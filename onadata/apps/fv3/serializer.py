@@ -113,3 +113,35 @@ class ProjectRegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
         fields = ('id', 'project', 'identifier', 'name', 'date_created', 'parent')
+
+
+class ProjectSitesSerializer(serializers.ModelSerializer):
+    region = serializers.CharField(source='region.name')
+    submissions = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Site
+        fields = ('id', 'project', 'name', 'identifier', 'address', 'region', 'submissions', 'progress', 'phone', 'public_desc',
+                  'type', 'logo')
+
+        extra_kwargs = {
+            'project': {'write_only': True},
+            'phone': {'write_only': True},
+            'public_desc': {'write_only': True},
+            'type': {'write_only': True},
+            'logo': {'write_only': True}
+
+        }
+
+    def get_submissions(self, obj):
+        response = obj.get_site_submission_count()
+
+        return response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
+
+    def get_progress(self, obj):
+        site_progress = obj.progress()
+
+        return site_progress
+
+

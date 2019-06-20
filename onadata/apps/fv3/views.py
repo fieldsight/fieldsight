@@ -5,6 +5,7 @@ from django.db.models import Prefetch
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
@@ -18,13 +19,15 @@ from rest_framework.views import APIView
 from django.contrib.gis.geos import Point
 from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels
 from onadata.apps.fieldsight.rolemixins import ProjectRoleMixin
+from onadata.apps.fsforms.models import FInstance
 from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
-    SiteTypeSerializer, ProjectLevelTermsAndLabelsSerializer, ProjectRegionSerializer
+    SiteTypeSerializer, ProjectLevelTermsAndLabelsSerializer, ProjectRegionSerializer, ProjectSitesSerializer
+from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites
+from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from .role_api_permissions import ProjectRoleApiPermissions
@@ -268,6 +271,132 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
             serializer.save()
 
 
+class ProjectSitesViewset(viewsets.ModelViewSet):
+    """
+    A simple ViewSet for viewing, creating, updating and deleting sites. Allowed methods 'get', 'post', 'put', 'delete'.
+    """
+    queryset = Site.objects.select_related('region', 'project', 'type')
+    serializer_class = ProjectSitesSerializer
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
+
+    def get_queryset(self):
+
+        project_id = self.request.query_params.get('project', None)
+
+        if project_id:
+            project = get_object_or_404(Project, id=project_id)
+            return self.queryset.filter(project=project)
+
+        else:
+            return self.queryset
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=False)
+        self.object = self.perform_create(serializer)
+
+        noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
+                                       organization=self.object.project.organization,
+                                       project=self.object.project, content_object=self.object,
+                                       extra_object=self.object.project,
+                                       description='{0} created a new site named {1} in {2}'.format(
+                                           self.request.user.get_full_name(),
+                                           self.object.name, self.object.project.name))
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        project_id = serializer.validated_data.get('project')
+
+        project = get_object_or_404(Project, id=project_id)
+
+        existing_identifier = Site.objects.filter(identifier=serializer.validated_data.get('identifier'),
+                                                  project=project)
+        if existing_identifier:
+            return Response({'message': 'Your identifier ' + serializer.validated_data.get('identifier') +
+                                        ' conflict with existing site please use different identifier to create site'})
+
+        obj = serializer.save()
+
+        return obj
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        previous_identifier = instance.identifier
+        old_meta = instance.site_meta_attributes_ans
+        existing_identifier = Site.objects.filter(identifier=serializer.validated_data.get('identifier'),
+                                                  project_id=instance.project_id)
+
+        check_identifier = previous_identifier == serializer.validated_data.get('identifier')
+
+        if not check_identifier and existing_identifier:
+            return Response({'message': 'Your identifier ' + serializer.data['identifier'] +
+                                        ' conflict with existing site please use different identifier to update site'})
+
+        self.perform_update(serializer)
+        self.object = instance
+        new_meta = json.loads(self.object.site_meta_attributes_ans)
+
+        extra_json = None
+        if old_meta != new_meta:
+            updated = {}
+            meta_questions = instance.project.site_meta_attributes
+            for question in meta_questions:
+                key = question['question_name']
+                label = question['question_text']
+                if old_meta.get(key) != new_meta.get(key):
+                    updated[key] = {'label': label, 'data': [old_meta.get(key, 'null'), new_meta.get(key, 'null')]}
+            extra_json = updated
+
+        description = '{0} changed the details of site named {1}'.format(
+            self.request.user.get_full_name(), self.object.name
+        )
+
+        noti = self.object.logs.create(
+            source=self.request.user, type=15, title="edit Site",
+            organization=instance.project.organization,
+            project=instance.project, content_object=instance,
+            description=description,
+            extra_json=extra_json,
+        )
+
+        return Response(status=status.HTTP_200_OK)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.identifier = instance.identifier + str('_' + self.kwargs.get('pk'))
+        instance.save()
+
+        instances = instance.site_instances.all().values_list('instance', flat=True)
+
+        Instance.objects.filter(id__in=instances).update(deleted_at=datetime.now())
+
+        # update in mongo
+
+        result = settings.MONGO_DB.instances.update({"_id": {"$in": list(instances)}},
+                                                    {"$set": {'_deleted_at': datetime.now()}}, multi=True)
+
+        FInstance.objects.filter(instance_id__in=instances).update(is_deleted=True)
+
+        task_obj = CeleryTaskProgress.objects.create(user=self.request.user,
+                                                     description="Removal of UserRoles After Site delete", task_type=7,
+                                                     content_object=instance)
+
+        if task_obj:
+            task = UnassignAllSiteRoles.delay(task_obj.id, instance.id)
+            task_obj.task_id = task.id
+            task_obj.save()
+
+        noti = task_obj.logs.create(source=self.request.user, type=36, title="Delete Site",
+                                    organization=instance.project.organization, extra_object=instance.project,
+                                    project=instance.project, extra_message="site", site=instance, content_object=instance,
+                                    description='{0} deleted of site named {1}'.format(
+                                        self.request.user.get_full_name(), instance.name))
+
+
 class RegionViewset(generics.RetrieveUpdateDestroyAPIView):
     """
     A simple ViewSet for viewing, editing and deleting region. Allowed methods 'get', 'put', 'delete'.
@@ -289,8 +418,7 @@ class GeoLayerView(APIView):
         project_id = request.query_params.get('project', None)
         project = get_object_or_404(Project, id=project_id)
 
-        organization = project.organization
-        data = GeoLayer.objects.filter(organization=organization).values('title')
+        data = project.geo_layers.all().values('id', 'title')
 
         return Response(data)
 
@@ -306,8 +434,21 @@ class GeoLayerView(APIView):
                     return Response(status=status.HTTP_201_CREATED)
                 except Exception as e:
                     return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'message': 'empty geolayers', 'status': status.HTTP_200_OK})
         except Exception as e:
             return Response(data='Error: POST requires only geo_layers field.', status=status.HTTP_400_BAD_REQUEST)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def organization_geolayer(request):
+    query_params = request.query_params
+    project_id = query_params.get('project')
+    project = get_object_or_404(Project, id=project_id)
+    organization = project.organization
+    data = GeoLayer.objects.filter(organization=organization).values('title', 'id')
+    return Response(data)
 
 
 class ProjectDefineSiteMeta(APIView):
@@ -334,9 +475,9 @@ class ProjectDefineSiteMeta(APIView):
         old_meta = project.site_meta_attributes
         # print old_meta===================================
         # print "----"
-        project.site_meta_attributes = request.POST.get('json_questions');
-        project.site_basic_info = request.POST.get('site_basic_info');
-        project.site_featured_images = request.POST.get('site_featured_images');
+        project.site_meta_attributes = request.POST.get('json_questions')
+        project.site_basic_info = request.POST.get('site_basic_info')
+        project.site_featured_images = request.POST.get('site_featured_images')
         new_meta = json.loads(project.site_meta_attributes)
         try:
             if old_meta != new_meta:

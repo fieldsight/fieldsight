@@ -3,13 +3,14 @@ from rest_framework import routers
 
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
     ProjectUpdateViewset, sectors_subsectors, ProjectSiteTypesViewset, ProjectTermsLabelsViewset, \
-    ProjectRegionsViewset, GeoLayerView, ProjectDefineSiteMeta
+    ProjectRegionsViewset, GeoLayerView, ProjectDefineSiteMeta, ProjectSitesViewset, organization_geolayer
 
 
 router = routers.DefaultRouter()
 
 router.register(r'project-terms-labels', ProjectTermsLabelsViewset, base_name='project-terms-labels')
 router.register(r'project-regions', ProjectRegionsViewset, base_name='project-regions')
+router.register(r'project-sites', ProjectSitesViewset, base_name='project-sites')
 router.register(r'project-site-types', ProjectSiteTypesViewset, base_name='project-site-types')
 
 
@@ -23,6 +24,7 @@ urlpatterns = [
 
     url(r'^api/update-project/(?P<pk>\d+)/$', ProjectUpdateViewset.as_view(),
         name='update_project_api'),
+    url(r'^api/organization-geolayer/$', organization_geolayer, name='organization_geolayer'),
     url(r'^api/sectors-subsectors/$', sectors_subsectors.as_view({'get':'list'}), name='sectors_subsectors'),
     url(r'^api/geolayer/$', GeoLayerView.as_view(), name='geolayer'),
     url(r'^api/project-define-site-meta/(?P<pk>\d+)/$', ProjectDefineSiteMeta.as_view(), name='project_define_site_meta'),
