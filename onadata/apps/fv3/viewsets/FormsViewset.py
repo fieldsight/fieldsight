@@ -175,8 +175,8 @@ class CloneFormViewSet(APIView):
         serializer = CloneFormSerializer(data=request.data)
         if serializer.is_valid():
             fxf = FieldSightXF.objects.get(id=request.data['form'])
-            task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Share XForm to Team",
-                                                         task_type=21, content_object=fxf)
+            task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Clone Form",
+                                                         task_type=22, content_object=fxf)
             if task_obj:
                 from onadata.apps.fsforms.tasks import api_clone_form
                 api_clone_form.delay(fxf.id, request.user.id, task_obj.id)
