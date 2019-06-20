@@ -1008,10 +1008,10 @@ class Asset(models.Model):
 
 
 class SharedFieldSightForm(models.Model):
-    fxf = models.OneToOneField(FieldSightXF)
+    xf = models.OneToOneField(XForm, null=True)
     shared = models.BooleanField(default=False)
 
     def get_shareable_link(self):
-        return settings.KPI_URL + '#/forms/' + self.fxf.xf.id_string
+        return settings.KPI_URL + '#/forms/' + self.xf.id_string
 
 

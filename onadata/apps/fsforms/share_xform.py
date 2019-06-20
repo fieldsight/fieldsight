@@ -73,8 +73,8 @@ def share_form_global(form):
     codenames = ['view_asset', 'view_submissions']
     permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
     for perm in permissions:
-        object_id = Asset.objects.get(uid=form.xf.id_string).id
-        content_type = ContentType.objects.get(id=21)  # change id as per the content type for asset
+        object_id = Asset.objects.get(uid=form.id_string).id
+        content_type = ContentType.objects.get(id=20)  # change id as per the content type for asset
         user = User.objects.get(id=-1)
         if not ObjectPermission.objects.filter(
             object_id=object_id,
@@ -90,9 +90,9 @@ def share_form_global(form):
                 permission_id=perm.pk,
                 deny=False,
                 inherited=False)
-            shared, created = SharedFieldSightForm.objects.get_or_create(fxf=form, shared=True)
+            shared, created = SharedFieldSightForm.objects.get_or_create(xf=form, shared=True)
             if not created:
-                SharedFieldSightForm.objects.filter(fxf=form).update(shared=True)
+                SharedFieldSightForm.objects.filter(xf=form).update(shared=True)
         else:
             continue
     return True

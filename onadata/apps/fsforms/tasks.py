@@ -196,10 +196,10 @@ def created_manager_form_share(userrole, task_id):
 
 
 @shared_task(max_retries=5)
-def api_share_form(fxf, users, task_id):
-    fxf = FieldSightXF.objects.get(pk=fxf)
+def api_share_form(xf, users, task_id):
+    xf = XForm.objects.get(pk=xf)
     users = User.objects.filter(id__in=users)
-    shared = share_form(users, fxf.xf)
+    shared = share_form(users, xf)
     if shared:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     else:

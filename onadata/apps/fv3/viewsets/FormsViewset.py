@@ -65,16 +65,16 @@ class ShareFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = ShareFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        fxf = FieldSightXF.objects.get(pk=request.data['form'])
-        self.check_object_permissions(request, fxf)
+        xf = XForm.objects.get(pk=request.data['form'])
+        self.check_object_permissions(request, xf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                      description="Share Forms Individual",
-                                                     task_type=19, content_object=fxf)
+                                                     task_type=19, content_object=xf)
         if task_obj:
             from onadata.apps.fsforms.tasks import api_share_form
             try:
                 with transaction.atomic():
-                    api_share_form.delay(fxf.id, request.data['users'], task_obj.id)
+                    api_share_form.delay(xf.id, request.data['users'], task_obj.id)
             except IntegrityError:
                 pass
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -91,11 +91,11 @@ class ShareProjectFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = ShareProjectFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        fxf = FieldSightXF.objects.get(pk=request.data['form'])
-        self.check_object_permissions(request, fxf)
+        xf = XForm.objects.get(pk=request.data['form'])
+        self.check_object_permissions(request, xf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                      description="Share Forms Project Manager and Admin",
-                                                     task_type=20, content_object=fxf)
+                                                     task_type=20, content_object=xf)
         if task_obj:
             from onadata.apps.fsforms.tasks import api_share_form
             try:
@@ -109,7 +109,7 @@ class ShareProjectFormViewSet(APIView):
                     user_ids = []
                     for item in users:
                         user_ids.append(item.id)
-                    api_share_form.delay(fxf.id, user_ids, task_obj.id)
+                    api_share_form.delay(xf.id, user_ids, task_obj.id)
             except IntegrityError:
                 pass
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -126,10 +126,10 @@ class ShareTeamFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = ShareTeamFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        fxf = FieldSightXF.objects.get(pk=request.data['form'])
-        self.check_object_permissions(request, fxf)
+        xf = XForm.objects.get(pk=request.data['form'])
+        self.check_object_permissions(request, xf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Share XForm to Team",
-                                                     task_type=21, content_object=fxf)
+                                                     task_type=21, content_object=xf)
         if task_obj:
             from onadata.apps.fsforms.tasks import api_share_form
             try:
@@ -141,7 +141,7 @@ class ShareTeamFormViewSet(APIView):
                     user_ids = []
                     for item in users:
                         user_ids.append(item.id)
-                    api_share_form.delay(fxf.id, user_ids, task_obj.id)
+                    api_share_form.delay(xf.id, user_ids, task_obj.id)
             except IntegrityError:
                 pass
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -158,12 +158,12 @@ class ShareGlobalFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = ShareGlobalFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        fxf = FieldSightXF.objects.get(pk=request.data['form'])
-        self.check_object_permissions(request, fxf)
+        xf = XForm.objects.get(pk=request.data['form'])
+        self.check_object_permissions(request, xf)
 
         from onadata.apps.fsforms.share_xform import share_form_global
-        shared = share_form_global(fxf)
+        shared = share_form_global(xf)
         if shared:
-            return Response({'share_link': settings.KPI_URL + '#/forms/' + fxf.xf.id_string}, status=status.HTTP_201_CREATED)
+            return Response({'share_link': settings.KPI_URL + '#/forms/' + xf.id_string}, status=status.HTTP_201_CREATED)
 
 
