@@ -122,8 +122,8 @@ class ProjectSitesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Site
-        fields = ('id', 'project', 'name', 'identifier', 'address', 'region', 'submissions', 'progress', 'phone', 'public_desc',
-                  'type', 'logo')
+        fields = ('id', 'project', 'name', 'identifier', 'address', 'region', 'phone', 'public_desc',
+                  'type', 'logo', 'submissions', 'progress')
 
         extra_kwargs = {
             'project': {'write_only': True},
@@ -135,12 +135,28 @@ class ProjectSitesSerializer(serializers.ModelSerializer):
         }
 
     def get_submissions(self, obj):
-        response = obj.get_site_submission_count()
+        # response = obj.get_site_submission_count()
+        instances = obj.site_instances.all().order_by('-date')
+        outstanding, flagged, approved, rejected = 0, 0, 0, 0
+        for submission in instances:
+            if submission.form_status == 0:
+                outstanding += 1
+            elif submission.form_status == 1:
+                rejected += 1
+            elif submission.form_status == 2:
+                flagged += 1
+            elif submission.form_status == 3:
+                approved += 1
+        response = {}
+        response['outstanding'] = outstanding
+        response['rejected'] = rejected
+        response['flagged'] = flagged
+        response['approved'] = approved
 
         return response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
 
     def get_progress(self, obj):
-        site_progress = obj.progress()
+        site_progress = obj.site_progress
 
         return site_progress
 

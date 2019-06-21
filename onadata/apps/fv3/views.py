@@ -9,6 +9,7 @@ from django.conf import settings
 
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
@@ -31,6 +32,11 @@ from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, Unass
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from .role_api_permissions import ProjectRoleApiPermissions
+
+
+class ProjectSitesPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
 
 
 @permission_classes([IsAuthenticated])
@@ -278,7 +284,8 @@ class ProjectSitesViewset(viewsets.ModelViewSet):
     queryset = Site.objects.select_related('region', 'project', 'type')
     serializer_class = ProjectSitesSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
+    # permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
+    pagination_class = ProjectSitesPagination
 
     def get_queryset(self):
 
