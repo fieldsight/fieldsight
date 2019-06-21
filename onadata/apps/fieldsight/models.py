@@ -15,7 +15,7 @@ from django.core.files.base import ContentFile
 from django.utils.text import slugify
 from jsonfield import JSONField
 from .static_lists import COUNTRIES
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from django.dispatch import receiver
 
 from django.utils.http import urlsafe_base64_encode
@@ -699,4 +699,21 @@ class ProjectLevelTermsAndLabels(models.Model):
     def __str__(self):
         return self.project.name
 
+
+class ReportData(models.Model):
+    TYPE_CHOICES = ((0, "Mobile"), (1, "web"))
+    MSG_TYPE_CHOICES = ((0, "Bug"), (1, "Crash"), (2, "Inaccurate Data"), (3, "Others"))
+    user = models.ForeignKey(User, related_name="reports")
+    type = models.IntegerField(choices=TYPE_CHOICES, default=0)
+    device = models.CharField(max_length=31, blank=True, null=True)
+    fcm_reg_id = models.CharField(max_length=255,  null=True, blank=True)
+    app_version = models.CharField(max_length=31,  null=True, blank=True)
+    app_os_version = models.CharField(max_length=31,  null=True, blank=True)
+    location = PointField(geography=True, srid=4326, blank=True, null=True)
+    message_type = models.IntegerField(choices=MSG_TYPE_CHOICES, default=3)
+    message = models.TextField()
+    device_name = models.CharField(max_length=31, null=True, blank=True)
+
+    def __str__(self):
+        return self.message
 

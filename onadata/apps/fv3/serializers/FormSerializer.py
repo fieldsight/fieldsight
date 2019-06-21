@@ -11,6 +11,10 @@ class XFormSerializer(serializers.ModelSerializer):
     replace_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
     media_url = serializers.SerializerMethodField()
+    share_users_url = serializers.SerializerMethodField()
+    share_project_url = serializers.SerializerMethodField()
+    share_team_url = serializers.SerializerMethodField()
+    share_global_url = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm

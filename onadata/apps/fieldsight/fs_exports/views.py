@@ -46,7 +46,7 @@ class ImageZipSites(ReadonlySiteLevelRoleMixin, View):
         return JsonResponse(data, status=status)
 
 
-class ProjectStatsticsReport(View):
+class ProjectStatsticsReport(ReadonlyProjectLevelRoleMixin, View):
     def post(self, *args, **kwargs):
         user = self.request.user
         data = json.loads(self.request.body)
@@ -65,7 +65,7 @@ class ProjectStatsticsReport(View):
             status, data = 401, {'status':'false','message':'Error occured please try again.'}
         return JsonResponse(data, status=status)
 
-class LogsReport(View):
+class LogsReport(ReadonlyProjectLevelRoleMixin, View):
     def post(self, *args, **kwargs):
         user = self.request.user
         data = json.loads(self.request.body)
@@ -225,7 +225,7 @@ class ExportProjectSitesWithRefs(ReadonlyProjectLevelRoleMixin, View):
             status, data = 401, {'status':'false','message':'Error occured please try again.'}
         return JsonResponse(data, status=status)
 
-class StageStatus(DonorRoleMixin, View):
+class StageStatus(ReadonlyProjectLevelRoleMixin, View):
     def post(self, request, *args, **kwargs):
         obj = get_object_or_404(Project, pk=self.kwargs.get('pk'), is_active=True)
         user = request.user
@@ -244,7 +244,7 @@ class StageStatus(DonorRoleMixin, View):
             data = {'status':'false','message':'Report cannot be generated a the moment.'}
         return JsonResponse(data, status=200)
 
-class UserActivityStats(DonorRoleMixin, View):
+class UserActivityStats(ReadonlyProjectLevelRoleMixin, View):
     def post(self, request, *args, **kwargs):
         obj = get_object_or_404(Project, pk=self.kwargs.get('pk'), is_active=True)
         user = request.user

@@ -3,6 +3,7 @@ from django.conf.urls import url
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, MyProjectFormsViewSet, ShareFormViewSet, \
     ShareProjectFormViewSet, ShareTeamFormViewSet, ShareGlobalFormViewSet
+from onadata.apps.fv3.viewsets.ReportViewsets import ReportVs
 from onadata.apps.fv3.viewsets.SubmissionViewSet import SubmissionViewSet, AlterSubmissionStatusViewSet, \
     SubmissionAnswerViewSet, SubmissionViewSet
 
@@ -27,6 +28,8 @@ urlpatterns = [
     url(r'^api/share/project/$', ShareProjectFormViewSet.as_view(), name='share_project_form'),
     url(r'^api/share/team/$', ShareTeamFormViewSet.as_view(), name='share_team_form'),
     url(r'^api/share/global/$', ShareGlobalFormViewSet.as_view(), name='share_global_form'),
+
+    url(r'^api/report/$', ReportVs.as_view({'post':'create'}), name='report'),
     ]
 
 
