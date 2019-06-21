@@ -109,10 +109,24 @@ class TaskSerializer(serializers.ModelSerializer):
         if obj.task_type in [0, 2, 3, 4, 8, 10, 13]:
             project_id = int(obj.get_event_url().split('/')[3])
             project = Project.objects.get(id=project_id)
-        if obj.task_type == 6:
+            terms = ProjectLevelTermsAndLabels.objects.filter(project_id=project.id).exists()
+
+            if terms:
+                return {'site': project.terms_and_labels.site,
+                        'donor': project.terms_and_labels.donor,
+                        'site_supervisor': project.terms_and_labels.site_supervisor,
+                        'site_reviewer': project.terms_and_labels.site_reviewer,
+                        'region': project.terms_and_labels.region,
+                        'region_supervisor': project.terms_and_labels.region_supervisor,
+                        'region_reviewer': project.terms_and_labels.region_reviewer,
+                        }
+
+        elif obj.task_type == 6:
             site_id = int(obj.get_event_url().split('/')[3])
-            project_id = Site.objects.get(pk=site_id).project_id
-            terms = ProjectLevelTermsAndLabels.objects.filter(project_id=project_id).exists()
+            site = Site.objects.get(id=site_id)
+            project = Project.objects.get(id=site.project.id)
+
+            terms = ProjectLevelTermsAndLabels.objects.filter(project_id=project.id).exists()
 
             if terms:
 
