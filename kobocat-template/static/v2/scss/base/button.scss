@@ -1,0 +1,159 @@
+.fieldsight-new{
+  .fieldsight-btn{
+    height: 30px;
+    display: inline-block;
+    vertical-align: middle;
+    padding: 5px 10px;
+    background: $color-blue;
+    color: $color-white;
+    box-shadow: none;
+    border:none;
+    text-transform: capitalize;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    position: relative;
+    @include radius4;
+    @include anim05;
+    i{
+      margin-left:0.5rem;
+    }
+    &.small-btn{
+        height: 24px;
+        line-height: 24px;
+        display: inline-block;
+    }
+    &.approved-btn{
+      background: $color-green;
+    }
+    &.rejected-btn{
+      background: $color-red;
+    }
+    &.flagged-btn{
+      background: $color-yellow;
+      
+    }
+    // &.icon-btn{
+    //   padding:1px 5px;
+    //   height: auto;
+    //   i{
+    //     margin:0;
+    //   }
+    // }
+      
+      
+      
+    &:hover{
+        color:$color-white;
+        background-color: rgba($color-blue, 0.8);
+    }
+    &.approved-btn{
+      background-color: $color-green;
+    }
+    &.rejected-btn{
+      background-color: $color-red;
+    }
+    &.flagged-btn{
+      background-color: $color-yellow;
+    }
+    
+  }
+  .dash-btn{
+    @include flex_end;
+    align-items: center;
+    .fieldsight-btn{
+      margin-left: 1rem;
+      i{
+        margin:0;
+
+      }
+      span{
+        margin:0 0.6125rem;
+      }
+      &::after{
+        display: none;
+      }
+      &.left-icon{
+        i{
+          margin-right: 0.6125rem;
+        }
+      }
+    }
+    .dropdown{
+      .dropdown-menu{
+        @include boxshadow;
+        border:0;
+        @include animZoom-before;
+        @include anim05;
+        a{
+          font-size: 0.8125rem;
+          text-transform: capitalize;
+          padding:0.25rem 0.6125rem;
+          border-bottom: 1px solid $color-bg;
+          &:first-child{
+            padding-top: 0;
+          }
+          &:last-child{
+            border-bottom: 0;
+            padding-bottom: 0;
+          }
+        }
+        &.show{
+          @include animZoom-before
+        }
+      }
+    }
+  }
+  button:focus{
+    box-shadow: none;
+    -webkit-outline:none;
+    outline:none;
+  }
+  .download{
+    color:$color-download;
+  }
+  .edit, strong.approved, .approved{
+    color:$color-green;
+  }
+  .hide{
+    color:$color-hide;
+  }
+  a.pending, strong.pending, .pending {
+    color:$color-blue;
+    text-transform: capitalize;
+  }
+  a.approved, strong.approved{
+    color:$color-green;
+    text-transform: capitalize;
+  }
+  a.flagged, strong.flagged, .flagged{
+    color:$color-yellow;
+    text-transform: capitalize;
+  }
+  a.rejected, strong.rejected , .rejected{ 
+    color:$color-red;
+    text-transform: capitalize;
+  }
+
+  .add-btn{
+    @include flexjust;
+    justify-content: center;
+    align-items: center;
+    @include clear;
+    a{
+      color:$color-blue;
+      font-weight: 500;
+      font-size: 0.875rem;
+      margin-left: 0.625rem;
+      span{
+        width:24px;
+        height: 24px;
+        line-height: 24px;
+        padding:5px;
+        background-color: $color-blue;
+        color:$color-white;
+        @include radius4;
+        margin-left:0.635rem;
+      }
+    }
+  }
+}

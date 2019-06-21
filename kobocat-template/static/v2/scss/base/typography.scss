@@ -1,0 +1,82 @@
+/*!Theme Name: Field Sight Dashboard
+Theme URI: http://fieldsight.org
+Author: Prem Prasad Khanal
+Author URI: https://ripplethemes.com
+Description: Dashboard for Field Sight
+Version: 1.01
+*/
+
+ @import url('https://fonts.googleapis.com/css?family=Ubuntu:300,300i,400,400i,500,500i,700,700i');
+
+ *,
+ ::after,
+ ::before {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+ }
+ 
+ html {
+    font-family: $ubuntu;
+     -webkit-text-size-adjust: 100%;
+     -webkit-tap-highlight-color: transparent
+ }
+ 
+ article,
+ aside,
+ figcaption,
+ figure,
+ footer,
+ header,
+ hgroup,
+ main,
+ nav,
+ section {
+     display: block
+ }
+ 
+ body {
+     margin: 0;
+     font-family: $ubuntu;
+     font-size: 0.8125rem;
+     font-weight: 400;
+     line-height: 1.5;
+     color: $color-primary;
+     text-align: left;
+     background-color: $color-bg;
+ }
+ 
+ h1,
+ h2,
+ h3,
+ h4,
+ h5,
+ h6 {
+     margin-top: 0;
+     margin-bottom: .5rem;
+     font-family:$ubuntu;
+     font-weight: 500;
+ }
+
+
+ a {
+     color: $color-primary;
+     text-decoration: none;
+     background-color: transparent;
+     @include anim05;
+ }
+ 
+ a:hover {
+     color: $color-primary;
+     text-decoration: none;
+ }
+ img{
+     max-width: 100%;
+     height: auto;
+ }
+ ul{
+     margin:0;
+     padding:0;
+     list-style: none;
+ }
+ 

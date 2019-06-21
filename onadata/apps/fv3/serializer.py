@@ -1,7 +1,9 @@
 from rest_framework import serializers
 
-from onadata.apps.fieldsight.models import Project, Organization, Region, Site, ProjectLevelTermsAndLabels
+
+from onadata.apps.fieldsight.models import Project, Organization, Region, Site, Sector, SiteType,  ProjectLevelTermsAndLabels
 from onadata.apps.fieldsight.serializers.SiteSerializer import SiteTypeSerializer
+
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -67,3 +69,100 @@ class ProjectSerializer(serializers.ModelSerializer):
                     'region_supervisor': obj.terms_and_labels.region_supervisor,
                     'region_reviewer': obj.terms_and_labels.region_reviewer,
                     }
+
+
+class ProjectUpdateSerializer(serializers.ModelSerializer):
+   
+    class Meta:
+        model = Project
+        fields = ('id', 'name', 'phone', 'email', 'address', 'website', 'donor', 'public_desc', 'logo',
+                  'location', 'cluster_sites', 'sector', 'sub_sector', 'organization')
+
+
+class SectorSerializer(serializers.ModelSerializer):
+    subSectors = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Sector
+        fields = ('id', 'name', 'subSectors')
+
+    def get_subSectors(self, obj):
+        if obj.sectors:
+            return obj.sectors.all().values('id', 'name')
+
+
+class SiteTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SiteType
+        exclude = ()
+
+
+class ProjectLevelTermsAndLabelsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProjectLevelTermsAndLabels
+        exclude = ()
+
+
+class ProjectSiteSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Site
+        fields = ('id', 'project', 'identifier', 'name', 'type', 'phone', 'address', 'public_desc', 'logo', 'longitude',
+                  'latitude')
+
+
+class ProjectRegionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Region
+        fields = ('id', 'project', 'identifier', 'name', 'date_created', 'parent')
+
+
+class ProjectSitesSerializer(serializers.ModelSerializer):
+    region = serializers.CharField(source='region.name')
+    submissions = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Site
+        fields = ('id', 'project', 'name', 'identifier', 'address', 'region', 'phone', 'public_desc',
+                  'type', 'logo', 'submissions', 'progress')
+
+        extra_kwargs = {
+            'project': {'write_only': True},
+            'phone': {'write_only': True},
+            'public_desc': {'write_only': True},
+            'type': {'write_only': True},
+            'logo': {'write_only': True}
+
+        }
+
+    def get_submissions(self, obj):
+        # response = obj.get_site_submission_count()
+        instances = obj.site_instances.all().order_by('-date')
+        outstanding, flagged, approved, rejected = 0, 0, 0, 0
+        for submission in instances:
+            if submission.form_status == 0:
+                outstanding += 1
+            elif submission.form_status == 1:
+                rejected += 1
+            elif submission.form_status == 2:
+                flagged += 1
+            elif submission.form_status == 3:
+                approved += 1
+        response = {}
+        response['outstanding'] = outstanding
+        response['rejected'] = rejected
+        response['flagged'] = flagged
+        response['approved'] = approved
+
+        return response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
+
+    def get_progress(self, obj):
+        site_progress = obj.site_progress
+
+        return site_progress
+
+
