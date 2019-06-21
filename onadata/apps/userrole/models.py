@@ -5,7 +5,7 @@ from fcm.utils import get_device_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.fields import GenericRelation
-from django.db import models
+from django.db import models, IntegrityError, transaction
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -15,6 +15,7 @@ from django.conf import settings
 from onadata.apps.fieldsight.models import Site, Project, Organization, Region
 from onadata.apps.fsforms.notifications import save_notification
 from onadata.apps.staff.models import StaffProject
+from onadata.apps.eventlog.models import CeleryTaskProgress
 
 
 class UserRole(models.Model):
@@ -202,6 +203,21 @@ def create_messages(sender, instance, created,  **kwargs):
                 save_notification(message, [str(email)])
                 Device.objects.filter(name=email).send_message(message)
             except:
+                pass
+    
+    if created and instance.group.name == "Project Manager":
+        from onadata.apps.fsforms.tasks import created_manager_form_share
+        task_obj = CeleryTaskProgress.objects.create(
+            user=instance.user,
+            description='Share all forms',
+            task_type=18,
+            content_object=instance
+            )
+        if task_obj:
+            try:
+                with transaction.atomic():
+                    created_manager_form_share.apply_async(kwargs={'userrole': instance.id, 'task_id': task_obj.id}, countdown=5)
+            except IntegrityError:
                 pass
 
 post_save.connect(create_messages, sender=UserRole)

@@ -1,7 +1,9 @@
 from rest_framework import serializers
 
-from onadata.apps.fieldsight.models import Project, Organization, Region, Site, Sector, SiteType, \
-    ProjectLevelTermsAndLabels
+
+from onadata.apps.fieldsight.models import Project, Organization, Region, Site, Sector, SiteType,  ProjectLevelTermsAndLabels
+from onadata.apps.fieldsight.serializers.SiteSerializer import SiteTypeSerializer
+
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -26,6 +28,7 @@ class SiteSerializer(serializers.ModelSerializer):
 class ProjectSerializer(serializers.ModelSerializer):
     organization = OrganizationSerializer()
     project_region = RegionSerializer(many=True)
+    types = SiteTypeSerializer(many=True)
     meta_attributes = serializers.SerializerMethodField()
     has_site_role = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
@@ -33,8 +36,10 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
+
         fields = ('name', 'id', 'address', 'organization', 'project_region', 'meta_attributes', 'has_site_role', 'url',
-                  'terms_and_labels')
+                  'terms_and_labels', 'types')
+
 
     def get_meta_attributes(self, obj):
         filtered_ma = []

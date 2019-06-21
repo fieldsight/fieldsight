@@ -345,11 +345,17 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         gc.collect()
 
         p.save_as(array=data, dest_file_name="media/stage-report/{}_stage_data.xls".format(project.id))
-        xl_data = open("media/stage-report/{}_stage_data.xls".format(project.id), "rb")
         
-        #Its only quick fix for now, save it in aws bucket whenever possible.
+        with open("media/stage-report/{}_stage_data.xls".format(project.id), 'rb') as fin:
+            buffer = BytesIO(fin.read())
+            buffer.seek(0)
+            path = default_storage.save(
+                "media/stage-report/{}_stage_data.xls".format(project.id),
+                ContentFile(buffer.getvalue())
+            )
+            buffer.close()
 
-        task.file.name = xl_data.name
+        task.file.name = path
         task.status = 2
         task.save()
         
@@ -572,7 +578,7 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 region_idf = site.get("region_id", None)
                 
 
-                type_identifier = get_site_type(site.get("type", "0"))
+                type_identifier = site.get("type", None)
 
                 _site, created = Site.objects.get_or_create(identifier=str(site.get("identifier")),
                                                                 project=project)
@@ -582,7 +588,7 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 else:
                     updated_sites += 1
 
-                if type_identifier > 0:
+                if type_identifier:
                      site_type = SiteType.objects.get(identifier=type_identifier, project=project)
                      _site.type = site_type
                 
@@ -1018,10 +1024,6 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
         
         if filterRegion:
             sites = sites.filter(region_id__in=filterRegion)
-        
-        # fs_ids = FieldSightXF.objects.filter(project_id = project.id).values('id')
-        # startdate="2016-05-01"
-        # enddate= "2018-06-05"
 
         if filterSiteTypes:
             sites = sites.filter(type_id__in=filterSiteTypes)
@@ -1038,7 +1040,7 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
 
         new_enddate = end + datetime.timedelta(days=1)
 
-        forms = FieldSightXF.objects.select_related('xf', 'xf__user').filter(pk__in=fs_ids, is_survey=False, is_deleted=False)
+        forms = FieldSightXF.objects.select_related('xf', 'xf__user').filter(pk__in=fs_ids, is_deleted=False)
         wb = Workbook()
         ws_site_details = wb.active
         ws_site_details.title = "Site Details"
@@ -1069,29 +1071,39 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
 
             ws.append(['Header'])
 
-            formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, date__range=[new_startdate, new_enddate])
+            
+            if filterRegion or filterSiteTypes:
+                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, date__range=[new_startdate, new_enddate])
+            else:
+                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, date__range=[new_startdate, new_enddate])
 
             for formresponse in formresponses.iterator():
-                if formresponse.site_id:
-                    if not formresponse.site_id in response_sites:
-                        response_sites.append(formresponse.site_id)
-                    
-                    questions, answers, r_question_answers = parse_form_response(json.loads(form.xf.json)['children'], formresponse.instance.json, base_url, form.xf.user.username)
+                
+                if formresponse.site_id and not formresponse.site_id in response_sites:
+                    response_sites.append(formresponse.site_id)
+                
+                questions, answers, r_question_answers = parse_form_response(json.loads(form.xf.json)['children'], formresponse.instance.json, base_url, form.xf.user.username)
 
+                answers['uid'] = formresponse.instance_id
+                if formresponse.site_id:
                     answers['identifier'] = formresponse.site.identifier
                     answers['name'] = formresponse.site.name
-                    answers['status'] = form_status_map[formresponse.form_status]
-                    
-                    if r_question_answers:
-                        repeat_answers.append({'name': formresponse.site.name, 'identifier': formresponse.site.identifier, 'repeated': r_question_answers })
+                else:
+                    answers['identifier'] = 'Na'
+                    answers['name'] = 'Na'
 
-                    if len([{'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}] + questions) > len(head_columns):
-                        head_columns = [{'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}, {'question_name':'status','question_label':'status'}] + questions  
-                    row=[]
+                answers['status'] = form_status_map[formresponse.form_status]
+                
+                if r_question_answers:
+                    repeat_answers.append({'uid':formresponse.instance_id, 'name': answers['name'], 'identifier': answers['identifier'], 'repeated': r_question_answers })
 
-                    for col_num in range(len(head_columns)):
-                        row.append(answers.get(head_columns[col_num]['question_name'], ""))    
-                    ws.append(row)
+                if len(questions) + 3 > len(head_columns):
+                    head_columns = [{'question_name':'uid','question_label':'uid'}, {'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}, {'question_name':'status','question_label':'status'}] + questions  
+                row=[]
+
+                for col_num in range(len(head_columns)):
+                    row.append(answers.get(head_columns[col_num]['question_name'], ""))    
+                ws.append(row)
 
             for col_num in range(len(head_columns)):
                 if isinstance(head_columns[col_num].get('question_label', ""), dict):
@@ -1105,20 +1117,20 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
                 for group_id, group in repeat_answers[0]['repeated'].items():
                     
                     sheet_name = generate_sheet_name("rep-"+group_id)
-                    print sheet_name
                     wr=wb.create_sheet(title=sheet_name)
                     wr.append(['Header'])
                     for repeat in repeat_answers:
 
                         for answer in repeat['repeated'][group_id]['answers']:
-                            row = [repeat['identifier'], repeat['name']]
+                            row = [repeat['uid'], repeat['identifier'], repeat['name']]
                             for question in group['questions']:
                                 row.append(answer.get(question['question_name'], ""))    
                             wr.append(row)
                                 
 
-                    wr.cell(row=1, column=1).value = 'Identifier'
-                    wr.cell(row=1, column=2).value = 'Name'
+                    wr.cell(row=1, column=1).value = 'uid'
+                    wr.cell(row=1, column=2).value = 'Identifier'
+                    wr.cell(row=1, column=3).value = 'Name'
 
                     #for loop needed.
                     for col_num in range(len(group['questions'])):
@@ -2169,6 +2181,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def email_after_signup(user_id, to_email):
+    time.sleep(10)
     user = User.objects.get(id=user_id)
     mail_subject = 'Activate your account.'
     message = render_to_string('users/acc_active_email.html', {

@@ -161,7 +161,7 @@
                                 {% if count > 0 %}
 
                                 <a class="badge badge-success" target="_blank"
-                                   href="{% url "onadata.apps.viewer.views.export_list" obj.xf.user.username obj.xf.id_string 'xls' 1 obj.id 0 0 %}">
+                                   href="{% url 'onadata.apps.viewer.views.export_list' obj.xf.user.username obj.xf.id_string 'xls' 1 obj.id 0 0 %}">
                                     <i class="la la-download" aria-hidden="true"></i> Download</a>
                                     {% endif %}
                                     {% endwith %}
@@ -300,7 +300,7 @@
                             <td>
                                 {% if count > 0 %}
                                 <a class="badge badge-success" target="_blank"
-                                   href="{% url "onadata.apps.viewer.views.export_list" obj.xf.user.username obj.xf.id_string 'xls' 1 obj.id 0 0 %}">
+                                   href="{% url 'onadata.apps.viewer.views.export_list' obj.xf.user.username obj.xf.id_string 'xls' 1 obj.id 0 0 %}">
                                     <i class="la la-download" aria-hidden="true"></i> Download</a>
                                     {% endif %} 
                                     {% endwith %}
@@ -433,15 +433,15 @@
                             <td>
                                 {% if count > 0 %}
                                 <a class="badge badge-success" target="_blank"
-                                   href="{% url "onadata.apps.viewer.views.export_list" obj.schedule_forms.xf.user.username obj.schedule_forms.xf.id_string 'xls' 1 obj.schedule_forms.id 0 0 %}">
+                                   href="{% url 'onadata.apps.viewer.views.export_list' obj.xf.user.username obj.xf.id_string 'xls' 1 obj.id 0 0 %}">
                                     <i class="la la-download" aria-hidden="true"></i> Download</a>
                                     {% endif %}
                                     {% endwith %}
                             </td>
                             <td>
-                                    {% if obj.schedule_forms.has_versions %}
+                                    {% if obj.has_versions %}
                                     <a class="badge badge-success" target="_blank"
-                                   href="{% url 'forms:form_versions' 1 obj.schedule_forms.id %}">
+                                   href="{% url 'forms:form_versions' 1 obj.id %}">
                                     <i class="la la-eye" aria-hidden="true"></i> Versions </a>
           
                                   {% endif %}
@@ -590,7 +590,7 @@
                             {% if count > 0 %}
 
                             <a class="badge badge-success" target="_blank"
-                               href="{% url "onadata.apps.viewer.views.export_list" obj.xf.user.username obj.xf.id_string 'xls' 1 obj.id 0 0 %}">
+                               href="{% url 'onadata.apps.viewer.views.export_list' obj.xf.user.username obj.xf.id_string 'xls' 1 obj.id 0 0 %}">
                                 <i class="la la-download" aria-hidden="true"></i> Download</a>
                                 {% endif %}  
                                 {% endwith %}
@@ -620,3 +620,15 @@
     </div>
 </div>
 {% endblock %}
+© 2019 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Help
+Contact GitHub
+Pricing
+API
+Training
+Blog
+About

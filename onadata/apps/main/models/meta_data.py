@@ -122,7 +122,10 @@ class MetaData(models.Model):
 
     def save(self, *args, **kwargs):
         self._set_hash()
-        super(MetaData, self).save(*args, **kwargs)
+        if MetaData.objects.filter(xform=self.xform,data_type=self.data_type, data_value=self.data_value).exists():
+            pass
+        else:
+            super(MetaData, self).save(*args, **kwargs)
 
     @property
     def hash(self):

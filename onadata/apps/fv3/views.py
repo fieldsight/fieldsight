@@ -13,6 +13,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
+
 from rest_framework.authentication import BasicAuthentication
 from rest_framework import generics, status
 from rest_framework.permissions import BasePermission
@@ -21,6 +22,10 @@ from django.contrib.gis.geos import Point
 from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels
 from onadata.apps.fieldsight.rolemixins import ProjectRoleMixin
 from onadata.apps.fsforms.models import FInstance
+
+
+from onadata.apps.fieldsight.models import Project, Region, Site, SiteType
+
 from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
     SiteTypeSerializer, ProjectLevelTermsAndLabelsSerializer, ProjectRegionSerializer, ProjectSitesSerializer
@@ -55,7 +60,10 @@ def supervisor_projects(request):
     "Projects where a user is assigned as Region Supervisor or Site Supervisor"
 
     projects = Project.objects.filter(pk__in=project_ids).select_related('organization').prefetch_related(
-        Prefetch("project_region", queryset=Region.objects.filter(pk__in=regions)))
+        Prefetch("project_region", queryset=Region.objects.filter(pk__in=regions)),
+        Prefetch("types", queryset=SiteType.objects.filter(deleted=False)),
+
+    )
     "Distinct Projects Where a user can be site supervisor or region reviewer"
 
     site_supervisor_role = UserRole.objects.filter(user=request.user,
@@ -89,7 +97,9 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
             sites = Site.all_objects.filter(region=region_id)
         elif project_id:  # Site Supervisor Roles
             sites = Site.all_objects.filter(project=project_id, site_roles__region__isnull=True,
-                                        site_roles__group__name="Site Supervisor")
+                                            site_roles__group__name="Site Supervisor",
+                                            site_roles__user=self.request.user).order_by('id').distinct('id')
+
         else:
             sites = []
         if last_updated:
@@ -119,12 +129,14 @@ def supervisor_logs(request):
     email = request.user.email
     date = None
     last_updated = request.query_params.get('last_updated')
+    previous_next_type = request.query_params.get('type')
     if last_updated:
         try:
             date = datetime.fromtimestamp(int(last_updated))  # notifications newer than this date.
+            print(date)
         except:
             return Response({'notifications': []})
-    notifications = get_notifications_queryset(email, date)
+    notifications = get_notifications_queryset(email, date, previous_next_type)
     return Response({'notifications': notifications})
 
 

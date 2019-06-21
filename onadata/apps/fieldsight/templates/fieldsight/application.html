@@ -1,0 +1,21 @@
+{% extends "fieldsight/fieldsight_base.html" %}
+{% load i18n staticfiles %}
+{% load filters %}
+{% block page-title %}{% trans 'Dashboard' %}{% endblock %}
+
+{%block extracss %}
+<link rel="stylesheet" href="{% static 'application/main.css' %}">
+{% endblock %}
+
+{% block content %}
+{{csfr_token}}
+
+<div id="app" class="padding">
+
+			</div>
+{% endblock %}
+{%block extrascript %}
+<script type="text/javascript" src="{{ STATIC_URL }}application/main.js"></script>
+{% endblock %}
+
+
