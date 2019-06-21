@@ -2,7 +2,7 @@ import json
 from django.contrib.gis.geos import Point
 from rest_framework import serializers
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
-from onadata.apps.fieldsight.models import ProjectLevelTermsAndLabels, Project
+from onadata.apps.fieldsight.models import ProjectLevelTermsAndLabels, Project, Site
 
 from django.shortcuts import get_object_or_404
 
@@ -106,9 +106,12 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def get_terms_and_labels(self, obj):
 
-        if obj.task_type in [0, 2, 3, 4, 6, 8, 10, 13]:
+        if obj.task_type in [0, 2, 3, 4, 8, 10, 13]:
             project_id = int(obj.get_event_url().split('/')[3])
-            project = get_object_or_404(Project, id=project_id)
+            project = Project.objects.get(id=project_id)
+        if obj.task_type == 6:
+            site_id = int(obj.get_event_url().split('/')[3])
+            project_id = Site.objects.get(pk=site_id).project_id
             terms = ProjectLevelTermsAndLabels.objects.filter(project_id=project_id).exists()
 
             if terms:
