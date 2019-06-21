@@ -1,6 +1,7 @@
 from guardian.shortcuts import assign_perm, get_users_with_perms
 from django.contrib.auth.models import Permission, User
 from django.contrib.contenttypes.models import ContentType
+from django.conf import settings
 
 
 def share_m2m(users, forms):
@@ -19,7 +20,7 @@ def share_forms(user, forms):
         permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
         for perm in permissions:
             object_id = Asset.objects.get(uid=fxf.xf.id_string).id
-            content_type = ContentType.objects.get(id=20)  # change id as per the content type for asset
+            content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
 
             # Create the new permission
             if not ObjectPermission.objects.filter(object_id=object_id,
@@ -47,7 +48,7 @@ def share_form(users, xform):
         permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
         for perm in permissions:
             object_id = Asset.objects.get(uid=xform.id_string).id
-            content_type = ContentType.objects.get(id=20)  # change id as per the content type for asset
+            content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
 
             # Create the new permission
             if not ObjectPermission.objects.filter(object_id=object_id,
@@ -74,7 +75,7 @@ def share_form_global(form):
     permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
     for perm in permissions:
         object_id = Asset.objects.get(uid=form.id_string).id
-        content_type = ContentType.objects.get(id=20)  # change id as per the content type for asset
+        content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
         user = User.objects.get(id=-1)
         if not ObjectPermission.objects.filter(
             object_id=object_id,
