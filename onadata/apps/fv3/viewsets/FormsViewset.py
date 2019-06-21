@@ -1,3 +1,5 @@
+import json
+
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -7,7 +9,7 @@ from django.conf import settings
 from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset
 from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
-    ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer
+    ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, AddLanguageSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -165,5 +167,31 @@ class ShareGlobalFormViewSet(APIView):
         shared = share_form_global(xf)
         if shared:
             return Response({'share_link': settings.KPI_URL + '#/forms/' + xf.id_string}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class FormAddLanguageViewSet(APIView):
+    """
+        A ViewSet for adding languages to a form
+        """
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAuthenticated, XFormSharePermission)
+
+    def post(self, request, *args,  **kwargs):
+        serializer = AddLanguageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        xf = XForm.objects.get(pk=request.data['form'])
+        a = Asset.objects.get(uid=xf.id_string)
+        translation = u'' + request.data['language'] + ' ' + '(' + request.data['code'] + ')'
+        if 'translations' in a.content:
+            a.content['translations'].append(translation)
+            if 'survey' in a.content:
+                sheet = a.content['survey']
+                for row in sheet:
+                    if 'label' in row:
+                        row['label'].append(None)
+            a.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response({"message": "This form has no languages defined yet."}, status=status.HTTP_400_BAD_REQUEST)
