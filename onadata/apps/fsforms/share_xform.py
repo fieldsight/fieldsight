@@ -1,5 +1,5 @@
 from guardian.shortcuts import assign_perm, get_users_with_perms
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Permission, User
 from django.contrib.contenttypes.models import ContentType
 
 
@@ -19,7 +19,7 @@ def share_forms(user, forms):
         permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
         for perm in permissions:
             object_id = Asset.objects.get(uid=fxf.xf.id_string).id
-            content_type = ContentType.objects.get(id=20)  # content type for asset has id 20 in live server
+            content_type = ContentType.objects.get(id=20)  # change id as per the content type for asset
 
             # Create the new permission
             if not ObjectPermission.objects.filter(object_id=object_id,
@@ -47,7 +47,7 @@ def share_form(users, xform):
         permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
         for perm in permissions:
             object_id = Asset.objects.get(uid=xform.id_string).id
-            content_type = ContentType.objects.get(id=20)  # content type for asset has id 20 in live server
+            content_type = ContentType.objects.get(id=20)  # change id as per the content type for asset
 
             # Create the new permission
             if not ObjectPermission.objects.filter(object_id=object_id,
@@ -67,6 +67,32 @@ def share_form(users, xform):
 
     return True
 
+
+def share_form_global(xform):
+    from onadata.apps.fsforms.models import ObjectPermission, Asset
+    codenames = ['view_asset', 'view_submissions']
+    permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
+    for perm in permissions:
+        object_id = Asset.objects.get(uid=xform.id_string).id
+        content_type = ContentType.objects.get(id=20)  # change id as per the content type for asset
+        user = User.objects.get(id=-1)
+        if not ObjectPermission.objects.filter(
+            object_id=object_id,
+            content_type=content_type,
+            user=user,
+            permission_id=perm.pk,
+            deny=False,
+            inherited=False).exists():
+            ObjectPermission.objects.create(
+                object_id=object_id,
+                content_type=content_type,
+                user=user,
+                permission_id=perm.pk,
+                deny=False,
+                inherited=False)
+        else:
+            continue
+    return True
 
 def share_o2o(user, xform):
     if not user.has_perm('change_xform', xform):
