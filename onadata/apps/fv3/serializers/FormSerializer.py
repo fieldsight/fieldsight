@@ -76,14 +76,13 @@ class ShareGlobalFormSerializer(serializers.Serializer):
     form = serializers.IntegerField()
 
 
-
 class AddLanguageSerializer(serializers.Serializer):
     form = serializers.IntegerField()
     language = serializers.CharField()
     code = serializers.CharField()
 
 
-
 class CloneFormSerializer(serializers.Serializer):
     form = serializers.IntegerField()
+    project = serializers.IntegerField()
 

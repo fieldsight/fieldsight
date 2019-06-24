@@ -16,6 +16,12 @@ ENKETO_API_TOKEN = "*********************"
 
 XML_VERSION_MAX_ITER = 6
 
+"""
+    Get the content type id for asset model as:
+    ContentType.objects.get(app_label='kpi', model='asset')
+    """
+ASSET_CONTENT_TYPE_ID = 20
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
