@@ -44,22 +44,22 @@ class XFormSerializer(serializers.ModelSerializer):
     def get_media_url(self, obj):
         return "{}/{}/forms/{}/form_settings".format(settings.KOBOCAT_URL, obj.user.username, obj.id_string)
 
-    def get_share_users_url(self):
+    def get_share_users_url(self, obj):
         return "{}/fv3/api/share/".format(settings.KOBOCAT_URL)
 
-    def get_share_project_url(self):
+    def get_share_project_url(self, obj):
         return "{}/fv3/api/share/project/".format(settings.KOBOCAT_URL)
 
-    def get_share_team_url(self):
+    def get_share_team_url(self, obj):
         return "{}/fv3/api/share/team/".format(settings.KOBOCAT_URL)
 
-    def get_share_global_url(self):
+    def get_share_global_url(self, obj):
         return "{}/fv3/api/share/global/".format(settings.KOBOCAT_URL)
 
-    def get_add_language_url(self):
+    def get_add_language_url(self, obj):
         return "{}/fv3/api/add-language/".format(settings.KOBOCAT_URL)
 
-    def get_clone_form_url(self):
+    def get_clone_form_url(self, obj):
         return "{}/fv3/api/clone/".format(settings.KOBOCAT_URL)
 
 
