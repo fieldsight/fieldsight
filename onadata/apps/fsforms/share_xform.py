@@ -20,6 +20,7 @@ def share_forms(user, forms):
         permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
         for perm in permissions:
             object_id = Asset.objects.get(uid=fxf.xf.id_string).id
+
             content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
 
             # Create the new permission
@@ -48,6 +49,7 @@ def share_form(users, xform):
         permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
         for perm in permissions:
             object_id = Asset.objects.get(uid=xform.id_string).id
+
             content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
 
             # Create the new permission
@@ -67,6 +69,7 @@ def share_form(users, xform):
                 continue
 
     return True
+
 
 
 def share_form_global(form):
@@ -91,9 +94,11 @@ def share_form_global(form):
                 permission_id=perm.pk,
                 deny=False,
                 inherited=False)
+
             shared, created = SharedFieldSightForm.objects.get_or_create(xf=form, shared=True)
             if not created:
                 SharedFieldSightForm.objects.filter(xf=form).update(shared=True)
+
         else:
             continue
     return True

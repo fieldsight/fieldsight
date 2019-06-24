@@ -1747,7 +1747,7 @@ def sendNotification(notification, recipient):
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date, end_date):
-    # time.sleep(5)
+    time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     project=get_object_or_404(Project, pk=project_id)
@@ -1904,7 +1904,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
-    # time.sleep(5)
+    time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     if reportType == "Project":
@@ -2017,7 +2017,7 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_date):
-    # time.sleep(5)
+    time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     project=get_object_or_404(Project, pk=project_id)

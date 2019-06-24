@@ -1,7 +1,12 @@
 from rest_framework import serializers
 
 from onadata.apps.logger.models import XForm
+
 from onadata.apps.fsforms.models import Asset
+
+from onadata.apps.fsforms.models import FieldSightXF
+
+
 from django.conf import settings
 
 
@@ -71,9 +76,14 @@ class ShareGlobalFormSerializer(serializers.Serializer):
     form = serializers.IntegerField()
 
 
+
 class AddLanguageSerializer(serializers.Serializer):
     form = serializers.IntegerField()
     language = serializers.CharField()
     code = serializers.CharField()
 
+
+
+class CloneFormSerializer(serializers.Serializer):
+    form = serializers.IntegerField()
 

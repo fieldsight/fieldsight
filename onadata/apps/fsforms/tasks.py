@@ -206,6 +206,24 @@ def api_share_form(xf, users, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+@shared_task(max_retries=5)
+def api_clone_form(form_id, user_id, task_id):
+    user = User.objects.get(id=user_id)
+    fxf = FieldSightXF.objects.get(id=form_id)
+
+    token = user.auth_token.key
+
+    # general clone
+    clone, id_string = clone_kpi_form(fxf.xf.id_string, token, task_id, fxf.xf.title)
+    if clone:
+        xf = XForm.objects.get(id_string=id_string, user=user)
+        FieldSightXF.objects.get_or_create(xf=xf, project=fxf.project, is_deployed=True)
+    else:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+        raise ValueError(" Failed  clone and deploy")
+
+
+
 # @shared_task(max_retries=10)
 # def copy_to_sites(fxf):
 #     try:
