@@ -26,7 +26,7 @@ class XFormSerializer(serializers.ModelSerializer):
     class Meta:
         model = XForm
         fields = ('id_string','title', 'edit_url', 'preview_url', 'replace_url',
-                  'download_url', 'media_url', 'date_created', 'share_users_url',
+                  'download_url', 'media_url', 'date_created', 'date_modified', 'share_users_url',
                   'share_project_url', 'share_team_url', 'share_global_url', 'add_language_url', 'clone_form_url')
 
     def get_edit_url(self, obj):
@@ -64,31 +64,31 @@ class XFormSerializer(serializers.ModelSerializer):
 
 
 class ShareFormSerializer(serializers.Serializer):
-    form = serializers.IntegerField()
+    id_string = serializers.CharField()
     users = serializers.ListField(child=serializers.IntegerField())
 
 
 class ShareProjectFormSerializer(serializers.Serializer):
-    form = serializers.IntegerField()
+    id_string = serializers.CharField()
     project = serializers.IntegerField()
 
 
 class ShareTeamFormSerializer(serializers.Serializer):
-    form = serializers.IntegerField()
+    id_string = serializers.CharField()
     team = serializers.IntegerField()
 
 
 class ShareGlobalFormSerializer(serializers.Serializer):
-    form = serializers.IntegerField()
+    id_string = serializers.CharField()
 
 
 class AddLanguageSerializer(serializers.Serializer):
-    form = serializers.IntegerField()
+    id_string = serializers.CharField()
     language = serializers.CharField()
     code = serializers.CharField()
 
 
 class CloneFormSerializer(serializers.Serializer):
-    form = serializers.IntegerField()
+    id_string = serializers.CharField()
     project = serializers.IntegerField()
 

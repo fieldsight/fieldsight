@@ -65,7 +65,7 @@ class ShareFormViewSet(APIView):
         serializer = ShareFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        xf = XForm.objects.get(pk=request.data['form'])
+        xf = XForm.objects.get(id_string=request.data['id_string'])
         self.check_object_permissions(request, xf)
 
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
@@ -93,7 +93,7 @@ class ShareProjectFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = ShareProjectFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        xf = XForm.objects.get(pk=request.data['form'])
+        xf = XForm.objects.get(id_string=request.data['id_string'])
         self.check_object_permissions(request, xf)
 
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
@@ -130,7 +130,7 @@ class ShareTeamFormViewSet(APIView):
         serializer = ShareTeamFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        xf = XForm.objects.get(pk=request.data['form'])
+        xf = XForm.objects.get(id_string=request.data['id_string'])
         self.check_object_permissions(request, xf)
         task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Share XForm to Team",
                                                      task_type=21, content_object=xf)
@@ -163,7 +163,7 @@ class ShareGlobalFormViewSet(APIView):
         serializer = ShareGlobalFormSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        xf = XForm.objects.get(pk=request.data['form'])
+        xf = XForm.objects.get(id_string=request.data['id_string'])
         self.check_object_permissions(request, xf)
 
 
@@ -185,7 +185,7 @@ class CloneFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = CloneFormSerializer(data=request.data)
         if serializer.is_valid():
-            xf = XForm.objects.get(id=request.data['form'])
+            xf = XForm.objects.get(id_string=request.data['id_string'])
             project = Project.objects.get(id=request.data['project'])
             task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Clone Form",
                                                          task_type=22, content_object=xf)
@@ -207,7 +207,8 @@ class FormAddLanguageViewSet(APIView):
     def post(self, request, *args,  **kwargs):
         serializer = AddLanguageSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        xf = XForm.objects.get(pk=request.data['form'])
+        xf = XForm.objects.get(id_string=request.data['id_string'])
+        self.check_object_permissions(request, xf)
         a = Asset.objects.get(uid=xf.id_string)
         translation = u'' + request.data['language'] + ' ' + '(' + request.data['code'] + ')'
         if 'translations' in a.content:
