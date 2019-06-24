@@ -4,6 +4,7 @@ import os
 
 import json
 import re
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.postgres.fields import ArrayField
@@ -1000,9 +1001,18 @@ class ObjectPermission(models.Model):
 class Asset(models.Model):
     uid = KpiUidField(uid_prefix='a')
     owner = models.ForeignKey('auth.User', related_name='assets', null=True)
+    content = JSONField(null=True)
 
     class Meta:
         db_table = 'kpi_asset'
-        managed = False 
+        managed = False
+
+
+class SharedFieldSightForm(models.Model):
+    xf = models.OneToOneField(XForm, null=True)
+    shared = models.BooleanField(default=False)
+
+    def get_shareable_link(self):
+        return settings.KPI_URL + '#/forms/' + self.xf.id_string
 
 

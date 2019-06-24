@@ -14,8 +14,8 @@ class XFormSharePermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         user = request.user
         permission = Permission.objects.get(content_type__app_label='kpi', codename='share_asset')
-        content_type = ContentType.objects.get(id=21)
-        object = Asset.objects.get(uid=obj.xf.id_string)
+        content_type = ContentType.objects.get(id=20)
+        object = Asset.objects.get(uid=obj.id_string)
 
         if user == object.owner or ObjectPermission.objects.filter(
                 object_id=object.id,

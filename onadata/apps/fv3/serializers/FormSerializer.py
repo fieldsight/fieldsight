@@ -1,7 +1,11 @@
 from rest_framework import serializers
 
 from onadata.apps.logger.models import XForm
+
+from onadata.apps.fsforms.models import Asset
+
 from onadata.apps.fsforms.models import FieldSightXF
+
 
 from django.conf import settings
 
@@ -12,6 +16,11 @@ class XFormSerializer(serializers.ModelSerializer):
     replace_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
     media_url = serializers.SerializerMethodField()
+    share_users_url = serializers.SerializerMethodField()
+    share_project_url = serializers.SerializerMethodField()
+    share_team_url = serializers.SerializerMethodField()
+    share_global_url = serializers.SerializerMethodField()
+    add_language_url = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
@@ -31,6 +40,21 @@ class XFormSerializer(serializers.ModelSerializer):
 
     def get_media_url(self, obj):
         return "{}/{}/forms/{}/form_settings".format(settings.KOBOCAT_URL, obj.user.username, obj.id_string)
+
+    def get_share_users_url(self):
+        return "{}/fv3/api/share/".format(settings.KOBOCAT_URL)
+
+    def get_share_project_url(self):
+        return "{}/fv3/api/share/project/".format(settings.KOBOCAT_URL)
+
+    def get_share_team_url(self):
+        return "{}/fv3/api/share/team/".format(settings.KOBOCAT_URL)
+
+    def get_share_global_url(self):
+        return "{}/fv3/api/share/global/".format(settings.KOBOCAT_URL)
+
+    def get_add_language_url(self):
+        return "{}/fv3/api/add-language/".format(settings.KOBOCAT_URL)
 
 
 class ShareFormSerializer(serializers.Serializer):
@@ -52,5 +76,14 @@ class ShareGlobalFormSerializer(serializers.Serializer):
     form = serializers.IntegerField()
 
 
+
+class AddLanguageSerializer(serializers.Serializer):
+    form = serializers.IntegerField()
+    language = serializers.CharField()
+    code = serializers.CharField()
+
+
+
 class CloneFormSerializer(serializers.Serializer):
     form = serializers.IntegerField()
+
