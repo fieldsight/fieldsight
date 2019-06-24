@@ -1,7 +1,6 @@
 import datetime
-import time
 from collections import OrderedDict
-_strptime = time.strptime
+_strptime = datetime.datetime.strptime
 from django.db.models import Count
 
 from .models import FInstance
