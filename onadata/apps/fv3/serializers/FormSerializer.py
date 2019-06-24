@@ -2,9 +2,9 @@ from rest_framework import serializers
 
 from onadata.apps.logger.models import XForm
 
-from onadata.apps.fsforms.models import Asset
+from onadata.apps.fsforms.models import Asset, FieldSightXF
 
-from onadata.apps.fsforms.models import FieldSightXF
+from onadata.apps.fieldsight.models import Project
 
 
 from django.conf import settings
@@ -74,6 +74,19 @@ class XFormSerializer(serializers.ModelSerializer):
 
     def get_clone_form_url(self, obj):
         return "{}/fv3/api/clone/".format(settings.KOBOCAT_URL)
+
+
+class ProjectFormSerializer(serializers.ModelSerializer):
+    forms = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = ('id', 'name', 'forms')
+
+    def get_forms(self, obj):
+        xf = XForm.objects.filter(field_sight_form__project=obj).distinct()
+        serializer = XFormSerializer(xf, many=True)
+        return serializer.data
 
 
 class ShareFormSerializer(serializers.Serializer):
