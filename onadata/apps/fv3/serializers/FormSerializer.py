@@ -21,10 +21,13 @@ class XFormSerializer(serializers.ModelSerializer):
     share_team_url = serializers.SerializerMethodField()
     share_global_url = serializers.SerializerMethodField()
     add_language_url = serializers.SerializerMethodField()
+    clone_form_url = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
-        fields = ('id_string','title', 'edit_url', 'preview_url', 'replace_url', 'download_url', 'media_url', 'date_created')
+        fields = ('id_string','title', 'edit_url', 'preview_url', 'replace_url',
+                  'download_url', 'media_url', 'date_created', 'share_users_url',
+                  'share_project_url', 'share_team_url', 'share_global_url', 'add_language_url', 'clone_form_url')
 
     def get_edit_url(self, obj):
         return "{}#forms/{}/edit/".format(settings.KPI_URL, obj.id_string)
@@ -55,6 +58,9 @@ class XFormSerializer(serializers.ModelSerializer):
 
     def get_add_language_url(self):
         return "{}/fv3/api/add-language/".format(settings.KOBOCAT_URL)
+
+    def get_clone_form_url(self):
+        return "{}/fv3/api/clone/".format(settings.KOBOCAT_URL)
 
 
 class ShareFormSerializer(serializers.Serializer):
