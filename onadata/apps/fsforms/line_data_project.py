@@ -1,7 +1,6 @@
-import datetime
+from datetime import datetime
 from collections import OrderedDict
-_strptime = datetime.datetime.strptime
-from django.db.models import Count
+_strptime = datetime.strptime
 
 from .models import FInstance
 
@@ -18,10 +17,11 @@ class LineChartGenerator(object):
 
     def __init__(self, project):
         self.project = project
-        self.date_list = list(date_range(project.date_created.strftime("%Y%m%d"), datetime.datetime.today().strftime("%Y%m%d"), 6))
+        self.date_list = list(date_range(project.date_created.strftime("%Y%m%d"), datetime.today().strftime("%Y%m%d"), 6))
 
     def get_count(self, date):
-        date = date + datetime.timedelta(days=1)
+        import datetime as dt
+        date = date + dt.timedelta(days=1)
         return self.project.project_instances.filter(date__lte=date.date()).count()
 
     def data(self):
@@ -37,10 +37,11 @@ class LineChartGeneratorProject(object):
 
     def __init__(self, project):
         self.project = project
-        self.date_list = list(date_range(project.date_created.strftime("%Y%m%d"), datetime.datetime.today().strftime("%Y%m%d"), 6))
+        self.date_list = list(date_range(project.date_created.strftime("%Y%m%d"), datetime.today().strftime("%Y%m%d"), 6))
 
     def get_count(self, date):
-        date = date + datetime.timedelta(days=1)
+        import datetime as dt
+        date = date + dt.timedelta(days=1)
         return self.project.project_instances.filter(date__lte=date.date()).count()
 
     def data(self):
@@ -56,10 +57,11 @@ class LineChartGeneratorOrganization(object):
 
     def __init__(self, organization):
         self.organization = organization
-        self.date_list = list(date_range(organization.date_created.strftime("%Y%m%d"), datetime.datetime.today().strftime("%Y%m%d"), 6))
+        self.date_list = list(date_range(organization.date_created.strftime("%Y%m%d"), datetime.today().strftime("%Y%m%d"), 6))
 
     def get_count(self, date):
-        date = date + datetime.timedelta(days=1)
+        import datetime as dt
+        date = date + dt.timedelta(days=1)
         return FInstance.objects.filter(project__organization=self.organization, date__lte=date.date()).count()
 
     def data(self):
@@ -75,10 +77,11 @@ class LineChartGeneratorSite(object):
 
     def __init__(self, site):
         self.site = site
-        self.date_list = list(date_range(site.date_created.strftime("%Y%m%d"), datetime.datetime.today().strftime("%Y%m%d"), 6))
+        self.date_list = list(date_range(site.date_created.strftime("%Y%m%d"), datetime.today().strftime("%Y%m%d"), 6))
 
     def get_count(self, date):
-        date = date + datetime.timedelta(days=1)
+        import datetime as dt
+        date = date + dt.timedelta(days=1)
         return self.site.site_instances.filter(date__lte=date.date()).count()
 
     def data(self):
