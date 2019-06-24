@@ -8,9 +8,12 @@ from onadata.apps.fsforms.models import FieldSightXF
 
 
 from django.conf import settings
+from datetime import datetime
 
 
 class XFormSerializer(serializers.ModelSerializer):
+    date_created = serializers.SerializerMethodField()
+    date_modified = serializers.SerializerMethodField()
     edit_url = serializers.SerializerMethodField()
     preview_url = serializers.SerializerMethodField()
     replace_url = serializers.SerializerMethodField()
@@ -28,6 +31,16 @@ class XFormSerializer(serializers.ModelSerializer):
         fields = ('id_string','title', 'edit_url', 'preview_url', 'replace_url',
                   'download_url', 'media_url', 'date_created', 'date_modified', 'share_users_url',
                   'share_project_url', 'share_team_url', 'share_global_url', 'add_language_url', 'clone_form_url')
+
+    def get_date_created(self, obj):
+        date_created = obj.date_created
+        date_created = datetime.strftime(date_created, "%Y-%M-%d")
+        return date_created
+
+    def get_date_modified(self, obj):
+        date_modified = obj.date_modified
+        date_modified = datetime.strftime(date_modified, "%Y-%M-%d")
+        return date_modified
 
     def get_edit_url(self, obj):
         return "{}#forms/{}/edit/".format(settings.KPI_URL, obj.id_string)
