@@ -112,15 +112,13 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 class ProjectUpdateSerializer(serializers.ModelSerializer):
     logo = Base64ImageField(
-        max_length=None, use_url=True, allow_empty_file=True
+        max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
     )
    
     class Meta:
         model = Project
         fields = ('id', 'name', 'phone', 'email', 'address', 'website', 'donor', 'public_desc', 'logo',
                   'location', 'cluster_sites', 'sector', 'sub_sector', 'organization')
-
-        extra_kwargs = {'logo': {'required': False}}
 
 
 class SectorSerializer(serializers.ModelSerializer):
