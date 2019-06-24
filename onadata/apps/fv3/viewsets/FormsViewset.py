@@ -9,7 +9,8 @@ from django.conf import settings
 from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset
 from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
-    ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, AddLanguageSerializer, CloneFormSerializer
+    ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, \
+    AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -37,8 +38,8 @@ class MyProjectFormsViewSet(viewsets.ReadOnlyModelViewSet):
         forms assigned in my project is project forms
         """
     authentication_classes = ([SessionAuthentication,BasicAuthentication])
-    queryset = XForm.objects.all()
-    serializer_class = XFormSerializer
+    queryset = Project.objects.all()
+    serializer_class = ProjectFormSerializer
 
     def get_queryset(self):
         projects = self.request.roles.filter(
@@ -48,10 +49,8 @@ class MyProjectFormsViewSet(viewsets.ReadOnlyModelViewSet):
             "organization", flat=True)
         admin_projects = Project.objects.filter(organization__pk__in=organizations).values_list("pk", flat=True)
         projects = [p for p in projects] + [p for p in admin_projects]
-        fieldsight_forms = FieldSightXF.objects.filter(
-            project__in=projects).exclude(xf__user=self.request.user).order_by("xf").distinct()
-        results = [f.xf for f in fieldsight_forms]
-        return results
+        projects = Project.objects.filter(id__in=projects).order_by('id')
+        return projects
 
 
 class ShareFormViewSet(APIView):
