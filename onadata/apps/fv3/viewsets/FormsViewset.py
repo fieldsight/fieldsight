@@ -62,23 +62,25 @@ class ShareFormViewSet(APIView):
 
     def post(self, request, **kwargs):
         serializer = ShareFormSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if serializer.is_valid(raise_exception=False):
 
-        xf = XForm.objects.get(id_string=request.data['id_string'])
-        self.check_object_permissions(request, xf)
+            xf = XForm.objects.get(id_string=request.data['id_string'])
+            self.check_object_permissions(request, xf)
 
-        task_obj = CeleryTaskProgress.objects.create(user=request.user,
-                                                     description="Share Forms Individual",
-                                                     task_type=19, content_object=xf)
-        if task_obj:
-            from onadata.apps.fsforms.tasks import api_share_form
-            try:
-                with transaction.atomic():
+            task_obj = CeleryTaskProgress.objects.create(user=request.user,
+                                                         description="Share Forms Individual",
+                                                         task_type=19, content_object=xf)
+            if task_obj:
+                from onadata.apps.fsforms.tasks import api_share_form
+                try:
+                    with transaction.atomic():
 
-                    api_share_form.delay(xf.id, request.data['users'], task_obj.id)
-            except IntegrityError:
-                pass
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+                        api_share_form.delay(xf.id, request.data['users'], task_obj.id)
+                except IntegrityError:
+                    pass
+            return Response({"message": "Form shared successfully"}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ShareProjectFormViewSet(APIView):
@@ -91,30 +93,32 @@ class ShareProjectFormViewSet(APIView):
 
     def post(self, request, **kwargs):
         serializer = ShareProjectFormSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        xf = XForm.objects.get(id_string=request.data['id_string'])
-        self.check_object_permissions(request, xf)
+        if serializer.is_valid(raise_exception=False):
+            xf = XForm.objects.get(id_string=request.data['id_string'])
+            self.check_object_permissions(request, xf)
 
-        task_obj = CeleryTaskProgress.objects.create(user=request.user,
-                                                     description="Share Forms Project Manager and Admin",
-                                                     task_type=20, content_object=xf)
-        if task_obj:
-            from onadata.apps.fsforms.tasks import api_share_form
-            try:
-                with transaction.atomic():
-                    project = Project.objects.get(id=request.data['project'])
-                    userrole = UserRole.objects.filter(project=project,
-                                                       group__name__in=["Project Manager", "Organization Admin"],
-                                                       organization=project.organization,
-                                                       ended_at__isnull=True)
-                    users = User.objects.filter(user_roles__in=userrole)
-                    user_ids = []
-                    for item in users:
-                        user_ids.append(item.id)
-                    api_share_form.delay(xf.id, user_ids, task_obj.id)
-            except IntegrityError:
-                pass
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            task_obj = CeleryTaskProgress.objects.create(user=request.user,
+                                                         description="Share Forms Project Manager and Admin",
+                                                         task_type=20, content_object=xf)
+            if task_obj:
+                from onadata.apps.fsforms.tasks import api_share_form
+                try:
+                    with transaction.atomic():
+                        project = Project.objects.get(id=request.data['project'])
+                        userrole = UserRole.objects.filter(project=project,
+                                                           group__name__in=["Project Manager", "Organization Admin"],
+                                                           organization=project.organization,
+                                                           ended_at__isnull=True)
+                        users = User.objects.filter(user_roles__in=userrole)
+                        user_ids = []
+                        for item in users:
+                            user_ids.append(item.id)
+                        api_share_form.delay(xf.id, user_ids, task_obj.id)
+                except IntegrityError:
+                    pass
+            return Response({"message": "Form shared successfully"}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ShareTeamFormViewSet(APIView):
@@ -127,27 +131,29 @@ class ShareTeamFormViewSet(APIView):
 
     def post(self, request, **kwargs):
         serializer = ShareTeamFormSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if serializer.is_valid(raise_exception=False):
 
-        xf = XForm.objects.get(id_string=request.data['id_string'])
-        self.check_object_permissions(request, xf)
-        task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Share XForm to Team",
-                                                     task_type=21, content_object=xf)
-        if task_obj:
-            from onadata.apps.fsforms.tasks import api_share_form
-            try:
-                with transaction.atomic():
-                    userrole = UserRole.objects.filter(organization_id=request.data['team'],
-                                                       group__name__in=["Project Manager", "Organization Admin"],
-                                                       ended_at__isnull=True)
-                    users = User.objects.filter(user_roles__in=userrole)
-                    user_ids = []
-                    for item in users:
-                        user_ids.append(item.id)
-                    api_share_form.delay(xf.id, user_ids, task_obj.id)
-            except IntegrityError:
-                pass
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            xf = XForm.objects.get(id_string=request.data['id_string'])
+            self.check_object_permissions(request, xf)
+            task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Share XForm to Team",
+                                                         task_type=21, content_object=xf)
+            if task_obj:
+                from onadata.apps.fsforms.tasks import api_share_form
+                try:
+                    with transaction.atomic():
+                        userrole = UserRole.objects.filter(organization_id=request.data['team'],
+                                                           group__name__in=["Project Manager", "Organization Admin"],
+                                                           ended_at__isnull=True)
+                        users = User.objects.filter(user_roles__in=userrole)
+                        user_ids = []
+                        for item in users:
+                            user_ids.append(item.id)
+                        api_share_form.delay(xf.id, user_ids, task_obj.id)
+                except IntegrityError:
+                    pass
+            return Response({"message": "Form shared successfully"}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ShareGlobalFormViewSet(APIView):
@@ -165,11 +171,12 @@ class ShareGlobalFormViewSet(APIView):
         xf = XForm.objects.get(id_string=request.data['id_string'])
         self.check_object_permissions(request, xf)
 
-
         from onadata.apps.fsforms.share_xform import share_form_global
         shared = share_form_global(xf)
         if shared:
-            return Response({'share_link': settings.KPI_URL + '#/forms/' + xf.id_string}, status=status.HTTP_201_CREATED)
+            return Response({"message": "Form shared successfully",
+                             'share_link': settings.KPI_URL + '#/forms/' + xf.id_string},
+                            status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -191,7 +198,7 @@ class CloneFormViewSet(APIView):
             if task_obj:
                 from onadata.apps.fsforms.tasks import api_clone_form
                 api_clone_form.delay(xf.id, project.id, request.user.id, task_obj.id)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response({"message": "Form cloned successfully"}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
        
@@ -218,6 +225,6 @@ class FormAddLanguageViewSet(APIView):
                     if 'label' in row:
                         row['label'].append(None)
             a.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response({"message": "Language added successfully"}, status=status.HTTP_201_CREATED)
         else:
             return Response({"message": "This form has no languages defined yet."}, status=status.HTTP_400_BAD_REQUEST)
