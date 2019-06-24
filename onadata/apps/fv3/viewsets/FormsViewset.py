@@ -168,12 +168,11 @@ class ShareGlobalFormViewSet(APIView):
 
 
         from onadata.apps.fsforms.share_xform import share_form_global
-         shared = share_form_global(xf)
+        shared = share_form_global(xf)
         if shared:
             return Response({'share_link': settings.KPI_URL + '#/forms/' + xf.id_string}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 class CloneFormViewSet(APIView):
@@ -186,12 +185,13 @@ class CloneFormViewSet(APIView):
     def post(self, request, **kwargs):
         serializer = CloneFormSerializer(data=request.data)
         if serializer.is_valid():
-            fxf = FieldSightXF.objects.get(id=request.data['form'])
+            xf = XForm.objects.get(id=request.data['form'])
+            project = Project.objects.get(id=request.data['project'])
             task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Clone Form",
-                                                         task_type=22, content_object=fxf)
+                                                         task_type=22, content_object=xf)
             if task_obj:
                 from onadata.apps.fsforms.tasks import api_clone_form
-                api_clone_form.delay(fxf.id, request.user.id, task_obj.id)
+                api_clone_form.delay(xf.id, project.id, request.user.id, task_obj.id)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
