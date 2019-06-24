@@ -28,7 +28,7 @@ class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = XFormSerializer
 
     def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user)
+        return self.queryset.filter(user=self.request.user)
 
 
 class MyProjectFormsViewSet(viewsets.ReadOnlyModelViewSet):
