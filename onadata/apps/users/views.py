@@ -631,7 +631,7 @@ def accept_invitation(request, pk, username):
         profile.organization = invitation.organization
         profile.save()
     if user.user_roles.all()[0].group.name == "Unassigned":
-        previous_group = UserRole.objects.get(user=user, group__name="Unassigned")
+        previous_group = UserRole.objects.filter(user=user, group__name="Unassigned")
         previous_group.delete()
 
     site_ids = invitation.site.all().values_list('pk', flat=True)
@@ -762,7 +762,7 @@ def accept_all_invitations(request, username):
         profile.organization = invitations[0].organization
         profile.save()
     if user.user_roles.all()[0].group.name == "Unassigned":
-        previous_group = UserRole.objects.get(user=user, group__name="Unassigned")
+        previous_group = UserRole.objects.filter(user=user, group__name="Unassigned")
         previous_group.delete()
 
     for invitation in invitations:
