@@ -20,7 +20,8 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class StaffSerializer(serializers.ModelSerializer):
-    
+    designation = serializers.CharField(source='get_designation_display')
+
     class Meta:
         model = Staff
         exclude = ('created_by', 'team', 'created_date', 'updated_date', 'is_deleted',)
