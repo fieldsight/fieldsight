@@ -98,7 +98,11 @@ class ShareUserListSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile_picture')
 
     def get_profile_picture(self, obj):
-        return obj.user_profile.profile_picture.url
+        try:
+            image_url = obj.user_profile.profile_picture.url
+            return image_url
+        except:
+            return ''
 
 
 class ShareTeamListSerializer(serializers.ModelSerializer):
