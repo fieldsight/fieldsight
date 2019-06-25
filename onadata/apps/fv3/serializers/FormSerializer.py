@@ -34,7 +34,7 @@ class XFormSerializer(serializers.ModelSerializer):
         fields = ('id_string','title', 'edit_url', 'preview_url', 'replace_url',
                   'download_url', 'media_url', 'date_created', 'date_modified', 'share_users_url',
                   'share_project_url', 'share_team_url', 'share_global_url', 'add_language_url',
-                  'clone_form_url', 'delete_url')
+                  'clone_form_url', 'delete_url', 'shareable_users_url')
 
     def get_date_created(self, obj):
         date_created = obj.date_created
