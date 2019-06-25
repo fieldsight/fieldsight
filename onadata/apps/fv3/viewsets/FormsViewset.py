@@ -10,7 +10,7 @@ from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset, DeletedXForm
 from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
     ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, \
-    AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer, MyFormDeleteSerializer
+    AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer, MyFormDeleteSerializer, ShareUserSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -31,6 +31,20 @@ class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user, deleted_xform=None)
+
+
+class ShareUserListViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+        A ViewSet for getting the list of shareable users
+        """
+    authentication_classes = ([SessionAuthentication, BasicAuthentication])
+    queryset = User.objects.all()
+    serializer_class = ShareUserSerializer
+
+    def get_queryset(self):
+        projects = self.request.roles.filter(
+            ended_at__isnull=True).values_list("project", flat=True).order_by('project').distinct()
+        return self.queryset.filter(user_roles__project_id__in=projects).distinct()
 
 
 class MyProjectFormsViewSet(viewsets.ReadOnlyModelViewSet):
