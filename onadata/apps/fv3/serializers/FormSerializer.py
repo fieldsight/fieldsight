@@ -39,7 +39,7 @@ class XFormSerializer(serializers.ModelSerializer):
 
     def get_date_created(self, obj):
         date_created = obj.date_created
-        date_created = datetime.strftime(date_created, "%Y-%M-%d")
+        date_created = datetime.strftime(date_created, "%Y-%m-%d")
         return date_created
 
     def get_date_modified(self, obj):
