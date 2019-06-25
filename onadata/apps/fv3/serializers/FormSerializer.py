@@ -44,7 +44,7 @@ class XFormSerializer(serializers.ModelSerializer):
 
     def get_date_modified(self, obj):
         date_modified = obj.date_modified
-        date_modified = datetime.strftime(date_modified, "%Y-%M-%d")
+        date_modified = datetime.strftime(date_modified, "%Y-%m-%d")
         return date_modified
 
     def get_edit_url(self, obj):
