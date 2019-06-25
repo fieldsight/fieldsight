@@ -18,6 +18,7 @@ from django.contrib.auth.models import User
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fv3.permissions.xform import XFormSharePermission, XFormDeletePermission, XFormEditPermission
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
 class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
@@ -57,7 +58,7 @@ class ShareFormViewSet(APIView):
     """
         A ViewSet for sharing the form to users
         """
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAuthenticated, XFormSharePermission)
 
     def post(self, request, **kwargs):
@@ -88,7 +89,7 @@ class ShareProjectFormViewSet(APIView):
         A ViewSet for sharing a form to the project managers of a project and the organization admin
         """
 
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAuthenticated, XFormSharePermission)
 
     def post(self, request, **kwargs):
@@ -126,7 +127,7 @@ class ShareTeamFormViewSet(APIView):
         A ViewSet for sharing a form to all the team members(project managers and organization admin)
         """
 
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAuthenticated, XFormSharePermission)
 
     def post(self, request, **kwargs):
@@ -161,7 +162,7 @@ class ShareGlobalFormViewSet(APIView):
         A ViewSet for sharing a form globally
         """
 
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAuthenticated, XFormSharePermission)
 
     def post(self, request, **kwargs):
@@ -185,7 +186,7 @@ class CloneFormViewSet(APIView):
     """
         A ViewSet for cloning a form
         """
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAuthenticated, )
 
     def post(self, request, **kwargs):
@@ -207,8 +208,8 @@ class FormAddLanguageViewSet(APIView):
     """
         A ViewSet for adding languages to a form
         """
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
-    permission_classes = (IsAuthenticated, XFormEditPermission)
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAuthenticated, XFormSharePermission)
 
     def post(self, request, *args,  **kwargs):
         serializer = AddLanguageSerializer(data=request.data)
