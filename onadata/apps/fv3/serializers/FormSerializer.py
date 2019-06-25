@@ -118,3 +118,7 @@ class CloneFormSerializer(serializers.Serializer):
     id_string = serializers.CharField()
     project = serializers.IntegerField()
 
+
+class MyFormDeleteSerializer(serializers.Serializer):
+    id_string = serializers.CharField()
+

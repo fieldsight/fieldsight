@@ -7,17 +7,17 @@ from django.db import models, IntegrityError, transaction
 from django.conf import settings
 
 from onadata.apps.fieldsight.models import Project
-from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset
+from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset, DeletedXForm
 from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
     ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, \
-    AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer
+    AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer, MyFormDeleteSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import CeleryTaskProgress
-from onadata.apps.fv3.permissions.xform import XFormSharePermission
+from onadata.apps.fv3.permissions.xform import XFormSharePermission, XFormDeletePermission, XFormEditPermission
 
 
 class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
@@ -29,7 +29,7 @@ class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = XFormSerializer
 
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
+        return self.queryset.filter(user=self.request.user, deleted_xform=None)
 
 
 class MyProjectFormsViewSet(viewsets.ReadOnlyModelViewSet):
@@ -208,7 +208,7 @@ class FormAddLanguageViewSet(APIView):
         A ViewSet for adding languages to a form
         """
     authentication_classes = (SessionAuthentication, BasicAuthentication)
-    permission_classes = (IsAuthenticated, XFormSharePermission)
+    permission_classes = (IsAuthenticated, XFormEditPermission)
 
     def post(self, request, *args,  **kwargs):
         serializer = AddLanguageSerializer(data=request.data)
@@ -228,3 +228,27 @@ class FormAddLanguageViewSet(APIView):
             return Response({"message": "Language added successfully"}, status=status.HTTP_201_CREATED)
         else:
             return Response({"message": "This form has no languages defined yet."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MyFormDeleteViewSet(APIView):
+    """
+        A ViewSet for deleting the xform from my forms
+        """
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAuthenticated, XFormDeletePermission)
+
+    def post(self, request, *args, **kwargs):
+        serializer = MyFormDeleteSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=False):
+            xf = XForm.objects.get(id_string=request.data['id_string'])
+            self.check_object_permissions(request, xf)
+            obj, created = DeletedXForm.objects.get_or_create(xf=xf)
+            if obj or created:
+                return Response({"message": "Form deleted successfully."}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"message": "Error occurred while deleting form"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
