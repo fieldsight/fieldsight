@@ -235,7 +235,7 @@ class MyFormDeleteViewSet(APIView):
     """
         A ViewSet for deleting the xform from my forms
         """
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAuthenticated, XFormDeletePermission)
 
     def post(self, request, *args, **kwargs):
