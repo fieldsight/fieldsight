@@ -6,11 +6,12 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import models, IntegrityError, transaction
 from django.conf import settings
 
-from onadata.apps.fieldsight.models import Project
+from onadata.apps.fieldsight.models import Project, Organization
 from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset, DeletedXForm
 from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
     ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, \
-    AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer, MyFormDeleteSerializer, ShareUserSerializer
+    AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer, MyFormDeleteSerializer, \
+    ShareUserListSerializer, ShareTeamListSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -35,16 +36,31 @@ class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ShareUserListViewSet(viewsets.ReadOnlyModelViewSet):
     """
-        A ViewSet for getting the list of shareable users
+        A ViewSet for getting the list of shareable users for sharing form
         """
     authentication_classes = ([SessionAuthentication, BasicAuthentication])
     queryset = User.objects.all()
-    serializer_class = ShareUserSerializer
+    serializer_class = ShareUserListSerializer
 
     def get_queryset(self):
         projects = self.request.roles.filter(
             ended_at__isnull=True).values_list("project", flat=True).order_by('project').distinct()
         return self.queryset.filter(user_roles__project_id__in=projects).distinct()
+
+
+class ShareTeamListViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+            A ViewSet for getting the list of shareable team for sharing form
+            """
+    authentication_classes = ([SessionAuthentication, BasicAuthentication])
+    queryset = Organization.objects.all()
+    serializer_class = ShareTeamListSerializer
+
+    def get_queryset(self):
+        teams = self.request.roles.filter(
+            ended_at__isnull=True, group__name="Organization Admin").values_list(
+            "organization", flat=True)
+        return self.queryset.filter(id__in=teams).distinct()
 
 
 class MyProjectFormsViewSet(viewsets.ReadOnlyModelViewSet):
