@@ -8,6 +8,7 @@ from onadata.apps.fieldsight.models import Project
 
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from datetime import datetime
 
 
@@ -26,6 +27,7 @@ class XFormSerializer(serializers.ModelSerializer):
     add_language_url = serializers.SerializerMethodField()
     clone_form_url = serializers.SerializerMethodField()
     delete_url = serializers.SerializerMethodField()
+    shareable_users_url = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
@@ -79,6 +81,15 @@ class XFormSerializer(serializers.ModelSerializer):
 
     def get_delete_url(self, obj):
         return "{}/fv3/api/form/delete/".format(settings.KOBOCAT_URL)
+
+    def get_shareable_users_url(self, obj):
+        return "{}/fv3/api/form/users/".format(settings.KOBOCAT_URL)
+
+
+class ShareUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'first_name', 'last_name')
 
 
 class ProjectFormSerializer(serializers.ModelSerializer):
