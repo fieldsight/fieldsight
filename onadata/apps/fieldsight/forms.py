@@ -286,7 +286,7 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers', 'fax',
-                   'additional_desc', 'type')
+                   'additional_desc', 'type', 'site_basic_info', 'site_featured_images')
         #organization_filters = ['organization']
         widgets = {
             'is_active': forms.HiddenInput(),

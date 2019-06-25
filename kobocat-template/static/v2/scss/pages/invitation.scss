@@ -1,0 +1,166 @@
+.fieldsight-new{
+    .invite{
+        @include anim05;
+        .popup-close{
+            position: absolute;
+            top:0;
+            left:0;
+            width:25px;
+            height: 25px;
+            @include flexvr;
+            @include boxshadow;
+            color:$color-red;
+            @include radius50;
+            cursor:pointer;
+            background-color: $color-white;
+            z-index: 9;
+
+            &:hover{
+                background-color: $color-red;
+                color:$color-white;
+            }
+        }
+        
+        &.invite-popup{
+            position: fixed;
+            top:4.5rem;
+            right:0;
+            padding:1rem;
+            .card{
+                max-width: 380px;
+                opacity: 1;
+                visibility: visible;
+               
+                .invitation-title{
+                    padding-bottom: 0.5rem;
+                    margin-bottom: 0.5rem;
+                    border-bottom: 1px solid $color-bg;
+                    span{
+                        font-weight: 500;
+                        font-size:0.775rem;
+                    }
+                }
+                .normal-list{
+                    ul{
+                        li{
+                            p{
+                                font-size:0.775rem;
+                                margin-bottom:0.6rem;
+                                a{
+                                    font-weight: 500;
+                                    color:$color-blue;
+                                }
+                            }
+                            .invite-btn{
+                                a{
+                                    border:1px solid $color-bg;
+                                    @include radius4;
+                                    padding:0.3rem 0.5rem;
+                                    font-size:0.775rem;
+                                    i{
+                                        margin-right: 0.5rem;
+                                    }
+                                    &.accept-btn{
+                                        i{
+                                            color:$color-green;
+                                        }
+                                        &:hover{
+                                            color:$color-green;
+                                        }
+                                    }
+                                    &.reject-btn{
+                                        &:hover{
+                                            color:$color-red;
+                                        }
+                                        i{
+                                            color:$color-red;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            &.hide{
+                .popup-close{
+                    @include pulse;
+                    .la-close{
+                        &::before{
+                            content:'\f366';
+                            font-family: 'LineAwesome';
+                        }
+                    }
+                }
+                .card{
+                    width:0;
+                    opacity: 0;
+                    visibility: hidden;
+                    .card-header{
+                        display: none;
+                    }
+                }
+            }
+        }
+        &.invite-dashboard{
+            .card{
+                max-width: 700px;
+                margin:0 auto;
+               
+                .invitation-title{
+                    padding-bottom: 0.5rem;
+                    margin-bottom: 0.5rem;
+                    border-bottom: 1px solid $color-bg;
+                    span{
+                        font-weight: 500;
+                        font-size:0.775rem;
+                    }
+                }
+                .normal-list{
+                    ul{
+                        li{
+                            p{
+                                font-size:0.775rem;
+                                margin-bottom:0.6rem;
+                                a{
+                                    font-weight: 500;
+                                    color:$color-blue;
+                                }
+                            }
+                            .invite-btn{
+                                a{
+                                    border:1px solid $color-bg;
+                                    @include radius4;
+                                    padding:0.3rem 0.5rem;
+                                    font-size:0.775rem;
+                                    i{
+                                        margin-right: 0.5rem;
+                                    }
+                                    &.accept-btn{
+                                        i{
+                                            color:$color-green;
+                                        }
+                                        &:hover{
+                                            color:$color-green;
+                                        }
+                                    }
+                                    &.reject-btn{
+                                        &:hover{
+                                            color:$color-red;
+                                        }
+                                        i{
+                                            color:$color-red;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .create-organization{
+                    text-align: center;
+                }
+            }
+        }
+    }
+}

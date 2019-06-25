@@ -1,7 +1,48 @@
+import base64
+import imghdr
+import uuid
+
+import six
+from django.core.files.base import ContentFile
 from rest_framework import serializers
 
-from onadata.apps.fieldsight.models import Project, Organization, Region, Site, ProjectLevelTermsAndLabels
+
+from onadata.apps.fieldsight.models import Project, Organization, Region, Site, Sector, SiteType,  ProjectLevelTermsAndLabels
 from onadata.apps.fieldsight.serializers.SiteSerializer import SiteTypeSerializer
+
+
+class Base64ImageField(serializers.ImageField):
+
+    def to_internal_value(self, data):
+
+        # Check if this is a base64 string
+        if isinstance(data, six.string_types):
+            # Check if the base64 string is in the "data:" format
+            if 'data:' in data and ';base64,' in data:
+                header, data = data.split(';base64,')
+
+            # Try to decode the file. Return validation error if it fails.
+            try:
+                decoded_file = base64.b64decode(data)
+            except TypeError:
+                self.fail('invalid_image')
+
+            # Generate file name:
+            file_name = str(uuid.uuid4())[:12] # 12 characters are more than enough.
+            # Get the file name extension:
+            file_extension = self.get_file_extension(file_name, decoded_file)
+
+            complete_file_name = "%s.%s" % (file_name, file_extension, )
+
+            data = ContentFile(decoded_file, name=complete_file_name)
+
+        return super(Base64ImageField, self).to_internal_value(data)
+
+    def get_file_extension(self, file_name, decoded_file):
+        extension = imghdr.what(file_name, decoded_file)
+        extension = "jpg" if extension == "jpeg" else extension
+
+        return extension
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -67,3 +108,103 @@ class ProjectSerializer(serializers.ModelSerializer):
                     'region_supervisor': obj.terms_and_labels.region_supervisor,
                     'region_reviewer': obj.terms_and_labels.region_reviewer,
                     }
+
+
+class ProjectUpdateSerializer(serializers.ModelSerializer):
+    logo = Base64ImageField(
+        max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
+    )
+   
+    class Meta:
+        model = Project
+        fields = ('id', 'name', 'phone', 'email', 'address', 'website', 'donor', 'public_desc', 'logo',
+                  'location', 'cluster_sites', 'sector', 'sub_sector', 'organization')
+
+
+class SectorSerializer(serializers.ModelSerializer):
+    subSectors = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Sector
+        fields = ('id', 'name', 'subSectors')
+
+    def get_subSectors(self, obj):
+        if obj.sectors:
+            return obj.sectors.all().values('id', 'name')
+
+
+class SiteTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SiteType
+        exclude = ()
+
+
+class ProjectLevelTermsAndLabelsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProjectLevelTermsAndLabels
+        exclude = ()
+
+
+class ProjectSiteSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Site
+        fields = ('id', 'project', 'identifier', 'name', 'type', 'phone', 'address', 'public_desc', 'logo', 'longitude',
+                  'latitude')
+
+
+class ProjectRegionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Region
+        fields = ('id', 'project', 'identifier', 'name', 'date_created', 'parent')
+
+
+class ProjectSitesSerializer(serializers.ModelSerializer):
+    region = serializers.CharField(source='region.name')
+    submissions = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Site
+        fields = ('id', 'project', 'name', 'identifier', 'address', 'region', 'phone', 'public_desc',
+                  'type', 'logo', 'submissions', 'progress')
+
+        extra_kwargs = {
+            'project': {'write_only': True},
+            'phone': {'write_only': True},
+            'public_desc': {'write_only': True},
+            'type': {'write_only': True},
+            'logo': {'write_only': True}
+
+        }
+
+    def get_submissions(self, obj):
+        # response = obj.get_site_submission_count()
+        instances = obj.site_instances.all().order_by('-date')
+        outstanding, flagged, approved, rejected = 0, 0, 0, 0
+        for submission in instances:
+            if submission.form_status == 0:
+                outstanding += 1
+            elif submission.form_status == 1:
+                rejected += 1
+            elif submission.form_status == 2:
+                flagged += 1
+            elif submission.form_status == 3:
+                approved += 1
+        response = {}
+        response['outstanding'] = outstanding
+        response['rejected'] = rejected
+        response['flagged'] = flagged
+        response['approved'] = approved
+
+        return response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
+
+    def get_progress(self, obj):
+        site_progress = obj.site_progress
+
+        return site_progress
+
+

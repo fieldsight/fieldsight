@@ -1,0 +1,30 @@
+.fieldsight-new{
+    .breadcrumb{
+        padding: 0.625rem 1rem;
+        margin: 1.6rem 0;
+        list-style: none;
+        background-color: $color-white;
+        border-radius: 4px;
+      .breadcrumb-item+.breadcrumb-item{
+        &::before{
+            display: inline-block;
+            padding-right: .5rem;
+            padding-left: .5rem;
+            content: "\f10e";
+            font-family: 'LineAwesome';
+
+        }
+        a{
+            &:hover{
+                color:$color-secondary;
+            }
+        }
+      }
+      .breadcrumb-item{
+        text-transform: capitalize;
+          &.active{
+            color:$color-secondary;
+          }
+      }
+    }
+  }

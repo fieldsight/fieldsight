@@ -1,4 +1,4 @@
-function parse_form_response(main_question){
+function parse_form_response(main_question, type="all"){
     parsed_question={};
     lang_code=null;
 
@@ -40,7 +40,13 @@ function parse_form_response(main_question){
                 }
                 if (first_children['type'] == 'group'){
                     parse_group(g_question+"/",first_children)
-                }else if(first_children['type'] != 'repeat'){            
+                }else if(first_children['type'] != 'repeat'){
+                    if (type == 'image' && first_children['type'] != "photo"){
+                        return
+                    }
+                    if (type == 'location' && first_children['type'] != ""){
+                        return
+                    }           
                     parsed_question[question_name]={'label':question_label, 'type':first_children['type'], 'name':question_name}
                 }
             });
@@ -65,7 +71,13 @@ function parse_form_response(main_question){
                         if (typeof question_label == "object"){
                             question_label = get_question_label(first_children['label'])
                         }
-                    }    
+                    }
+                if (type == 'image' && first_children['type'] != "photo"){
+                    return
+                }
+                if (type == 'location' && first_children['type'] != ""){
+                    return
+                }    
                 parsed_question[question_name]={'label':question_label, 'type':first_children['type'], 'name':question_name}
                 }
 
