@@ -20,7 +20,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class StaffSerializer(serializers.ModelSerializer):
-    designation_label = serializers.CharField(source='get_designation_display')
+    designation_label = serializers.CharField(source='get_designation_display', read_only=True)
 
     class Meta:
         model = Staff
