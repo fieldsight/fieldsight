@@ -717,3 +717,49 @@ class ReportData(models.Model):
     def __str__(self):
         return self.message
 
+
+class ProgressSettings(models.Model):
+    # from onadata.apps.fsforms.models.FieldSightXF
+    CHOICES = (
+        (0, "Default (stages approved / total stages)"),
+        (1, "Most advanced approved stage"),
+        (2, "Pull integer from form"),
+        (3, "# of site submissions (All forms)"),
+        (4, "# of site submissions (for a form)"),
+        (5, "Manually update"),
+    )
+    source = models.IntegerField(choices=CHOICES, default=0)
+    pull_integer_form = models.IntegerField(blank=True, null=True)
+    pull_integer_form_question = models.CharField(max_length=31, null=True, blank=True)
+    no_submissions_form = models.IntegerField(blank=True, null=True)
+    no_submissions_total_count = models.IntegerField(null=True, blank=True)
+    project = models.ForeignKey(Project, related_name="progress_settings")
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.project.name
+
+
+class SiteProgressHistory(models.Model):
+    progress = models.FloatField()
+    site = models.ForeignKey(Site, related_name="progress_history")
+    date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return "{} {}".format(self.site.name, self.progress)
+
+
+class SiteMetaAttrHistory(models.Model):
+    meta_attributes = JSONField(default=list)
+    site = models.ForeignKey(Site, related_name="meta_history")
+    date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return "{} {}".format(self.site.name, self.date)
+
