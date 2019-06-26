@@ -445,7 +445,7 @@ class GeoLayerView(APIView):
         project_id = request.query_params.get('project', None)
         project = get_object_or_404(Project, id=project_id)
         try:
-            geo_layers = eval(request.data.get('geo_layers'))
+            geo_layers = eval(str(request.data.get('geo_layers')))
             previous_geo_layers = project.geo_layers.all().values_list('id', flat=True)
 
             if geo_layers:
@@ -461,7 +461,7 @@ class GeoLayerView(APIView):
                 project.geo_layers.remove(*previous_geo_layers)
                 return Response(status=status.HTTP_200_OK)
         except Exception as e:
-            return Response(data='Error: POST requires only geo_layers field.', status=status.HTTP_400_BAD_REQUEST)
+            return Response(data=str(e), status=status.HTTP_400_BAD_REQUEST)
 
 
 @permission_classes([IsAuthenticated])

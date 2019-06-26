@@ -7,7 +7,8 @@ from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset,
 
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, MyProjectFormsViewSet, ShareFormViewSet, \
-    ShareProjectFormViewSet, ShareTeamFormViewSet, ShareGlobalFormViewSet, FormAddLanguageViewSet, CloneFormViewSet
+    ShareProjectFormViewSet, ShareTeamFormViewSet, ShareGlobalFormViewSet, FormAddLanguageViewSet, CloneFormViewSet, \
+    MyFormDeleteViewSet, ShareUserListViewSet, ShareTeamListViewSet
 
 from onadata.apps.fv3.viewsets.ReportViewsets import ReportVs
 
@@ -60,6 +61,9 @@ urlpatterns = [
     url(r'^api/report/$', ReportVs.as_view({'post':'create'}), name='report'),
 
     url(r'^api/add-language/$', FormAddLanguageViewSet.as_view(), name='add_language'),
+    url(r'^api/form/delete/$', MyFormDeleteViewSet.as_view(), name='myform-delete'),
+    url(r'^api/form/users/$', ShareUserListViewSet.as_view({'get': 'list'}), name='shareable-users'),
+    url(r'api/form/teams/$', ShareTeamListViewSet.as_view({'get': 'list'}), name='shareable-team'),
     ]
 
 

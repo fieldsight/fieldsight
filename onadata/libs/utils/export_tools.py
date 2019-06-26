@@ -1,3 +1,5 @@
+import time
+
 import csv
 from datetime import datetime, date
 import json
@@ -810,6 +812,7 @@ def generate_export(export_type, extension, username, id_string,
     """
     Create appropriate export object given the export type
     """
+    time.sleep(5)
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
         Export.CSV_EXPORT: 'to_flat_csv_export',
