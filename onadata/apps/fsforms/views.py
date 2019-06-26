@@ -1187,7 +1187,7 @@ class FormFillView(FormMixin, View):
             'xform': xform.xml
         }
         media_list = MetaData.objects.filter(data_type='media', xform=xform)
-        for m in media_list.iteritems():
+        for m in media_list:
             data.update({
                 'media[' + m.data_value + ']': m.data_file.url
             })
