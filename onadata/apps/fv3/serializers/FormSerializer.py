@@ -29,6 +29,7 @@ class XFormSerializer(serializers.ModelSerializer):
     delete_url = serializers.SerializerMethodField()
     shareable_users_url = serializers.SerializerMethodField()
     shareable_teams_url = serializers.SerializerMethodField()
+    shareable_projects_url = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
@@ -89,6 +90,9 @@ class XFormSerializer(serializers.ModelSerializer):
     def get_shareable_teams_url(self, obj):
         return "{}/fv3/api/form/teams/".format(settings.KOBOCAT_URL)
 
+    def shareable_projects_url(selfself, obj):
+        return "{}/fv3/api/form/projects/".format(settings.KOBOCAT_URL)
+
 
 class ShareUserListSerializer(serializers.ModelSerializer):
     profile_picture = serializers.SerializerMethodField()
@@ -106,14 +110,17 @@ class ShareUserListSerializer(serializers.ModelSerializer):
 
 
 class ShareTeamListSerializer(serializers.ModelSerializer):
-    logo = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = ('id', 'name', 'logo')
 
-    def get_logo(self, obj):
-        return obj.logo.url
+
+class ShareProjectListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Project
+        fields = ('id', 'name', 'logo')
 
 
 class ProjectFormSerializer(serializers.ModelSerializer):
