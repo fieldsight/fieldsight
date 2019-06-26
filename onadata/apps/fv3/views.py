@@ -483,6 +483,7 @@ class ProjectDefineSiteMeta(APIView):
     permission_classes = [IsAuthenticated, ]
 
     def get(self, request, pk, format=None):
+
         project_obj = Project.objects.get(pk=pk)
         level = "1"
         project_data = Project.objects.filter(pk=pk).values('id', 'name', 'organization_id', 'organization__name', )
@@ -494,15 +495,13 @@ class ProjectDefineSiteMeta(APIView):
 
     def post(self, request, pk, format=None):
 
-        # try:
         project = Project.objects.get(pk=pk)
         old_meta = project.site_meta_attributes
-        # print old_meta===================================
-        # print "----"
-        project.site_meta_attributes = request.POST.get('json_questions')
-        project.site_basic_info = request.POST.get('site_basic_info')
-        project.site_featured_images = request.POST.get('site_featured_images')
-        new_meta = json.loads(project.site_meta_attributes)
+        project.site_meta_attributes = request.data.get('json_questions')
+        project.site_basic_info = request.data.get('site_basic_info')
+        project.site_featured_images = request.data.get('site_featured_images')
+
+        new_meta = project.site_meta_attributes
         try:
             if old_meta != new_meta:
                 deleted = []
@@ -527,5 +526,3 @@ class ProjectDefineSiteMeta(APIView):
 
         except Exception as e:
             return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
-
-
