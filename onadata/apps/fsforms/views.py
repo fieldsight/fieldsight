@@ -1183,6 +1183,10 @@ class FormFillView(FormMixin, View):
 
         fieldsight_xf = FieldSightXF.objects.get(pk=pk)
         xform = fieldsight_xf.xf
+        medias = {}
+        media_list = MetaData.objects.filter(data_type='media', xform=xform)
+        for m in media_list:
+            medias[m.data_value] = m.data_file.url
 
         finstance = FInstance.objects.get(instance_id=sub_pk) if sub_pk else None
 
@@ -1190,6 +1194,7 @@ class FormFillView(FormMixin, View):
             'http://localhost:8085/transform',
             data={
                 'xform': xform.xml,
+                'media': medias,
             }
         ).json()
 
