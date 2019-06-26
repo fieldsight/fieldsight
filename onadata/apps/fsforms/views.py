@@ -1191,7 +1191,6 @@ class FormFillView(FormMixin, View):
             data.update({
                 'media[' + m.data_value + ']': m.data_file.url
             })
-        print(data)
         finstance = FInstance.objects.get(instance_id=sub_pk) if sub_pk else None
 
         result = requests.post(
