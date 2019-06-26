@@ -54,7 +54,8 @@ from .views import (
     ManagePeopleProjectView, ManagePeopleOrganizationView, SiteSurveyListView, ajax_upload_sites, ajax_save_site,
     ajax_save_project, RolesView, OrgProjectList, OrgUserList, ProjUserList, SiteUserList, ProjSiteList, OrgSiteList,
     SitesTypeView, AddSitesTypeView,
-    senduserinvite, ActivateRole, checkemailforinvite, ProjectSummaryReport, UserActivityReport, SiteSummaryReport, MultiUserAssignSiteView,
+    senduserinvite, ActivateRole, checkemailforinvite, ProjectSummaryReport, UserActivityReport, SiteSummaryReport,
+    MultiUserAssignSiteView,
     MultiUserAssignProjectView, sendmultiroleuserinvite, project_html_export, RegionalSitelist, RegionalSiteCreateView,
     MultiUserAssignRegionView, DefineProjectSiteMeta,
     SiteMetaForm, MultiSiteAssignRegionView, ExcelBulkSiteSample, ProjectStageResponsesStatus, StageTemplateView,
@@ -65,8 +66,8 @@ from .views import (
     SiteBulkEditView, site_refrenced_metas, UnassignUserRegionAndSites, MainRegionsAndSitesAPI, redirectToSite,
     municipality_data, FormResponseSite, DonorRegionalSitelist, SubRegionAndSitesAPI, SiteSearchLiteView,
     EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites,
-    ProjectTermsAndLabelView, project_terms_label_create, ProjectTermsLabelUpdate
-)
+    ProjectTermsAndLabelView, project_terms_label_create, ProjectTermsLabelUpdate,
+    ApplicationView)
 
 
 from onadata.apps.geo.views import (
@@ -79,6 +80,7 @@ from onadata.apps.remote_app.views import RemoteProjectView
 
 
 urlpatterns = [
+    url(r'application/', ApplicationView.as_view(), name="application"),
     url(r'^accounts/create/$', CreateUserView.as_view(
         form_class=RegistrationForm), name='user-create'),
 

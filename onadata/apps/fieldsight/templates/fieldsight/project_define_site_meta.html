@@ -1,57 +1,145 @@
-{% extends "fieldsight/manage_base.html" %}
+<!doctype html>
+<html lang="en">
 {% load i18n staticfiles %}
-{% load filters %}
-{% block content %}
-{% load filters %}
-<style type="text/css">
-    #removebutton{
-    margin-top:33px;
-
-    .dragPlaceholder {
-        padding: 10px 15px;
-      
-      background: rgb(255,240,120);
-      &:before {
-        content: "Drop here";
-        color: rgb(225,210,90);
-      }
-    }  
-}
-</style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
- <script src="{% static 'js/formparser.js' %}?v=1.1"></script>
- <script src="{% static 'js/reactjs/react.min.js' %}"></script>
- <script src="{% static 'js/reactjs/browser.min.js' %}"></script>
- <script src="{% static 'js/reactjs/react-dom.min.js' %}"></script>
-
-
-            <div class="padding">
-
-                <section id="app" class="panel">
-                   
-                    
-
-                </section>
-                   
-                    <form id="theForm" action="{% url 'fieldsight:define-site-meta' obj.pk %}" method="post">
-                    {% csrf_token %}
-                      <input name="json_questions" id="json_questions" type="hidden" value="" />
-                    </form> 
-
-            </div>
-{% endblock %}
-
-{%block extrascript %}
-<script>
 {% load l10n %}
-</script>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <script type="text/babel">
+    <!-- SOCIAL MEDIA META -->
+    <meta property="og:description" content="Fieldsight">
+    <meta property="og:image" content="preview.html">
+    <meta property="og:site_name" content="Fieldsight">
+    <meta property="og:title" content="Fieldsight">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="http://naxa.com.np">
+
+    <!-- TWITTER META -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@Fieldsight">
+    <meta name="twitter:creator" content="@Fieldsight">
+    <meta name="twitter:title" content="Fieldsight">
+    <meta name="twitter:description" content="Fieldsight">
+    <meta name="twitter:image" content="preview.html">
+    
+    <!--title-->
+    <title>Fieldsight</title>
+    
+<!-- faveicon start   -->
+<link rel="icon" type="image/png" href="img/favicon-32x32.png" sizes="32x32">
+
+<!-- stylesheet start -->
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/line-awesome.min.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/nice-select.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/js/datatable/dataTables.bs4.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/select2.min.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}v2/css/main.css">
+</head>
+    <body class="">
+        <div id="fieldsight-new" class="fieldsight-new">
+            <div id="main-container" class="minified">
+                <div class="container-fluid">
+                    <nav aria-label="breadcrumb" role="navigation">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/fieldsight/organization-dashboard/13/">{{ obj.organization.name }}</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">{{ obj.name }}</li>
+                        </ol>
+                    </nav>
+                    <main id="main-content">
+                        <div class="row">
+                            <div class="col-xl-3 col-lg-4">
+                                <div class="left-sidebar new-sidebar sticky-top">
+                                    <div class="card">
+                                        <div class="card-header main-card-header">
+                                            <h5>Meta Attributes</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="nav nav-tabs flex-column border-tabs" id="myTab" role="tablist">
+                                                <li class="nav-item">
+                                                    <a class="nav-link" id="site_type_tab" data-toggle="tab" href="#site_type" role="tab" aria-controls="site_type" aria-selected="false">Site types</a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a class="nav-link active" id="site_info_tab" data-toggle="tab" href="#site_info" role="tab" aria-controls="site_info" aria-selected="true">site information</a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a class="nav-link" id="site_manage_tab" data-toggle="tab" href="#site_manage" role="tab" aria-controls="site_manage" aria-selected="false">manage sites</a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a class="nav-link" id="map_layer_tab" data-toggle="tab" href="#map_layer" role="tab" aria-controls="map_layer" aria-selected="false">manage sites</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                            <div class="col-xl-9 col-lg-8">
+                                <div class="right-content">
+                                    <div class="tab-content" id="myTabContent">
+                                        <div class="tab-pane fade" id="site_type" role="tabpanel" aria-labelledby="site_type_tab">
+                                            <div class="card">
+                                                <div class="card-header main-card-header">
+                                                    <h5>Site Type</h5>
+                                                </div>
+                                            </div> 
+                                        </div>
+                                        <div class="tab-pane fade show active" id="site_info" role="tabpanel" aria-labelledby="site_info_tab">
+                                        </div>
+                                        <form id="theForm" action="{% url 'fieldsight:define-site-meta' obj.pk %}" method="post">
+                                            {% csrf_token %}
+                                            <input name="json_questions" id="json_questions" type="hidden" value="" />
+                                            <input name="site_basic_info" id="site_basic_info" type="hidden" value="" />
+                                            <input name="site_featured_images" id="site_featured_images" type="hidden" value="" />
+                                        </form> 
+                                        
+                                        <div class="tab-pane fade" id="site_manage" role="tabpanel" aria-labelledby="site_manage_tab">
+                                            <div class="card">
+                                                <div class="card-header main-card-header">
+                                                    <h5>Site Mangage</h5>
+                                                </div>
+                                            </div> 
+                                        </div>
+                                        <div class="tab-pane fade" id="map_layer" role="tabpanel" aria-labelledby="map_layer_tab">
+                                            <div class="card">
+                                                <div class="card-header main-card-header">
+                                                    <h5>Map layer</h5>
+                                                </div>
+                                            </div> 
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+      
+    <!-- jquery library start -->   
+    <script src="{{ STATIC_URL }}v2/js/vendor/jquery-3.4.1.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/popper.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/select2.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/bootstrap.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/jquery.nice-select.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/vendor/jquery.slimscroll.min.js"></script>
+    <script src="{{ STATIC_URL }}v2/js/script.js"></script>
+    <script src="{{ STATIC_URL }}js/formparser.js?v=1.1"></script>
+    <script src="{{ STATIC_URL }}js/reactjs/react.min.js"></script>
+    <script src="{{ STATIC_URL }}js/reactjs/browser.min.js"></script>
+    <script src="{{ STATIC_URL }}js/reactjs/react-dom.min.js"></script>
+    <script src="{{ STATIC_URL }}js/datatable/dataTables.min.js"></script>
+    <script src="{{ STATIC_URL }}js/datatable/custom-datatables.js"></script>
+
+
+
+<script type="text/babel">
 
      var _json_question = JSON.parse("{{json_questions|escapejs}}");
      var project_id = "{{ obj.id|unlocalize }}";
      var org_id = "{{ obj.organization_id|unlocalize }}";
+     var site_basic_info = JSON.parse("{{site_basic_info|escapejs}}");
+     var site_featured_images = JSON.parse("{{site_featured_images|escapejs}}");
 
      var questionTypes = [{'id': 'Text', 'name': 'Text'}, 
                           {'id': 'Number', 'name': 'Number'},
@@ -63,7 +151,21 @@
                           {'id': 'FormSubCountQuestion', 'name':'Form submissions count'},
                           {'id': 'FormQuestionAnswerStatus', 'name':'Form question answer status'} ];
      
-     
+    var sitePictureTypes = [ 
+        {'id': 'Form', 'name': 'Choose from a form'},
+        {'id': 'choose', 'name': 'Upload / Choose from Gallery'},
+    ]
+
+    var siteFeaturedTypes = [
+        {'id': 'Form', 'name': 'Choose from a form'},
+        {'id': 'choose', 'name': 'Upload / Choose from Gallery'},
+    ]
+
+    var siteLocationTypes = [
+        {'id': 'choose', 'name': 'Enter a location / Choose on map'}, 
+        {'id': 'Form', 'name': 'Choose from a form'},
+    ]
+
     var SelectComponent = React.createClass({
             
             getInitialState: function () {
@@ -196,7 +298,7 @@
      var NormalQuestion = React.createClass({
             
             getInitialState: function () {
-                return {questionTypes:questionTypes, editing:false | this.props.is_new}
+                return {questionTypes:questionTypes, editing:this.props.editing | this.props.is_new}
             },
 
             save: function () {
@@ -210,36 +312,35 @@
             },
 
             edit: function () {
-                this.setState({editing:true})
+                this.props.edit(this.props.index)
             },
 
             editDone: function () {
                 if (this.props.is_new){
                     this.props.addtoForm(this.props.index);
-                    this.setState({editing:false})
+                    
                 }
-                else{
-                    this.setState({editing:false})
-                }
-                // console.log('save');
+                this.props.editDone(this.props.index)
+                
             },
 
             renderNormal:function(){
                 return(
-                    <div className="form-field-item margin-top">
-                        <div className="form-group">
-                            <label for="input11" className="col-form-label">{this.props.question}:</label>
-                            <span className="field-type"><strong>Type : </strong>{this.props.question_type}</span>
-                            <div className="clearfix"></div>
-                            <input type="text" className="form-control" id="input11" defaultValue={ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""} placeholderText={ 'question_help' in this.props ? this.props.question_help:""}/>
-                            <small id="input1Help" className="form-text text-muted">{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</small>
-                        </div>
-                        <div className="form-action">
-                            <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                            <br/>
-                            <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                        </div>
-                    </div>
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td></td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+
+                        </td>
+                    </tr>    
                 );
             },
             renderForm:function(){
@@ -329,7 +430,7 @@
 
       var MCQQuestion = React.createClass({
             getInitialState: function () {
-                return {questionTypes:questionTypes, options:this.props.options, editing:false | this.props.is_new}
+                return {questionTypes:questionTypes, options:this.props.options, editing:this.props.editing | this.props.is_new}
             },
             
             addOption:function () {
@@ -365,18 +466,15 @@
             },
             
             edit: function () {
-                this.setState({editing:true})
+                this.props.edit(this.props.index)
             },
 
             editDone: function () {
                 if (this.props.is_new){
                     this.props.addtoForm(this.props.index);
-                    this.setState({editing:false})
+                    
                 }
-                else{
-                    this.setState({editing:false})
-                }
-                // console.log('save');
+                this.props.editDone(this.props.index)
             },
 
             eachOption: function (obj, j){
@@ -404,24 +502,21 @@
 
                 })
                 return(
-                    <div className="form-field-item margin-top">
-                        <div className="form-group">
-                            <label for="input11" className="col-form-label">{this.props.question}:</label>
-                            <span className="field-type"><strong>Type : </strong> Select</span>
-                                <div className="clearfix"></div>
-                                <select className="form-control"> 
-                                  {options} 
-                                </select>   
-                                                
-                            <small id="input1Help" className="form-text text-muted">{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</small>
-                                
-                        </div>
-                        <div className="form-action">
-                            <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                            <br/>
-                            <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                        </div>
-                    </div>
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td></td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+                        </td>
+                    </tr>  
+
                 );
             },
 
@@ -463,7 +558,7 @@
             
             getInitialState: function () {
                 
-                return {questionTypes:questionTypes, editing:false | this.props.is_new, isLoaded: false, projects:this.props.projects, project_index:0, selected_metas:this.props.selected_metas, metas:[], project_id: this.props.link_project_id}
+                return {questionTypes:questionTypes, editing:this.props.editing | this.props.is_new, isLoaded: false, projects:this.props.projects, project_index:0, selected_metas:this.props.selected_metas, metas:[], project_id: this.props.link_project_id}
             },
 
             componentDidMount() {
@@ -512,44 +607,36 @@
             },
 
             edit: function () {
-                this.setState({editing:true})
+                this.props.edit(this.props.index)
             },
 
             editDone: function () {
                 if (this.props.is_new){
                     this.props.addtoForm(this.props.index);
-                    this.setState({editing:false})
+                    
                 }
-                else{
-                    this.setState({editing:false})
-                }
-                // console.log('save');
+                this.props.editDone(this.props.index)
             },
 
             renderNormal:function(){
                 if(this.state.isLoaded){
                     return(
 
-                             <div className="form-field-item margin-top">
-                                <div className="form-group">
-                                    <label for="input11" className="col-form-label">{this.props.question}:</label>
-                                    <span className="field-type"><strong>Type : </strong> Select</span>
-                                        <div className="clearfix"></div>
-                                        <select className="form-control" id="input13">
-                                            <option>Site 1</option>
-                                            <option>Site 2</option>
-                                            <option>Site 3</option>
-                                            <option>Site 4</option>
-                                        </select>
-                                                        
-                                    <small id="input1Help" className="form-text text-muted">{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</small>
-                                </div>
-                                <div className="form-action">
-                                    <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                    <br/>
-                                    <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                                </div>
-                            </div>
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td></td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+
+                        </td>
+                    </tr>  
                        
                    ); 
                 }else{
@@ -616,7 +703,7 @@
 var FormSubStatQuestion = React.createClass({
             
             getInitialState: function () {
-                return {questionTypes:questionTypes, editing:false | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, form_id: this.props.link_form_id}
+                return {questionTypes:questionTypes, editing:this.props.editing | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, form_id: this.props.link_form_id}
             },
 
             componentDidMount() {
@@ -648,38 +735,35 @@ var FormSubStatQuestion = React.createClass({
             },
 
             edit: function () {
-                this.setState({editing:true})
+                this.props.edit(this.props.index)
             },
 
             editDone: function () {
                 if (this.props.is_new){
                     this.props.addtoForm(this.props.index);
-                    this.setState({editing:false})
                 }
-                else{
-                    this.setState({editing:false})
-                }
-                // console.log('save');
+                this.props.editDone(this.props.index)
             },
 
             renderNormal:function(){
                 if(this.state.isLoaded){
                     return(
                     
-                        <div className="form-field-item margin-top">
-                            <div className="form-group">
-                                <label className="col-form-label">{this.props.question}:</label>
-                                <span className="field-type"><strong>Type : </strong>{this.props.question_type}</span>
-                                    <div className="clearfix"></div>
-                                    <span>Yes / No</span> 
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td>{this.props.forms[this.state.form_index]['name']}</td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
 
-                            </div>
-                            <div className="form-action">
-                                <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                <br/>
-                                <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                            </div>
-                        </div>
+                        </td>
+                    </tr>  
                    
                    ); 
                 }else{
@@ -736,7 +820,7 @@ var FormSubStatQuestion = React.createClass({
     var FormSubCountQuestion = React.createClass({
             
             getInitialState: function () {
-                return {questionTypes:questionTypes, editing:false | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, form_id: this.props.link_form_id}
+                return {questionTypes:questionTypes, editing:this.props.editing | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, form_id: this.props.link_form_id}
             },
 
             componentDidMount() {
@@ -768,38 +852,34 @@ var FormSubStatQuestion = React.createClass({
             },
 
             edit: function () {
-                this.setState({editing:true})
-            },
+                this.props.edit(this.props.index)            },
 
             editDone: function () {
                 if (this.props.is_new){
-                    this.props.addtoForm(this.props.index);
-                    this.setState({editing:false})
+                    this.props.addtoForm(this.props.index);    
                 }
-                else{
-                    this.setState({editing:false})
-                }
-                // console.log('save');
+                this.props.editDone(this.props.index)
             },
 
             renderNormal:function(){
                 if(this.state.isLoaded){
                     return(
                     
-                        <div className="form-field-item margin-top">
-                            <div className="form-group">
-                                <label className="col-form-label">{this.props.question}:</label>
-                                <span className="field-type"><strong>Type : </strong>{this.props.question_type}</span>
-                                    <div className="clearfix"></div>
-                                    <span>Number of Submissions</span> 
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td>{this.props.forms[this.state.form_index]['name']}</td>
+                        <td></td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
 
-                            </div>
-                            <div className="form-action">
-                                <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                <br/>
-                                <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                            </div>
-                        </div>
+                        </td>
+                    </tr>
                    
                    ); 
                 }else{
@@ -857,7 +937,7 @@ var FormSubStatQuestion = React.createClass({
     var FormQuestion = React.createClass({
             
             getInitialState: function () {
-                return {questionTypes:questionTypes, editing:false | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, selected_question:this.props.selected_question, questions:[], processed_questions:{}, form_id: this.props.link_form_id}
+                return {questionTypes:questionTypes, editing:this.props.editing | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, selected_question:this.props.selected_question, questions:[], processed_questions:{}, form_id: this.props.link_form_id}
             },
 
             componentDidMount() {
@@ -870,6 +950,7 @@ var FormSubStatQuestion = React.createClass({
                 else{
                     questions = parse_form_response(this.props.forms[form_index].json['children']);
                 }
+                console.log('did mount');
                 this.setState({form_index:form_index, forms:this.props.forms,  processed_questions: questions, isLoaded: true});
                 
             },
@@ -884,6 +965,7 @@ var FormSubStatQuestion = React.createClass({
                 else{
                     questions = parse_form_response(nextProps.forms[form_index].json['children']);
                 }
+                console.log('receave` mount');
                 this.setState({form_index:form_index, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
             },
 
@@ -926,39 +1008,37 @@ var FormSubStatQuestion = React.createClass({
             },
 
             edit: function () {
-                this.setState({editing:true})
+                this.props.edit(this.props.index)
             },
 
             editDone: function () {
                 if (this.props.is_new){
                     this.props.addtoForm(this.props.index);
-                    this.setState({editing:false})
                 }
-                else{
-                    this.setState({editing:false})
-                }
+                this.props.editDone(this.props.index)
                 // console.log('save');
             },
 
             renderNormal:function(){
+                console.log(this.props.question_obj, "objj")
                 if(this.state.isLoaded){
                     return(
                      
-                         <div className="form-field-item margin-top">
-                            <div className="form-group">
-                                <label for="input11" className="col-form-label">{this.props.question}:</label>
-                                <span className="field-type pull-right"><strong>Type : </strong>{this.props.question_type}</span>
-                                    <div className="clearfix"></div>
-                                    <span>Yes/No</span>
-                                                    
-                                
-                            </div>
-                            <div className="form-action">
-                                <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                <br/>
-                                <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                            </div>
-                        </div>
+                    <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td>{this.props.forms[this.state.form_index]['name']}</td>
+                        <td>{this.props.question_obj['question']['label']}</td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+
+                        </td>
+                    </tr>
                     
                    ); 
                 }else{
@@ -1028,7 +1108,7 @@ var FormSubStatQuestion = React.createClass({
         var FormQuestionAnswerStatus = React.createClass({
             
             getInitialState: function () {
-                return {questionTypes:questionTypes, editing:false | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, selected_question:this.props.selected_question, questions:[], processed_questions:{}, form_id: this.props.link_form_id}
+                return {questionTypes:questionTypes, editing:this.props.editing | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, selected_question:this.props.selected_question, questions:[], processed_questions:{}, form_id: this.props.link_form_id}
             },
 
             componentDidMount() {
@@ -1096,40 +1176,38 @@ var FormSubStatQuestion = React.createClass({
                 this.props.deleteFromForm(this.props.index);
             },
 
-            edit: function () {
-                this.setState({editing:true})
+            edit:function(){
+                this.props.edit(this.props.index);
             },
 
             editDone: function () {
                 if (this.props.is_new){
                     this.props.addtoForm(this.props.index);
-                    this.setState({editing:false})
                 }
-                else{
-                    this.setState({editing:false})
-                }
-                // console.log('save');
+                this.props.editDone(this.props.index)
+
             },
 
             renderNormal:function(){
                 if(this.state.isLoaded){
                     return(
                      
-                         <div className="form-field-item margin-top">
-                            <div className="form-group">
-                                <label for="input11" className="col-form-label">{this.props.question}:</label>
-                                <span className="field-type pull-right"><strong>Type : </strong>{this.props.question_type}</span>
-                                    <div className="clearfix"></div>
-                                    <span>Answered / Not Answered</span>
-                                                    
-                                
-                            </div>
-                            <div className="form-action">
-                                <button className="btn btn-sm btn-primary" onClick={this.edit}><i className="la la-edit"></i></button>
-                                <br/>
-                                <button className="btn btn-sm btn-danger" onClick={this.remove}><i className="la la-close"></i></button>
-                            </div>
-                        </div>
+                           <tr>
+                        <td>{this.props.index + 1}</td>
+                        <td>{this.props.question}</td>
+                        <td>{this.props.question_type}</td>
+                        <td>{ 'question_placeholder' in this.props.question_obj ? this.props.question_obj.question_placeholder:""}</td>
+                        <td>{ 'question_help' in this.props.question_obj ? this.props.question_obj.question_help:""}</td>
+                        <td>{this.props.forms[this.state.form_index]['name']}</td>
+                        <td>{this.props.question_obj['question']['label']}</td>
+                        
+                        <td>
+                            <a href="#" className="td-edit-btn" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"> <i className="la la-edit"> </i> </a>
+
+                            <a href="#" className="td-delete-btn" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"> <i className="la la-trash-o"></i> </a>
+
+                        </td>
+                    </tr>
                     
                    ); 
                 }else{
@@ -1195,12 +1273,447 @@ var FormSubStatQuestion = React.createClass({
             }
         });
 
+
+    var SitePictureFormQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:sitePictureTypes, editing:false | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, selected_question:this.props.selected_question, questions:[], processed_questions:{}, form_id: this.props.link_form_id}
+            },
+
+            componentDidMount() {
+                this.setState({isLoaded: false});
+                let form_index=this.state.forms.indexOf(this.state.forms.find(temp=>temp.id == this.state.form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(this.props.forms[form_index].json['children'], "image");
+                }
+                this.setState({form_index:form_index, forms:this.props.forms,  processed_questions: questions, isLoaded: true});
+                
+            },
+
+            componentWillReceiveProps(nextProps) {
+                this.setState({isLoaded: false});
+                let form_index=nextProps.forms.indexOf(nextProps.forms.find(temp=>temp.id == nextProps.link_form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(nextProps.forms[form_index].json['children'], "image");
+                }
+                this.setState({form_index:form_index, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
+            },
+
+            save: function () {
+                console.log(this.refs, "/////////")
+                this.props.updateQuestionType(this.refs.questionTypeSitePicture.value);
+            },
+            
+
+            sitePicturequestionChanged: function(){
+                let question_name = this.refs.formselectQuestionRefSitePicture.value;
+                let selected_question = this.state.processed_questions[question_name]
+                this.props.updateSitePictureSQuestion(selected_question);
+            },
+
+            sitePictureformChanged: function () {
+                const selectedForm = this.state.forms[this.refs.selectFormRefSitePicture.value]
+                console.log(selectedForm, ":::::::")
+                this.props.updateSitePictureForm(selectedForm.id);
+                this.setState({form_index:this.refs.selectFormRefSitePicture.value});
+                
+            },
+
+   
+            renderForm:function(){
+                // console.log(questions);
+               
+                    return(
+
+                    <form>
+                        
+                        <div className="form-group">
+                            <label for="input2" className="col-form-label">Input Type:</label>
+                            <SelectComponent inputRef={el => this.refs.questionTypeSitePicture = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                        </div>
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Form</label>                     
+                            <SelectComponent inputRef={el => this.refs.selectFormRefSitePicture = el} isProject={true} onChangeFunction={this.sitePictureformChanged} defaultValue={this.state.form_index} options={this.props.forms} />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Question</label>                     
+                            <FormSelectComponent inputRef={el => this.refs.formselectQuestionRefSitePicture = el} onChangeFunction={this.sitePicturequestionChanged} defaultValue={this.state.selected_question} questions={this.state.processed_questions} />
+                        </div>
+
+                    </form>
+                   ); 
+                
+                
+                
+            },
+            render: function () {
+                return this.renderForm();
+                    
+            }
+        });
+
+
+    var SitePictureNormalQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:sitePictureTypes, editing:false | this.props.is_new}
+            },
+
+            save: function () {
+                this.props.updateQuestionType(this.refs.questionTypeSitePicture.value);
+            },
+
+            renderForm:function(){
+                return(
+
+                            <div className="form-group">
+                                <label className="col-form-label">Input Type:</label>
+                                    <SelectComponent inputRef={el => this.refs.questionTypeSitePicture = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                            </div>
+
+                    
+                );
+            },
+            render: function () {
+                        return this.renderForm();
+            }
+        });
+
+    var LocationFormQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:siteLocationTypes, editing:false | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, selected_question:this.props.selected_question, questions:[], processed_questions:{}, form_id: this.props.link_form_id}
+            },
+
+            componentDidMount() {
+                this.setState({isLoaded: false});
+                let form_index=this.state.forms.indexOf(this.state.forms.find(temp=>temp.id == this.state.form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(this.props.forms[form_index].json['children'], "location");
+                }
+                this.setState({form_index:form_index, forms:this.props.forms,  processed_questions: questions, isLoaded: true});
+                
+            },
+
+            componentWillReceiveProps(nextProps) {
+                this.setState({isLoaded: false});
+                let form_index=nextProps.forms.indexOf(nextProps.forms.find(temp=>temp.id == nextProps.link_form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(nextProps.forms[form_index].json['children'], "location");
+                }
+                this.setState({form_index:form_index, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
+            },
+
+            save: function () {
+                this.props.updateQuestionType(this.refs.questionTypeLocation.value);
+            },
+            
+
+            questionChangedLocation: function(){
+                let question_name = this.refs.formselectQuestionRefLocation.value;
+                let selected_question = this.state.processed_questions[question_name]
+                this.props.updateSQuestionLocation(selected_question);
+            },
+
+            formChangedLocation: function () {
+                const selectedForm = this.state.forms[this.refs.selectFormRefLocation.value]
+                
+                this.props.updateFormLocation(selectedForm.id);
+                this.setState({form_index:this.refs.selectFormRefLocation.value});
+                
+            },
+
+   
+            renderForm:function(){
+                // console.log(questions);
+               
+                    return(
+
+                    <form>
+                        
+                        <div className="form-group">
+                            <label for="input2" className="col-form-label">Input Type:</label>
+                            <SelectComponent inputRef={el => this.refs.questionTypeLocation = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                        </div>
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Form</label>                     
+                            <SelectComponent inputRef={el => this.refs.selectFormRefLocation = el} isProject={true} onChangeFunction={this.formChangedLocation} defaultValue={this.state.form_index} options={this.props.forms} />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Question</label>                     
+                            <FormSelectComponent inputRef={el => this.refs.formselectQuestionRefLocation = el} onChangeFunction={this.questionChangedLocation} defaultValue={this.state.selected_question} questions={this.state.processed_questions} />
+                        </div>
+
+                    </form>
+                   ); 
+                
+                
+                
+            },
+            render: function () {
+                return this.renderForm();
+                    
+            }
+        });
+
+
+    var LocationNormalQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:siteLocationTypes, editing:false | this.props.is_new}
+            },
+
+            save: function () {
+                this.props.updateQuestionType(this.refs.questionTypeLocation.value);
+            },
+
+            renderForm:function(){
+                return(
+
+                            <div className="form-group">
+                                <label className="col-form-label">Input Type:</label>
+                                    <SelectComponent inputRef={el => this.refs.questionTypeLocation = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                            </div>
+
+                    
+                );
+            },
+            render: function () {
+                        return this.renderForm();
+            }
+        });
+
+
+    var FeaturedFormQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:siteFeaturedTypes, editing:this.props.editing | this.props.is_new, isLoaded: false, forms:this.props.forms, form_index:0, selected_question:this.props.selected_question, questions:[], processed_questions:{}, form_id: this.props.link_form_id}
+            },
+
+            componentDidMount() {
+                this.setState({isLoaded: false});
+                let form_index=this.state.forms.indexOf(this.state.forms.find(temp=>temp.id == this.state.form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(this.props.forms[form_index].json['children'], "image");
+                }
+                this.setState({form_index:form_index, editing:this.props.editing | this.props.is_new,forms:this.props.forms,  processed_questions: questions, isLoaded: true});
+                
+            },
+
+            componentWillReceiveProps(nextProps) {
+                this.setState({isLoaded: false});
+                let form_index=nextProps.forms.indexOf(nextProps.forms.find(temp=>temp.id == nextProps.link_form_id));
+                var questions = {};
+                if (form_index < 0){ 
+                    form_index = 0; 
+                }
+                else{
+                    questions = parse_form_response(nextProps.forms[form_index].json['children'], "image");
+                }
+                this.setState({form_index:form_index, editing:this.props.editing | this.props.is_new, forms:nextProps.forms, processed_questions: questions, selected_question:nextProps.selected_question,  isLoaded: true});
+            },
+
+            save: function () {
+                this.props.updateQuestionType(this.props.index, this.refs.newTextFeatured.value, this.refs.questionTypeFeatured.value);
+            },
+            
+
+            questionChangedFeatured: function(){
+                let question_name = this.refs.formselectQuestionRefFeatured.value;
+                let selected_question = this.state.processed_questions[question_name]
+                this.props.updateSQuestionFeatured(this.props.index, selected_question);
+            },
+
+            formChangedFeatured: function () {
+                const selectedForm = this.state.forms[this.refs.selectFormRefFeatured.value]
+                
+                this.props.updateFormFeatured(this.props.index, selectedForm.id);
+                this.setState({form_index:this.refs.selectFormRefFeatured.value});
+                
+            },
+
+            remove:function(){
+                this.props.deleteFromForm(this.props.index);
+            },
+
+            edit:function(){
+                this.props.edit(this.props.index);
+            },
+
+            editDone: function () {
+                if (this.props.is_new){
+                    this.props.addtoForm(this.props.index);
+                }
+                this.props.editDone(this.props.index)
+            },
+
+            renderForm:function(){
+                // console.log(questions);
+               
+                    return(
+
+                    <div className="form-field-item margin-top">
+                        <div className="form-group">
+                            <label for="input1" className="col-form-label">Input Label:</label>
+                            <input type="text" ref="newTextFeatured" className="form-control" onChange={this.save} placeholder="Image Caption" defaultValue={this.props.question}></input>
+                        </div>
+                        <div className="form-group">
+                            <label for="input2" className="col-form-label">Input Type:</label>
+                            <SelectComponent inputRef={el => this.refs.questionTypeFeatured = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                        </div>
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Form</label>                     
+                            <SelectComponent inputRef={el => this.refs.selectFormRefFeatured = el} isProject={true} onChangeFunction={this.formChangedFeatured} defaultValue={this.state.form_index} options={this.props.forms} />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="col-form-label">Select a Question</label>                     
+                            <FormSelectComponent inputRef={el => this.refs.formselectQuestionRefFeatured = el} onChangeFunction={this.questionChangedFeatured} defaultValue={this.state.selected_question} questions={this.state.processed_questions} />
+                        </div>
+                        <button className="btn btn-primary" onClick={this.editDone}><i className={this.props.is_new ? 'la la-plus':'la la-check'}></i> { this.props.is_new ? 'Add to Form':'Preview'}</button> 
+                    </div>
+                   ); 
+                
+                
+                
+            },
+            renderNormal:function(){
+                return(
+                    <div className="col-lg-4 col-md-6">
+                        <div className="card">
+                            <div className="card-header sub-card-header">
+                                <h5>{this.props.question}</h5>
+                                <div className="add-btn">
+                                    <a href="#" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"><i className="la la-edit"></i></a>
+                                    <a href="#" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"><i className="la la-trash-o"></i></a>
+                                </div> 
+                            </div>
+                            <div className="card-body">
+                                <div className="before-content">
+                                    <ul>
+                                        <li><label>Type :</label> <span>From Form Response.</span></li>
+                                        <li><label>Form :</label> <span>{this.props.forms[this.state.form_index]['name']}</span></li>
+                                        <li><label>Question :</label> <span>{this.props.question_obj['question']['label']}</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                );
+            },
+            render: function () {
+                if(this.state.editing){
+                        return this.renderForm();
+                    }
+                    else{
+                        return this.renderNormal();   
+                }    
+            }
+        });
+
+
+    var FeaturedNormalQuestion = React.createClass({
+            
+            getInitialState: function () {
+                return {questionTypes:siteFeaturedTypes, editing:this.props.editing | this.props.is_new,}
+            },
+
+            save: function () {
+                this.props.updateQuestionType(this.props.index, this.refs.newTextFeatured.value, this.refs.questionTypeFeatured.value);
+            },
+
+            remove:function(){
+                this.props.deleteFromForm(this.props.index);
+            },
+
+            edit:function(){
+                this.props.edit(this.props.index);
+            },
+
+            editDone: function () {
+                if (this.props.is_new){
+                    this.props.addtoForm(this.props.index);
+                }
+                this.props.editDone(this.props.index)
+            },
+
+            renderForm:function(){
+                return(
+                    <div className="form-field-item margin-top">
+                        <div className="form-group">
+                                <label for="input1" className="col-form-label">Input Label:</label>
+                                <input type="text" ref="newTextFeatured" className="form-control" onChange={this.save} placeholder="Image Caption" defaultValue={this.props.question}></input>
+                        </div>
+                        <div className="form-group">
+                            <label className="col-form-label">Input Type:</label>
+                                <SelectComponent inputRef={el => this.refs.questionTypeFeatured = el} onChangeFunction={this.save} defaultValue={this.props.question_type} options={this.state.questionTypes}/>
+                        </div>
+                        <button className="btn btn-primary" onClick={this.editDone}><i className={this.props.is_new ? 'la la-plus':'la la-check'}></i> { this.props.is_new ? 'Add to Form':'Preview'}</button> 
+                    </div>
+                );
+            },
+            renderNormal:function(){
+                return(
+                    <div className="col-lg-4 col-md-6">
+                        <div className="card">
+                            <div className="card-header sub-card-header">
+                                <h5>{this.props.question}</h5>
+                                <div className="add-btn">
+                                    <a href="#" data-toggle="tooltip" data-placement="top" onClick={this.edit} title="Edit"><i className="la la-edit"></i></a>
+                                    <a href="#" data-toggle="tooltip" data-placement="top" onClick={this.remove} title="Delete"><i className="la la-trash-o"></i></a>
+                                </div> 
+                            </div>
+                            <div className="card-body">
+                                <div className="before-content">
+                                    <ul>
+                                        <li><label>Type :</label> <span>Select from Gallery.</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                );
+            },
+            render: function () {
+                if(this.state.editing){
+                    return this.renderForm();
+                }
+                else{
+                    return this.renderNormal();   
+                }
+            }
+        });
+
+
         var dragPlaceholder = document.createElement("li");
         dragPlaceholder.className = "dragPlaceholder ui-sortable-handle margin-top";
         dragPlaceholder.style.height = "100px";
         dragPlaceholder.style.background= "rgb(255,240,120)";
-
-     var Form = React.createClass({
+        var Form = React.createClass({
         getInitialState: function () {
             
             //console.log(linkTypeObjs);
@@ -1217,56 +1730,69 @@ var FormSubStatQuestion = React.createClass({
                 selectedProjectLinkIds:[],
                 isLoaded: false,
                 forms: [{id:0, name:"Select form", json:{ children: []}}],
+                editing: null,
+                site_picture: site_basic_info.hasOwnProperty('site_picture') ? site_basic_info.site_picture : {'question_type':'choose', 'form_id':0, 'question':{}},
+                site_location: site_basic_info.hasOwnProperty('site_location') ? site_basic_info.site_location : {'question_type':'choose', 'form_id':0, 'question':{}},
+                featured_editing: -1,
+                primary_editing: -1,
+                FeaturedImgs: site_featured_images.concat([{
+                    "question_text": "",
+                    "question_type": "choose",
+                    "question_name": "",
+                    "form_id": 0,
+                    "question": {},
+                    "is_new": true,
+                }])
             }
         },
 
-            componentDidMount() {
-                
-                const linkTypeObjs =_json_question.filter(function (obj) {
-                        return obj.question_type == "Link" ;
-                    }).map(x => x.project_id);
+        componentDidMount() {
+            
+            const linkTypeObjs =_json_question.filter(function (obj) {
+                    return obj.question_type == "Link" ;
+                }).map(x => x.project_id);
 
-                fetch("/fieldsight/api/organization/"+org_id+"/my_projects/"+project_id+"/", {
-                      method: 'GET',
-                      credentials: 'include'
-                    })
-                  .then(res => res.json())
-                  .then(
-                    (result) => {
-                        const project_options = this.state.projects.concat(result);
-                        this.setState({
-                            projects: project_options,
-                            selectedProjectLinkIds: linkTypeObjs,
-                            isLoaded: true,
-                        });
-                    },
-                    (error) => {
-                      this.setState({
+            fetch("/fieldsight/api/organization/"+org_id+"/my_projects/"+project_id+"/", {
+                  method: 'GET',
+                  credentials: 'include'
+                })
+              .then(res => res.json())
+              .then(
+                (result) => {
+                    const project_options = this.state.projects.concat(result);
+                    this.setState({
+                        projects: project_options,
+                        selectedProjectLinkIds: linkTypeObjs,
                         isLoaded: true,
-                      });
-                    }
-                  )
+                    });
+                },
+                (error) => {
+                  this.setState({
+                    isLoaded: true,
+                  });
+                }
+              )
 
-                  fetch("/fieldsight/api/project/forms/"+project_id+"/", {
-                      method: 'GET',
-                      credentials: 'include'
-                    })
-                  .then(res => res.json())
-                  .then(
-                    (result) => {
-                        const form_options = this.state.forms.concat(result);
-                        this.setState({
-                            forms: form_options,
-                            isLoaded: true,
-                        });
-                    },
-                    (error) => {
-                        this.setState({
-                            isLoaded: true,
-                        });
-                    }
-                  )
-              },
+              fetch("https://fieldsight.naxa.com.np/fieldsight/api/project/forms/137/", {
+                  method: 'GET',
+                  credentials: 'include'
+                })
+              .then(res => res.json())
+              .then(
+                (result) => {
+                    const form_options = this.state.forms.concat(result);
+                    this.setState({
+                        forms: form_options,
+                        isLoaded: true,
+                    });
+                },
+                (error) => {
+                    this.setState({
+                        isLoaded: true,
+                    });
+                }
+              )
+          },
 
     // var question = {
     //         "question_text": "",
@@ -1335,15 +1861,50 @@ var FormSubStatQuestion = React.createClass({
                 }
                 return item;
             }
-    });
-        console.log(is_form_valid);
+        });
+        
         
         if (is_form_valid === false){ return alert("The question text cannot be blank.");}
         for (var key in json_convertible) {
             json_convertible[key].question_name = json_convertible[key].question_text.replace(/\W/g,"_");
         }
+        
+        var active_forms = []
+        var json_featured_convertible = this.state.FeaturedImgs.filter(function(item) {
+            if (item.hasOwnProperty('is_deleted') && item.is_deleted == false){
+                delete item.is_deleted;
+            }
+
+            if (!item.hasOwnProperty('is_deleted') && !item.hasOwnProperty('is_new')){
+                return item;
+            }
+
+            if (item.question_type == 'Form'){
+                active_forms.push(item.form_id)
+            }
+        });
+        
+        for (var key in json_featured_convertible) {
+            json_featured_convertible[key].question_name = json_featured_convertible[key].question_text.replace(/\W/g,"_");
+        }
+        if (this.state.site_picture.question_text == 'Form'){
+            active_forms.push(this.state.site_picture.form_id)
+        }
+        if (this.state.site_location.question_text == 'Form'){
+            active_forms.push(this.state.site_picture.form_id)
+        }
+        site_info = {
+            "active_forms": active_forms,
+            "site_picture": this.state.site_picture,
+            "site_location": this.state.site_location
+        }
+        
         var json_Question = JSON.stringify(json_convertible);
+        var json_SiteFeatured = JSON.stringify(json_featured_convertible);
+        var json_SiteInfo = JSON.stringify(site_info)
         document.getElementById('json_questions').value = json_Question;
+        document.getElementById('site_basic_info').value = json_SiteInfo;
+        document.getElementById('site_featured_images').value = json_SiteFeatured;
         document.getElementById('theForm').submit();
     },
 
@@ -1401,6 +1962,7 @@ var FormSubStatQuestion = React.createClass({
         this.setState({Questions:arr});
     },
 
+
     updateMCQOptions: function (options, i){
         var arr = this.state.Questions;
         var newOptionsArray = options.filter(function (op) {
@@ -1422,8 +1984,8 @@ var FormSubStatQuestion = React.createClass({
         if (index > -1) {
           selectedProjectLinkIds.splice(index, 1);
         }
-        selectedProjectLinkIds.push(project_id);
-        console.log(selectedProjectLinkIds);
+        selectedProjectLinkIds.push(project_id);newTextFeatured
+        
         this.setState({Questions:arr, selectedProjectLinkIds: selectedProjectLinkIds});
     },
 
@@ -1434,9 +1996,6 @@ var FormSubStatQuestion = React.createClass({
             arr[i].question = {};
         }
         this.setState({Questions:arr});
-
-        //console.log("updatingLinkproject_id");
-        // console.log(this.state.forms);
     },
 
 
@@ -1444,11 +2003,96 @@ var FormSubStatQuestion = React.createClass({
         var arr = this.state.Questions;
         arr[i].question = obj;
         this.setState({Questions:arr});
-
-        //console.log("updatingLinkproject_id");
-        // console.log(this.state.forms);
     },
 
+
+    updateSitePictureForm: function (form_id){
+        var arr = this.state.site_picture;
+        arr.form_id=form_id;
+        arr.question = {};
+        this.setState({site_picture:arr});
+    },
+
+
+    updateSitePictureSQuestion: function (obj){
+        var arr = this.state.site_picture;
+        arr.question = obj;
+        this.setState({site_picture:arr});
+    },
+
+    updateSitePictureQuestion: function (questionType) {
+        var arr = this.state.site_picture;
+        console.log(questionType, "-----")
+        arr.question_type=questionType;
+
+        this.setState({site_picture:arr});
+    },
+
+    updateFormLocation: function (form_id){
+        var arr = this.state.site_location;
+        arr.form_id=form_id;
+        arr.question = {};
+        this.setState({site_location:arr});
+    },
+
+
+    updateSQuestionLocation: function (obj){
+        var arr = this.state.site_location;
+        arr.question = obj;
+        this.setState({site_location:arr});
+    },
+
+    updateQuestionLocation: function (questionType) {
+        var arr = this.state.site_location;
+        arr.question_type=questionType;
+        this.setState({site_location:arr});
+    },
+
+    updateFormFeatured: function (i, form_id){
+        var arr = this.state.FeaturedImgs;
+        arr[i].form_id=form_id;
+        this.setState({FeaturedImgs:arr});
+    },
+
+
+    updateSQuestionFeatured: function (i, obj){
+        var arr = this.state.FeaturedImgs;
+        arr[i].question = obj;
+        this.setState({FeaturedImgs:arr});
+    },
+
+    updateQuestionFeatured: function (i, question, questionType) {
+        var arr = this.state.FeaturedImgs;
+        arr[i].question_type=questionType;
+        arr[i].question_text=question;
+        this.setState({FeaturedImgs:arr});
+    },
+
+    removeFeatured: function(i){
+        var arr= this.state.FeaturedImgs;
+        arr[i].is_deleted=true;
+        this.setState({FeaturedImgs: arr});
+    },
+
+    editFeatured: function(i){
+        this.setState({featured_editing: i});
+        $('#add-feature-pic').addClass('open');
+    },
+
+    editDoneFeatured: function(i){
+        this.setState({featured_editing: -1});
+        $('#add-feature-pic').removeClass('open');
+    },
+
+    editPrimary: function(i){
+        this.setState({primary_editing: i});
+        $('#site-info-popup').addClass('open');
+    },
+
+    editDonePrimary: function(i){
+        this.setState({primary_editing: -1});
+        $('#site-info-popup').removeClass('open');
+    },
 
     updateIndividualLink: function (project_id, i, obj){
         var arr = this.state.Questions;
@@ -1482,7 +2126,7 @@ var FormSubStatQuestion = React.createClass({
 
     addtoForm: function (i) {  
         var arr = this.state.Questions;
-        console.log(arr[i], arr);
+        // console.log(arr[i], arr);
         if (arr[i].hasOwnProperty('is_new')) {
             delete arr[i].is_new;
                
@@ -1494,49 +2138,67 @@ var FormSubStatQuestion = React.createClass({
                         "question_help": "",
                         "is_new": true,
                     });
-            console.log(arr);
-            
+            // console.log(arr);
+            $('.fieldsight-popup').removeClass('open');
             this.setState({Questions:arr});
         }
     },
 
+    addtoFormFeatured: function (i) {  
+        var arr = this.state.FeaturedImgs;
+        if (arr[i].hasOwnProperty('is_new')) {
+            delete arr[i].is_new;
+            if (arr.length > 5){
+                return
+            }
+            arr.push({
+                        "question_text": "",
+                        "question_type": "choose",
+                        "question_name": "",
+                        "form_id": 0,
+                        "question": {},
+                        "is_new": true,
+                    });
+            // console.log(arr);
+            $('#add-feature-pic').removeClass('open');
+            this.setState({FeaturedImgs:arr});
+        }
+    },
 
-    eachQuestion: function (is_new=false, id=false, question, i){
+
+    eachQuestion: function (is_new=false, id=false, question, i, is_editing){
         
-        console.log(is_new, id, question.question_name, i);
-
         if( (!question.hasOwnProperty('is_deleted') || (question.hasOwnProperty('is_deleted') && question.is_deleted == false)) && ( is_new  || !question.hasOwnProperty('is_new')) ){
-            console.log(question);
             if(question.question_type=="MCQ" ){
                                      
-                        var renderedQuestion= <MCQQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} options={question.mcq_options} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateMCQOptions={this.updateMCQOptions} deleteFromForm={this.removeQuestion} />
+                        var renderedQuestion= <MCQQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} options={question.mcq_options} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateMCQOptions={this.updateMCQOptions} deleteFromForm={this.removeQuestion} edit={this.editPrimary} editDone={this.editDonePrimary} editing={is_editing}/>
                         
                   
             }
             else if(question.question_type=="Link"){
                
-                        var renderedQuestion= <ExtLinkQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateLinkProject={this.updateLinkProject} link_project_id ={question.project_id} updateLinkMetas={this.updateLinkMetas} selected_metas={question.metas} deleteFromForm={this.removeQuestion} selectedProjectLinkIds={this.state.selectedProjectLinkIds} projects={this.state.projects} />                        
+                        var renderedQuestion= <ExtLinkQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateLinkProject={this.updateLinkProject} link_project_id ={question.project_id} updateLinkMetas={this.updateLinkMetas} selected_metas={question.metas} deleteFromForm={this.removeQuestion} selectedProjectLinkIds={this.state.selectedProjectLinkIds} projects={this.state.projects} edit={this.editPrimary} editDone={this.editDonePrimary} editing={is_editing}/>                        
                         
                    
             }
             else if(question.question_type=="FormSubStat"){
                 
                        
-                        var renderedQuestion= <FormSubStatQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateForm={this.updateForm} link_form_id ={question.form_id} deleteFromForm={this.removeQuestion} forms={this.state.forms} />                        
+                        var renderedQuestion= <FormSubStatQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateForm={this.updateForm} link_form_id ={question.form_id} deleteFromForm={this.removeQuestion} forms={this.state.forms} edit={this.editPrimary} editDone={this.editDonePrimary} editing={is_editing}/>                        
                         
                    
             }
             else if(question.question_type=="Form"){
                 
                         
-                        var renderedQuestion= <FormQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateForm={this.updateForm} link_form_id ={question.form_id} updateSQuestion={this.updateSQuestion} selected_question={question.question.name} deleteFromForm={this.removeQuestion} forms={this.state.forms} />                        
+                        var renderedQuestion= <FormQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateForm={this.updateForm} link_form_id ={question.form_id} updateSQuestion={this.updateSQuestion} selected_question={question.question.name} deleteFromForm={this.removeQuestion} forms={this.state.forms} edit={this.editPrimary} editDone={this.editDonePrimary} editing={is_editing}/>                        
                        
                   
             }
             else if(question.question_type=="FormQuestionAnswerStatus"){
                 
                         
-                        var renderedQuestion= <FormQuestionAnswerStatus key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateForm={this.updateForm} link_form_id ={question.form_id} updateSQuestion={this.updateSQuestion} selected_question={question.question.name} deleteFromForm={this.removeQuestion} forms={this.state.forms} />                        
+                        var renderedQuestion= <FormQuestionAnswerStatus key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} updateForm={this.updateForm} link_form_id ={question.form_id} updateSQuestion={this.updateSQuestion} selected_question={question.question.name} deleteFromForm={this.removeQuestion} forms={this.state.forms} edit={this.editPrimary} editDone={this.editDonePrimary} editing={is_editing}/>                        
                        
                   
             }
@@ -1549,7 +2211,7 @@ var FormSubStatQuestion = React.createClass({
             }
             else{
 
-                        var renderedQuestion= <NormalQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} deleteFromForm={this.removeQuestion} />
+                        var renderedQuestion= <NormalQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoForm} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionText={this.updateQuestion} deleteFromForm={this.removeQuestion} edit={this.editPrimary} editDone={this.editDonePrimary} editing={is_editing}/>
                        
                 
             }
@@ -1559,73 +2221,287 @@ var FormSubStatQuestion = React.createClass({
                         renderedQuestion 
                    
                     );
-            }else{
-                return (
-                    <li className="ui-sortable-handle" key={is_new?id:i} data-id={is_new?id:i}
-                          draggable='true'
-                          onDragEnd={this.dragEnd.bind(this)}
-                          onDragStart={this.dragStart.bind(this)}>
-                        { renderedQuestion }
-                    </li>
+            }
 
+            else{
+                return (
+                    
+                        renderedQuestion 
+                    
                 );}
         }
     },
 
+    SiteImageQuestion: function (question){
+            if(question.question_type=="Form"){
+                
+                        
+                        var renderedQuestion= <SitePictureFormQuestion question_obj={question} question={question.question_text} updateQuestionType={this.updateSitePictureQuestion} question_type={question.question_type} updateSitePictureForm={this.updateSitePictureForm} link_form_id ={question.form_id} updateSitePictureSQuestion={this.updateSitePictureSQuestion} selected_question={question.question.name} forms={this.state.forms} />                        
+                       
+                  
+            }
+            else {
+
+                        var renderedQuestion= <SitePictureNormalQuestion question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionType={this.updateSitePictureQuestion} />
+                       
+                
+            }
+            
+            return (
+                
+                    renderedQuestion 
+                
+            );
+        
+    },
+
+    LocationQuestion: function (question){
+            if(question.question_type=="Form"){
+                
+                        
+                        var renderedQuestion= <LocationFormQuestion question_obj={question} question={question.question_text} updateQuestionType={this.updateQuestionLocation} question_type={question.question_type} updateFormLocation={this.updateFormLocation} link_form_id ={question.form_id} updateSQuestionLocation={this.updateSQuestionLocation} selected_question={question.question.name} forms={this.state.forms} />                        
+                       
+                  
+            }
+            else {
+
+                        var renderedQuestion= <LocationNormalQuestion question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionType={this.updateQuestionLocation} />
+                       
+                
+            }
+            
+            return (
+                
+                    renderedQuestion 
+                
+            );
+        
+    },
+
+    popUpMain: function (){
+        $('add-feature-pic').addClass('open');
+    },
+
+    eachFeaturedImgs: function (is_new=false, id=false, question, i, is_editing=false){
+            if( (!question.hasOwnProperty('is_deleted') || (question.hasOwnProperty('is_deleted') && question.is_deleted == false)) && ( is_new  || !question.hasOwnProperty('is_new')) ){
+                if(question.question_type=="Form"){
+                            var renderedQuestion= <FeaturedFormQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoFormFeatured} is_new={is_new} question_obj={question} question={question.question_text} updateQuestionType={this.updateQuestionFeatured} question_type={question.question_type} updateFormFeatured={this.updateFormFeatured} link_form_id ={question.form_id} updateSQuestionFeatured={this.updateSQuestionFeatured} selected_question={question.question.name} forms={this.state.forms} deleteFromForm={this.removeFeatured} edit={this.editFeatured} editDone={this.editDoneFeatured} editing={is_editing}/>                        
+                }
+                else {
+
+                            var renderedQuestion= <FeaturedNormalQuestion key={is_new?id:i} index={is_new?id:i} addtoForm={this.addtoFormFeatured} is_new={is_new} question_obj={question} question={question.question_text} question_type={question.question_type}  updateQuestionType={this.updateQuestionFeatured} deleteFromForm={this.removeFeatured } edit={this.editFeatured} editDone={this.editDoneFeatured} editing={is_editing}/>
+                }
+            
+                return (
+                    
+                        renderedQuestion 
+                    
+                );
+            }
+        },
+
+    primaryPopUp: function(){
+        if (this.state.primary_editing > -1){
+            var index = this.state.primary_editing
+        }
+        else{
+            var index = this.state.Questions.length - 1   
+        }
+        return [this.state.Questions[index]].map(this.eachQuestion.bind(this, true, index))
+    },
+
+    featuredPopUp: function(){
+        if (this.state.featured_editing > -1){
+            console.log('here--fukkkkkk');
+            var index = this.state.featured_editing
+        }
+        else{
+            var index = this.state.FeaturedImgs.length - 1   
+        }
+        return [this.state.FeaturedImgs[index]].map(this.eachFeaturedImgs.bind(this, true, index))
+    },
+
     render: function () {
         var listItems = this.state.Questions.map(this.eachQuestion.bind(this, false, false));
+        var site_picture = this.SiteImageQuestion(this.state.site_picture);
+        var site_location = this.LocationQuestion(this.state.site_location);
+        var listFeaturedImgs = this.state.FeaturedImgs.map(this.eachFeaturedImgs.bind(this, false, false));
+        var primaryPopUp = this.primaryPopUp();
+        var featuredPopUp = this.featuredPopUp();
         return (
-
-            <div>
-            <header className="panel-heading clearfix">
-                <h3><i className="la la-cogs"></i>
-                {% if terms_and_labels %}
-                    {{obj.terms_and_labels.site}} Meta Attributes
-
-                {% else %}
-                    Site Meta Attributes
-
-                {% endif %}
-
-                </h3>
-
-                <button onClick={this.save.bind()} className="btn btn-success pull-right"><i className="la la-save"></i>Save Form</button>
-            </header>
-            <div className="panel-body">
-                <div className="row">
-                    <div className="col-md-4">
-                        <div className="">
-                            {   
-                                [this.state.Questions[this.state.Questions.length - 1]].map(this.eachQuestion.bind(this, true, this.state.Questions.length - 1))
-                            }  
+                <div className="card">
+                    <div className="card-header main-card-header">
+                        <h5>Site Identification</h5>
+                    </div>
+                    
+                <div className="identity-form">
+                    <div className="row">
+                        <div className="col-lg-6">
+                            <div className="site_photo_form">
+                                <div className="card">
+                                    <div className="card-header sub-card-header">
+                                        <h5>Site information</h5>
+                                    </div>
+                                    <div className="card-body">
+                                        
+                                    {
+                                        site_picture
+                                    }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-lg-6">
+                            <div className="site-location">
+                                <div className="card">
+                                    <div className="card-header sub-card-header">
+                                        <h5>Site Location</h5>
+                                    </div>
+                                    <div className="card-body">
+                                            {
+                                                site_location
+                                            }
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div className="col-md-8">
-                        <ul id="hero" className="hero form-field-list bg-gray margin-top ui-sortable" onDragOver={this.dragOver.bind(this)}>
-                            {   
-                                listItems
+                </div>
+
+                <div className="card no-boxshadow">
+                    <div className="card-header main-card-header">
+                        <h5>featured pictures</h5>
+                        <div className="add-btn">
+                            <a href="#" data-tab="add-feature-pic">Add new <span><i className="la la-plus"></i></span></a>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        <div className="row">
+                            {
+                                listFeaturedImgs
                             }
-                        </ul>
-                        
+                        </div>
+                    </div>
+                    <div className="fieldsight-popup featured" id="add-feature-pic">
+                        <div className="popup-body">
+                            <div className="card">
+                                
+                                {
+                                    this.state.featured_editing < 0 ? 
+                                        <div className="card-header main-card-header">
+                                            <h5>Add Featured Image</h5>
+                                            <span className="popup-close"><i className="la la-close"></i></span>
+                                        </div>
+                                        : <div className="card-header main-card-header">
+                                            <h5>Edit featured Image</h5>    
+                                        </div>
+                                }
+                               
+                                <div className="card-body">
+                                    {   
+                                       featuredPopUp 
+                                    }
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            </div>
+
+                
+                <div className="card no-boxshadow">
+                    <div className="card-header main-card-header">
+                        <h5>Site information</h5>
+                        <div className="add-btn">
+                            <a href="#" data-tab="site-info-popup">Add new <span><i className="la la-plus"></i></span></a>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        <table id="siteinfo_table" className="table  table-bordered table siteinfo_table">
+                            <thead>
+                                <tr>
+                                    <th > S.N</th>
+                                    <th >Attribute</th>
+                                    <th >Placeholder Text</th>
+                                    <th >Help Text</th>
+                                    <th >Type</th>
+                                    <th >Form</th>
+                                    <th >Question</th>
+                                    <th >Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                        {   
+                                            listItems
+                                        }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="fieldsight-popup" id="site-info-popup">
+                        <div className="popup-body">
+                            <div className="card">
+        
+                                    {
+                                        this.state.primary_editing < 0 ? 
+                                            <div className="card-header main-card-header">
+                                                <h5>Add Site Information</h5>
+                                                <span className="popup-close"><i className="la la-close"></i></span>
+                                            </div>
+                                            : <div className="card-header main-card-header">
+                                                <h5>Edit Site Information</h5>    
+                                            </div>
+                                    }   
+                                 
+                                <div className="card-body">
+                                   {   
+                                        primaryPopUp
+                                    }  
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onClick={this.save.bind()} className="btn btn-success pull-right"><i className="la la-save"></i>
+                    Save Form</button>
+            </div> 
+
+
+
+
+            // <div>
+            // <header className="panel-heading clearfix">
+            //     <h3><i className="la la-cogs"></i>Site Meta Attributes</h3>
+
+            //     <button onClick={this.save.bind()} className="btn btn-success pull-right"><i className="la la-save"></i>Save Form</button>
+            // </header>
+            // <div className="panel-body">
+            //     <div className="row">
+            //         <div className="col-md-4">
+            //             <div className="">
+            //                 {   
+            //                     [this.state.Questions[this.state.Questions.length - 1]].map(this.eachQuestion.bind(this, true, this.state.Questions.length - 1))
+            //                 }  
+            //             </div>
+            //         </div>
+            //         <div className="col-md-8">
+            //             <ul id="hero" className="hero form-field-list bg-gray margin-top ui-sortable" onDragOver={this.dragOver.bind(this)}>
+            //                 {   
+            //                     listItems
+            //                 }
+            //             </ul>
+                        
+            //         </div>
+            //     </div>
+            // </div>
+            // </div>
             );
         }
     });
 
-    ReactDOM.render(<Form /> , document.getElementById('app'));
+    ReactDOM.render(<Form /> , document.getElementById('site_info'));
 
 </script> 
-<script type="text/javascript">
-    $('.selectize').selectize();
-      $(document).ready(function(){
 
-        $("ul.nav li:nth-child(3) a" ).addClass("active");
-
-});
-</script>
-{% endblock %}
-
-
+  </body>
+</html>
