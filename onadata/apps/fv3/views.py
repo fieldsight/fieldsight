@@ -3,6 +3,7 @@ from datetime import datetime
 
 from django.db.models import Prefetch
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
@@ -300,6 +301,16 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
         else:
 
             serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            site = Site.objects.filter(region=instance)
+            site.update(region_id=None)
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_200_OK)
+        except Http404:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ProjectSitesViewset(viewsets.ModelViewSet):
