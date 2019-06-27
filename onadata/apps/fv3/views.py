@@ -245,7 +245,7 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing, creating, updating and deleting regions. Allowed methods 'get', 'post', 'put', 'delete'.
     """
-    queryset = Region.objects.filter(parent=None)
+    queryset = Region.objects.all()
     serializer_class = ProjectRegionSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
@@ -263,7 +263,7 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
 
         elif project_id:
             project = get_object_or_404(Project, id=project_id)
-            return self.queryset.filter(project=project)
+            return self.queryset.filter(project=project, parent=None)
 
         else:
             return self.queryset
