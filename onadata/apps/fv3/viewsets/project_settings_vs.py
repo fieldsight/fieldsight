@@ -21,8 +21,14 @@ class ProjectProgressSettings(viewsets.ModelViewSet):
     serializer_class = ProgressSettingsSerializer
 
     def perform_create(self, serializer):
+        ProgressSettings.objects.filter(project_id=self.kwargs['pk']).update(active=False)
+            # instance = ProgressSettings.objects.filter(project_id=self.kwargs['pk'])[0]
+            # serializer = self.get_serializer(instance, data=self.request.data, partial=True)
+            # serializer.is_valid(raise_exception=False)
+            # self.perform_update(serializer)
+            # return Response(serializer.data)
         serializer.save(user=self.request.user, project_id=self.kwargs['pk'])
 
     def get_queryset(self):
-        return self.queryset.filter(project_id=self.kwargs['pk'])
+        return self.queryset.filter(project_id=self.kwargs['pk'], active=True)
 

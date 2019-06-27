@@ -12,7 +12,7 @@ class ProjectSettingsPermission(permissions.BasePermission):
         if request.group and request.group.name == "Super Admin":
             return True
 
-        project_id = obj.id
+        project_id = obj.project.id
         organization_id = Project.objects.get(pk=project_id).organization.id
         user_role_asorgadmin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
         if user_role_asorgadmin:
