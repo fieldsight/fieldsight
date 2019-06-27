@@ -26,9 +26,9 @@ urlpatterns = [
     url(r'^api/change/submission/status/$', AlterSubmissionStatusViewSet.as_view({'post':'create'}), name='submission-flag'),
 
 
-    url(r'^api/share/$', ShareFormViewSet.as_view(), name='share_form'),
-    url(r'^api/share/project/$', ShareProjectFormViewSet.as_view(), name='share_project_form'),
-    url(r'^api/share/team/$', ShareTeamFormViewSet.as_view(), name='share_team_form'),
+    # url(r'^api/share/$', ShareFormViewSet.as_view(), name='share_form'),
+    # url(r'^api/share/project/$', ShareProjectFormViewSet.as_view(), name='share_project_form'),
+    # url(r'^api/share/team/$', ShareTeamFormViewSet.as_view(), name='share_team_form'),
     url(r'^api/share/global/$', ShareGlobalFormViewSet.as_view(), name='share_global_form'),
     url(r'^api/clone/$', CloneFormViewSet.as_view(), name='clone_form'),
 
