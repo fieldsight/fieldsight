@@ -124,7 +124,9 @@ class ShareFormViewSet(APIView):
                         api_share_form.delay(xf.id, request.data['users'], task_obj.id)
                 except IntegrityError:
                     pass
-            return Response({"message": "Form shared successfully"}, status=status.HTTP_201_CREATED)
+                return Response({"message": "Form shared successfully."}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"message": "Error while sharing form."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -197,7 +199,9 @@ class ShareTeamFormViewSet(APIView):
                         api_share_form.delay(xf.id, user_ids, task_obj.id)
                 except IntegrityError:
                     pass
-            return Response({"message": "Form shared successfully"}, status=status.HTTP_201_CREATED)
+                return Response({"message": "Form shared successfully."}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"message": "Error while sharing form."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -254,7 +258,7 @@ class FormAddLanguageViewSet(APIView):
         A ViewSet for adding languages to a form
         """
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = (IsAuthenticated, XFormSharePermission)
+    permission_classes = (IsAuthenticated, XFormEditPermission)
 
     def post(self, request, *args,  **kwargs):
         serializer = AddLanguageSerializer(data=request.data)
