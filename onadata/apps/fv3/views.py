@@ -245,7 +245,7 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing, creating, updating and deleting regions. Allowed methods 'get', 'post', 'put', 'delete'.
     """
-    queryset = Region.objects.all()
+    queryset = Region.objects.filter(parent=None)
     serializer_class = ProjectRegionSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
@@ -270,10 +270,23 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=False)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        valid = serializer.is_valid(raise_exception=False)
+        if valid:
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+
+            project_id = serializer.data.get('project')
+            # parent_identifier = Region.objects.get(pk=self.kwargs.get('parent_pk')).get_concat_identifier()
+            # form.cleaned_data['identifier'] = parent_identifier + form.cleaned_data.get('identifier')
+
+            existing_identifier = Region.objects.filter(identifier=serializer.data.get('identifier'),
+                                                        project_id=project_id)
+
+            if existing_identifier:
+                return Response({'status': status.HTTP_400_BAD_REQUEST,
+                                 'message': 'Your identifier conflict with existing region please use different identifier to create region'})
 
     def perform_create(self, serializer):
         parent_exists = serializer.validated_data.get('parent', None)
