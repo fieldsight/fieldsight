@@ -735,6 +735,7 @@ class ProgressSettings(models.Model):
     no_submissions_total_count = models.IntegerField(null=True, blank=True)
     project = models.ForeignKey(Project, related_name="progress_settings")
     active = models.BooleanField(default=True)
+    deployed = models.BooleanField(default=False)
     user = models.ForeignKey(User, related_name="progress_settings", null=True, blank=True)
 
     def __str__(self):
@@ -764,3 +765,9 @@ class SiteMetaAttrHistory(models.Model):
     def __str__(self):
         return "{} {}".format(self.site.name, self.date)
 
+
+@receiver(post_save, sender=ProgressSettings)
+def check_deployed(sender, instance, created,  **kwargs):
+    if instance.deployed:
+        # async update site progress
+        pass
