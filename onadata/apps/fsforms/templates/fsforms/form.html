@@ -53,8 +53,8 @@
         <script src="//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
         <script src="{{STATIC_URL}}js/enketo-core.js?v=0.5"></script>
         <script>
-            const formSelector = 'form.or:eq(0)';
-            const data = {
+            var formSelector = 'form.or:eq(0)';
+            var data = {
                 modelStr: '{{ model_str|escapejs|safe }}',
                 instanceStr: {% if existing %}'{{ existing.instance.xml|escapejs|safe }}'{% else %}null{% endif %},
                 submitted: false,
@@ -62,14 +62,14 @@
                 session: {},
             };
 
-            const csrfInput = $("{% csrf_token %}");
-            const hiddenInput = $('<input type="hidden" name="enketo_xml_data">');
+            var csrfInput = $("{% csrf_token %}");
+            var hiddenInput = $('<input type="hidden" name="enketo_xml_data">');
 
-            const formElement = $(formSelector);
+            var formElement = $(formSelector);
             hiddenInput.appendTo(formElement);
             csrfInput.appendTo(formElement);
 
-            const form = new enketo.Form(formSelector, data, {});
+            var form = new enketo.Form(formSelector, data, {});
             form.init();
 
             formElement.removeAttr('onsubmit')
