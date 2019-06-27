@@ -11,7 +11,7 @@ from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset, D
 from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
     ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, \
     AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer, MyFormDeleteSerializer, \
-    ShareUserListSerializer, ShareTeamListSerializer
+    ShareUserListSerializer, ShareTeamListSerializer, ShareProjectListSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -59,8 +59,23 @@ class ShareTeamListViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         teams = self.request.roles.filter(
             ended_at__isnull=True, group__name="Organization Admin").values_list(
-            "organization", flat=True)
-        return self.queryset.filter(id__in=teams).distinct()
+            "organization", flat=True).distinct()
+        return self.queryset.filter(id__in=teams)
+
+
+class ShareProjectListViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+        A ViewSet for getting the list of shareable projects for sharing form
+        """
+    authentication_classes = ([SessionAuthentication, BasicAuthentication])
+    queryset = Project.objects.all()
+    serializer_class = ShareProjectListSerializer
+
+    def get_queryset(self):
+        projects = self.request.roles.filter(
+            ended_at__isnull=True, group__name="Project Manager").values_list(
+            "project", flat=True).order_by('project').distinct()
+        return self.queryset.filter(id__in=projects)
 
 
 class MyProjectFormsViewSet(viewsets.ReadOnlyModelViewSet):
