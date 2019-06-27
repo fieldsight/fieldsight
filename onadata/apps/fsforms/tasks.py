@@ -18,7 +18,7 @@ from onadata.libs.utils.fieldsight_tools import clone_kpi_form
 
 import time
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fsforms.share_xform import share_form, share_forms
+# from onadata.apps.fsforms.share_xform import share_form, share_forms
 
 
 @shared_task(max_retries=10, soft_time_limit=60)

@@ -3,7 +3,7 @@ from rest_framework import permissions
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 
-from onadata.apps.fsforms.models import ObjectPermission, Asset
+# from onadata.apps.fsforms.models import ObjectPermission, Asset
 
 
 class XFormSharePermission(permissions.BasePermission):
