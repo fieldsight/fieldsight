@@ -4325,3 +4325,14 @@ def auto_create_project_site(instance, created, **kwargs):
 
 class ApplicationView(LoginRequiredMixin, TemplateView):
     template_name = "fieldsight/application.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ApplicationView, self).get_context_data(**kwargs)
+        project = self.request.GET.get("project", None)
+
+        if project:
+
+            project_obj = get_object_or_404(Project, id=int(project))
+            context['project'] = project_obj.id
+            context['organization'] = project_obj.organization.id
+            return context
