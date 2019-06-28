@@ -746,6 +746,7 @@ class SiteProgressHistory(models.Model):
     progress = models.FloatField()
     site = models.ForeignKey(Site, related_name="progress_history")
     date = models.DateTimeField(auto_now=True)
+    setting = models.ForeignKey(ProgressSettings, related_name="progress", blank=True, null=True)
 
     class Meta:
         ordering = ['-date']
