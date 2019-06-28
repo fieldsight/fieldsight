@@ -2,6 +2,7 @@ from guardian.shortcuts import assign_perm, get_users_with_perms
 from django.contrib.auth.models import Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
+import time
 
 
 def share_m2m(users, forms):
@@ -16,6 +17,7 @@ def share_m2m(users, forms):
 def share_forms(user, forms):
     from onadata.apps.fsforms.models import ObjectPermission, Asset
     for fxf in forms:
+        time.sleep(1)
         codenames = ['view_asset', 'change_asset']
         permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
         for perm in permissions:
@@ -45,6 +47,7 @@ def share_forms(user, forms):
 def share_form(users, xform):
     from onadata.apps.fsforms.models import ObjectPermission, Asset
     for user in users:
+        time.sleep(1)
         codenames = ['view_asset', 'change_asset']
         permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
         for perm in permissions:
