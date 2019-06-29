@@ -1,5 +1,6 @@
 from django.db.models import Sum
 
+from onadata.apps.fieldsight.models import SiteProgressHistory
 from onadata.apps.fsforms.models import FieldSightXF
 
 def advance_stage_approved(site):
@@ -97,36 +98,42 @@ def pull_integer_answer(form, xform_question, site):
 
 
 def set_site_progress(site, project_settings=None):
+    progress = 0
     if not project_settings:
         project_settings = site.project.progress_settings.filter(deployed=True, active=True)
         if project_settings:
             project_settings = project_settings[0]
     if not project_settings or project_settings.source == 0:
         # default progress (stages approved/stages total) weight
-        site.current_progress = site.progress()
-        site.save()
-    if project_settings.source == 1:
-        site.current_progress = advance_stage_approved(site)
-        site.save()
+        progress = site.progress()
+    elif project_settings.source == 1:
+        progress = advance_stage_approved(site)
     if project_settings.source == 2:
         form = FieldSightXF.objects.get(pk=project_settings.pull_integer_form)
         xform_question = project_settings.pull_integer_form_question
         progress = pull_integer_answer(form, xform_question, site)
-        site.current_progress = progress
-        site.save()
+        progress = progress
     if project_settings.source == 3:
         p = ("%.0f" % (site.site_instances.count() / (project_settings.no_submissions_total_count * 0.01)))
         p = int(p)
         if p > 99:
             p = 100
-        site.current_progress = p
-        site.save()
+        progress = p
 
     if project_settings.source == 4:
-        p = ("%.0f" % (site.site_instances.filter(project_fxf_id=project_settings.no_submissions_form).count() / (project_settings.no_submissions_total_count * 0.01)))
+        p = ("%.0f" % (site.site_instances.filter(
+            project_fxf_id=project_settings.no_submissions_form).count() / (
+                project_settings.no_submissions_total_count * 0.01)))
         p = int(p)
         if p > 99:
             p = 100
-        site.current_progress = p
-        site.save()
+        progress = p
+
+    site.current_progress = progress
+    site.save()
+
+    history, _created = SiteProgressHistory.objects.get_or_create(site=site, progress=progress, settings=project_settings)
+    if not _created:
+        history.save()
+
 
