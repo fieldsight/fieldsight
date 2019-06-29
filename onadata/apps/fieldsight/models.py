@@ -737,6 +737,7 @@ class ProgressSettings(models.Model):
     active = models.BooleanField(default=True)
     deployed = models.BooleanField(default=False)
     user = models.ForeignKey(User, related_name="progress_settings", null=True, blank=True)
+    date = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.project.name
@@ -770,5 +771,5 @@ class SiteMetaAttrHistory(models.Model):
 @receiver(post_save, sender=ProgressSettings)
 def check_deployed(sender, instance, created,  **kwargs):
     if instance.deployed:
-        # async update site progress
-        pass
+        from onadata.apps.fieldsight.tasks import update_sites_progress
+        update_sites_progress.delay(instance.pk)

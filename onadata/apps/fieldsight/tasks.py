@@ -9,7 +9,8 @@ from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType
+from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings
+from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
 from channels import Group as ChannelGroup
@@ -2358,5 +2359,22 @@ def check_usage_rates():
                         args=[subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email],
                         eta=after_one_month)
 
+
+
+@shared_task(time_limit=120, soft_time_limit=120)
+def update_sites_progress(pk):
+    time.sleep(3)
+    obj = ProgressSettings.objects.get(pk=pk)
+    project = obj.project
+    total_sites = project.sites.count()
+    page_size = 1000
+    page = 0
+    while total_sites >0:
+        sites = project.sites.all()[page*page_size:(page+1)*page_size]
+        print("updating site progress batch", page*page_size, (page+1)*page_size)
+        for site in sites:
+            set_site_progress(site, obj)
+            total_sites -= page_size
+            page += 1
 
 
