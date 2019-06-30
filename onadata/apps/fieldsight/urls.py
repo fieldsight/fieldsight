@@ -77,7 +77,10 @@ from onadata.apps.geo.views import (
     GeoJsonView,
 )
 from onadata.apps.remote_app.views import RemoteProjectView
+from rest_framework import routers
 
+router = routers.SimpleRouter()
+router.register(r'form/sync_schedule/', UserViewSet)
 
 urlpatterns = [
     url(r'^accounts/create/$', CreateUserView.as_view(
