@@ -1796,12 +1796,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
             truncate_date = connection.ops.date_trunc_sql('month', 'date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
-<<<<<<< Updated upstream
-            forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'))
 
-            for month_stat in forms_stats:
-                data[index[month_stat['date_created'].strftime("%Y-%m")]][3] = int(month_stat['dcount'])
-=======
             forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
 
             for month_stat in forms_stats:
@@ -1826,7 +1821,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
             #         data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
             #     except:
             #         pass
->>>>>>> Stashed changes
+
 
 
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
@@ -1863,20 +1858,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
             truncate_date = connection.ops.date_trunc_sql('day', 'date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
-<<<<<<< Updated upstream
-            forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'))
 
-            for day_stat in forms_stats:
-                data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][3] = int(day_stat['dcount'])
-
-
-            forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
-            forms_stats=forms.values('date_created').annotate(dcount=Count('user_id', distinct=True))
-
-            for day_stat in forms_stats:
-                data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][4] = int(day_stat['dcount'])
-
-=======
             forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
 
             for day_stat in forms_stats:
@@ -1902,7 +1884,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
             #         data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
             #     except:
             #         pass
->>>>>>> Stashed changes
+
 
 
         wb = Workbook()
@@ -1924,9 +1906,6 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 weekly_data[weekcount][2] = value[0]
                 weekly_data[weekcount][3] += value[2]
                 weekly_data[weekcount][4] += value[3]
-<<<<<<< Updated upstream
-                weekly_data[weekcount][5] += value[4] 
-=======
                 weekly_data[weekcount][5] += value[4]
                 weekly_data[weekcount][6] += value[5]
                 weekly_data[weekcount][7] += value[6]
@@ -1938,7 +1917,6 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 # weekly_data[weekcount][13] += value[12]
                 # weekly_data[weekcount][14] += value[13]
                  
->>>>>>> Stashed changes
 
             for value in weekly_data:
                 ws.append(value)
@@ -2182,8 +2160,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                 default=0, output_field=IntegerField()
             ))
 
-<<<<<<< Updated upstream
-=======
+
         query['pending'] = Sum(
             Case(
                 When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
@@ -2233,7 +2210,6 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
             ))        
 
 
->>>>>>> Stashed changes
         dumb_visits = {
             "total_worked_days": 0,
             "submissions": 0,
