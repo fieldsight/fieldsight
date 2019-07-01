@@ -4333,6 +4333,6 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
         if project:
 
             project_obj = get_object_or_404(Project, id=int(project))
-            context['project'] = project_obj.id
+            context['project'] = project_obj
             context['organization'] = project_obj.organization.id
             return context
