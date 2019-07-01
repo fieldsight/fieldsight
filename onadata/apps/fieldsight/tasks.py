@@ -59,6 +59,7 @@ from django.contrib.contenttypes.models import ContentType
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
 from onadata.apps.users.signup_tokens import account_activation_token
 from onadata.apps.subscriptions.models import Subscription, Package, TrackPeriodicWarningEmail
+from onadata.apps.fsforms.models import InstanceStatusChanged
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -1795,10 +1796,37 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
             truncate_date = connection.ops.date_trunc_sql('month', 'date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
+<<<<<<< Updated upstream
             forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'))
 
             for month_stat in forms_stats:
                 data[index[month_stat['date_created'].strftime("%Y-%m")]][3] = int(month_stat['dcount'])
+=======
+            forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
+
+            for month_stat in forms_stats:
+                try:
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][3] = int(month_stat['dcount'])
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][5] = int(month_stat['approved'])
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][6] = int(month_stat['pending'])
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][7] = int(month_stat['rejected'])
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][8] = int(month_stat['flagged'])
+                except:
+                    pass
+
+            # truncate_date = connection.ops.date_trunc_sql('month', 'fsforms_instancestatuschanged.date')
+            # status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'date':truncate_date})
+            # status=status_changed.values('date').annotate(dcount=Count('date'), **review_query)
+            # for status_month in status_months:
+            #     try:
+            #         data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
+            #     except:
+            #         pass
+>>>>>>> Stashed changes
 
 
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
@@ -1835,6 +1863,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
             truncate_date = connection.ops.date_trunc_sql('day', 'date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
+<<<<<<< Updated upstream
             forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'))
 
             for day_stat in forms_stats:
@@ -1847,6 +1876,33 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
             for day_stat in forms_stats:
                 data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][4] = int(day_stat['dcount'])
 
+=======
+            forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
+
+            for day_stat in forms_stats:
+                try:
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][3] = int(day_stat['dcount'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][5] = int(month_stat['approved'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][6] = int(month_stat['pending'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][7] = int(month_stat['rejected'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][8] = int(month_stat['flagged'])
+                except:
+                    pass
+
+            # truncate_date = connection.ops.date_trunc_sql('month', 'fsforms_instancestatuschanged.date')
+            # status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'_date':truncate_date})
+            # status=status_changed.values('_date').annotate(dcount=Count('_date'), **review_query)
+
+            # for status_month in status_months:
+            #     try:
+            #         data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
+            #     except:
+            #         pass
+>>>>>>> Stashed changes
 
 
         wb = Workbook()
@@ -1868,7 +1924,21 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 weekly_data[weekcount][2] = value[0]
                 weekly_data[weekcount][3] += value[2]
                 weekly_data[weekcount][4] += value[3]
+<<<<<<< Updated upstream
                 weekly_data[weekcount][5] += value[4] 
+=======
+                weekly_data[weekcount][5] += value[4]
+                weekly_data[weekcount][6] += value[5]
+                weekly_data[weekcount][7] += value[6]
+                weekly_data[weekcount][8] += value[7]
+                weekly_data[weekcount][9] += value[8]
+                # weekly_data[weekcount][10] += value[9]
+                # weekly_data[weekcount][11] += value[10]
+                # weekly_data[weekcount][12] += value[11]
+                # weekly_data[weekcount][13] += value[12]
+                # weekly_data[weekcount][14] += value[13]
+                 
+>>>>>>> Stashed changes
 
             for value in weekly_data:
                 ws.append(value)
@@ -2112,6 +2182,58 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                 default=0, output_field=IntegerField()
             ))
 
+<<<<<<< Updated upstream
+=======
+        query['pending'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['rejected'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=1, supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['flagged'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=2, supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['approved'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=3, supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))    
+
+        query['re_approved'] = Sum(
+            Case(
+                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=3, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['re_rejected'] = Sum(
+            Case(
+                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=1, then=1),
+                default=0, output_field=IntegerField()
+            ))        
+
+        query['re_flagged'] = Sum(
+            Case(
+                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=2, then=1),
+                default=0, output_field=IntegerField()
+            ))        
+
+        query['resolved'] = Sum(
+            Case(
+                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
+                default=0, output_field=IntegerField()
+            ))        
+
+
+>>>>>>> Stashed changes
         dumb_visits = {
             "total_worked_days": 0,
             "submissions": 0,
