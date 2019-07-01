@@ -1767,7 +1767,31 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
         end = date(int(split_enddate[0]), int(split_enddate[1]), int(split_enddate[2]))
 
         new_enddate = end + datetime.timedelta(days=1)
+        query = {}
+        query['pending'] = Sum(
+            Case(
+                When(fieldsight_instance__form_status=0, then=1),
+                default=0, output_field=IntegerField()
+            ))
 
+        query['approved'] = Sum(
+            Case(
+                When(fieldsight_instance__form_status=3, then=1),
+                default=0, output_field=IntegerField()
+            )
+        )
+        query['flagged'] = Sum(
+            Case(
+                When(fieldsight_instance__form_status=2, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['rejected'] = Sum(
+            Case(
+                When(fieldsight_instance__form_status=1, then=1),
+                default=0, output_field=IntegerField()
+            )
+        )
         if reportType == "Monthly":
             data.insert(0, ["Date", "Month", "Site Visits", "Submissions","Active Users"])
             i=1
