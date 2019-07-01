@@ -1924,7 +1924,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 # Since start day is Monday And in Nepa we Calculate from Saturday for now.
                 if day == 7 or weekcount == 0:
                     weekcount += 1
-                    weekly_data.insert(weekcount, ["Week "+ str(weekcount),"","",0,0,0])
+                    weekly_data.insert(weekcount, ["Week "+ str(weekcount),"","",0,0,0,0,0,0,0,0])
 
                     weekly_data[weekcount][1] = value[0]
                 weekly_data[weekcount][2] = value[0]
