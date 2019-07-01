@@ -138,17 +138,17 @@ class ProjectFormSerializer(serializers.ModelSerializer):
 
 class ShareFormSerializer(serializers.Serializer):
     id_string = serializers.CharField()
-    users = serializers.ListField(child=serializers.IntegerField())
+    share_id = serializers.ListField(child=serializers.IntegerField())
 
 
 class ShareProjectFormSerializer(serializers.Serializer):
     id_string = serializers.CharField()
-    project = serializers.IntegerField()
+    share_id = serializers.IntegerField()
 
 
 class ShareTeamFormSerializer(serializers.Serializer):
     id_string = serializers.CharField()
-    team = serializers.IntegerField()
+    share_id = serializers.IntegerField()
 
 
 class ShareGlobalFormSerializer(serializers.Serializer):

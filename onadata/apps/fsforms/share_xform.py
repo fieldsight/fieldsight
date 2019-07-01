@@ -74,7 +74,6 @@ def share_form(users, xform):
     return True
 
 
-
 def share_form_global(form):
     from onadata.apps.fsforms.models import ObjectPermission, Asset, SharedFieldSightForm
     codenames = ['view_asset', 'view_submissions']
@@ -105,6 +104,7 @@ def share_form_global(form):
         else:
             continue
     return True
+
 
 def share_o2o(user, xform):
     if not user.has_perm('change_xform', xform):

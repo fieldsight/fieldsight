@@ -25,6 +25,8 @@ EVENTS = {"radio_broadcast": "radio_broadcas",
           "correction_methodology_of_non_": "correction_met",
           "khadgabhanjyang": "khadgabhanjyan",
           "vertical_reinforcement": "vertical_reinf",
+          "stakeholder_meeting":"stakeholder_me",
+          "hh_meetingtraining":"hh_meetingtrai",
           }
 
 STFC_SERVICES = {"municipality_report": "municipality_r",
