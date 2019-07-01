@@ -1793,7 +1793,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
             )
         )
         if reportType == "Monthly":
-            data.insert(0, ["Date", "Month", "Site Visits", "Submissions","Active Users"])
+            data.insert(0, ["Date", "Month", "Site Visits", "Submissions","Active Users","Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"])
             i=1
             for month in rrule(MONTHLY, dtstart=new_startdate, until=end):
                 str_month = month.strftime("%Y-%m")
@@ -1916,7 +1916,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
         ws.title = "Site Status"
 
         if reportType == "Weekly":
-            weekly_data = [["Week No.", "Week Start", "Week End", "Site Visits", "Submissions","Active Users"]]
+            weekly_data = [["Week No.", "Week Start", "Week End", "Site Visits", "Submissions","Active Users","Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"]]
 
             weekcount = 0
             for value in data[1:]:
