@@ -2219,7 +2219,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         users=User.objects.filter(user_roles__project_id=project_id, user_roles__group_id__in=[4, 9]).distinct('id').values('id')
 
         for user in User.objects.filter(pk__in=users).annotate(**query):
-            data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily])
+            data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.approved, user.flagged, user.rejected])
 
         wb = Workbook()
         ws = wb.active
