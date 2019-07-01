@@ -1797,7 +1797,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
             i=1
             for month in rrule(MONTHLY, dtstart=new_startdate, until=end):
                 str_month = month.strftime("%Y-%m")
-                data.insert(i, [str_month, month.strftime("%B"), 0, 0, 0])
+                data.insert(i, [str_month, month.strftime("%B"), 0, 0, 0, 0, 0, 0, 0])
                 index[str_month] = i
                 i += 1
 
@@ -1859,7 +1859,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
             i=1
             for day in rrule(DAILY, dtstart=new_startdate, until=end):
                 str_day = day.strftime("%Y-%m-%d")
-                data.insert(i, [str_day, day.strftime("%A"), 0, 0, 0])
+                data.insert(i, [str_day, day.strftime("%A"), 0, 0, 0, 0, 0, 0, 0, 0])
                 index[str_day] = i
                 i += 1
 
