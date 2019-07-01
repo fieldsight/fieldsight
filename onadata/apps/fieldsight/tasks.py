@@ -2065,7 +2065,7 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_date):
-    time.sleep(5)
+    # time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     project=get_object_or_404(Project, pk=project_id)
@@ -2086,7 +2086,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         new_enddate = end + datetime.timedelta(days=1)
 
        
-        data.insert(0, ["UserName", "Full name", "Email", "Submssions made", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today"])
+        data.insert(0, ["UserName", "Full name", "Email", "Submssions made", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today", "Approved Submissions", "Pending Submissions", "Flagged Submissions", "Rejected Submissions", "Reviewed Submissions", "Resolved Submissions", "Approved Reviews", "Flagged Reviews", "Rejected Reviews"])
 
         site_visits = settings.MONGO_DB.instances.aggregate(
             [
@@ -2160,7 +2160,6 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                 default=0, output_field=IntegerField()
             ))
 
-
         query['pending'] = Sum(
             Case(
                 When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
@@ -2209,7 +2208,6 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                 default=0, output_field=IntegerField()
             ))        
 
-
         dumb_visits = {
             "total_worked_days": 0,
             "submissions": 0,
@@ -2254,7 +2252,6 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                                        content_object=project, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
-
 #
 # @shared_task(max_retries=5)
 # def auto_create_default_project_site(user, organization_id):
