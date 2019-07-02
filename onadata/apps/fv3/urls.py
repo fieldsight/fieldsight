@@ -15,6 +15,7 @@ from onadata.apps.fv3.viewsets.ReportViewsets import ReportVs
 
 from onadata.apps.fv3.viewsets.SubmissionViewSet import AlterSubmissionStatusViewSet, SubmissionAnswerViewSet, \
     SubmissionViewSet
+from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectSitesListViewSet
 
 
 router = routers.DefaultRouter()
@@ -67,4 +68,6 @@ urlpatterns = [
     url(r'^api/form/users/$', ShareUserListViewSet.as_view({'get': 'list'}), name='shareable-users'),
     url(r'api/form/teams/$', ShareTeamListViewSet.as_view({'get': 'list'}), name='shareable-team'),
     url(r'api/form/projects/$', ShareProjectListViewSet.as_view({'get': 'list'}), name='shareable-project'),
-    ]
+    url(r'^api/project-site-list/', ProjectSitesListViewSet.as_view({'get': 'list'}), name='project_sites_list'),
+
+]
