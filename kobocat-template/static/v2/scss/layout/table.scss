@@ -1,0 +1,196 @@
+.fieldsight-new{
+    div.dataTables_wrapper{
+        div.dataTables_filter input {
+            border:1px solid $color-bg;
+            background-color: transparent;
+        }
+        div.dataTables_length{
+            float:left;
+            select{
+                border:1px solid $color-bg;
+                background-color: transparent;
+                color:#8c909a
+            }
+        }
+        div.dataTables_info {
+            margin-top:1rem;
+            color: $color-blue;
+            float:left;
+        }
+    }
+    div.dataTables_paginate{
+        margin-top:1rem !important;
+        float:right;
+        a, span span{
+            height: 34px;
+            display: inline-block;
+            border:1px solid rgba(140, 144, 154, 0.2);
+            padding:5px 10px;
+            @include radius4;
+            cursor:pointer;
+            &:hover,
+            &.current{
+                background-color:$color-blue;
+                color:$color-white;
+            }
+        }
+    }
+    
+    
+    table.table,
+    table.table-bordered {
+        &.dataTable{
+            border-color:$color-bg;
+            thead{
+                th{
+                    text-transform: uppercase;
+                    font-weight: 500;
+                    justify-content: center;
+                    vertical-align: middle;
+                    font-size: 0.75rem;
+                    padding: 0.625rem;
+                    border-color:$color-bg;
+                }
+                .sorting, .sorting_asc, .sorting_desc, .sorting_asc_disabled, .sorting_desc_disabled{
+                    &::before{
+                        color:$color-blue;
+                        opacity: 1;
+                    }
+                }
+                .sorting, .sorting_asc, .sorting_desc, .sorting_asc_disabled, .sorting_desc_disabled{
+                    &::after{
+                        color:$color-bg;
+                        opacity: 1;
+                    }
+                }
+            }
+            tr{
+                td{
+                    font-weight: 400;
+                    justify-content: center;
+                    vertical-align: middle;
+                    font-size: 0.875rem;
+                    position: relative;
+                    padding:0.625rem;
+                    border-color:$color-bg;
+                    .progress{
+                        overflow: visible;
+                        background-color: $color-bg;
+                        position: relative;
+                        height: 4px;
+                        @include radius4;
+                        .progress-bar{
+                            background-color: $color-green;
+                            -webkit-transition: width 1.5s ease-in-out;
+                            transition: width 1.5s ease-in-out;
+                            position: relative;
+                            height: 4px;
+                            @include radius4;
+                        }
+                        .progress-count{
+                            position: absolute;
+                            bottom: 5px;
+                            right: -15px;
+                            color: $color-primary;
+                            font-size: 0.675rem;
+                        }
+                    }
+                    a{
+                        
+                        &.td-edit-btn{
+                            margin:0 0.625rem;
+                            &:hover{
+                                color:$color-green;
+                            }
+                        }
+                        &.td-delete-btn{
+                            &:hover{
+                                color:$color-red;
+                            }
+                        }
+                    }
+                    &.highlight{
+                        background-color: $color-bg;
+                    }
+                }
+                &.selected{
+                    background-color: $color-bg;;
+                }
+                &.sub-row{
+                    td:first-child{
+                        padding-left:0.775rem;
+                    }
+                }
+                &.heading-row{
+                    td{
+                        font-weight: 500;
+                    }
+                }
+            }
+            &.table-bordered{
+                border-top: 0;
+                border-left: 0;
+                border-right: 0;
+            }
+            &.order-column,
+            &.dispaly{
+                tbody{
+                    .tr{
+                        .sorting_1,.sorging_2, .sorting_3{
+                            background-color:$color-bg
+                        }
+                    }
+                }
+            }
+            /* Fixed Header */
+            &.fixedHeader-floating{
+                background-color:$color-white;
+                margin-top: 0 !important;
+                margin-bottom: 0 !important;
+                position: fixed !important
+            }
+            &.fixedHeader-locked{
+                @extend .fixedHeader-floating;
+                position: absolute !important
+            }
+        }
+        thead{
+            th{
+                text-transform: uppercase;
+                font-weight: 500;
+                justify-content: center;
+                vertical-align: middle;
+                font-size: 0.75rem;
+                padding: 0.625rem;
+                border:none;
+                border-bottom:1px solid $color-bg;
+            }
+        }
+        tbody{
+            tr{
+                td{
+                    font-weight: 400;
+                    justify-content: center;
+                    vertical-align: middle;
+                    font-size: 0.875rem;
+                    position: relative;
+                    padding:0.625rem;
+                    border:none;
+                    border-bottom:1px solid $color-bg;
+                    .td-doc-icon{
+                        font-size:1.2rem;
+                        margin-right:0.25rem;
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    
+    @media print{
+        table.fixedHeader-floating {
+            display: none;
+        }
+    }
+}

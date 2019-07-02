@@ -353,6 +353,19 @@
 				 });
 
 
+				$('.fieldsight-new .right-content, .fieldsight-new .new-sidebar') .css({'min-height': (($(window).height()) - 210)+'px'});
+				   $(window).bind('resize', function(){
+					   $('.fieldsight-new .right-content, .fieldsight-new .new-sidebar') .css({'min-height': (($(window).height()) - 210)+'px'});
+				   });
+				   var WH = $(window).width();
+				   if(WH <= 768){
+					   $('.fieldsight-new .right-content, .fieldsight-new .new-sidebar') .css({'min-height': "auto"});
+					   $(window).bind('resize', function(){
+						   $('.fieldsight-new .right-content, .fieldsight-new .new-sidebar') .css({'min-height': "auto"});
+					   });
+				   }
+
+
 			});
 
 
@@ -370,7 +383,7 @@
 
 
 </script>
-<script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/notifications.js?v=6.1" ></script>
+<script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/notifications.js?v=1.0" ></script>
 {%block extrascript %}
 {% endblock %}
     </body>

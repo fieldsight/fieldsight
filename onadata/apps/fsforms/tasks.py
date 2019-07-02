@@ -101,8 +101,9 @@ def copy_sub_stage_to_sites(sub_stage, pk):
 
 
 @shared_task(max_retries=10, soft_time_limit=60)
-def copy_schedule_to_sites(schedule, fxf_status, pk):
+def copy_schedule_to_sites(schedule_id, fxf_status, pk):
     try:
+        schedule = Schedule.objects.get(pk=schedule_id)
         fxf = schedule.schedule_forms
         with transaction.atomic():
             if not fxf_status:
@@ -192,6 +193,39 @@ def created_manager_form_share(userrole, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     else:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+
+@shared_task(max_retries=5)
+def api_share_form(xf, users, task_id):
+    xf = XForm.objects.get(pk=xf)
+    if isinstance(users, list):
+        users = User.objects.filter(id__in=users)
+    else:
+        users = User.objects.filter(id=users)
+    shared = share_form(users, xf)
+    if shared:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    else:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+
+@shared_task(max_retries=5)
+def api_clone_form(form_id, project_id, user_id, task_id):
+    user = User.objects.get(id=user_id)
+    xf = XForm.objects.get(id=form_id)
+    project = Project.objects.get(id=project_id)
+
+    token = user.auth_token.key
+
+    # general clone
+    clone, id_string = clone_kpi_form(xf.id_string, token, task_id, xf.title)
+    if clone:
+        xf = XForm.objects.get(id_string=id_string, user=user)
+        FieldSightXF.objects.get_or_create(xf=xf, project=project, is_deployed=True)
+    else:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+        raise ValueError(" Failed  clone and deploy")
+
 
 
 # @shared_task(max_retries=10)

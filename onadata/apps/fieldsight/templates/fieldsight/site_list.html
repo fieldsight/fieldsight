@@ -51,7 +51,7 @@
 						{% else %}
 
 							{% if terms_and_labels %}
-								{{project.terms_and_labels.site}}
+								{{obj.terms_and_labels.site}}
 
 							{% else %}
 								{% trans 'Sites' %}
@@ -117,7 +117,7 @@
 							btn-primary"><i class="la la-plus"></i>
 
 								{% if terms_and_labels %}
-									Add New Regional {{project.terms_and_labels.site}}
+									Add New Regional {{obj.terms_and_labels.site}}
 
 								{% else %}
 									{% trans 'Add' %} {% trans 'New' %} {% trans 'Regional' %} {% trans 'Site' %}
@@ -229,7 +229,7 @@
 
 
 							{% if terms_and_labels %}
-								No {{project.terms_and_labels.site}}
+								No {{obj.terms_and_labels.site}}
 
 							{% else %}
 								<h3>No Site</h3>
@@ -307,6 +307,12 @@
 
 {% endblock %}
 {% block extrascript %}
+	<script>
+		configure_settings =  {};
+
+		configure_settings.terms_and_labels_project_id = "{{obj.id}}";
+
+	</script>
 
 	<script src="{% static 'dummy/assets/js/vendor/popper.min.js' %}"></script>
 	<script src="https://omnipotent.net/jquery.sparkline/2.1.2/jquery.sparkline.min.js"></script>

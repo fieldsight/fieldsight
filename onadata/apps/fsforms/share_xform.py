@@ -1,6 +1,7 @@
 from guardian.shortcuts import assign_perm, get_users_with_perms
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Permission, User
 from django.contrib.contenttypes.models import ContentType
+from django.conf import settings
 
 
 def share_m2m(users, forms):
@@ -15,15 +16,19 @@ def share_m2m(users, forms):
 def share_forms(user, forms):
     from onadata.apps.fsforms.models import ObjectPermission, Asset
     for fxf in forms:
-        try:
-            codenames = ['view_asset', 'change_asset']
-            permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
-            for perm in permissions:
-                object_id = Asset.objects.get(uid=fxf.xf.id_string).id
-                content_type = ContentType.objects.get(id=21)
+        codenames = ['view_asset', 'change_asset']
+        permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
+        for perm in permissions:
+            object_id = Asset.objects.get(uid=fxf.xf.id_string).id
 
-                # Create the new permission
-                new_permission = ObjectPermission.objects.create(
+            content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
+
+            # Create the new permission
+            if not ObjectPermission.objects.filter(object_id=object_id,
+                                               content_type=content_type,
+                                               user=user,
+                                               permission_id=perm.pk).exists():
+                ObjectPermission.objects.create(
                     object_id=object_id,
                     content_type=content_type,
                     user=user,
@@ -31,25 +36,28 @@ def share_forms(user, forms):
                     deny=False,
                     inherited=False
                 )
+            else:
+                continue
 
-        except:
-            return False
-        else:
-            return True
+    return True
 
 
 def share_form(users, xform):
     from onadata.apps.fsforms.models import ObjectPermission, Asset
     for user in users:
-        try:
-            codenames = ['view_asset', 'change_asset']
-            permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
-            for perm in permissions:
-                object_id = Asset.objects.get(uid=xform.id_string).id
-                content_type = ContentType.objects.get(id=21)
+        codenames = ['view_asset', 'change_asset']
+        permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
+        for perm in permissions:
+            object_id = Asset.objects.get(uid=xform.id_string).id
 
-                # Create the new permission
-                new_permission = ObjectPermission.objects.create(
+            content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
+
+            # Create the new permission
+            if not ObjectPermission.objects.filter(object_id=object_id,
+                                                   content_type=content_type,
+                                                   user=user,
+                                                   permission_id=perm.pk).exists():
+                ObjectPermission.objects.create(
                     object_id=object_id,
                     content_type=content_type,
                     user=user,
@@ -57,12 +65,43 @@ def share_form(users, xform):
                     deny=False,
                     inherited=False
                 )
+            else:
+                continue
 
-        except Exception as e:
-            return False
+    return True
+
+
+
+def share_form_global(form):
+    from onadata.apps.fsforms.models import ObjectPermission, Asset, SharedFieldSightForm
+    codenames = ['view_asset', 'view_submissions']
+    permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
+    for perm in permissions:
+        object_id = Asset.objects.get(uid=form.id_string).id
+        content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
+        user = User.objects.get(id=-1)
+        if not ObjectPermission.objects.filter(
+            object_id=object_id,
+            content_type=content_type,
+            user=user,
+            permission_id=perm.pk,
+            deny=False,
+            inherited=False).exists():
+            ObjectPermission.objects.create(
+                object_id=object_id,
+                content_type=content_type,
+                user=user,
+                permission_id=perm.pk,
+                deny=False,
+                inherited=False)
+
+            shared, created = SharedFieldSightForm.objects.get_or_create(xf=form, shared=True)
+            if not created:
+                SharedFieldSightForm.objects.filter(xf=form).update(shared=True)
+
         else:
-            return True
-
+            continue
+    return True
 
 def share_o2o(user, xform):
     if not user.has_perm('change_xform', xform):

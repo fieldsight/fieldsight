@@ -305,7 +305,7 @@ assigntoken(csrf_token);
 										{% endif %}
 									</a>
 								{% endif %}
-								<a class="dropdown-item" href="{% url 'fieldsight:project-edit' obj.pk %}"><i class="la la-clipboard"></i> {% trans 'Settings' %}</a>
+								<a class="dropdown-item" href="{% url 'fieldsight:application' %}?project={{obj.pk}}#/project-settings"><i class="la la-clipboard"></i> {% trans 'Settings' %}</a>
 
 
 								
@@ -442,7 +442,12 @@ assigntoken(csrf_token);
 												<div class="project-basic-info">
 													<h4 data-bind="text:name()"></h4>
                             						<p data-bind="text:identifier()"></p>
-													<p data-bind="text:'Total Sites: '+total_sites_count()"></p>
+														{% if terms_and_labels %}
+															<p data-bind="text:'Total {{obj.terms_and_labels.site}}: '+total_sites_count()"></p>
+														{% else %}
+															<p data-bind="text:'Total Sites: '+total_sites_count()"></p>
+
+														{% endif %}
 												</div>
 											</a>
 											<!-- /ko-->

@@ -1,0 +1,295 @@
+.fieldsight-new{
+    .new-dashboard{
+        .header-count{
+            @include flex_start;
+            align-items: center;
+            .count-card{
+                background-color: $color-bg;
+                @include radius4;
+                @include flex_start;
+                align-items: center;
+                margin-right: 1rem;
+                padding:0.5rem 0.6125rem;
+                .count-icon{
+                    width:1.8rem;
+                    height: 1.8rem;
+                    text-align: center;
+                    line-height: 1.8rem;
+                    background-color: $color-white;
+                    @include radius50;
+                    margin-right: 0.6125rem;
+                    i{
+                        color:$color-blue;
+                        font-size: 1rem;
+                    }
+                }
+                .count-content{
+                    text-transform: capitalize;
+                    h4{
+                        font-size:0.875rem;
+                        font-weight: 600;
+                        margin-bottom: 0.25rem;
+                    }
+                    h6{
+                        font-size:0.775rem;
+                        margin:0;
+                    }
+                }
+            }
+        }
+        .dashboard-counter{
+            .count-card{
+                background-color: $color-white;
+                @include radius4;
+                @include flexjust;
+                justify-content: center;
+                align-items: center;
+                padding:2rem;
+                @include boxshadow;
+                margin-bottom: 2rem;
+                .count-icon{
+                    width:4rem;
+                    height: 4rem;
+                    text-align: center;
+                    line-height: 4.5rem;
+                    background-color: $color-bg;
+                    @include radius50;
+                    margin-right: 1rem;
+                    @include anim05;
+                    i{
+                        font-size: 1.5rem;
+                    }
+                }
+                .count-content{
+                    text-transform: capitalize;
+                    h4{
+                        font-size:1rem;
+                        font-weight: 600;
+                        margin-bottom: 0.25rem;
+                    }
+                    h6{
+                        font-size:0.875rem;
+                        margin:0;
+                    }
+                }
+                &:hover{
+                    cursor: pointer;
+                    .count-icon{
+                        color:$color-white;
+                        &.pending{
+                            background-color:$color-blue;
+                        }
+                        &.approved{
+                            background-color:$color-green;
+                        }
+                        &.flagged{
+                            background-color:$color-yellow;
+                        }
+                        &.rejected{
+                            background-color:$color-red;
+                        }
+                    }
+                }
+            }
+            &.bg-counter{
+                .count-card{
+                    margin-bottom: 0;
+                }
+            }
+        }
+        .about-section{
+            .about{
+                p{
+                    margin:0;
+                }
+            }
+            .contact{
+                ul{
+                    li{
+                        @include flex_start;
+                        align-items: center;
+                        padding:0.5rem 0;
+                        border-bottom: 1px solid $color-bg;
+                        i{
+                            width:1.5rem;
+                            height:1.5rem;
+                            line-height: 1.5rem;
+                            text-align: center;
+                            border:1px solid $color-bg;
+                            @include radius4;
+                            margin-right: 0.6125rem;
+                        }
+                        &:last-child{
+                            border-bottom: 0;
+                            padding-bottom: 0;
+                        }
+                    }
+                }
+            }
+            .doc-body{
+                .doc-item{
+                    background-color: $color-white;
+                    border:1px solid $color-bg;
+                    @include radius4;
+                    padding:0.25rem;
+                    margin-bottom: 1rem;
+                    .doc-wrapper{
+                        background-color: $color-bg;
+                        padding:0.6125rem;
+                        text-align: center;
+                        .doc-content{
+                            margin-top:0.6125rem;
+                            h6{
+                                font-size:0.875rem;
+                                font-weight: 500;
+                                margin:0;
+                            }
+                        }
+                    }
+                    figure{
+                        margin:0;
+                        text-align: center;
+                        img{
+                            max-height: 80px;
+                        }
+                    }
+                }
+            }
+        }
+        .timeline{
+            position: relative;
+            &:after{
+                content:'';
+                position: absolute;
+                width:2px;
+                height: 100%;
+                top:0;
+                bottom:0;
+                right:0;
+                left:2.8rem;
+                background-color: $color-bg;
+            }
+            
+            .timeline-list{
+                time{
+                    padding:0.5rem 0.775rem;
+                    text-transform: capitalize;
+                    font-weight: 500;
+                    color:$color-blue;
+                    border:1px solid $color-bg;
+                    @include radius4;
+                    background-color: $color-white;
+                    position: relative;
+                    z-index: 9;
+                }
+                ul{
+                    padding-left:2.5rem;
+                    li{
+                        margin:2rem 0;
+                        position: relative;
+                        padding-left:3rem;
+                        .event-list{
+                            @include flex_start;
+                            flex-wrap: nowrap;
+                            padding:1rem;
+                            position: relative;
+                            border:1px solid $color-bg;
+                            @include radius4;
+                            figure{
+                                max-width: 50px;
+                                margin-right: 0.6125rem;
+                                img{
+                                    max-width: 50px;
+                                    height: 50px;
+                                    @include radius50;
+                                }
+                            }
+                            .log-content{
+                                h5{
+                                    font-size:0.875rem;
+                                    font-weight: 500;
+                                    margin:0.15rem 0;
+                                }
+                                span{
+                                    font-size:0.775rem;
+                                    color:rgba($color-primary, 0.5)
+                                }
+                            }
+                            
+                        }
+                        &::after{
+                            content:'';
+                            position: absolute;
+                            width:10px;
+                            height: 10px;
+                            @include radius50;
+                            left:0;
+                            top:5px;
+                            z-index: 1000;
+                            
+                        }
+                        &.green{
+                            &::after{
+                            background-color: $color-green;
+                            -moz-box-shadow: 0 0 0 5px rgba($color-green, 0.5);
+                            box-shadow: 0 0 0 5px rgba($color-green, 0.5);
+                            }
+                        }
+                        &.yellow{
+                            &::after{
+                            background-color: $color-yellow;
+                            -moz-box-shadow: 0 0 0 5px rgba($color-yellow, 0.5);
+                            box-shadow: 0 0 0 5px rgba($color-yellow, 0.5);
+                            }
+                        }
+                        &.blue{
+                            &::after{
+                            background-color: $color-secondary;
+                            -moz-box-shadow: 0 0 0 5px rgba($color-secondary, 0.5);
+                            box-shadow: 0 0 0 5px rgba($color-secondary, 0.5);
+                            }
+                        }
+                        &.red{
+                            &::after{
+                            background-color: $color-red;
+                            -moz-box-shadow: 0 0 0 5px rgba($color-red, 0.5);
+                            box-shadow: 0 0 0 5px rgba($color-red, 0.5);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        @media screen and (max-width:$desktop){
+            .timeline{
+                .timeline-list{
+                    ul{
+                        li{
+                            .event-list{
+
+                            }
+                        }
+                    }
+                }
+            }
+            .logs{
+                margin-top: 2rem;
+            }
+            .site_dashboard_info{
+                margin-bottom: 2rem;
+            }
+        }
+        @media screen and (max-width:$lg-tab){
+            
+            .project-list, .logs{
+                margin-top: 2rem;
+            }
+            .about-section{
+                .admin{
+                    margin-top: 2rem;
+                }
+            }
+        } 
+    }
+}

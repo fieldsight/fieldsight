@@ -911,7 +911,7 @@ class Deploy_survey(SPFmixin, View):
         try:
             schedule = Schedule.objects.get(pk=id)
             if is_project == "1":
-                arguments = {'schedule': schedule,  'fxf_status':fxf_status, 'pk':pk}
+                arguments = {'schedule_id': schedule.id,  'fxf_status':fxf_status, 'pk':pk}
                 copy_schedule_to_sites.apply_async((), arguments, countdown=2)
                 return HttpResponse({'msg': 'ok'}, status=status.HTTP_200_OK)
             else:
@@ -922,6 +922,7 @@ class Deploy_survey(SPFmixin, View):
                 send_message_un_deploy(form)
                 return HttpResponse({'msg': 'ok'}, status=status.HTTP_200_OK)
         except Exception as e:
+            print("dddddddddddd",str(e))
             return HttpResponse({'error':e.message}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -1182,14 +1183,19 @@ class FormFillView(FormMixin, View):
 
         fieldsight_xf = FieldSightXF.objects.get(pk=pk)
         xform = fieldsight_xf.xf
-
+        data = {
+            'xform': xform.xml
+        }
+        media_list = MetaData.objects.filter(data_type='media', xform=xform)
+        for m in media_list:
+            data.update({
+                'media[' + m.data_value + ']': m.data_file.url
+            })
         finstance = FInstance.objects.get(instance_id=sub_pk) if sub_pk else None
 
         result = requests.post(
             'http://localhost:8085/transform',
-            data={
-                'xform': xform.xml,
-            }
+            data=data
         ).json()
 
         return render(request, 'fsforms/form.html', {

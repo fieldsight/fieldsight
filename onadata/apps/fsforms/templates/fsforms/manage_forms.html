@@ -109,7 +109,13 @@ else if (tab == "4"){ vm.setSelectedVm('survey')}
     </nav>
     {% if is_project == "0" %}
     <div class="alert alert-danger">
-      <strong>Warning!</strong> You are managing forms for {{ obj.name }} only and will not be seen for other sites. Click <a href="{% url 'forms:setup-forms' 1 obj.project.id %}">here</a> to manage forms in project level. 
+        {% if obj.project.terms_and_labels %}
+              <strong>Warning!</strong> You are managing forms for {{ obj.name }} only and will not be seen for other {{obj.project.terms_and_labels.site}}. Click <a href="{% url 'forms:setup-forms' 1 obj.project.id %}">here</a> to manage forms in project level.
+
+        {% else %}
+              <strong>Warning!</strong> You are managing forms for {{ obj.name }} only and will not be seen for other sites. Click <a href="{% url 'forms:setup-forms' 1 obj.project.id %}">here</a> to manage forms in project level.
+
+        {% endif %}
     </div>
     {% endif %}
 				<!-- Nav tabs -->

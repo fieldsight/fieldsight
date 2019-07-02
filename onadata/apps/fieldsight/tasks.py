@@ -73,6 +73,25 @@ def cleanhtml(raw_html):
 class DriveException(Exception):
     pass
 
+@shared_task()
+def gsuit_assign_perm(title, emails):
+    time.sleep(5)
+    try:
+        gauth = GoogleAuth()
+        drive = GoogleDrive(gauth)
+        file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()[0]
+        for perm in emails:
+            time.sleep(1)
+            file.InsertPermission({
+                'type':'user',
+                'value':perm,
+                'role': 'writer'
+            })
+    except:
+        pass
+
+
+
 def upload_to_drive(file_path, title, folder_title, project):
     # pass
     """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
@@ -128,29 +147,21 @@ def upload_to_drive(file_path, title, folder_title, project):
             if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "exports.fieldsight@gmail.com":
                 file.DeletePermission(permission['id'])
 
-        # file.InsertPermission({
-        #             'type':'user',
-        #             'value':'aashish.baidya.c3@gmail.com',
-        #             'role': 'writer'
-        #         })
-
-        # file.InsertPermission({
-        #             'type':'user',
-        #             'value':'skhatri.np@gmail.com',
-        #             'role': 'writer'
-        #         })
-
-
-        for perm in perm_to_add:
-            file.InsertPermission({
-                        'type':'user',
-                        'value':perm,
-                        'role': 'writer'
-                    })
-
+        try:
+            index = 0
+            for perm in perm_to_add:
+                file.InsertPermission({
+                            'type':'user',
+                            'value':perm,
+                            'role': 'writer'
+                        })
+                index += 1
+        except:
+            gsuit_assign_perm.delay(title, perm[index:])
 
     except Exception as e:
         raise DriveException({"message":e})
+
 
 
 @shared_task()
@@ -1747,7 +1758,7 @@ def sendNotification(notification, recipient):
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date, end_date):
-    # time.sleep(5)
+    time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     project=get_object_or_404(Project, pk=project_id)
@@ -1904,7 +1915,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
-    # time.sleep(5)
+    time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     if reportType == "Project":
@@ -2017,7 +2028,7 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_date):
-    # time.sleep(5)
+    time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     project=get_object_or_404(Project, pk=project_id)
@@ -2170,6 +2181,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def email_after_signup(user_id, to_email):
+    time.sleep(10)
     user = User.objects.get(id=user_id)
     mail_subject = 'Activate your account.'
     message = render_to_string('users/acc_active_email.html', {
