@@ -223,6 +223,19 @@ class Sector(models.Model):
 
 
 class Project(models.Model):
+    MANUAL = "NA"
+    DAILY = "D"
+    WEEKLY = "W"
+    FORTNIGHT = "F"
+    MONTHLY = "M"
+    SCHEDULES = [
+        (MANUAL, "Manual"),
+        (DAILY, "Daily"),
+        (WEEKLY, "Weekly"),
+        (FORTNIGHT, "Fortnightly"),
+        (MONTHLY, "Monthyl"),
+    ]
+
     name = models.CharField(max_length=255)
     type = models.ForeignKey(ProjectType, verbose_name='Type of Project', null=True, blank=True)
     sector = models.ForeignKey(Sector, verbose_name='Sector', null=True, blank=True, related_name='project_sector')
@@ -247,6 +260,9 @@ class Project(models.Model):
     site_basic_info = JSONField(default={})
     site_featured_images = JSONField(default=list)
     gsuit_meta = JSONField(default={})
+    gsuit_sync = models.CharField(choices=SCHEDULES, default=MANUAL, max_length=2)
+    gsuit_sync_day = models.PositiveIntegerField(default=0)
+    
     # gsuit_meta sample = {'site_progress':{'link':'', 'last_updated':''}}
     logs = GenericRelation('eventlog.FieldSightLog')
     all_objects = ProjectAllManager()

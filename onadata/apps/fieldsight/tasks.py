@@ -91,8 +91,7 @@ def gsuit_assign_perm(title, emails):
         pass
 
 
-
-def upload_to_drive(file_path, title, folder_title, project):
+def upload_to_drive(file_path, title, folder_title, project, user):
     # pass
     """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
     try:
@@ -124,7 +123,15 @@ def upload_to_drive(file_path, title, folder_title, project):
         
         _project = Project.objects.get(pk=project.id) 
         gsuit_meta = _project.gsuit_meta
-        gsuit_meta[folder_title] = {'link':file['alternateLink'], 'updated_at':datetime.datetime.now().isoformat()}
+        gsuit_meta[folder_title] = {
+            'link':file['alternateLink'],
+            'updated_at':datetime.datetime.now().isoformat(),
+        }
+        if user:
+            gsuit_meta[folder_title]['user'] = {
+                'username': user.username,
+                'full_name': user.get_full_name()
+            }
         _project.gsuit_meta = gsuit_meta
         _project.save()
         permissions = file.GetPermissions()
@@ -360,7 +367,7 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         task.save()
         
         if sync_to_drive:
-            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project)
+            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project, task.user)
 
             noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report sync to Google Drive",
                                    recipient=task.user, content_object=project, extra_object=project,
@@ -975,7 +982,7 @@ def generateSiteDetailsXls(task_prog_obj_id, project_id, region_ids, type_ids=No
             with open(temporarylocation,'wb') as out: ## Open temporary file as bytes
                 out.write(xls)                ## Read bytes into file
 
-            upload_to_drive(temporarylocation, "{} - Site Information".format(project.id), "Site Information", project)
+            upload_to_drive(temporarylocation, "{} - Site Information".format(project.id), "Site Information", project, task.user)
 
             os.remove(temporarylocation)
 
@@ -2368,6 +2375,40 @@ def check_usage_rates():
                     warning_overage_emails_monthly.apply_async(
                         args=[subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email],
                         eta=after_one_month)
+import calendar
+from django.utils import timezone
+
+def sync_form(fxf):
+    #sync
+    create_async_export(xform, export_type, query, force_xlsx, options, is_project, id, site_id, version, sync_to_gsuit, user)
+
+    pass
+
+def sync_form_controller(sync_type, sync_day, fxf, month_days):
+    date = timezone.date()
+    if sync_type == Project.MONTHLY:
+        if date.day == sync_day or sync_day > month_days:
+            sync_form(fxf)
+
+    elif sync_type == project.FORTNIGHT:
+        pass
+
+    elif sync_type == WEEKLY:
+        if (((date.weekday() + 1) % 7) + 1) == sync_day:
+            sync_form(fxf)
+    else:
+        sync_form(fxf)
 
 
+def scheduled_gsuit_sync():
+    month_days = calendar.monthrange(now.year, now.month)[1]
+    projects = Project.objects.filter(is_active=True).exclude(gsuit_sync=Project.MANUAL)
 
+    for project in projects:
+        #generate reports
+        for fxf in project.project_forms.exclude(sync_schedule__schedule=Project.MANUAL):
+            if fxf.sync_schedule:
+                sync_form_controller(fxf.sync_schedule.schedule, fxf.sync_schedule.day, fxf, month_days)
+            else:
+                sync_form_controller(project.gsuit_sync, project.gsuit_sync_day, fxf, month_days)
+        project.gsuit_sync

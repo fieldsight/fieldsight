@@ -52,7 +52,7 @@ from .models import ProjectGeoJSON, Organization, Project, Site, BluePrints, Use
     ProjectType, Sector, ProjectLevelTermsAndLabels
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
-                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm)
+                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm, ProjectGsuitSyncForm, FieldsightFormGsuitSyncEditForm, FieldsightFormGsuitSyncNewForm )
 
 from onadata.apps.subscriptions.models import Subscription, Customer, Package
 from django.views.generic import TemplateView
@@ -80,7 +80,7 @@ from onadata.apps.staff.models import Team
 from .metaAttribsGenerator import generateSiteMetaAttribs
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from onadata.apps.fsforms.models import SyncSchedule
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -411,7 +411,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
     @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if request.group.name == "Super Admin" or request.group.name == "Unassigned":
+            if request.group.name == "Super Admin" or request.group.name == "form_fform_orm_Unassiform_form_form_form_form_form_form_gned":
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
@@ -4336,3 +4336,76 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
             context['project'] = project_obj
             context['organization'] = project_obj.organization.id
             return context
+
+
+class ProjectSyncScheduleUpdateView(UpdateView):
+    template_name = 'fieldsight/project_sync_schedule.html'
+    model = Project
+    form_class = ProjectGsuitSyncForm
+
+    def get_success_url(self):
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        pk = self.kwargs['pk'] 
+        context = super(ProjectSyncScheduleUpdateView, self).get_context_data(**kwargs)
+        
+        context['schedule_forms'] = FieldSightXF.objects.select_related('xf', 'sync_schedule', 'schedule').filter(project_id=pk, is_scheduled = True, is_staged=False, is_survey=False, sync_schedule__isnull=False)
+        mainstage=[]
+        stages = Stage.objects.filter(project_id=pk)
+        for stage in stages:
+            if stage.stage_id is None:
+                substages=stage.get_sub_stage_list(sync_details=True)
+                main_stage = {'id':stage.id, 'title':stage.name, 'sub_stages':substages}
+                # stagegroup = {'main_stage':main_stage,}
+                mainstage.append(main_stage)
+
+        context['stage_forms'] = mainstage
+        context['survey_forms'] = FieldSightXF.objects.select_related('xf', 'sync_schedule').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=True, sync_schedule__isnull=False)
+        context['general_forms'] = FieldSightXF.objects.select_related('xf', 'sync_schedule').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=False, sync_schedule__isnull=False)
+
+        context['base_template'] = "fieldsight/manage_base.html"
+        context['obj'] = Project.objects.get(pk=pk)
+        return context
+
+
+class SyncScheduleCreateView(CreateView):
+    template_name = 'fieldsight/form_sync_schedule_form.html'
+    model = SyncSchedule
+    form_class = FieldsightFormGsuitSyncNewForm
+
+    def get_context_data(self, **kwargs):
+        context = super(SyncScheduleCreateView, self).get_context_data(**kwargs)
+        context['pk'] = self.kwargs.get('pk')
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        return context
+
+    def get_form_kwargs(self):
+          kwargs = super(SyncScheduleCreateView, self).get_form_kwargs()
+          kwargs['pk'] = self.kwargs.get('pk')
+          return kwargs
+
+    def get_success_url(self):
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.kwargs['pk']})
+
+
+class SyncScheduleUpdateView(UpdateView):
+    template_name = 'fieldsight/form_sync_schedule_form.html'
+    model = SyncSchedule
+    form_class = FieldsightFormGsuitSyncEditForm
+
+
+    def get_success_url(self):
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.object.fxf.project.id})
+
+    def get_context_data(self, **kwargs):
+        context = super(SyncScheduleUpdateView, self).get_context_data(**kwargs)
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        return context
+
+
+class SyncScheduleDeleteView(DeleteView):
+    model = SyncSchedule
+    
+    def get_success_url(self):
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.object.fxf.project.id})

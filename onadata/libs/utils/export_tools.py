@@ -808,7 +808,7 @@ def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
                     binary_select_multiples=False,
-                    sync_to_gsuit=False):
+                    sync_to_gsuit=False, user=None):
     """
     Create appropriate export object given the export type
     """
@@ -894,7 +894,7 @@ def generate_export(export_type, extension, username, id_string,
                 name = fxf_form.stage.name
             else:
                 name = fxf_form.xf.title
-            upload_to_drive(temporarylocation, name+'_'+id_string, str(fxf_form.id)+'_'+name+'_'+id_string, fxf_form.project)
+            upload_to_drive(temporarylocation, name+'_'+id_string, str(fxf_form.id)+'_'+name+'_'+id_string, fxf_form.project, user)
         
             os.remove(temporarylocation)
         
