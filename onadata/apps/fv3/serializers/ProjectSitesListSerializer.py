@@ -2,6 +2,8 @@ from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
 
+FORM_STATUS = {0: 'Pending', 1: "Rejected", 2: 'Flagged', 3: 'Approved'}
+
 
 class ProjectSitesListSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='region.name')
@@ -21,10 +23,14 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
         return submissions
 
     def get_status(self, obj):
-        return 'Approved'
+
+        if obj.current_status:
+            return FORM_STATUS[obj.current_status]
 
     def get_progress(self, obj):
 
-        if obj.progress:
-            return obj.site_progress
+        if obj.current_progress:
+            return obj.current_progress
+        else:
+            return 0
 
