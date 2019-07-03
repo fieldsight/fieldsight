@@ -2,9 +2,8 @@ import json
 from datetime import datetime
 
 from django.db.models import Prefetch
-from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 from rest_framework import viewsets
@@ -16,15 +15,10 @@ from rest_framework.response import Response
 
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework import generics, status
-from rest_framework.permissions import BasePermission
 from rest_framework.views import APIView
 from django.contrib.gis.geos import Point
 from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels
-from onadata.apps.fieldsight.rolemixins import ProjectRoleMixin
 from onadata.apps.fsforms.models import FInstance
-
-
-from onadata.apps.fieldsight.models import Project, Region, Site, SiteType
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
@@ -263,17 +257,30 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
 
         elif project_id:
             project = get_object_or_404(Project, id=project_id)
-            return self.queryset.filter(project=project)
+            return self.queryset.filter(project=project, parent=None)
 
         else:
             return self.queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=False)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        valid = serializer.is_valid(raise_exception=False)
+        if valid:
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+
+            project_id = serializer.data.get('project')
+            # parent_identifier = Region.objects.get(pk=self.kwargs.get('parent_pk')).get_concat_identifier()
+            # form.cleaned_data['identifier'] = parent_identifier + form.cleaned_data.get('identifier')
+
+            existing_identifier = Region.objects.filter(identifier=serializer.data.get('identifier'),
+                                                        project_id=project_id)
+
+            if existing_identifier:
+                return Response({'status': status.HTTP_400_BAD_REQUEST,
+                                 'message': 'Your identifier conflict with existing region please use different identifier to create region'})
 
     def perform_create(self, serializer):
         parent_exists = serializer.validated_data.get('parent', None)
@@ -287,6 +294,16 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
         else:
 
             serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            site = Site.objects.filter(region=instance)
+            site.update(region_id=None)
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_200_OK)
+        except Http404:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ProjectSitesViewset(viewsets.ModelViewSet):
@@ -483,6 +500,7 @@ class ProjectDefineSiteMeta(APIView):
     permission_classes = [IsAuthenticated, ]
 
     def get(self, request, pk, format=None):
+
         project_obj = Project.objects.get(pk=pk)
         level = "1"
         project_data = Project.objects.filter(pk=pk).values('id', 'name', 'organization_id', 'organization__name', )
@@ -494,15 +512,13 @@ class ProjectDefineSiteMeta(APIView):
 
     def post(self, request, pk, format=None):
 
-        # try:
         project = Project.objects.get(pk=pk)
         old_meta = project.site_meta_attributes
-        # print old_meta===================================
-        # print "----"
-        project.site_meta_attributes = request.POST.get('json_questions')
-        project.site_basic_info = request.POST.get('site_basic_info')
-        project.site_featured_images = request.POST.get('site_featured_images')
-        new_meta = json.loads(project.site_meta_attributes)
+        project.site_meta_attributes = request.data.get('json_questions')
+        project.site_basic_info = request.data.get('site_basic_info')
+        project.site_featured_images = request.data.get('site_featured_images')
+
+        new_meta = project.site_meta_attributes
         try:
             if old_meta != new_meta:
                 deleted = []
@@ -527,5 +543,3 @@ class ProjectDefineSiteMeta(APIView):
 
         except Exception as e:
             return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
-
-

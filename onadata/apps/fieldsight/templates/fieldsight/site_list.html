@@ -78,7 +78,7 @@
 						{% if type == "project" %}
 							<a href="{% url 'fieldsight:site-add' pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-plus"></i> {% trans 'Add' %} {% trans 'New' %}</a>
 
-							<a href="{% url 'fieldsight:define-site-meta' pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-cogs"></i> {% trans 'Meta' %} {% trans 'Attributes' %}</a>
+							<a href="{% url 'fieldsight:application' %}?project={{obj.pk}}#/site-meta" title="" class="btn btn-sm btn-primary"><i class="la la-cogs"></i> {% trans 'Meta' %} {% trans 'Attributes' %}</a>
 							<a href="{% url 'fieldsight:site-upload' pk %}" title="" class="btn btn-sm btn-primary"><i class="la la-files-o"></i>
 
 								{% if terms_and_labels %}

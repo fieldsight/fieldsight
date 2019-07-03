@@ -1893,7 +1893,7 @@ var FormSubStatQuestion = React.createClass({
         if (this.state.site_location.question_text == 'Form'){
             active_forms.push(this.state.site_picture.form_id)
         }
-        site_info = {
+        var site_info = {
             "active_forms": active_forms,
             "site_picture": this.state.site_picture,
             "site_location": this.state.site_location

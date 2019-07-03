@@ -8,14 +8,21 @@
 {% endblock %}
 
 {% block content %}
-{{csfr_token}}
 
-<div id="app" class="padding">
+	<div id="app" class="padding">
 
-			</div>
+	</div>
+
 {% endblock %}
-{%block extrascript %}
-<script type="text/javascript" src="{{ STATIC_URL }}application/main.js?v=19_06_2019"></script>
+
+{% block extrascript %}
+	<script>
+		var project_id = "{{project.id}}";
+		var organization_id = "{{organization}}";
+		var project_name = "{{project.name}}";
+	</script>
+
+	<script type="text/javascript" src="{{ STATIC_URL }}application/main.js?v=19_06_2019"></script>
 {% endblock %}
 
 
