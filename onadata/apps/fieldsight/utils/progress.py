@@ -1,10 +1,11 @@
 from django.db.models import Sum
 
 from onadata.apps.fieldsight.models import SiteProgressHistory
-from onadata.apps.fsforms.models import FieldSightXF
+from onadata.apps.fsforms.models import FieldSightXF, FInstance
 
-def advance_stage_approved(site):
-    from onadata.apps.fsforms.models import FieldSightXF, Stage
+
+def advance_stage_approved(site, project):
+    from onadata.apps.fsforms.models import Stage
     """
     Algorithm:
         Find maximum stage  order from site level form
@@ -20,7 +21,6 @@ def advance_stage_approved(site):
 
 
     """
-    project = site.project
     main_stage = None
     project_main_stage = None
 
@@ -31,8 +31,11 @@ def advance_stage_approved(site):
         '-site_fxf__stage__order').values('site_fxf__stage').first()
     if advance_stage_site:
         stage_id = advance_stage_site.get('site_fxf__stage')
-        stage = Stage.objects.get(pk=stage_id)
-        main_stage = stage.stage
+        if stage_id:
+            stage = Stage.objects.get(pk=stage_id)
+            main_stage = stage.stage
+        else:
+            advance_stage_site = None
 
     advance_stage_project = site.site_instances.filter(
         form_status=3,
@@ -42,9 +45,11 @@ def advance_stage_approved(site):
 
     if advance_stage_project:
         stage_id = advance_stage_project.get('project_fxf__stage')
-        project_stage = Stage.objects.get(pk=stage_id)
-        project_main_stage = project_stage.stage
-
+        if stage_id:
+            project_stage = Stage.objects.get(pk=stage_id)
+            project_main_stage = project_stage.stage
+        else:
+            advance_stage_project = None
 
     if advance_stage_site and advance_stage_project:
         max_stage_order = max(main_stage.order, project_main_stage.order)
@@ -55,7 +60,6 @@ def advance_stage_approved(site):
     else:
         return 0
 
-
     approved_site_forms_weight = FieldSightXF.objects.filter(
         stage__stage__order__lte=max_stage_order,site=site).values_list('stage__weight', flat=True)
     approved_site_weight_total = sum([w for w in approved_site_forms_weight if w is not None])
@@ -65,7 +69,7 @@ def advance_stage_approved(site):
     approved_weight = approved_site_weight_total + approved_projects_weight_total
     if approved_weight:
         from onadata.apps.fsforms.models import Stage
-        site_stages_weight = Stage.objects.filter(stage__site=self).aggregate(Sum('weight'))['weight__sum']
+        site_stages_weight = Stage.objects.filter(stage__site=site).aggregate(Sum('weight'))['weight__sum']
         project_stages_weight = Stage.objects.filter(stage__project=project).aggregate(Sum('weight'))[
             'weight__sum']
         site_stages_weight = site_stages_weight if site_stages_weight else 0
@@ -94,26 +98,36 @@ def advance_stage_approved(site):
 
 
 def pull_integer_answer(form, xform_question, site):
-    return 0
+    from django.conf import settings
+    if FInstance.objects.filter(project_fxf=form, site=site.id).order_by('-date').first():
+        submission_id = FInstance.objects.filter(project_fxf=form, site=site.id).order_by('-date').first().instance.id
+    else:
+        return None
+    instances = settings.MONGO_DB.instances
+    answer = list(instances.find({'_id': submission_id}, {xform_question: 1}))
+    if answer:
+        int_answer = answer[0].get(xform_question)
+        if int_answer:
+            return int(int_answer)
+    return None
 
 
-def set_site_progress(site, project_settings=None):
+def set_site_progress(site, project, project_settings=None):
     progress = 0
     if not project_settings:
-        project_settings = site.project.progress_settings.filter(deployed=True, active=True)
+        project_settings = project.progress_settings.filter(deployed=True, active=True)
         if project_settings:
             project_settings = project_settings[0]
     if not project_settings or project_settings.source == 0:
         # default progress (stages approved/stages total) weight
         progress = site.progress()
     elif project_settings.source == 1:
-        progress = advance_stage_approved(site)
-    if project_settings.source == 2:
+        progress = advance_stage_approved(site, project)
+    elif project_settings.source == 2:
         form = FieldSightXF.objects.get(pk=project_settings.pull_integer_form)
         xform_question = project_settings.pull_integer_form_question
         progress = pull_integer_answer(form, xform_question, site)
-        progress = progress
-    if project_settings.source == 3:
+    elif project_settings.source == 3:
         p = ("%.0f" % (site.site_instances.count() / (project_settings.no_submissions_total_count * 0.01)))
         p = int(p)
         if p > 99:
@@ -128,11 +142,13 @@ def set_site_progress(site, project_settings=None):
         if p > 99:
             p = 100
         progress = p
-
+    if not progress:
+        return
     site.current_progress = progress
+    print(progress)
     site.save()
 
-    history, _created = SiteProgressHistory.objects.get_or_create(site=site, progress=progress, settings=project_settings)
+    history, _created = SiteProgressHistory.objects.get_or_create(site=site, progress=progress, setting=project_settings)
     if not _created:
         history.save()
 

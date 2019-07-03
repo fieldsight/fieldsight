@@ -2360,8 +2360,7 @@ def check_usage_rates():
                         eta=after_one_month)
 
 
-
-@shared_task(time_limit=120, soft_time_limit=120)
+@shared_task(time_limit=300, soft_time_limit=300)
 def update_sites_progress(pk):
     time.sleep(3)
     obj = ProgressSettings.objects.get(pk=pk)
@@ -2369,12 +2368,12 @@ def update_sites_progress(pk):
     total_sites = project.sites.count()
     page_size = 1000
     page = 0
-    while total_sites >0:
+    while total_sites > 0:
         sites = project.sites.all()[page*page_size:(page+1)*page_size]
         print("updating site progress batch", page*page_size, (page+1)*page_size)
         for site in sites:
-            set_site_progress(site, obj)
-            total_sites -= page_size
-            page += 1
+            set_site_progress(site, project, obj)
+        total_sites -= page_size
+        page += 1
 
 
