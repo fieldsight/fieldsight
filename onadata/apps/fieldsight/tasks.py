@@ -1855,7 +1855,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 data[index[month_stat['date_created'].strftime("%Y-%m")]][4] = int(month_stat['dcount'])
 
         if reportType in ["Daily", "Weekly"]:
-            data.insert(0, ["Date", "Day", "Site Visits", "Submissions", "Active Users"])
+            data.insert(0, ["Date", "Day", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"])
             i=1
             for day in rrule(DAILY, dtstart=new_startdate, until=end):
                 str_day = day.strftime("%Y-%m-%d")
