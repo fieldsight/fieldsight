@@ -2180,55 +2180,55 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
         query['daily'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate], supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate], supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['pending'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['rejected'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=1, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=1, supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['flagged'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=2, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=2, supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['approved'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=3, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=3, supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))    
 
         query['re_approved'] = Sum(
             Case(
-                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=3, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=3, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['re_rejected'] = Sum(
             Case(
-                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=1, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=1, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
         query['re_flagged'] = Sum(
             Case(
-                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=2, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=2, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
         query['resolved'] = Sum(
             Case(
-                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
@@ -2241,7 +2241,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         users=User.objects.filter(user_roles__project_id=project_id, user_roles__group_id__in=[2, 3, 4, 9]).distinct('id').values('id')
 
         for user in User.objects.filter(pk__in=users).annotate(**query):
-            data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.approved, user.flagged, user.rejected])
+            data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.re_approved, user.re_flagged, user.re_rejected])
 
         wb = Workbook()
         ws = wb.active
