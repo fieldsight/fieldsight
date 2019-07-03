@@ -7,10 +7,12 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='region.name')
     submissions = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
+    type = serializers.CharField(source='type.name')
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
-        fields = ('id', 'name', 'address', 'logo', 'public_desc', 'region', 'submissions', 'progress')
+        fields = ('id', 'identifier', 'name', 'address', 'logo', 'region', 'submissions', 'progress', 'type', 'status')
 
     def get_submissions(self, obj):
         response = obj.get_site_submission_count()
@@ -19,7 +21,7 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
         return submissions
 
     def get_status(self, obj):
-        pass
+        return 'Approved'
 
     def get_progress(self, obj):
 
