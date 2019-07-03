@@ -396,8 +396,10 @@ def update_site_progress(sender, instance, *args, **kwargs):
         if fsxf.is_deployed:
             if instance.project:
                 if ProgressSettings.objects.filter(project=instance.project, active=True, deployed=True).exists():
-                    update_sites_progress.delay(ProgressSettings.objects.filter(
-                        project=fsxf.project, active=True, deployed=True)[0].id)
+                    progress_settings = ProgressSettings.objects.filter(
+                        project=fsxf.project, active=True, deployed=True)[0]
+                    if progress_settings.status in [0, 1]:
+                        update_sites_progress.delay(progress_settings.id)
             else:
                 set_site_progress(instance.site,instance.site.project)
     except:
