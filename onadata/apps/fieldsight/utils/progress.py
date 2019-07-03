@@ -1,6 +1,6 @@
 from django.db.models import Sum
 
-from onadata.apps.fieldsight.models import SiteProgressHistory
+
 from onadata.apps.fsforms.models import FieldSightXF, FInstance
 
 
@@ -147,6 +147,7 @@ def set_site_progress(site, project, project_settings=None):
     site.current_progress = progress
     print(progress)
     site.save()
+    from onadata.apps.fieldsight.models import SiteProgressHistory
 
     history, _created = SiteProgressHistory.objects.get_or_create(site=site, progress=progress, setting=project_settings)
     if not _created:

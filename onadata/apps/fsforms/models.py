@@ -21,8 +21,6 @@ from pyxform.xform2json import create_survey_element_from_xml
 from xml.dom import Node
 
 from onadata.apps.fieldsight.models import Site, Project, Organization, ProgressSettings
-from onadata.apps.fieldsight.tasks import update_sites_progress
-from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.fsforms.fieldsight_models import IntegerRangeField
 from onadata.apps.fsforms.utils import send_message, send_message_project_form, check_version
 from onadata.apps.fsforms.share_xform import share_form
@@ -399,8 +397,10 @@ def update_site_progress(sender, instance, *args, **kwargs):
                     progress_settings = ProgressSettings.objects.filter(
                         project=fsxf.project, active=True, deployed=True)[0]
                     if progress_settings.status in [0, 1]:
+                        from onadata.apps.fieldsight.tasks import update_sites_progress
                         update_sites_progress.delay(progress_settings.id)
             else:
+                from onadata.apps.fieldsight.utils.progress import set_site_progress
                 set_site_progress(instance.site,instance.site.project)
     except:
         pass
