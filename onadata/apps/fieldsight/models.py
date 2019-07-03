@@ -14,6 +14,8 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.utils.text import slugify
 from jsonfield import JSONField
+
+from onadata.apps.fieldsight.utils.progress import set_site_progress
 from .static_lists import COUNTRIES
 from django.contrib.auth.models import Group, User
 from django.dispatch import receiver
@@ -484,7 +486,7 @@ class Site(models.Model):
         return self.type.name
 
     def update_current_progress(self):
-        self.current_progress = self.progress()
+        set_site_progress(self, self.project)
         try:
             status = self.site_instances.order_by('-date').first().form_status
         except:
