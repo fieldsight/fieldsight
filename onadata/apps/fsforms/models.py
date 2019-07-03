@@ -20,7 +20,7 @@ from pyxform import create_survey_from_xls, SurveyElementBuilder
 from pyxform.xform2json import create_survey_element_from_xml
 from xml.dom import Node
 
-from onadata.apps.fieldsight.models import Site, Project, Organization
+from onadata.apps.fieldsight.models import Site, Project, Organization, ProgressSettings
 from onadata.apps.fsforms.fieldsight_models import IntegerRangeField
 from onadata.apps.fsforms.utils import send_message, send_message_project_form, check_version
 from onadata.apps.fsforms.share_xform import share_form
@@ -391,6 +391,25 @@ def create_messages(sender, instance, created,  **kwargs):
                     share_form_managers.apply_async(kwargs={'fxf': instance.id, 'task_id': task_obj.id}, countdown=5)
             except IntegrityError as e:
                 print(e)
+
+@receiver(post_save, sender=Stage)
+def update_site_progress(sender, instance, *args, **kwargs):
+    try:
+        fsxf =  instance.stage_forms
+        if fsxf.is_deployed:
+            if instance.project:
+                if ProgressSettings.objects.filter(project=instance.project, active=True, deployed=True).exists():
+                    progress_settings = ProgressSettings.objects.filter(
+                        project=fsxf.project, active=True, deployed=True)[0]
+                    if progress_settings.status in [0, 1]:
+                        from onadata.apps.fieldsight.tasks import update_sites_progress
+                        update_sites_progress.delay(progress_settings.id)
+            else:
+                from onadata.apps.fieldsight.utils.progress import set_site_progress
+                set_site_progress(instance.site,instance.site.project)
+    except:
+        pass
+
 
 @receiver(pre_delete, sender=FieldSightXF)
 def send_delete_message(sender, instance, using, **kwargs):
