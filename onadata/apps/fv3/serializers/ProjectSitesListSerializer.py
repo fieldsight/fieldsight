@@ -29,7 +29,7 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
 
     def get_progress(self, obj):
 
-        if obj.current_progress:
+        if obj.current_progress <= 3:
             return obj.current_progress
         else:
             return 0
