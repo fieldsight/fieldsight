@@ -205,19 +205,19 @@ def create_messages(sender, instance, created,  **kwargs):
             except:
                 pass
     
-    if created and instance.group.name == "Project Manager":
-        from onadata.apps.fsforms.tasks import created_manager_form_share
-        task_obj = CeleryTaskProgress.objects.create(
-            user=instance.user,
-            description='Share all forms',
-            task_type=18,
-            content_object=instance
-            )
-        if task_obj:
-            try:
-                with transaction.atomic():
-                    created_manager_form_share.apply_async(kwargs={'userrole': instance.id, 'task_id': task_obj.id}, countdown=5)
-            except IntegrityError:
-                pass
+    # if created and instance.group.name == "Project Manager":
+    #     from onadata.apps.fsforms.tasks import created_manager_form_share
+    #     task_obj = CeleryTaskProgress.objects.create(
+    #         user=instance.user,
+    #         description='Share all forms',
+    #         task_type=18,
+    #         content_object=instance
+    #         )
+    #     if task_obj:
+    #         try:
+    #             with transaction.atomic():
+    #                 created_manager_form_share.apply_async(kwargs={'userrole': instance.id, 'task_id': task_obj.id}, countdown=5)
+    #         except IntegrityError:
+    #             pass
 
 post_save.connect(create_messages, sender=UserRole)

@@ -23,7 +23,7 @@ from xml.dom import Node
 from onadata.apps.fieldsight.models import Site, Project, Organization, ProgressSettings
 from onadata.apps.fsforms.fieldsight_models import IntegerRangeField
 from onadata.apps.fsforms.utils import send_message, send_message_project_form, check_version
-from onadata.apps.fsforms.share_xform import share_form
+# from onadata.apps.fsforms.share_xform import share_form
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models import ParsedInstance
@@ -380,17 +380,17 @@ def create_messages(sender, instance, created,  **kwargs):
     elif created and instance.site is not None and not instance.is_staged:
         send_message(instance)
 
-    if instance.project is not None and created:
-        from onadata.apps.fsforms.tasks import share_form_managers
-        task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
-                                                     description="Share Forms",
-                                                     task_type=17, content_object=instance)
-        if task_obj:
-            try:
-                with transaction.atomic():
-                    share_form_managers.apply_async(kwargs={'fxf': instance.id, 'task_id': task_obj.id}, countdown=5)
-            except IntegrityError as e:
-                print(e)
+    # if instance.project is not None and created:
+    #     from onadata.apps.fsforms.tasks import share_form_managers
+    #     task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
+    #                                                  description="Share Forms",
+    #                                                  task_type=17, content_object=instance)
+    #     if task_obj:
+    #         try:
+    #             with transaction.atomic():
+    #                 share_form_managers.apply_async(kwargs={'fxf': instance.id, 'task_id': task_obj.id}, countdown=5)
+    #         except IntegrityError as e:
+    #             print(e)
 
 @receiver(post_save, sender=Stage)
 def update_site_progress(sender, instance, *args, **kwargs):

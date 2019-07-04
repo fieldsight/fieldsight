@@ -22,6 +22,7 @@ from onadata.apps.fv3.permissions.xform import XFormSharePermission, XFormDelete
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
+
 class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
     """
         A simple ViewSet for viewing myforms.
@@ -120,8 +121,7 @@ class ShareFormViewSet(APIView):
                 from onadata.apps.fsforms.tasks import api_share_form
                 try:
                     with transaction.atomic():
-
-                        api_share_form.delay(xf.id, request.data['users'], task_obj.id)
+                        api_share_form.delay(xf.id, request.data['share_id'], task_obj.id)
                 except IntegrityError:
                     pass
                 return Response({"message": "Form shared successfully."}, status=status.HTTP_201_CREATED)
@@ -152,7 +152,7 @@ class ShareProjectFormViewSet(APIView):
                 from onadata.apps.fsforms.tasks import api_share_form
                 try:
                     with transaction.atomic():
-                        project = Project.objects.get(id=request.data['project'])
+                        project = Project.objects.get(id=request.data['share_id'])
                         userrole = UserRole.objects.filter(project=project,
                                                            group__name__in=["Project Manager", "Organization Admin"],
                                                            organization=project.organization,
@@ -189,7 +189,7 @@ class ShareTeamFormViewSet(APIView):
                 from onadata.apps.fsforms.tasks import api_share_form
                 try:
                     with transaction.atomic():
-                        userrole = UserRole.objects.filter(organization_id=request.data['team'],
+                        userrole = UserRole.objects.filter(organization_id=request.data['share_id'],
                                                            group__name__in=["Project Manager", "Organization Admin"],
                                                            ended_at__isnull=True)
                         users = User.objects.filter(user_roles__in=userrole)
@@ -300,5 +300,3 @@ class MyFormDeleteViewSet(APIView):
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
