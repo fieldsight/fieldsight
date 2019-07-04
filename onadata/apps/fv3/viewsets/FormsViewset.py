@@ -247,11 +247,6 @@ class CloneFormViewSet(APIView):
             if task_obj:
                 from onadata.apps.fsforms.tasks import api_clone_form
                 api_clone_form.delay(xf.id, project.id, request.user.id, task_obj.id)
-
-                audit = {}
-                audit_log(
-                    Actions.FORM_CLONED, request.user, request.user,
-                    "Cloned form '{}'.".format(xf.id_string), audit, request)
                 return Response({"message": "Form cloned successfully"}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
