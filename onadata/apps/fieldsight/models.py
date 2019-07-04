@@ -14,6 +14,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.utils.text import slugify
 from jsonfield import JSONField
+
 from .static_lists import COUNTRIES
 from django.contrib.auth.models import Group, User
 from django.dispatch import receiver
@@ -223,6 +224,19 @@ class Sector(models.Model):
 
 
 class Project(models.Model):
+    MANUAL = "NA"
+    DAILY = "D"
+    WEEKLY = "W"
+    FORTNIGHT = "F"
+    MONTHLY = "M"
+    SCHEDULES = [
+        (MANUAL, "Manual"),
+        (DAILY, "Daily"),
+        (WEEKLY, "Weekly"),
+        (FORTNIGHT, "Fortnightly"),
+        (MONTHLY, "Monthyl"),
+    ]
+
     name = models.CharField(max_length=255)
     type = models.ForeignKey(ProjectType, verbose_name='Type of Project', null=True, blank=True)
     sector = models.ForeignKey(Sector, verbose_name='Sector', null=True, blank=True, related_name='project_sector')
@@ -247,6 +261,9 @@ class Project(models.Model):
     site_basic_info = JSONField(default={})
     site_featured_images = JSONField(default=list)
     gsuit_meta = JSONField(default={})
+    gsuit_sync = models.CharField(choices=SCHEDULES, default=MANUAL, max_length=2)
+    gsuit_sync_day = models.PositiveIntegerField(default=0)
+    
     # gsuit_meta sample = {'site_progress':{'link':'', 'last_updated':''}}
     logs = GenericRelation('eventlog.FieldSightLog')
     all_objects = ProjectAllManager()
@@ -487,7 +504,8 @@ class Site(models.Model):
         return self.type.name
 
     def update_current_progress(self):
-        self.current_progress = self.progress()
+        from onadata.apps.fieldsight.utils.progress import set_site_progress
+        set_site_progress(self, self.project)
         try:
             status = self.site_instances.order_by('-date').first().form_status
         except:
@@ -720,3 +738,59 @@ class ReportData(models.Model):
     def __str__(self):
         return self.message
 
+
+class ProgressSettings(models.Model):
+    # from onadata.apps.fsforms.models.FieldSightXF
+    CHOICES = (
+        (0, "Default (stages approved / total stages)"),
+        (1, "Most advanced approved stage"),
+        (2, "Pull integer from form"),
+        (3, "# of site submissions (All forms)"),
+        (4, "# of site submissions (for a form)"),
+        (5, "Manually update"),
+    )
+    source = models.IntegerField(choices=CHOICES, default=0)
+    pull_integer_form = models.IntegerField(blank=True, null=True)
+    pull_integer_form_question = models.CharField(max_length=31, null=True, blank=True)
+    no_submissions_form = models.IntegerField(blank=True, null=True)
+    no_submissions_total_count = models.IntegerField(null=True, blank=True)
+    project = models.ForeignKey(Project, related_name="progress_settings")
+    active = models.BooleanField(default=True)
+    deployed = models.BooleanField(default=False)
+    user = models.ForeignKey(User, related_name="progress_settings", null=True, blank=True)
+    date = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.project.name
+
+
+class SiteProgressHistory(models.Model):
+    progress = models.FloatField()
+    site = models.ForeignKey(Site, related_name="progress_history")
+    date = models.DateTimeField(auto_now=True)
+    setting = models.ForeignKey(ProgressSettings, related_name="progress", blank=True, null=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return "{} {}".format(self.site.name, self.progress)
+
+
+class SiteMetaAttrHistory(models.Model):
+    meta_attributes = JSONField(default=list)
+    site = models.ForeignKey(Site, related_name="meta_history")
+    date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return "{} {}".format(self.site.name, self.date)
+
+
+@receiver(post_save, sender=ProgressSettings)
+def check_deployed(sender, instance, created,  **kwargs):
+    if instance.deployed:
+        from onadata.apps.fieldsight.tasks import update_sites_progress
+        update_sites_progress.delay(instance.pk)

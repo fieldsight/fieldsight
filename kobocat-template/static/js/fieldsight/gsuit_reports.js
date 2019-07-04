@@ -187,8 +187,10 @@
 	    buttonDisabled3: false, 
 	    progress_updated_at: null,
 	    progress_link: null,
+	    progress_created_by: null,
 	    details_updated_at: null,
 	    details_link: null,
+	    details_created_by: null,
 	    scheduled_forms: [],
 	    general_forms: [],
 	    survey_forms: [],
@@ -202,12 +204,14 @@
 	  		if('Site Information' in configure_settings.gsuit_metas && 'link' in configure_settings.gsuit_metas['Site Information']){
 	  			this.details_updated_at = dateparser(configure_settings.gsuit_metas['Site Information']['updated_at']);
 	  			this.details_link = configure_settings.gsuit_metas['Site Information']['link']
+	  			this.details_created_by = configure_settings.gsuit_metas['Site Information']['user']
 	  		}
 
 
 	        if('Site Progress' in configure_settings.gsuit_metas && 'link' in configure_settings.gsuit_metas['Site Progress']){
 	  			this.progress_updated_at = dateparser(configure_settings.gsuit_metas['Site Progress']['updated_at']);
 	  			this.progress_link = configure_settings.gsuit_metas['Site Progress']['link']
+	  			this.details_created_by = configure_settings.gsuit_metas['Site Information']['user']
 	  		}
 
 	  		function successCallback(response) {

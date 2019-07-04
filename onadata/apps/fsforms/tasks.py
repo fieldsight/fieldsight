@@ -198,7 +198,10 @@ def created_manager_form_share(userrole, task_id):
 @shared_task(max_retries=5)
 def api_share_form(xf, users, task_id):
     xf = XForm.objects.get(pk=xf)
-    users = User.objects.filter(id__in=users)
+    if isinstance(users, list):
+        users = User.objects.filter(id__in=users)
+    else:
+        users = User.objects.filter(id=users)
     shared = share_form(users, xf)
     if shared:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)

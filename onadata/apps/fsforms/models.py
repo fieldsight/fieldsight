@@ -20,10 +20,10 @@ from pyxform import create_survey_from_xls, SurveyElementBuilder
 from pyxform.xform2json import create_survey_element_from_xml
 from xml.dom import Node
 
-from onadata.apps.fieldsight.models import Site, Project, Organization
+from onadata.apps.fieldsight.models import Site, Project, Organization, ProgressSettings
 from onadata.apps.fsforms.fieldsight_models import IntegerRangeField
 from onadata.apps.fsforms.utils import send_message, send_message_project_form, check_version
-from onadata.apps.fsforms.share_xform import share_form
+# from onadata.apps.fsforms.share_xform import share_form
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models import ParsedInstance
@@ -121,10 +121,15 @@ class Stage(models.Model):
     def active_substages(self):
         return self.parent.filter(stage_forms__isnull=False)
 
-    def get_sub_stage_list(self):
+    def get_sub_stage_list(self, sync_details=False):
         if not self.stage:
-            return Stage.objects.select_related('stage_forms__xf').filter(stage=self).values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username')
+            qs= Stage.objects.select_related('stage_forms__xf').filter(stage=self)
+            if sync_details:
+                return qs.select_related('stage_forms__sync_schedule').filter(stage_forms__sync_schedule__isnull=False)
+
+            return qs.values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username')
         return []
+
 
     @property
     def xf(self):
@@ -375,17 +380,36 @@ def create_messages(sender, instance, created,  **kwargs):
     elif created and instance.site is not None and not instance.is_staged:
         send_message(instance)
 
-    if instance.project is not None and created:
-        from onadata.apps.fsforms.tasks import share_form_managers
-        task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
-                                                     description="Share Forms",
-                                                     task_type=17, content_object=instance)
-        if task_obj:
-            try:
-                with transaction.atomic():
-                    share_form_managers.apply_async(kwargs={'fxf': instance.id, 'task_id': task_obj.id}, countdown=5)
-            except IntegrityError as e:
-                print(e)
+    # if instance.project is not None and created:
+    #     from onadata.apps.fsforms.tasks import share_form_managers
+    #     task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
+    #                                                  description="Share Forms",
+    #                                                  task_type=17, content_object=instance)
+    #     if task_obj:
+    #         try:
+    #             with transaction.atomic():
+    #                 share_form_managers.apply_async(kwargs={'fxf': instance.id, 'task_id': task_obj.id}, countdown=5)
+    #         except IntegrityError as e:
+    #             print(e)
+
+@receiver(post_save, sender=Stage)
+def update_site_progress(sender, instance, *args, **kwargs):
+    try:
+        fsxf =  instance.stage_forms
+        if fsxf.is_deployed:
+            if instance.project:
+                if ProgressSettings.objects.filter(project=instance.project, active=True, deployed=True).exists():
+                    progress_settings = ProgressSettings.objects.filter(
+                        project=fsxf.project, active=True, deployed=True)[0]
+                    if progress_settings.status in [0, 1]:
+                        from onadata.apps.fieldsight.tasks import update_sites_progress
+                        update_sites_progress.delay(progress_settings.id)
+            else:
+                from onadata.apps.fieldsight.utils.progress import set_site_progress
+                set_site_progress(instance.site,instance.site.project)
+    except:
+        pass
+
 
 @receiver(pre_delete, sender=FieldSightXF)
 def send_delete_message(sender, instance, using, **kwargs):
@@ -398,6 +422,24 @@ def send_delete_message(sender, instance, using, **kwargs):
         send_message(fxf)
 
 post_save.connect(create_messages, sender=FieldSightXF)
+
+
+class SyncSchedule(models.Model):
+    MANUAL = "NA"
+    DAILY = "D"
+    WEEKLY = "W"
+    FORTNIGHT = "F"
+    MONTHLY = "M"
+    SCHEDULES = [
+        (MANUAL, "Manual"),
+        (DAILY, "Daily"),
+        (WEEKLY, "Weekly"),
+        (FORTNIGHT, "Fortnightly"),
+        (MONTHLY, "Monthly"),
+    ]
+    fxf = models.OneToOneField(FieldSightXF, related_name="sync_schedule")
+    schedule = models.CharField(choices=SCHEDULES,  default=MONTHLY, max_length=2)
+    day = models.PositiveIntegerField(default=0)
 
 
 class FieldSightParsedInstance(ParsedInstance):

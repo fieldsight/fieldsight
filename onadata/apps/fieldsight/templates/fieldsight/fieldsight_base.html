@@ -277,7 +277,9 @@
 							<ul class="sub">
 								<!--<li><a href="{{ koboform_url }}#/forms/new">{% trans 'Create' %} {% trans 'New' %}</a></li>-->
 								<li><a href="{% url 'forms:forms-create' %}">{% trans 'Create' %} {% trans 'New' %}</a></li>
-								<li><a href="{% url 'forms:forms-list' %}">{% trans 'My' %} {% trans 'Forms' %}</a></li>
+<!--								<li><a href="{% url 'forms:forms-list' %}">{% trans 'My' %} {% trans 'Forms' %}</a></li>-->
+								<li><a href="{% url 'fieldsight:application' %}#/forms/myform">{% trans 'My' %} {% trans 'Forms' %}</a></li>
+
 							</ul>
 						</li>
 						<!--<li class="sub-menu">-->
@@ -351,6 +353,19 @@
 				  event.stopPropagation();
 				  $(this).tab('show')
 				 });
+
+
+				$('.fieldsight-new .right-content, .fieldsight-new .new-sidebar') .css({'min-height': (($(window).height()) - 210)+'px'});
+				   $(window).bind('resize', function(){
+					   $('.fieldsight-new .right-content, .fieldsight-new .new-sidebar') .css({'min-height': (($(window).height()) - 210)+'px'});
+				   });
+				   var WH = $(window).width();
+				   if(WH <= 768){
+					   $('.fieldsight-new .right-content, .fieldsight-new .new-sidebar') .css({'min-height': "auto"});
+					   $(window).bind('resize', function(){
+						   $('.fieldsight-new .right-content, .fieldsight-new .new-sidebar') .css({'min-height': "auto"});
+					   });
+				   }
 
 
 			});

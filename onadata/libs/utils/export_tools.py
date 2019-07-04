@@ -1,3 +1,5 @@
+import time
+
 import csv
 from datetime import datetime, date
 import json
@@ -180,7 +182,7 @@ class ExportBuilder(object):
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
                     PARENT_INDEX, TAGS, NOTES, SITE, FS_PROJECT_UUID, FS_UUID,
-                    FS_STATUS, FS_COMMENT,FS_SITE_IDENTIFIER, FS_SITE_NAME, FS_SITE_PHONE, FS_SITE_SUPERVISOR]
+                    FS_STATUS,FS_SITE_IDENTIFIER, FS_SITE_NAME,FS_COMMENT, FS_SITE_PHONE, FS_SITE_SUPERVISOR]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
 
@@ -806,10 +808,11 @@ def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
                     binary_select_multiples=False,
-                    sync_to_gsuit=False):
+                    sync_to_gsuit=False, user=None):
     """
     Create appropriate export object given the export type
     """
+    time.sleep(5)
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
         Export.CSV_EXPORT: 'to_flat_csv_export',
@@ -891,7 +894,7 @@ def generate_export(export_type, extension, username, id_string,
                 name = fxf_form.stage.name
             else:
                 name = fxf_form.xf.title
-            upload_to_drive(temporarylocation, name+'_'+id_string, str(fxf_form.id)+'_'+name+'_'+id_string, fxf_form.project)
+            upload_to_drive(temporarylocation, name+'_'+id_string, str(fxf_form.id)+'_'+name+'_'+id_string, fxf_form.project, user)
         
             os.remove(temporarylocation)
         

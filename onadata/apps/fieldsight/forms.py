@@ -14,7 +14,7 @@ from registration import forms as registration_forms
 
 from onadata.apps.fieldsight.helpers import AdminImageWidget
 from .utils.forms import HTML5BootstrapModelForm, KOModelForm
-
+from django.forms import ModelChoiceField 
 from .models import Organization, Project, Site, BluePrints, Region, SiteType, Sector
 from onadata.apps.geo.models import GeoLayer
 
@@ -25,6 +25,7 @@ import mimetypes
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Q
+from onadata.apps.fsforms.models import SyncSchedule, FieldSightXF
 
 USERNAME_REGEX = r'^[a-z][a-z0-9_]+$'
 USERNAME_MAX_LENGTH = 30
@@ -286,7 +287,7 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers', 'fax',
-                   'additional_desc', 'type', 'site_basic_info', 'site_featured_images')
+                   'additional_desc', 'type', 'site_basic_info', 'site_featured_images', 'gsuit_sync')
         #organization_filters = ['organization']
         widgets = {
             'is_active': forms.HiddenInput(),
@@ -364,7 +365,8 @@ class SiteForm(HTML5BootstrapModelForm, KOModelForm):
 
     class Meta:
         model = Site
-        exclude = ('project', 'is_survey', 'is_active', 'region', 'current_status', 'current_progress', 'additional_desc')
+        exclude = ('project', 'is_survey', 'is_active', 'region', 'current_status', 'current_progress', 'additional_desc',
+                   'site_featured_images')
        
         project_filters = ['type']
         widgets = {
@@ -523,3 +525,109 @@ class SiteBulkEditForm(forms.Form):
 
             self.fields[q_name] = field
 
+
+class ProjectGsuitSyncForm(forms.ModelForm):
+    
+    class Meta:
+        model = Project
+        fields = ('gsuit_sync', 'gsuit_sync_day',)
+
+    def clean(self):
+        day = self.cleaned_data.get("gsuit_sync_day")
+        schedule = self.cleaned_data.get("gsuit_sync")
+        if schedule == "D":
+            self.cleaned_data["gsuit_sync_day"] = 0
+        elif schedule == "W":
+            if day  < 1 or day > 7:
+                raise forms.ValidationError(
+                    "Day must be within a week i.e; between 1 to 7."
+                )
+        elif schedule == "F":
+            if day  < 1 or day > 14:
+                raise forms.ValidationError(
+                    "Day must be within a fortnight i.e; between 1 to 14."
+                )
+
+        elif schedule == "M":
+            if day  < 1 or day > 31:
+                raise forms.ValidationError(
+                    "Day must be within a month i.e; between 1 to 31."
+                )
+        elif schedule == "NA":
+            self.cleaned_data["gsuit_sync_day"] = 0
+        super(ProjectGsuitSyncForm, self).clean()
+
+       
+class FieldsightXFChoiceField(ModelChoiceField):
+    def label_from_instance(self, obj):
+        return obj.xf.title
+
+class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
+    fxf = FieldsightXFChoiceField(queryset=None)
+
+    def __init__(self, *args, **kwargs):
+        project_id = kwargs.pop('pk')
+        super(FieldsightFormGsuitSyncNewForm, self).__init__(*args, **kwargs)  
+        self.fields['fxf'].queryset = FieldSightXF.objects.filter(project_id=project_id, sync_schedule__isnull=True)
+
+    class Meta:
+        model = SyncSchedule
+        exclude = ()
+
+    def clean(self):
+        day = self.cleaned_data.get("day")
+
+        schedule = self.cleaned_data.get("schedule")
+        if schedule == "D":
+            self.cleaned_data["day"] = 0
+        elif schedule == "W":
+            if day  < 1 or day > 7:
+                raise forms.ValidationError(
+                    "Day must be within a week i.e; between 1 to 7."
+                )
+        elif schedule == "F":
+            if day  < 1 or day > 14:
+                raise forms.ValidationError(
+                    "Day must be within a fortnight i.e; between 1 to 14."
+                )
+
+        elif schedule == "M":
+            if day  < 1 or day > 31:
+                raise forms.ValidationError(
+                    "Day must be within a month i.e; between 1 to 31."
+                )
+        elif schedule == "NA":
+            self.cleaned_data["day"] = 0
+        super(FieldsightFormGsuitSyncNewForm, self).clean()
+
+class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
+    
+    class Meta:
+        model = SyncSchedule
+        exclude = ('fxf',)
+
+    def clean(self):
+        day = self.cleaned_data.get("day")
+        schedule = self.cleaned_data.get("schedule")
+        if schedule == "D":
+            self.cleaned_data["day"] = 0
+        elif schedule == "W":
+            if day  < 1 or day > 7:
+                raise forms.ValidationError(
+                    "Day must be within a week i.e; between 1 to 7."
+                )
+        elif schedule == "F":
+            if day  < 1 or day > 14:
+                raise forms.ValidationError(
+                    "Day must be within a fortnight i.e; between 1 to 14."
+                )
+
+        elif schedule == "M":
+            if day  < 1 or day > 31:
+                raise forms.ValidationError(
+                    "Day must be within a month i.e; between 1 to 31."
+                )
+        elif schedule == "NA":
+            self.cleaned_data["day"] = 0
+        
+        super(FieldsightFormGsuitSyncEditForm, self).clean()
