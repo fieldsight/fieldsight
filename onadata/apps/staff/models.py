@@ -155,7 +155,7 @@ class Attendance(models.Model):
     is_deleted = models.BooleanField(default=False)
     location = PointField(geography=True, srid=4326, blank=True, null=True)
     logs = GenericRelation('eventlog.FieldSightLog')
-    IdPassProof = JSONField(default=[])
+    id_pass_proof = JSONField(default=[])
 
     class Meta:
         unique_together = [('attendance_date', 'team', 'is_deleted'),]
