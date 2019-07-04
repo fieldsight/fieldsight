@@ -75,11 +75,13 @@ class MyTaskListViewSet(viewsets.ModelViewSet):
         current_filterdate = profile.task_last_view_date
         profile.task_last_view_date = datetime.now()
         profile.save()
+
+        exclude_task_type = [15, 17, 18, 19, 20, 21, 22]
         
         if self.request.group.name == "Super Admin":
-            return queryset.order_by('-date_updateded') 
+            return queryset.order_by('-date_updateded')
 
-        return queryset.filter(user_id=self.request.user.id).order_by('-date_updateded')
+        return queryset.filter(~Q(task_type__in=exclude_task_type), user_id=self.request.user.id).order_by('-date_updateded')
 
 class OtherTaskListViewSet(viewsets.ModelViewSet):
     """

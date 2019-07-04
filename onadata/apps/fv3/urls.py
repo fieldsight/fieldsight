@@ -68,6 +68,6 @@ urlpatterns = [
     url(r'^api/form/users/$', ShareUserListViewSet.as_view({'get': 'list'}), name='shareable-users'),
     url(r'api/form/teams/$', ShareTeamListViewSet.as_view({'get': 'list'}), name='shareable-team'),
     url(r'api/form/projects/$', ShareProjectListViewSet.as_view({'get': 'list'}), name='shareable-project'),
-    url(r'^api/project-site-list/', ProjectSitesListViewSet.as_view({'get': 'list'}), name='project_sites_list'),
 
+    url(r'^api/project-site-list/', ProjectSitesListViewSet.as_view({'get': 'list'}), name='project_sites_list'),
 ]

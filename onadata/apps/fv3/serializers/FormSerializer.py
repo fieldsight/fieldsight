@@ -64,34 +64,34 @@ class XFormSerializer(serializers.ModelSerializer):
         return "{}/{}/forms/{}/form_settings".format(settings.KOBOCAT_URL, obj.user.username, obj.id_string)
 
     def get_share_users_url(self, obj):
-        return "{}/fv3/api/share/".format(settings.KOBOCAT_URL)
+        return "/fv3/api/share/"
 
     def get_share_project_url(self, obj):
-        return "{}/fv3/api/share/project/".format(settings.KOBOCAT_URL)
+        return "/fv3/api/share/project/"
 
     def get_share_team_url(self, obj):
-        return "{}/fv3/api/share/team/".format(settings.KOBOCAT_URL)
+        return "/fv3/api/share/team/"
 
     def get_share_global_url(self, obj):
-        return "{}/fv3/api/share/global/".format(settings.KOBOCAT_URL)
+        return "/fv3/api/share/global/"
 
     def get_add_language_url(self, obj):
-        return "{}/fv3/api/add-language/".format(settings.KOBOCAT_URL)
+        return "/fv3/api/add-language/"
 
     def get_clone_form_url(self, obj):
-        return "{}/fv3/api/clone/".format(settings.KOBOCAT_URL)
+        return "/fv3/api/clone/"
 
     def get_delete_url(self, obj):
-        return "{}/fv3/api/form/delete/".format(settings.KOBOCAT_URL)
+        return "/fv3/api/form/delete/"
 
     def get_shareable_users_url(self, obj):
-        return "{}/fv3/api/form/users/".format(settings.KOBOCAT_URL)
+        return "/fv3/api/form/users/"
 
     def get_shareable_teams_url(self, obj):
-        return "{}/fv3/api/form/teams/".format(settings.KOBOCAT_URL)
+        return "/fv3/api/form/teams/"
 
-    def shareable_projects_url(selfself, obj):
-        return "{}/fv3/api/form/projects/".format(settings.KOBOCAT_URL)
+    def get_shareable_projects_url(self, obj):
+        return "/fv3/api/form/projects/"
 
 
 class ShareUserListSerializer(serializers.ModelSerializer):
@@ -138,17 +138,17 @@ class ProjectFormSerializer(serializers.ModelSerializer):
 
 class ShareFormSerializer(serializers.Serializer):
     id_string = serializers.CharField()
-    users = serializers.ListField(child=serializers.IntegerField())
+    share_id = serializers.ListField(child=serializers.IntegerField())
 
 
 class ShareProjectFormSerializer(serializers.Serializer):
     id_string = serializers.CharField()
-    project = serializers.IntegerField()
+    share_id = serializers.IntegerField()
 
 
 class ShareTeamFormSerializer(serializers.Serializer):
     id_string = serializers.CharField()
-    team = serializers.IntegerField()
+    share_id = serializers.IntegerField()
 
 
 class ShareGlobalFormSerializer(serializers.Serializer):
