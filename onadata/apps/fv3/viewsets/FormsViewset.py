@@ -17,8 +17,8 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import CeleryTaskProgress
-from onadata.apps.fv3.permissions.xform import XFormSharePermission
-
+from onadata.apps.fv3.permissions.xform import XFormSharePermission, XFormDeletePermission, XFormEditPermission
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -198,6 +198,11 @@ class CloneFormViewSet(APIView):
             if task_obj:
                 from onadata.apps.fsforms.tasks import api_clone_form
                 api_clone_form.delay(xf.id, project.id, request.user.id, task_obj.id)
+
+                audit = {}
+                audit_log(
+                    Actions.FORM_CLONED, request.user, request.user,
+                    "Cloned form '{}'.".format(xf.id_string), audit, request)
                 return Response({"message": "Form cloned successfully"}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -216,6 +221,8 @@ class FormAddLanguageViewSet(APIView):
         xf = XForm.objects.get(id_string=request.data['id_string'])
         self.check_object_permissions(request, xf)
         a = Asset.objects.get(uid=xf.id_string)
+        if 'default_language' not in a.content['settings']:
+            return Response({'message': "This form has no default language defined yet."})
         translation = u'' + request.data['language'] + ' ' + '(' + request.data['code'] + ')'
         if 'translations' in a.content:
             a.content['translations'].append(translation)
