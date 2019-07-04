@@ -1,7 +1,7 @@
 from django.conf.urls import url
 from onadata.apps.fv3.viewsets.project_settings_vs import ProjectSettingsOptions, ProjectProgressSettings
 
-urlpatterns = [
+progress_urlpatterns = [
 
     url(r'^api/project/progress/options/$', ProjectSettingsOptions.as_view(), name='progress_options'),
     url(r'^api/project/progress/add/(?P<pk>\d+)/$',

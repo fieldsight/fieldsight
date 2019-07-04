@@ -1,6 +1,7 @@
 from django.conf.urls import url, include
 from rest_framework import routers
 
+from onadata.apps.fv3.urls.project_settings import progress_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
     ProjectUpdateViewset, sectors_subsectors, ProjectSiteTypesViewset, ProjectTermsLabelsViewset, \
     ProjectRegionsViewset, GeoLayerView, ProjectDefineSiteMeta, ProjectSitesViewset, organization_geolayer, check_region
@@ -73,3 +74,5 @@ urlpatterns = [
 
     url(r'^api/project-site-list/', ProjectSitesListViewSet.as_view({'get': 'list'}), name='project_sites_list'),
 ]
+
+urlpatterns += progress_urlpatterns

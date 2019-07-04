@@ -36,7 +36,7 @@ class XFormSerializer(serializers.ModelSerializer):
         fields = ('id_string','title', 'edit_url', 'preview_url', 'replace_url',
                   'download_url', 'media_url', 'date_created', 'date_modified', 'share_users_url',
                   'share_project_url', 'share_team_url', 'share_global_url', 'add_language_url',
-                  'clone_form_url', 'delete_url', 'shareable_users_url', 'shareable_teams_url')
+                  'clone_form_url', 'delete_url', 'shareable_users_url', 'shareable_teams_url', 'shareable_projects_url')
 
     def get_date_created(self, obj):
         date_created = obj.date_created
@@ -55,7 +55,7 @@ class XFormSerializer(serializers.ModelSerializer):
         return "{}/forms/preview/{}/".format(settings.KOBOCAT_URL, obj.id_string)
 
     def get_replace_url(self, obj):
-        return "{}{}/".format(settings.KPI_URL,"import")
+        return "{}{}/".format(settings.KPI_URL,"imports")
 
     def get_download_url(self, obj):
         return "{}{}.{}".format(settings.KPI_ASSET_URL, obj.id_string, "xls")

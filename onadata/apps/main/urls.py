@@ -39,7 +39,6 @@ urlpatterns = patterns(
     url(r'^forms/', include('onadata.apps.fsforms.urls', namespace='forms')),
     url(r'^events/', include('onadata.apps.eventlog.urls', namespace='eventlog')),
     url(r'^subscription/', include('onadata.apps.subscriptions.urls', namespace='subscriptions')),
-    url(r'^fv4/', include('onadata.apps.fv3.urllist', namespace='fv4')),
     url(r'^fv3/', include('onadata.apps.fv3.urls', namespace='fv3')),
 
     # django default stuff
