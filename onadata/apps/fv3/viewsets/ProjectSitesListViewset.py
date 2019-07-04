@@ -32,14 +32,7 @@ class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            data = list(serializer.data)
-            project_id = self.request.query_params.get('project', None)
-            obj = Project.objects.get(id=project_id)
-            if obj.cluster_sites:
-                data.append({"has_region": True})
-            else:
-                data.append({"has_region": False})
-            return self.get_paginated_response(data)
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

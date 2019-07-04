@@ -163,48 +163,13 @@ class ProjectRegionSerializer(serializers.ModelSerializer):
 
 
 class ProjectSitesSerializer(serializers.ModelSerializer):
-    region = serializers.CharField(source='region.name')
-    submissions = serializers.SerializerMethodField()
-    progress = serializers.SerializerMethodField()
+    logo = Base64ImageField(
+        max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
+    )
 
     class Meta:
         model = Site
         fields = ('id', 'project', 'name', 'identifier', 'address', 'region', 'phone', 'public_desc',
-                  'type', 'logo', 'submissions', 'progress')
+                  'type', 'logo', 'location')
 
-        extra_kwargs = {
-            'project': {'write_only': True},
-            'phone': {'write_only': True},
-            'public_desc': {'write_only': True},
-            'type': {'write_only': True},
-            'logo': {'write_only': True}
-
-        }
-
-    def get_submissions(self, obj):
-        # response = obj.get_site_submission_count()
-        instances = obj.site_instances.all().order_by('-date')
-        outstanding, flagged, approved, rejected = 0, 0, 0, 0
-        for submission in instances:
-            if submission.form_status == 0:
-                outstanding += 1
-            elif submission.form_status == 1:
-                rejected += 1
-            elif submission.form_status == 2:
-                flagged += 1
-            elif submission.form_status == 3:
-                approved += 1
-        response = {}
-        response['outstanding'] = outstanding
-        response['rejected'] = rejected
-        response['flagged'] = flagged
-        response['approved'] = approved
-
-        return response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
-
-    def get_progress(self, obj):
-        site_progress = obj.site_progress
-
-        return site_progress
-
-
+        extra_kwargs = {'location': {'read_only': True}}
