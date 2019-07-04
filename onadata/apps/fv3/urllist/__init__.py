@@ -1,3 +1,0 @@
-from project_settings import urlpatterns as project_settings_pattern
-
-urlpatterns = project_settings_pattern
