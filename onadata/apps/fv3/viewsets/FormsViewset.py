@@ -22,7 +22,6 @@ from onadata.apps.fv3.permissions.xform import XFormSharePermission, XFormDelete
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
-
 class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
     """
         A simple ViewSet for viewing myforms.
@@ -266,6 +265,8 @@ class FormAddLanguageViewSet(APIView):
         xf = XForm.objects.get(id_string=request.data['id_string'])
         self.check_object_permissions(request, xf)
         a = Asset.objects.get(uid=xf.id_string)
+        if 'default_language' not in a.content['settings']:
+            return Response({'message': "This form has no default language defined yet."})
         translation = u'' + request.data['language'] + ' ' + '(' + request.data['code'] + ')'
         if 'translations' in a.content:
             a.content['translations'].append(translation)

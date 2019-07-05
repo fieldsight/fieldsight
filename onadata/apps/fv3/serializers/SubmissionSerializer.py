@@ -69,7 +69,7 @@ class SiteSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Site
-        fields = ('name', 'identifier', 'id', 'logo', 'site_information', 'project_name')
+        fields = ('name', 'identifier', 'id', 'logo', 'site_information', 'project_name', 'latitude', 'longitude')
         
     def get_site_information(self, obj):
         if not obj.site_meta_attributes_ans:
