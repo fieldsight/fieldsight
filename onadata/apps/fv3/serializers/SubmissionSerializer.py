@@ -149,7 +149,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                     "get_new_status_display": "Rejected",
                     "user_name": c.user.username,
                     "user_full_name": c.user.first_name + ' ' + c.user.last_name,
-                    "user_profile_picture": c.user.user_profile.profile_picture,
+                    "user_profile_picture": c.user.user_profile.profile_picture.url,
                     "url": reverse_lazy("forms:instance_status_change_detail",
                                                 kwargs={'pk': c.id}),
                 },
@@ -163,7 +163,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                  "get_new_status_display": "New Submission",
                  "user_name":fi.submitted_by.username,
                  "user_full_name": fi.submitted_by.first_name + ' ' + fi.submitted_by.last_name,
-                 "user_profile_picture":fi.submitted_by.user_profile.profile_picture,
+                 "user_profile_picture":fi.submitted_by.user_profile.profile_picture.url,
                 })
         # sort data past _ data
         comment_data.extend(instances_data)
