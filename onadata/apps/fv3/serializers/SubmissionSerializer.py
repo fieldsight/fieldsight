@@ -97,14 +97,14 @@ class SubmissionSerializer(serializers.ModelSerializer):
     submission_data = serializers.SerializerMethodField()
     submitted_by = serializers.SerializerMethodField()
     site = serializers.SerializerMethodField()
-    submmition_history = serializers.SerializerMethodField()
+    submission_history = serializers.SerializerMethodField()
     status_data = serializers.SerializerMethodField()
     form_type = serializers.SerializerMethodField()
     form_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Instance
-        fields = ('submission_data', 'date_created',  'submitted_by', 'site', 'submmition_history',
+        fields = ('submission_data', 'date_created',  'submitted_by', 'site', 'submission_history',
                   'status_data', 'form_type','form_name','fieldsight_instance')
 
     def get_submitted_by(self, obj):
@@ -119,7 +119,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
             'comment': finstance.comment
         }
 
-    def get_submmition_history(self, obj):
+    def get_submission_history(self, obj):
         finstance = obj.fieldsight_instance
         pk_list = [finstance.id]
         finstances = []
