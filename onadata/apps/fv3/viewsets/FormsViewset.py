@@ -5,6 +5,8 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework.permissions import IsAuthenticated
 from django.db import models, IntegrityError, transaction
 from django.conf import settings
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fieldsight.models import Project, Organization
 from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset, DeletedXForm
@@ -301,3 +303,28 @@ class MyFormDeleteViewSet(APIView):
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MySharedFormViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+        A simple ViewSet for viewing my shared forms.
+        """
+    authentication_classes = ([SessionAuthentication, BasicAuthentication])
+    queryset = XForm.objects.all()
+    serializer_class = XFormSerializer
+
+    def get_queryset(self):
+        codenames = ['view_asset', 'change_asset']
+        permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
+        content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
+        obj_perm = ObjectPermission.objects.filter(user=self.request.user,
+                                                   content_type=content_type,
+                                                   permission__in=permissions,
+                                                   deny=False,
+                                                   inherited=False)
+        asset_uids = []
+        for item in obj_perm:
+            a = Asset.objects.get(id=item.object_id)
+            asset_uids.append(a.uid)
+
+        return self.queryset.filter(id_string__in=asset_uids)
