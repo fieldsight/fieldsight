@@ -118,6 +118,7 @@ def set_site_progress(site, project, project_settings=None):
         project_settings = project.progress_settings.filter(deployed=True, active=True)
         if project_settings:
             project_settings = project_settings[0]
+
     if not project_settings or project_settings.source == 0:
         # default progress (stages approved/stages total) weight
         progress = site.progress()
@@ -134,7 +135,7 @@ def set_site_progress(site, project, project_settings=None):
             p = 100
         progress = p
 
-    if project_settings.source == 4:
+    elif project_settings.source == 4:
         p = ("%.0f" % (site.site_instances.filter(
             project_fxf_id=project_settings.no_submissions_form).count() / (
                 project_settings.no_submissions_total_count * 0.01)))
@@ -147,10 +148,12 @@ def set_site_progress(site, project, project_settings=None):
     site.current_progress = progress
     print(progress)
     site.save()
-    from onadata.apps.fieldsight.models import SiteProgressHistory
+    if project_settings:
+        from onadata.apps.fieldsight.models import SiteProgressHistory
 
-    history, _created = SiteProgressHistory.objects.get_or_create(site=site, progress=progress, setting=project_settings)
-    if not _created:
-        history.save()
+        history, _created = SiteProgressHistory.objects.get_or_create(site=site, progress=progress, setting=project_settings)
+
+        if not _created:
+            history.save()
 
 
