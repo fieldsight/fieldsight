@@ -18,7 +18,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from django.contrib.gis.geos import Point
 from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels
-from onadata.apps.fsforms.models import FInstance
+from onadata.apps.fsforms.models import FInstance, ProgressSettings
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
@@ -30,6 +30,7 @@ from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
+from onadata.apps.fv3.serializers.project_settings import ProgressSettingsSerializer
 from .role_api_permissions import ProjectRoleApiPermissions
 
 
@@ -520,6 +521,9 @@ def check_region(request, project_id):
         return Response({'has_region': False})
 
 
+from rest_framework.parsers import JSONParser
+
+
 class ProjectDefineSiteMeta(APIView):
     """
     A simple view for viewing and adding project site meta. Allowed methods 'get', 'post'.
@@ -533,10 +537,17 @@ class ProjectDefineSiteMeta(APIView):
         level = "1"
         project_data = Project.objects.filter(pk=pk).values('id', 'name', 'organization_id', 'organization__name', )
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project_obj).exists()
+        project_settings = ProgressSettings.objects.filter(project_id=self.kwargs['pk'], active=True).values('id',
+                                                                                                             'source',
+                                                                                                             'pull_integer_form',
+                                                                                                             'pull_integer_form_question',
+                                                                                                             'no_submissions_form',
+                                                                                                             'no_submissions_total_count',
+                                                                                                             'deployed')
 
         return Response({'json_questions': project_obj.site_meta_attributes, 'site_basic_info': project_obj.site_basic_info,
                          'site_featured_images': project_obj.site_featured_images, 'level': level,
-                         'terms_and_labels': terms_and_labels, 'obj': project_data})
+                         'terms_and_labels': terms_and_labels, 'obj': project_data, 'project_settings': project_settings})
 
     def post(self, request, pk, format=None):
 
@@ -567,6 +578,7 @@ class ProjectDefineSiteMeta(APIView):
 
                     other_project.save()
             project.save()
+
             return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
 
         except Exception as e:
