@@ -47,3 +47,5 @@ class Command(BaseCommand):
                 else:
                     message['site_level_form'] = False
                 save_notification(message, emails, date=fi.date)
+
+        print('Successfully logged status change submissions.')
