@@ -20,13 +20,13 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class StaffSerializer(serializers.ModelSerializer):
-    designation_label = serializers.CharField(source='get_designation_display')
+    designation_label = serializers.CharField(source='get_designation_display', read_only=True)
 
     class Meta:
         model = Staff
         # exclude = ('created_by', 'team', 'created_date', 'updated_date', 'is_deleted',)
         fields = ('id', 'first_name', 'last_name', 'email', 'gender', 'ethnicity', 'address', 'phone_number', 'bank_name',
-                  'account_number', 'photo', 'date_of_birth', 'contract_start', 'contract_end', 'IdPassDID', 'IdPassProof',
+                  'account_number', 'photo', 'date_of_birth', 'contract_start', 'contract_end', 'IdPassDID',
                   'bank', 'designation', 'designation_label')
 
     def create(self, validated_data):
