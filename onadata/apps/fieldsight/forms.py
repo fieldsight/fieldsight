@@ -529,31 +529,18 @@ class ProjectGsuitSyncForm(forms.ModelForm):
     
     class Meta:
         model = Project
-        fields = ('gsuit_sync', 'gsuit_sync_day',)
+        fields = ('gsuit_sync', 'gsuit_sync_date', 'gsuit_sync_end_of_month')
 
     def clean(self):
-        day = self.cleaned_data.get("gsuit_sync_day")
+        day = self.cleaned_data.get("gsuit_sync_date")
         schedule = self.cleaned_data.get("gsuit_sync")
-        if schedule == "D":
-            self.cleaned_data["gsuit_sync_day"] = 0
-        elif schedule == "W":
-            if day  < 1 or day > 7:
-                raise forms.ValidationError(
-                    "Day must be within a week i.e; between 1 to 7."
-                )
-        elif schedule == "F":
-            if day  < 1 or day > 14:
-                raise forms.ValidationError(
-                    "Day must be within a fortnight i.e; between 1 to 14."
-                )
+        end_of_month = self.cleaned_data.get("gsuit_sync_end_of_month")
+        
+        if end_of_month == True and schedule != "M":    
+            raise forms.ValidationError(
+                "End of month must be unchecked."
+            )
 
-        elif schedule == "M":
-            if day  < 1 or day > 31:
-                raise forms.ValidationError(
-                    "Day must be within a month i.e; between 1 to 31."
-                )
-        elif schedule == "NA":
-            self.cleaned_data["gsuit_sync_day"] = 0
         super(ProjectGsuitSyncForm, self).clean()
 
        
@@ -577,26 +564,12 @@ class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
         day = self.cleaned_data.get("day")
 
         schedule = self.cleaned_data.get("schedule")
-        if schedule == "D":
-            self.cleaned_data["day"] = 0
-        elif schedule == "W":
-            if day  < 1 or day > 7:
-                raise forms.ValidationError(
-                    "Day must be within a week i.e; between 1 to 7."
-                )
-        elif schedule == "F":
-            if day  < 1 or day > 14:
-                raise forms.ValidationError(
-                    "Day must be within a fortnight i.e; between 1 to 14."
-                )
-
-        elif schedule == "M":
-            if day  < 1 or day > 31:
-                raise forms.ValidationError(
-                    "Day must be within a month i.e; between 1 to 31."
-                )
-        elif schedule == "NA":
-            self.cleaned_data["day"] = 0
+        end_of_month = self.cleaned_data.get("end_of_month")
+        
+        if end_of_month == True and schedule != "M":    
+            raise forms.ValidationError(
+                "End of month must be unchecked."
+            )
         super(FieldsightFormGsuitSyncNewForm, self).clean()
 
 class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
@@ -608,25 +581,11 @@ class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
     def clean(self):
         day = self.cleaned_data.get("day")
         schedule = self.cleaned_data.get("schedule")
-        if schedule == "D":
-            self.cleaned_data["day"] = 0
-        elif schedule == "W":
-            if day  < 1 or day > 7:
-                raise forms.ValidationError(
-                    "Day must be within a week i.e; between 1 to 7."
-                )
-        elif schedule == "F":
-            if day  < 1 or day > 14:
-                raise forms.ValidationError(
-                    "Day must be within a fortnight i.e; between 1 to 14."
-                )
-
-        elif schedule == "M":
-            if day  < 1 or day > 31:
-                raise forms.ValidationError(
-                    "Day must be within a month i.e; between 1 to 31."
-                )
-        elif schedule == "NA":
-            self.cleaned_data["day"] = 0
+        end_of_month = self.cleaned_data.get("end_of_month")
+        
+        if end_of_month == True and schedule != "M":    
+            raise forms.ValidationError(
+                "End of month must be unchecked."
+            )
         
         super(FieldsightFormGsuitSyncEditForm, self).clean()

@@ -2525,7 +2525,7 @@ def scheduled_gsuit_sync():
         #generate reports
         for fxf in project.project_forms.exclude(sync_schedule__schedule=Project.MANUAL):
             if fxf.sync_schedule:
-                sync_form_controller(fxf.sync_schedule.schedule, fxf.sync_schedule.day, fxf, month_days)
+                sync_form(fxf.sync_schedule.schedule, fxf.sync_schedule.day, fxf, month_days)
             else:
                 sync_form_controller(project.gsuit_sync, project.gsuit_sync_day, fxf, month_days)
         project.gsuit_sync

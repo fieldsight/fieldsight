@@ -259,8 +259,8 @@ class Project(models.Model):
     site_meta_attributes = JSONField(default=list)
     gsuit_meta = JSONField(default={})
     gsuit_sync = models.CharField(choices=SCHEDULES, default=MANUAL, max_length=2)
-    date = models.DateField(blank=True, null=True)
-    end_of_month = models.BooleanField(default=False)
+    gsuit_sync_date = models.DateField(blank=True, null=True)
+    gsuit_sync_end_of_month = models.BooleanField(default=False)
     
     # gsuit_meta sample = {'site_progress':{'link':'', 'last_updated':''}}
     logs = GenericRelation('eventlog.FieldSightLog')
