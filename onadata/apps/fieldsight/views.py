@@ -22,6 +22,9 @@ from django.forms.forms import NON_FIELD_ERRORS
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 
+
+from django.db.models import Sum, Case, When, IntegerField, Count
+
 import django_excel as excel
 from registration.backends.default.views import RegistrationView
 from rest_framework import status
@@ -2082,49 +2085,49 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         query = {}
         query['pending'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=0, supervisor__project_id=pk, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['rejected'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=1, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=1, supervisor__project_id=pk, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['flagged'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=2, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=2, supervisor__project_id=pk, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['approved'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=3, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=3, supervisor__project_id=pk, then=1),
                 default=0, output_field=IntegerField()
             ))    
 
         query['re_approved'] = Sum(
             Case(
-                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=3, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__new_status=3, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['re_rejected'] = Sum(
             Case(
-                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=1, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__new_status=1, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
         query['re_flagged'] = Sum(
             Case(
-                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=2, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__new_status=2, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
         query['resolved'] = Sum(
             Case(
-                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
                 default=0, output_field=IntegerField()
             ))
 
