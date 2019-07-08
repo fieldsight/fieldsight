@@ -2528,20 +2528,24 @@ def sync_form_controller(sync_type, sync_day, fxf, month_days):
         sync_form(fxf)
 
 @shared_task(time_limit=300, soft_time_limit=300)
-def update_sites_progress(pk):
-    time.sleep(3)
-    obj = ProgressSettings.objects.get(pk=pk)
-    project = obj.project
-    total_sites = project.sites.count()
-    page_size = 1000
-    page = 0
-    while total_sites > 0:
-        sites = project.sites.all()[page*page_size:(page+1)*page_size]
-        print("updating site progress batch", page*page_size, (page+1)*page_size)
-        for site in sites:
-            set_site_progress(site, project, obj)
-        total_sites -= page_size
-        page += 1
+def update_sites_progress(pk, task_id):
+    try:
+        time.sleep(3)
+        obj = ProgressSettings.objects.get(pk=pk)
+        project = obj.project
+        total_sites = project.sites.count()
+        page_size = 1000
+        page = 0
+        while total_sites > 0:
+            sites = project.sites.all()[page*page_size:(page+1)*page_size]
+            print("updating site progress batch", page*page_size, (page+1)*page_size)
+            for site in sites:
+                set_site_progress(site, project, obj)
+            total_sites -= page_size
+            page += 1
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
 def scheduled_gsuit_sync():
