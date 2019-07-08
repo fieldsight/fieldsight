@@ -235,9 +235,31 @@ class ProjectTermsLabelsViewset(viewsets.ModelViewSet):
         project_id = self.request.query_params.get('project', None)
         if project_id:
             project = get_object_or_404(Project, id=project_id)
-            return self.queryset.filter(project=project)
+            return self.queryset.filter(project=project).values('site')
         else:
             return self.queryset
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        if len(queryset) == 0:
+            data = [
+                        {
+                            "id": "",
+                            "donor": "",
+                            "site": "",
+                            "site_supervisor": "",
+                            "site_reviewer": "",
+                            "region": "",
+                            "region_supervisor": "",
+                            "region_reviewer": "",
+                            "project": ""
+                        }
+]
+            return Response(data)
+        else:
+            return Response(queryset.values('id', 'donor', 'site', 'site_supervisor', 'site_reviewer', 'region',
+                                            'region_supervisor', 'region_reviewer', 'project'))
 
 
 class ProjectRegionsViewset(viewsets.ModelViewSet):
@@ -572,10 +594,13 @@ class ProjectDefineSiteMeta(APIView):
                 for meta in other_project.site_meta_attributes:
 
                     if meta['question_type'] == "Link":
-                        if str(project.id) in meta['metas']:
-                            for del_meta in deleted:
-                                if del_meta in meta['metas'][str(project.id)]:
-                                    del meta['metas'][str(project.id)][meta['metas'][str(project.id)].index(del_meta)]
+                        try:
+                            if str(project.id) in meta['metas']:
+                                for del_meta in deleted:
+                                    if del_meta in meta['metas'][str(project.id)]:
+                                        del meta['metas'][str(project.id)][meta['metas'][str(project.id)].index(del_meta)]
+                        except Exception as e:
+                            pass
 
                 other_project.save()
         project.save()
