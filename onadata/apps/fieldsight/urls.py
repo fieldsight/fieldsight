@@ -79,7 +79,6 @@ from onadata.apps.geo.views import (
 )
 from onadata.apps.remote_app.views import RemoteProjectView
 
-
 urlpatterns = [
     url(r'application/', ApplicationView.as_view(), name="application"),
     url(r'^accounts/create/$', CreateUserView.as_view(

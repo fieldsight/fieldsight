@@ -1874,7 +1874,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 data[index[month_stat['date_created'].strftime("%Y-%m")]][4] = int(month_stat['dcount'])
 
         if reportType in ["Daily", "Weekly"]:
-            data.insert(0, ["Date", "Day", "Site Visits", "Submissions", "Active Users"])
+            data.insert(0, ["Date", "Day", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"])
             i=1
             for day in rrule(DAILY, dtstart=new_startdate, until=end):
                 str_day = day.strftime("%Y-%m-%d")
@@ -1928,6 +1928,12 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
             #     except:
             #         pass
 
+            for status_month in status_months:
+                data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
+                data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
+                data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
+                data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
+                data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
 
 
         wb = Workbook()
@@ -1935,6 +1941,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
         ws.title = "Site Status"
 
         if reportType == "Weekly":
+
             weekly_data = [["Week No.", "Week Start", "Week End", "Site Visits", "Submissions","Active Users","Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"]]
 
             weekcount = 0
@@ -1954,6 +1961,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 weekly_data[weekcount][7] += value[6]
                 weekly_data[weekcount][8] += value[7]
                 weekly_data[weekcount][9] += value[8]
+
                 # weekly_data[weekcount][10] += value[9]
                 # weekly_data[weekcount][11] += value[10]
                 # weekly_data[weekcount][12] += value[11]
@@ -2199,55 +2207,55 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
         query['daily'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate], supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate], supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['pending'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['rejected'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=1, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=1, supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['flagged'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=2, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=2, supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['approved'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=3, supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=3, supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))    
 
         query['re_approved'] = Sum(
             Case(
-                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=3, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=3, then=1),
                 default=0, output_field=IntegerField()
             ))
 
         query['re_rejected'] = Sum(
             Case(
-                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=1, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=1, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
         query['re_flagged'] = Sum(
             Case(
-                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=2, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=2, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
         query['resolved'] = Sum(
             Case(
-                When(submission_comments__date__range=[end, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
@@ -2257,10 +2265,10 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
             "sites_visited": 0
         }
 
-        users=User.objects.filter(user_roles__project_id=project_id, user_roles__group_id__in=[4, 9]).distinct('id').values('id')
+        users=User.objects.filter(user_roles__project_id=project_id, user_roles__group_id__in=[2, 3, 4, 9]).distinct('id').values('id')
 
         for user in User.objects.filter(pk__in=users).annotate(**query):
-            data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.approved, user.flagged, user.rejected])
+            data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.re_approved, user.re_flagged, user.re_rejected])
 
         wb = Workbook()
         ws = wb.active
@@ -2544,7 +2552,7 @@ def scheduled_gsuit_sync():
         #generate reports
         for fxf in project.project_forms.exclude(sync_schedule__schedule=Project.MANUAL):
             if fxf.sync_schedule:
-                sync_form_controller(fxf.sync_schedule.schedule, fxf.sync_schedule.day, fxf, month_days)
+                sync_form(fxf.sync_schedule.schedule, fxf.sync_schedule.day, fxf, month_days)
             else:
                 sync_form_controller(project.gsuit_sync, project.gsuit_sync_day, fxf, month_days)
         project.gsuit_sync

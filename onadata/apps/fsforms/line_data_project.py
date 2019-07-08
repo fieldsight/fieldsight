@@ -1,13 +1,12 @@
 from datetime import datetime
 from collections import OrderedDict
-_strptime = datetime.strptime
-
 from .models import FInstance
 
+
 def date_range(start, end, intv):
-    start = _strptime(start,"%Y%m%d")
-    end = _strptime(end,"%Y%m%d")
-    diff = (end  - start ) / intv
+    start = datetime(int(start[:4]), int(start[4:6]), int(start[6:8]))
+    end = datetime(int(end[:4]), int(end[4:6]), int(end[6:8]))
+    diff = (end - start) / intv
     for i in range(intv):
         yield (start + diff * i)
     yield end

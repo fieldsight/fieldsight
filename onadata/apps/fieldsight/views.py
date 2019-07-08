@@ -22,6 +22,9 @@ from django.forms.forms import NON_FIELD_ERRORS
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 
+
+from django.db.models import Sum, Case, When, IntegerField, Count
+
 import django_excel as excel
 from registration.backends.default.views import RegistrationView
 from rest_framework import status
@@ -2069,7 +2072,6 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
 class UserActivityReport(ProjectRoleMixin, TemplateView):
 
     def get(self, request, pk, *args, **kwargs):
-        user = User.objects.get(pk=self.kwargs.get('user_id'))
         start_date = self.kwargs.get('start_date')
         end_date = self.kwargs.get('end_date')
         split_startdate = start_date.split('-')
@@ -2080,6 +2082,57 @@ class UserActivityReport(ProjectRoleMixin, TemplateView):
 
         new_enddate = end + datetime.timedelta(days=1)
 
+        query = {}
+        query['pending'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=0, supervisor__project_id=pk, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['rejected'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=1, supervisor__project_id=pk, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['flagged'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=2, supervisor__project_id=pk, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['approved'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=3, supervisor__project_id=pk, then=1),
+                default=0, output_field=IntegerField()
+            ))    
+
+        query['re_approved'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__new_status=3, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['re_rejected'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__new_status=1, then=1),
+                default=0, output_field=IntegerField()
+            ))        
+
+        query['re_flagged'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__new_status=2, then=1),
+                default=0, output_field=IntegerField()
+            ))        
+
+        query['resolved'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+
+        user = User.objects.filter(pk=self.kwargs.get('user_id')).annotate(**query).first()
         roles = user.user_roles.filter(project_id=pk, ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
         # recent_images = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": "santoshkhatri"}, "start": { 
         #                     '$gte' : new_startdate.isoformat(),
@@ -2123,7 +2176,6 @@ class UserActivityReport(ProjectRoleMixin, TemplateView):
         pending = submission_queryset.filter(form_status=0).count()
         flagged = submission_queryset.filter(form_status=2).count()
              
-
         total_submissions = submission_queryset.count()
         submissions = submission_queryset.values_list(
             'project_fxf__xf__title',
@@ -2197,7 +2249,13 @@ class UserActivityReport(ProjectRoleMixin, TemplateView):
             'pending': pending,
             'rejected': rejected,
             'flagged': flagged,
-            'approved': approved
+            
+            're_total': user.re_approved + user.re_rejected + user.re_flagged,
+            'resolved': user.resolved,
+            're_approved': user.re_approved,
+            're_rejected': user.re_rejected,
+            're_flagged': user.re_flagged,
+
         }
         return render(request, 'fieldsight/user_activity_report.html', dashboard_data)
 
@@ -4369,7 +4427,7 @@ class ProjectSyncScheduleUpdateView(UpdateView):
         return context
 
 
-class SyncScheduleCreateView(CreateView):
+class SyncScheduleCreateView(ProjectRoleMixin, CreateView):
     template_name = 'fieldsight/form_sync_schedule_form.html'
     model = SyncSchedule
     form_class = FieldsightFormGsuitSyncNewForm
@@ -4389,7 +4447,7 @@ class SyncScheduleCreateView(CreateView):
         return reverse('fieldsight:sync_schedule', kwargs={'pk': self.kwargs['pk']})
 
 
-class SyncScheduleUpdateView(UpdateView):
+class SyncScheduleUpdateView(ProjectRoleMixin, UpdateView):
     template_name = 'fieldsight/form_sync_schedule_form.html'
     model = SyncSchedule
     form_class = FieldsightFormGsuitSyncEditForm
@@ -4404,7 +4462,7 @@ class SyncScheduleUpdateView(UpdateView):
         return context
 
 
-class SyncScheduleDeleteView(DeleteView):
+class SyncScheduleDeleteView(ProjectRoleMixin, DeleteView):
     model = SyncSchedule
     
     def get_success_url(self):
