@@ -794,4 +794,9 @@ class SiteMetaAttrHistory(models.Model):
 def check_deployed(sender, instance, created,  **kwargs):
     if instance.deployed:
         from onadata.apps.fieldsight.tasks import update_sites_progress
-        update_sites_progress.delay(instance.pk)
+        from onadata.apps.eventlog.models import CeleryTaskProgress
+        task_obj = CeleryTaskProgress.objects.create(user=instance.user,
+                                                     description="Update Sites Progress",
+                                                     task_type=23, content_object=instance)
+        if task_obj:
+            update_sites_progress.delay(instance.pk, task_obj.id)
