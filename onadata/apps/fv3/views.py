@@ -17,7 +17,7 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from django.contrib.gis.geos import Point
-from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels
+from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels, ProjectMetaAttrHistory
 from onadata.apps.fsforms.models import FInstance, ProgressSettings
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
@@ -579,6 +579,8 @@ class ProjectDefineSiteMeta(APIView):
 
                     other_project.save()
             project.save()
+
+            ProjectMetaAttrHistory.objects.create(project=project, meta_attributes=old_meta)
 
             return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
 
