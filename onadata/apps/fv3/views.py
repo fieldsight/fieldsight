@@ -147,6 +147,10 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
+        logo_url = serializer.initial_data['logo']
+        if logo_url.endswith('.jpg') or logo_url.endswith('.png'):
+            serializer.initial_data.pop('logo')
+
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         long = request.POST.get('longitude', None)
