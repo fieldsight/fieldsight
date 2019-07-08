@@ -4387,12 +4387,15 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super(ApplicationView, self).get_context_data(**kwargs)
         project = self.request.GET.get("project", None)
+        base_url = settings.SITE_URL
 
         if project:
 
             project_obj = get_object_or_404(Project, id=int(project))
             context['project'] = project_obj
             context['organization'] = project_obj.organization.id
+            context['base_url'] = base_url
+
             return context
 
 

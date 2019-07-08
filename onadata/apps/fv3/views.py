@@ -525,9 +525,6 @@ def check_region(request, project_id):
         return Response({'has_region': False})
 
 
-from rest_framework.parsers import JSONParser
-
-
 class ProjectDefineSiteMeta(APIView):
     """
     A simple view for viewing and adding project site meta. Allowed methods 'get', 'post'.

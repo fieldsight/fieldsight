@@ -2,9 +2,12 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.authentication import BasicAuthentication
+
 from onadata.apps.fieldsight.models import ProgressSettings
 from onadata.apps.fv3.permissions.project_settings import ProjectSettingsPermission
 from onadata.apps.fv3.serializers.project_settings import ProgressSettingsSerializer
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
 class ProjectSettingsOptions(APIView):
@@ -17,6 +20,7 @@ class ProjectSettingsOptions(APIView):
 
 class ProjectProgressSettings(viewsets.ModelViewSet):
     queryset = ProgressSettings.objects.all()
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated, ProjectSettingsPermission]
     serializer_class = ProgressSettingsSerializer
 
