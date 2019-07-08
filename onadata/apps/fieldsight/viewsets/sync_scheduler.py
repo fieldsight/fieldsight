@@ -45,7 +45,7 @@ class SyncScheduleViewSet(viewsets.ModelViewSet):
         stages = Stage.objects.filter(project_id=pk)
         for stage in stages:
             if stage.stage_id is None:
-                substages=stage.get_sub_stage_list(sync_details=True)
+                substages=stage.get_sub_stage_list(sync_details=True, values_list=True)
                 main_stage = {'id':stage.id, 'title':stage.name, 'sub_stages':substages}
                 mainstage.append(main_stage)
 

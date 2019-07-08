@@ -49,7 +49,7 @@
 					<hr>
 					<br>
 					
-					<a href="/fieldsight/sync_schedule/{{ project_id }}/" target="_blank"><button type="button" class="btn btn-primary"><i class="la la-refresh ml-2"></i> Add Sync Schedule</button></a>
+					<a :href="'/fieldsight/sync_schedule/' + project_id + '/'" target="_blank"><button type="button" class="btn btn-primary"><i class="la la-refresh ml-2"></i> Add Sync Schedule</button></a>
 
 					<br>
 					<hr>
