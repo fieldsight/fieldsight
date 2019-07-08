@@ -791,7 +791,9 @@ class SiteMetaAttrHistory(models.Model):
 
 
 class ProjectMetaAttrHistory(models.Model):
-    meta_attributes = JSONField(default={})
+    old_meta_attributes = JSONField(default=list)
+    new_key_value = JSONField(default=list)
+    deleted_key_value = JSONField(default=list)
     project = models.ForeignKey(Project, related_name='meta_history')
     date = models.DateTimeField(auto_now=True)
 
