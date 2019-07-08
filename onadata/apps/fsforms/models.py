@@ -423,7 +423,7 @@ class SyncSchedule(models.Model):
     ]
     fxf = models.OneToOneField(FieldSightXF, related_name="sync_schedule")
     schedule = models.CharField(choices=SCHEDULES,  default=MONTHLY, max_length=2)
-    date = models.DateField(blank=True, null=True)
+    start_date = models.DateField(blank=True, null=True)
     end_of_month = models.BooleanField(default=False)
 
 

@@ -530,6 +530,11 @@ class ProjectGsuitSyncForm(forms.ModelForm):
     class Meta:
         model = Project
         fields = ('gsuit_sync', 'gsuit_sync_date', 'gsuit_sync_end_of_month')
+        labels = {
+            'gsuit_sync': _('Project sync Schedule type'),
+            'gsuit_sync_date': _('Project sync start date'),
+            'gsuit_sync_end_of_month': _('Sync at the end of month only'),
+        }
 
     def clean(self):
         day = self.cleaned_data.get("gsuit_sync_date")
@@ -558,7 +563,14 @@ class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
 
     class Meta:
         model = SyncSchedule
-        exclude = ()
+        fields = ('fxf', 'schedule', 'date', 'end_of_month',)
+        labels = {
+            'fxf': _('Select Form'),
+            'schedule': _('Sync Schedule type'),
+            'date': _('Sync start date'),
+            'end_of_month': _('Sync at the end of month only'),
+        }
+
 
     def clean(self):
         day = self.cleaned_data.get("day")
@@ -576,7 +588,12 @@ class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
     
     class Meta:
         model = SyncSchedule
-        exclude = ('fxf',)
+        fields = ('schedule', 'date', 'end_of_month',)
+        labels = {
+            'schedule': _('Sync Schedule type'),
+            'date': _('Sync start date'),
+            'end_of_month': _('Sync at the end of month only'),
+        }
 
     def clean(self):
         day = self.cleaned_data.get("day")
