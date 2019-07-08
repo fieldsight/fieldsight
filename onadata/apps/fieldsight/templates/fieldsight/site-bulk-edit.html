@@ -10,7 +10,16 @@
         {% block breadcrumbs %}
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' project.pk %}">{{ project.name }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'fieldsight:proj-site-list' project.pk %}">{% trans 'Sites' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fieldsight:proj-site-list' project.pk %}">
+                {% if terms_and_labels %}
+                    {{project.terms_and_labels.site}}
+
+                {% else %}
+                    {% trans 'Sites' %}
+
+                {% endif %}
+                </a>
+            </li>
             <li class="breadcrumb-item active" aria-current="page">{% trans 'Bulk edit' %}</li>
         </ol>
         {% endblock %}
@@ -26,7 +35,13 @@
 
         <div class="header">
             <h4 class="title">
-                Bulk edit sites
+                {% if terms_and_labels %}
+                    Bulk edit {{project.terms_and_labels.site}}s
+
+                {% else %}
+                    Bulk edit sites
+
+                {% endif %}
             </h4>
 
             <div class="errors">
@@ -55,7 +70,12 @@
 
             <label for="togglesites">
                 <input type="checkbox" id="togglesites">
-                All sites
+                {% if terms_and_labels %}
+                    All {{project.terms_and_labels.site}}s
+                {% else %}
+                    All sites
+
+                {% endif %}
             </label>
         </div>
 
@@ -66,7 +86,12 @@
             {{ field.label_tag }}
         {% else %}
         <p>
-            Select the sites for which you want to change metadata:
+            {% if terms_and_labels %}
+                Select the {{project.terms_and_labels.site}} for which you want to change metadata:
+            {% else %}
+                Select the sites for which you want to change metadata:
+
+            {% endif %}
         </p>
         <div class="sites">
         {% endif %}

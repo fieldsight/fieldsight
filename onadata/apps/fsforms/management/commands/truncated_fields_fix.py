@@ -25,6 +25,8 @@ EVENTS = {"radio_broadcast": "radio_broadcas",
           "correction_methodology_of_non_": "correction_met",
           "khadgabhanjyang": "khadgabhanjyan",
           "vertical_reinforcement": "vertical_reinf",
+          "stakeholder_meeting":"stakeholder_me",
+          "hh_meetingtraining":"hh_meetingtrai",
           }
 
 STFC_SERVICES = {"municipality_report": "municipality_r",
@@ -117,7 +119,8 @@ class Command(BaseCommand):
         for instance_id in instances:
 
             queryset = Instance.objects.filter(pk=instance_id).only('xml')
-            InstanceHistory(xform_instance=queryset[0],xml=queryset[0].xml)
+            ih = InstanceHistory(xform_instance=queryset[0],xml=queryset[0].xml)
+            ih.save()
             fixed_xml = replace_all_pattern(project_fxf,queryset[0].xml)
             new_xml_hash = Instance.get_hash(fixed_xml)
             queryset.update(xml=fixed_xml, xml_hash=new_xml_hash)

@@ -59,6 +59,7 @@ from django.contrib.contenttypes.models import ContentType
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
 from onadata.apps.users.signup_tokens import account_activation_token
 from onadata.apps.subscriptions.models import Subscription, Package, TrackPeriodicWarningEmail
+from onadata.apps.fsforms.models import InstanceStatusChanged
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -1755,7 +1756,7 @@ def sendNotification(notification, recipient):
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date, end_date):
-    # time.sleep(5)
+    time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     project=get_object_or_404(Project, pk=project_id)
@@ -1792,6 +1793,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 When(fieldsight_instance__form_status=2, then=1),
                 default=0, output_field=IntegerField()
             ))
+<<<<<<< HEAD
 
         query['rejected'] = Sum(
             Case(
@@ -1824,13 +1826,25 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 When(old_status__in=[1,2], new_status=3, then=1),
                 default=0, output_field=IntegerField()
             ))
+=======
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
 
+        query['rejected'] = Sum(
+            Case(
+                When(fieldsight_instance__form_status=1, then=1),
+                default=0, output_field=IntegerField()
+            )
+        )
         if reportType == "Monthly":
+<<<<<<< HEAD
             data.insert(0, ["Date", "Month", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions", "Submission Reviews",  "Resolved Submissions", "Approved Reviews", "Rejected Reviews", "Flagged Reviews"])
+=======
+            data.insert(0, ["Date", "Month", "Site Visits", "Submissions","Active Users","Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"])
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
             i=1
             for month in rrule(MONTHLY, dtstart=new_startdate, until=end):
                 str_month = month.strftime("%Y-%m")
-                data.insert(i, [str_month, month.strftime("%B"), 0, 0, 0])
+                data.insert(i, [str_month, month.strftime("%B"), 0, 0, 0, 0, 0, 0, 0])
                 index[str_month] = i
                 i += 1
 
@@ -1853,6 +1867,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
             truncate_date = connection.ops.date_trunc_sql('month', 'date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
+<<<<<<< HEAD
             forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
 
             status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'date':truncate_date})
@@ -1871,6 +1886,34 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
                 data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
                 data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
+=======
+
+            forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
+
+            for month_stat in forms_stats:
+                try:
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][3] = int(month_stat['dcount'])
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][5] = int(month_stat['approved'])
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][6] = int(month_stat['pending'])
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][7] = int(month_stat['rejected'])
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][8] = int(month_stat['flagged'])
+                except:
+                    pass
+
+            # truncate_date = connection.ops.date_trunc_sql('month', 'fsforms_instancestatuschanged.date')
+            # status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'date':truncate_date})
+            # status=status_changed.values('date').annotate(dcount=Count('date'), **review_query)
+            # for status_month in status_months:
+            #     try:
+            #         data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
+            #     except:
+            #         pass
+
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
 
 
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
@@ -1880,11 +1923,15 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 data[index[month_stat['date_created'].strftime("%Y-%m")]][4] = int(month_stat['dcount'])
 
         if reportType in ["Daily", "Weekly"]:
+<<<<<<< HEAD
             data.insert(0, ["Date", "Day", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions", "Submission Reviews",  "Resolved Submissions", "Approved Reviews", "Rejected Reviews", "Flagged Reviews"])
+=======
+            data.insert(0, ["Date", "Day", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"])
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
             i=1
             for day in rrule(DAILY, dtstart=new_startdate, until=end):
                 str_day = day.strftime("%Y-%m-%d")
-                data.insert(i, [str_day, day.strftime("%A"), 0, 0, 0])
+                data.insert(i, [str_day, day.strftime("%A"), 0, 0, 0, 0, 0, 0, 0, 0])
                 index[str_day] = i
                 i += 1
 
@@ -1907,6 +1954,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
             truncate_date = connection.ops.date_trunc_sql('day', 'date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
+<<<<<<< HEAD
             forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
 
             status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'date':truncate_date})
@@ -1918,6 +1966,34 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][6] = int(month_stat['pending'])
                 data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][7] = int(month_stat['rejected'])
                 data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][8] = int(month_stat['flagged'])
+=======
+
+            forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
+
+            for day_stat in forms_stats:
+                try:
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][3] = int(day_stat['dcount'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][5] = int(month_stat['approved'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][6] = int(month_stat['pending'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][7] = int(month_stat['rejected'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][8] = int(month_stat['flagged'])
+                except:
+                    pass
+
+            # truncate_date = connection.ops.date_trunc_sql('month', 'fsforms_instancestatuschanged.date')
+            # status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'_date':truncate_date})
+            # status=status_changed.values('_date').annotate(dcount=Count('_date'), **review_query)
+
+            # for status_month in status_months:
+            #     try:
+            #         data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
+            #         data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
+            #     except:
+            #         pass
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
 
             for status_month in status_months:
                 data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
@@ -1932,7 +2008,11 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
         ws.title = "Site Status"
 
         if reportType == "Weekly":
+<<<<<<< HEAD
             weekly_data = [["Week No.", "Week Start", "Week End", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions""Submission Reviews",  "Resolved Submissions", "Approved Reviews", "Rejected Reviews", "Flagged Reviews"]]
+=======
+            weekly_data = [["Week No.", "Week Start", "Week End", "Site Visits", "Submissions","Active Users","Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"]]
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
 
             weekcount = 0
             for value in data[1:]:
@@ -1940,7 +2020,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 # Since start day is Monday And in Nepa we Calculate from Saturday for now.
                 if day == 7 or weekcount == 0:
                     weekcount += 1
-                    weekly_data.insert(weekcount, ["Week "+ str(weekcount),"","",0,0,0])
+                    weekly_data.insert(weekcount, ["Week "+ str(weekcount),"","",0,0,0,0,0,0,0,0])
 
                     weekly_data[weekcount][1] = value[0]
                 weekly_data[weekcount][2] = value[0]
@@ -1951,11 +2031,19 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 weekly_data[weekcount][7] += value[6]
                 weekly_data[weekcount][8] += value[7]
                 weekly_data[weekcount][9] += value[8]
+<<<<<<< HEAD
                 weekly_data[weekcount][10] += value[9]
                 weekly_data[weekcount][11] += value[10]
                 weekly_data[weekcount][12] += value[11]
                 weekly_data[weekcount][13] += value[12]
                 weekly_data[weekcount][14] += value[13]
+=======
+                # weekly_data[weekcount][10] += value[9]
+                # weekly_data[weekcount][11] += value[10]
+                # weekly_data[weekcount][12] += value[11]
+                # weekly_data[weekcount][13] += value[12]
+                # weekly_data[weekcount][14] += value[13]
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
                  
 
             for value in weekly_data:
@@ -1992,7 +2080,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
-    # time.sleep(5)
+    time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     if reportType == "Project":
@@ -2196,10 +2284,41 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
         query['daily'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[end, new_enddate], supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate], supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
+        query['pending'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['rejected'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=1, supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['flagged'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=2, supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['approved'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=3, supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))    
+
+        query['re_approved'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=3, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+<<<<<<< HEAD
         query['pending'] = Sum(
             Case(
                 When(supervisor__instance__date_created__range=[end, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
@@ -2233,18 +2352,31 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         query['re_rejected'] = Sum(
             Case(
                 When(supervisor__comments__date__range=[end, new_enddate], supervisor__project_id=project_id, supervisor__comments__new_status=1, then=1),
+=======
+        query['re_rejected'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=1, then=1),
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
                 default=0, output_field=IntegerField()
             ))        
 
         query['re_flagged'] = Sum(
             Case(
+<<<<<<< HEAD
                 When(supervisor__comments__date__range=[end, new_enddate], supervisor__project_id=project_id, supervisor__comments__new_status=2, then=1),
+=======
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=2, then=1),
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
                 default=0, output_field=IntegerField()
             ))        
 
         query['resolved'] = Sum(
             Case(
+<<<<<<< HEAD
                 When(supervisor__comments__date__range=[end, new_enddate], supervisor__project_id=project_id, supervisor__comments__old_status__in=[1,2], supervisor__comments__new_status=3, then=1),
+=======
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
                 default=0, output_field=IntegerField()
             ))        
 
@@ -2254,10 +2386,14 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
             "sites_visited": 0
         }
 
-        users=User.objects.filter(user_roles__project_id=project_id, user_roles__group_id__in=[4, 9]).distinct('id').values('id')
+        users=User.objects.filter(user_roles__project_id=project_id, user_roles__group_id__in=[2, 3, 4, 9]).distinct('id').values('id')
 
         for user in User.objects.filter(pk__in=users).annotate(**query):
+<<<<<<< HEAD
             data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.approved, user.flagged, user.rejected])
+=======
+            data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.re_approved, user.re_flagged, user.re_rejected])
+>>>>>>> 3f66e43867c2e2f56bc7b15dbe24e79bfb598ca7
 
         wb = Workbook()
         ws = wb.active
@@ -2292,7 +2428,6 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                                        content_object=project, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()
-
 #
 # @shared_task(max_retries=5)
 # def auto_create_default_project_site(user, organization_id):
@@ -2306,6 +2441,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def email_after_signup(user_id, to_email):
+    time.sleep(10)
     user = User.objects.get(id=user_id)
     mail_subject = 'Activate your account.'
     message = render_to_string('users/acc_active_email.html', {

@@ -1,9 +1,12 @@
 from django.conf.urls import url
 
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs
-from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, MyProjectFormsViewSet
+from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, MyProjectFormsViewSet, CloneFormViewSet
+from onadata.apps.fv3.viewsets.ReportViewsets import ReportVs
+
 from onadata.apps.fv3.viewsets.SubmissionViewSet import SubmissionViewSet, AlterSubmissionStatusViewSet, \
-    SubmissionAnswerViewSet
+    SubmissionAnswerViewSet, SubmissionViewSet
+
 
 urlpatterns = [
 
@@ -19,4 +22,17 @@ urlpatterns = [
     url(r'^api/submission/(?P<pk>\d+)/$', SubmissionViewSet.as_view({'get':'retrieve'}), name='submission'),
     url(r'^api/submission-answers/(?P<pk>\d+)/$', SubmissionAnswerViewSet.as_view({'get':'retrieve'}), name='submission-data'),
     url(r'^api/change/submission/status/$', AlterSubmissionStatusViewSet.as_view({'post':'create'}), name='submission-flag'),
+
+
+    # url(r'^api/share/$', ShareFormViewSet.as_view(), name='share_form'),
+    # url(r'^api/share/project/$', ShareProjectFormViewSet.as_view(), name='share_project_form'),
+    # url(r'^api/share/team/$', ShareTeamFormViewSet.as_view(), name='share_team_form'),
+    # url(r'^api/share/global/$', ShareGlobalFormViewSet.as_view(), name='share_global_form'),
+    url(r'^api/clone/$', CloneFormViewSet.as_view(), name='clone_form'),
+
+    url(r'^api/report/$', ReportVs.as_view({'post':'create'}), name='report'),
+
+    # url(r'^api/add-language/$', FormAddLanguageViewSet.as_view(), name='add_language'),
     ]
+
+

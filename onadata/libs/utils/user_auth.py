@@ -60,6 +60,8 @@ def set_profile_data(data, content_user):
 
 
 def same_organization(owner, request):
+    if owner.is_superuser or request.user.is_superuser:
+        return True
     request_user_organizations = request.roles.values_list('organization', flat=True).order_by().distinct()
     user_organizations = UserRole.objects.filter(user_id=owner.id).values_list('organization',
                                                                               flat=True).order_by().distinct()
@@ -75,7 +77,7 @@ def has_permission(xform, owner, request, shared=False):
         (hasattr(request, 'session') and
          request.session.get('public_link') == xform.uuid) or\
         owner == user or\
-        same_organization(owner, request) or request.user.is_superuser
+        same_organization(owner, request)
 
 
 def has_edit_permission(xform, owner, request, shared=False):

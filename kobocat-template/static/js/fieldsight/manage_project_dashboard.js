@@ -116,7 +116,7 @@ window.app = new Vue({
 						<div class="col-md-6">
 							<div class="widget-info margin-top bg-white padding">
 								<div class="widget-head">
-									<h4 v-if="this.terms_and_labels.length==0">School Progress</h4>
+									<h4 v-if="this.terms_and_labels.length==0">Site Progress</h4>
 									<h4 v-else >{{this.terms_and_labels[0].site}} Progress</h4>
 								</div>
 								<div class="widget-body">
@@ -134,7 +134,7 @@ window.app = new Vue({
         project_id: configure_settings.project_id,
         scrolled: false,
         terms_and_labels: [],
-        site: "School"
+        site: "Site"
   },
 
   methods:{
@@ -425,7 +425,9 @@ window.exportSitesToProject = new Vue({
   template: `
           <div>
           <div class="modal-header">
-                <h5 class="modal-title" id="exportModalLabel">Import Sites</h5>
+                <h5 v-if="this.terms_and_labels.length==0" class="modal-title" id="exportModalLabel">Import Sites</h5>
+                <h5 v-else class="modal-title" id="exportModalLabel">Import {{this.terms_and_labels[0].site}} </h5>
+
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                   <span aria-hidden="true">&times;</span>
                 </button>
@@ -522,6 +524,8 @@ window.exportSitesToProject = new Vue({
         load_all_projects_url:'/fieldsight/api/my_projects/'+configure_settings.project_id+'/',
         ignore_site_cluster: [],
         csrf: configure_settings.csrf_token,
+        terms_and_labels: [],
+        site: "Site"
      },
 
   methods:{
@@ -633,5 +637,23 @@ window.exportSitesToProject = new Vue({
     var self= this;
     self.loadDatas();
   },
+
+   mounted() {
+     function errorCallback() {
+            callback(new Error('Failed to load Project Terms and Labels data.'))
+        }
+
+     function successCallback(response) {
+        this.terms_and_labels = response.body;
+        if(response.body[0]){
+             this.site=response.body[0].site;
+
+        }
+
+    }
+    this.$http.get('/fieldsight/api/project-terms-labels/'+ this.project_id).then(successCallback, errorCallback)
+
+    },
+
 
 })

@@ -4,6 +4,7 @@ import os
 
 import json
 import re
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.postgres.fields import ArrayField
@@ -22,7 +23,7 @@ from xml.dom import Node
 from onadata.apps.fieldsight.models import Site, Project, Organization
 from onadata.apps.fsforms.fieldsight_models import IntegerRangeField
 from onadata.apps.fsforms.utils import send_message, send_message_project_form, check_version
-from onadata.apps.fsforms.share_xform import share_form
+# from onadata.apps.fsforms.share_xform import share_form
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models import ParsedInstance
@@ -379,18 +380,17 @@ def create_messages(sender, instance, created,  **kwargs):
     elif created and instance.site is not None and not instance.is_staged:
         send_message(instance)
 
-    if instance.project is not None and created:
-        from onadata.apps.fsforms.tasks import share_form_managers
-        task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
-                                                     description="Share Forms",
-                                                     task_type=17, content_object=instance)
-        if task_obj:
-            try:
-                with transaction.atomic():
-                    share_form_managers.delay(instance.id, task_obj.id)
-            except IntegrityError as e:
-                print(e)
-
+    # if instance.project is not None and created:
+    #     from onadata.apps.fsforms.tasks import share_form_managers
+    #     task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
+    #                                                  description="Share Forms",
+    #                                                  task_type=17, content_object=instance)
+    #     if task_obj:
+    #         try:
+    #             with transaction.atomic():
+    #                 share_form_managers.apply_async(kwargs={'fxf': instance.id, 'task_id': task_obj.id}, countdown=5)
+    #         except IntegrityError as e:
+    #             print(e)
 
 @receiver(pre_delete, sender=FieldSightXF)
 def send_delete_message(sender, instance, using, **kwargs):
@@ -978,55 +978,65 @@ class KpiUidField(models.CharField):
         return value
 
 
-class ObjectPermission(models.Model):
-    ''' An application of an auth.Permission instance to a specific
-    content_object. Call ObjectPermission.objects.get_for_object() or
-    filter_for_object() to run queries using the content_object field. '''
-    user = models.ForeignKey('auth.User')
-    permission = models.ForeignKey('auth.Permission')
-    deny = models.BooleanField(
-        default=False,
-        help_text='Blocks inheritance of this permission when set to True'
-    )
-    inherited = models.BooleanField(default=False)
-    object_id = models.PositiveIntegerField()
-    # We can't do something like GenericForeignKey('permission__content_type'),
-    # so duplicate the content_type field here.
-    content_type = models.ForeignKey(ContentType)
-    content_object = GenericForeignKey('content_type', 'object_id')
-    uid = KpiUidField(uid_prefix='p')
+# class ObjectPermission(models.Model):
+#     ''' An application of an auth.Permission instance to a specific
+#     content_object. Call ObjectPermission.objects.get_for_object() or
+#     filter_for_object() to run queries using the content_object field. '''
+#     user = models.ForeignKey('auth.User')
+#     permission = models.ForeignKey('auth.Permission')
+#     deny = models.BooleanField(
+#         default=False,
+#         help_text='Blocks inheritance of this permission when set to True'
+#     )
+#     inherited = models.BooleanField(default=False)
+#     object_id = models.PositiveIntegerField()
+#     # We can't do something like GenericForeignKey('permission__content_type'),
+#     # so duplicate the content_type field here.
+#     content_type = models.ForeignKey(ContentType)
+#     content_object = GenericForeignKey('content_type', 'object_id')
+#     uid = KpiUidField(uid_prefix='p')
+#
+#     @property
+#     def kind(self):
+#         return 'objectpermission'
+#
+#     class Meta:
+#         db_table = 'kpi_objectpermission'
+#         managed = False
+#
+#     def save(self, *args, **kwargs):
+#         if self.permission.content_type_id is not self.content_type_id:
+#             raise ValidationError('The content type of the permission does '
+#                 'not match that of the object.')
+#         super(ObjectPermission, self).save(*args, **kwargs)
+#
+#     def __unicode__(self):
+#         for required_field in ('user', 'permission'):
+#             if not hasattr(self, required_field):
+#                 return u'incomplete ObjectPermission'
+#         return u'{}{} {} {}'.format(
+#             'inherited ' if self.inherited else '',
+#             unicode(self.permission.codename),
+#             'denied from' if self.deny else 'granted to',
+#             unicode(self.user)
+#         )
+#
+#
+# class Asset(models.Model):
+#     uid = KpiUidField(uid_prefix='a')
+#     owner = models.ForeignKey('auth.User', related_name='assets', null=True)
+#     content = JSONField(null=True)
+#
+#     class Meta:
+#         db_table = 'kpi_asset'
+#         managed = False
 
-    @property
-    def kind(self):
-        return 'objectpermission'
 
-    class Meta:
-        db_table = 'kpi_objectpermission'
-        managed = False
+class SharedFieldSightForm(models.Model):
+    xf = models.OneToOneField(XForm, null=True)
+    shared = models.BooleanField(default=False)
 
-    def save(self, *args, **kwargs):
-        if self.permission.content_type_id is not self.content_type_id:
-            raise ValidationError('The content type of the permission does '
-                'not match that of the object.')
-        super(ObjectPermission, self).save(*args, **kwargs)
-
-    def __unicode__(self):
-        for required_field in ('user', 'permission'):
-            if not hasattr(self, required_field):
-                return u'incomplete ObjectPermission'
-        return u'{}{} {} {}'.format(
-            'inherited ' if self.inherited else '',
-            unicode(self.permission.codename),
-            'denied from' if self.deny else 'granted to',
-            unicode(self.user)
-        )
-
-
-class Asset(models.Model):
-    uid = KpiUidField(uid_prefix='a')
-
-    class Meta:
-        db_table = 'kpi_asset'
-        managed = False 
+    def get_shareable_link(self):
+        return settings.KPI_URL + '#/forms/' + self.xf.id_string
 
 

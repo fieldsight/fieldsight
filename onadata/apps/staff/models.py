@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import PermissionDenied
 from django.contrib.gis.db.models import PointField
+from jsonfield import JSONField
+
 # Create your models here.
 
 STAFF_TYPES = (
@@ -109,7 +111,6 @@ class Staff(models.Model):
     logs = GenericRelation('eventlog.FieldSightLog')
     is_deleted = models.BooleanField(default=False)
     IdPassDID = models.CharField(max_length=100, null=True, blank=True)
-    IdPassProof = models.TextField(null=True, blank=True)
 
     @property
     def latitude(self):
@@ -154,6 +155,7 @@ class Attendance(models.Model):
     is_deleted = models.BooleanField(default=False)
     location = PointField(geography=True, srid=4326, blank=True, null=True)
     logs = GenericRelation('eventlog.FieldSightLog')
+    id_pass_proof = JSONField(default=[])
 
     class Meta:
         unique_together = [('attendance_date', 'team', 'is_deleted'),]
