@@ -239,28 +239,6 @@ class ProjectTermsLabelsViewset(viewsets.ModelViewSet):
         else:
             return self.queryset
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-
-        if len(queryset) == 0:
-            data = [
-                        {
-                            "id": "",
-                            "donor": "",
-                            "site": "",
-                            "site_supervisor": "",
-                            "site_reviewer": "",
-                            "region": "",
-                            "region_supervisor": "",
-                            "region_reviewer": "",
-                            "project": ""
-                        }
-]
-            return Response(data)
-        else:
-            return Response(queryset.values('id', 'donor', 'site', 'site_supervisor', 'site_reviewer', 'region',
-                                            'region_supervisor', 'region_reviewer', 'project'))
-
 
 class ProjectRegionsViewset(viewsets.ModelViewSet):
     """
