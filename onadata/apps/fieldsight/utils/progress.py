@@ -113,6 +113,7 @@ def pull_integer_answer(form, xform_question, site):
 
 
 def set_site_progress(site, project, project_settings=None):
+    print("set site progress")
     progress = 0
     if not project_settings:
         project_settings = project.progress_settings.filter(deployed=True, active=True)
@@ -127,6 +128,7 @@ def set_site_progress(site, project, project_settings=None):
     elif project_settings.source == 2:
         form = FieldSightXF.objects.get(pk=project_settings.pull_integer_form)
         xform_question = project_settings.pull_integer_form_question
+        print(xform_question)
         progress = pull_integer_answer(form, xform_question, site)
     elif project_settings.source == 3:
         p = ("%.0f" % (site.site_instances.count() / (project_settings.no_submissions_total_count * 0.01)))
@@ -146,7 +148,6 @@ def set_site_progress(site, project, project_settings=None):
     if not progress:
         return
     site.current_progress = progress
-    site.site_progress = progress
     print(progress)
     site.save()
     if project_settings:
