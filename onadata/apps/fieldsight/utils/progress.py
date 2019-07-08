@@ -131,7 +131,7 @@ def set_site_progress(site, project, project_settings=None):
         print(xform_question)
         progress = pull_integer_answer(form, xform_question, site)
     elif project_settings.source == 3:
-        p = ("%.0f" % (site.site_instances.count() / (project_settings.no_submissions_total_count * 0.01)))
+        p = ("%.0f" % (site.site_instances.filter(form_status=3).count() / (project_settings.no_submissions_total_count * 0.01)))
         p = int(p)
         if p > 99:
             p = 100
@@ -139,7 +139,7 @@ def set_site_progress(site, project, project_settings=None):
 
     elif project_settings.source == 4:
         p = ("%.0f" % (site.site_instances.filter(
-            project_fxf_id=project_settings.no_submissions_form).count() / (
+            project_fxf_id=project_settings.no_submissions_form, form_status=3).count() / (
                 project_settings.no_submissions_total_count * 0.01)))
         p = int(p)
         if p > 99:
