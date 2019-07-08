@@ -235,7 +235,7 @@ class ProjectTermsLabelsViewset(viewsets.ModelViewSet):
         project_id = self.request.query_params.get('project', None)
         if project_id:
             project = get_object_or_404(Project, id=project_id)
-            return self.queryset.filter(project=project).values('site')
+            return self.queryset.filter(project=project)
         else:
             return self.queryset
 
