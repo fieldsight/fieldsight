@@ -146,6 +146,7 @@ def set_site_progress(site, project, project_settings=None):
     if not progress:
         return
     site.current_progress = progress
+    site.site_progress = progress
     print(progress)
     site.save()
     if project_settings:
