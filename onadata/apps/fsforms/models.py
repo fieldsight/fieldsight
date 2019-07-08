@@ -124,10 +124,11 @@ class Stage(models.Model):
     def get_sub_stage_list(self, sync_details=False, values_list=False):
         if not self.stage:
             qs= Stage.objects.select_related('stage_forms__xf').filter(stage=self)
-            if sync_details and values_list:
-                return qs.select_related('stage_forms__sync_schedule').filter(stage_forms__sync_schedule__isnull=False).values('stage_forms__sync_schedule__id', 'stage_forms__xf__title', 'stage_forms__sync_schedule__schedule', 'stage_forms__sync_schedule__date','stage_forms__sync_schedule__end_of_month')
-            else:
-                return qs.select_related('stage_forms__sync_schedule').filter(stage_forms__sync_schedule__isnull=False)
+            if sync_details:
+                if values_list:
+                    return qs.select_related('stage_forms__sync_schedule').filter(stage_forms__sync_schedule__isnull=False).values('stage_forms__sync_schedule__id', 'stage_forms__xf__title', 'stage_forms__sync_schedule__schedule', 'stage_forms__sync_schedule__date','stage_forms__sync_schedule__end_of_month')
+                else:
+                    return qs.select_related('stage_forms__sync_schedule').filter(stage_forms__sync_schedule__isnull=False)
 
             return qs.values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username')
         return []
