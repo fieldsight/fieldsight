@@ -559,28 +559,28 @@ class ProjectDefineSiteMeta(APIView):
         project.site_featured_images = request.data.get('site_featured_images')
 
         new_meta = project.site_meta_attributes
-        try:
-            if old_meta != new_meta:
-                deleted = []
+        # try:
+        if old_meta != new_meta:
+            deleted = []
 
-                for meta in old_meta:
-                    if meta not in new_meta:
-                        deleted.append(meta)
+            for meta in old_meta:
+                if meta not in new_meta:
+                    deleted.append(meta)
 
-                for other_project in Project.objects.filter(organization_id=project.organization_id):
+            for other_project in Project.objects.filter(organization_id=project.organization_id):
 
-                    for meta in other_project.site_meta_attributes:
+                for meta in other_project.site_meta_attributes:
 
-                        if meta['question_type'] == "Link":
-                            if str(project.id) in meta['metas']:
-                                for del_meta in deleted:
-                                    if del_meta in meta['metas'][str(project.id)]:
-                                        del meta['metas'][str(project.id)][meta['metas'][str(project.id)].index(del_meta)]
+                    if meta['question_type'] == "Link":
+                        if str(project.id) in meta['metas']:
+                            for del_meta in deleted:
+                                if del_meta in meta['metas'][str(project.id)]:
+                                    del meta['metas'][str(project.id)][meta['metas'][str(project.id)].index(del_meta)]
 
-                    other_project.save()
-            project.save()
+                other_project.save()
+        project.save()
 
-            return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
+        return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
 
-        except Exception as e:
-            return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
+        # except Exception as e:
+        #     return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
