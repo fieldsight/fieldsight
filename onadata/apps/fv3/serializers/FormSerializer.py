@@ -13,6 +13,7 @@ from datetime import datetime
 
 
 class XFormSerializer(serializers.ModelSerializer):
+    owner = serializers.SerializerMethodField()
     date_created = serializers.SerializerMethodField()
     date_modified = serializers.SerializerMethodField()
     edit_url = serializers.SerializerMethodField()
@@ -33,10 +34,13 @@ class XFormSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = XForm
-        fields = ('id_string','title', 'edit_url', 'preview_url', 'replace_url',
+        fields = ('id_string', 'title', 'owner', 'edit_url', 'preview_url', 'replace_url',
                   'download_url', 'media_url', 'date_created', 'date_modified', 'share_users_url',
                   'share_project_url', 'share_team_url', 'share_global_url', 'add_language_url',
                   'clone_form_url', 'delete_url', 'shareable_users_url', 'shareable_teams_url', 'shareable_projects_url')
+
+    def get_owner(self, obj):
+        return obj.user.username
 
     def get_date_created(self, obj):
         date_created = obj.date_created

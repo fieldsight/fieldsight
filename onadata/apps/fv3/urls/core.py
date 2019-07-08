@@ -10,7 +10,7 @@ from onadata.apps.fv3.viewsets.OrganizationViewSet import OrganizationViewSet
 from onadata.apps.fv3.viewsets.SiteViewSet import SiteViewSet, site_map, SiteSubmissionsViewSet
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, MyProjectFormsViewSet, ShareFormViewSet, \
     ShareProjectFormViewSet, ShareTeamFormViewSet, ShareGlobalFormViewSet, FormAddLanguageViewSet, CloneFormViewSet, \
-    MyFormDeleteViewSet, ShareUserListViewSet, ShareTeamListViewSet, ShareProjectListViewSet
+    MyFormDeleteViewSet, ShareUserListViewSet, ShareTeamListViewSet, ShareProjectListViewSet, MySharedFormViewSet
 
 from onadata.apps.fv3.viewsets.ReportViewsets import ReportVs
 
@@ -46,6 +46,7 @@ urlpatterns = [
     url(r'^api/project-define-site-meta/(?P<pk>\d+)/$', ProjectDefineSiteMeta.as_view(), name='project_define_site_meta'),
 
     url(r'^api/myforms/', MyFormsViewSet.as_view({'get':'list'}), name='my_forms'),
+    url(r'^api/sharedforms/', MySharedFormViewSet.as_view({'get':'list'}), name='my_shared_forms'),
     url(r'^api/myprojectforms/', MyProjectFormsViewSet.as_view({'get':'list'}), name='my_project_forms'),
 
 
