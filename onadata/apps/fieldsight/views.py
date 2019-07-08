@@ -4351,7 +4351,7 @@ class ProjectSyncScheduleUpdateView(UpdateView):
         return context
 
 
-class SyncScheduleCreateView(CreateView):
+class SyncScheduleCreateView(ProjectRoleMixin, CreateView):
     template_name = 'fieldsight/form_sync_schedule_form.html'
     model = SyncSchedule
     form_class = FieldsightFormGsuitSyncNewForm
@@ -4371,7 +4371,7 @@ class SyncScheduleCreateView(CreateView):
         return reverse('fieldsight:sync_schedule', kwargs={'pk': self.kwargs['pk']})
 
 
-class SyncScheduleUpdateView(UpdateView):
+class SyncScheduleUpdateView(ProjectRoleMixin, UpdateView):
     template_name = 'fieldsight/form_sync_schedule_form.html'
     model = SyncSchedule
     form_class = FieldsightFormGsuitSyncEditForm
@@ -4386,7 +4386,7 @@ class SyncScheduleUpdateView(UpdateView):
         return context
 
 
-class SyncScheduleDeleteView(DeleteView):
+class SyncScheduleDeleteView(ProjectRoleMixin, DeleteView):
     model = SyncSchedule
     
     def get_success_url(self):
