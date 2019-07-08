@@ -538,14 +538,19 @@ class ProjectGsuitSyncForm(forms.ModelForm):
 
     def clean(self):
         day = self.cleaned_data.get("gsuit_sync_date")
+        date = self.cleaned_data.get("date")
         schedule = self.cleaned_data.get("gsuit_sync")
         end_of_month = self.cleaned_data.get("gsuit_sync_end_of_month")
-        
+
         if end_of_month == True and schedule != "M":    
             raise forms.ValidationError(
                 "End of month must be unchecked."
             )
 
+        if day != "D" and date is None:    
+            raise forms.ValidationError(
+                "Date is required."
+            )
         super(ProjectGsuitSyncForm, self).clean()
 
        
@@ -574,13 +579,18 @@ class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
 
     def clean(self):
         day = self.cleaned_data.get("day")
-
+        date = self.cleaned_data.get("date")
         schedule = self.cleaned_data.get("schedule")
         end_of_month = self.cleaned_data.get("end_of_month")
         
         if end_of_month == True and schedule != "M":    
             raise forms.ValidationError(
                 "End of month must be unchecked."
+            )
+
+        if day != "D" and date is None:    
+            raise forms.ValidationError(
+                "Date is required."
             )
         super(FieldsightFormGsuitSyncNewForm, self).clean()
 
@@ -597,12 +607,18 @@ class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
 
     def clean(self):
         day = self.cleaned_data.get("day")
+        date = self.cleaned_data.get("date")
         schedule = self.cleaned_data.get("schedule")
         end_of_month = self.cleaned_data.get("end_of_month")
         
         if end_of_month == True and schedule != "M":    
             raise forms.ValidationError(
                 "End of month must be unchecked."
+            )
+
+        if day != "D" and date is None:    
+            raise forms.ValidationError(
+                "Date is required."
             )
         
         super(FieldsightFormGsuitSyncEditForm, self).clean()
