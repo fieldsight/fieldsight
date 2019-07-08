@@ -2079,7 +2079,7 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
 
         new_enddate = end + datetime.timedelta(days=1)
 
-                query = {}
+        query = {}
         query['pending'] = Sum(
             Case(
                 When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=0, supervisor__project_id=project_id, then=1),
