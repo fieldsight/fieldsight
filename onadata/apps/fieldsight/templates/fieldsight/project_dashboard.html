@@ -297,7 +297,7 @@ assigntoken(csrf_token);
 									</a>
 
 								{% else %}
-									<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>
+									<a class="dropdown-item" href="{% url 'fieldsight:application' %}?project={{obj.id}}#/project-sitelist"><i class="la la-map-marker"></i>
 										{% if terms_and_labels %}
 											Import {{obj.terms_and_labels.site}}
 										{% else %}
