@@ -554,12 +554,13 @@ class ProjectDefineSiteMeta(APIView):
 
         project = Project.objects.get(pk=pk)
         old_meta = project.site_meta_attributes
-        meta_history = ProjectMetaAttrHistory.objects.create(project=project, old_meta_attributes=old_meta)
         project.site_meta_attributes = request.data.get('json_questions')
         project.site_basic_info = request.data.get('site_basic_info')
         project.site_featured_images = request.data.get('site_featured_images')
 
         new_meta = project.site_meta_attributes
+
+        ProjectMetaAttrHistory.objects.create(old_meta_attributes=old_meta, new_meta_attributes=new_meta)
 
         # try:
         if old_meta != new_meta:
@@ -569,13 +570,6 @@ class ProjectDefineSiteMeta(APIView):
             for meta in old_meta:
                 if meta not in new_meta:
                     deleted.append(meta)
-
-            for meta in new_meta:
-                if meta not in old_meta:
-                    added.append(meta)
-
-            meta_history.deleted_key_value = deleted
-            meta_history.new_key_value = added
 
             for other_project in Project.objects.filter(organization_id=project.organization_id):
                 for meta in other_project.site_meta_attributes:
