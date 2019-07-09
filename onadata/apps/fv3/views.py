@@ -559,8 +559,7 @@ class ProjectDefineSiteMeta(APIView):
         project.site_featured_images = request.data.get('site_featured_images')
 
         new_meta = project.site_meta_attributes
-
-        ProjectMetaAttrHistory.objects.create(old_meta_attributes=old_meta, new_meta_attributes=new_meta, user=request.user)
+        ProjectMetaAttrHistory.objects.create(old_meta_attributes=old_meta, new_meta_atrributes=new_meta, user=request.user, project=project)
 
         # try:
         if old_meta != new_meta:
