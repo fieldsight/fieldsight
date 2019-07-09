@@ -752,7 +752,7 @@ class ProgressSettings(models.Model):
     )
     source = models.IntegerField(choices=CHOICES, default=0)
     pull_integer_form = models.IntegerField(blank=True, null=True)
-    pull_integer_form_question = models.CharField(max_length=31, null=True, blank=True)
+    pull_integer_form_question = models.CharField(max_length=255, null=True, blank=True)
     no_submissions_form = models.IntegerField(blank=True, null=True)
     no_submissions_total_count = models.IntegerField(null=True, blank=True)
     project = models.ForeignKey(Project, related_name="progress_settings")

@@ -31,6 +31,6 @@ class ProgressSettingsSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Total No of Submission Is Required")
             if source == 4 and not self.initial_data['no_submissions_form']:
                 raise serializers.ValidationError("Select Form which submission need to be track for site progress, no_submissions_form field")
-            else:
+            elif source == 3:
                 self.initial_data['no_submissions_form'] = None
         return source

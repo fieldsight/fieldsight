@@ -581,10 +581,13 @@ class ProjectDefineSiteMeta(APIView):
                 for meta in other_project.site_meta_attributes:
 
                     if meta['question_type'] == "Link":
-                        if str(project.id) in meta['metas']:
-                            for del_meta in deleted:
-                                if del_meta in meta['metas'][str(project.id)]:
-                                    del meta['metas'][str(project.id)][meta['metas'][str(project.id)].index(del_meta)]
+                        try:
+                            if str(project.id) in meta['metas']:
+                                for del_meta in deleted:
+                                    if del_meta in meta['metas'][str(project.id)]:
+                                        del meta['metas'][str(project.id)][meta['metas'][str(project.id)].index(del_meta)]
+                        except Exception as e:
+                            pass
 
                 other_project.save()
         project.save()
