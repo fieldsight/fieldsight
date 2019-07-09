@@ -790,6 +790,20 @@ class SiteMetaAttrHistory(models.Model):
         return "{} {}".format(self.site.name, self.date)
 
 
+class ProjectMetaAttrHistory(models.Model):
+    old_meta_attributes = JSONField(default=list)
+    new_meta_atrributes = JSONField(default=list)
+    project = models.ForeignKey(Project, related_name='meta_history')
+    date = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(User, related_name='meta_change', null=True, blank=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return "{} {}".format(self.project.name, self.date)
+
+
 @receiver(post_save, sender=ProgressSettings)
 def check_deployed(sender, instance, created,  **kwargs):
     if instance.deployed:

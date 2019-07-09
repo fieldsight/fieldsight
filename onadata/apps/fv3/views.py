@@ -17,7 +17,7 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from django.contrib.gis.geos import Point
-from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels
+from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels, ProjectMetaAttrHistory
 from onadata.apps.fsforms.models import FInstance, ProgressSettings
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
@@ -559,16 +559,19 @@ class ProjectDefineSiteMeta(APIView):
         project.site_featured_images = request.data.get('site_featured_images')
 
         new_meta = project.site_meta_attributes
+
+        ProjectMetaAttrHistory.objects.create(old_meta_attributes=old_meta, new_meta_attributes=new_meta)
+
         # try:
         if old_meta != new_meta:
             deleted = []
+            added = []
 
             for meta in old_meta:
                 if meta not in new_meta:
                     deleted.append(meta)
 
             for other_project in Project.objects.filter(organization_id=project.organization_id):
-
                 for meta in other_project.site_meta_attributes:
 
                     if meta['question_type'] == "Link":
