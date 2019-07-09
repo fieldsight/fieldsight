@@ -153,16 +153,29 @@ class ShareProjectFormViewSet(APIView):
                 from onadata.apps.fsforms.tasks import api_share_form
                 try:
                     with transaction.atomic():
-                        project = Project.objects.get(id=request.data['share_id'])
-                        userrole = UserRole.objects.filter(project=project,
-                                                           group__name__in=["Project Manager", "Organization Admin"],
-                                                           organization=project.organization,
-                                                           ended_at__isnull=True)
-                        users = User.objects.filter(user_roles__in=userrole)
-                        user_ids = []
-                        for item in users:
-                            user_ids.append(item.id)
-                        api_share_form.delay(xf.id, user_ids, task_obj.id)
+                        if isinstance(request.data['share_id'], list):
+                            project = Project.objects.filter(id__in=request.data['share_id'])
+                            userrole = UserRole.objects.filter(project__in=project,
+                                                               group__name__in=["Project Manager", "Organization Admin"],
+                                                               ended_at__isnull=True)
+                            users = User.objects.filter(user_roles__in=userrole)
+                            user_ids = []
+                            for item in users:
+                                user_ids.append(item.id)
+                            api_share_form.delay(xf.id, user_ids, task_obj.id)
+                        else:
+                            project = Project.objects.get(id=request.data['share_id'])
+                            userrole = UserRole.objects.filter(project=project,
+                                                               group__name__in=["Project Manager",
+                                                                                "Organization Admin"],
+                                                               organization=project.organization,
+                                                               ended_at__isnull=True)
+                            users = User.objects.filter(user_roles__in=userrole)
+                            user_ids = []
+                            for item in users:
+                                user_ids.append(item.id)
+                            api_share_form.delay(xf.id, user_ids, task_obj.id)
+
                 except IntegrityError:
                     pass
             return Response({"message": "Form shared successfully"}, status=status.HTTP_201_CREATED)
@@ -190,14 +203,26 @@ class ShareTeamFormViewSet(APIView):
                 from onadata.apps.fsforms.tasks import api_share_form
                 try:
                     with transaction.atomic():
-                        userrole = UserRole.objects.filter(organization_id=request.data['share_id'],
-                                                           group__name__in=["Project Manager", "Organization Admin"],
-                                                           ended_at__isnull=True)
-                        users = User.objects.filter(user_roles__in=userrole)
-                        user_ids = []
-                        for item in users:
-                            user_ids.append(item.id)
-                        api_share_form.delay(xf.id, user_ids, task_obj.id)
+                        if isinstance(request.data['share_id'], list):
+                            userrole = UserRole.objects.filter(organization_id__in=request.data['share_id'],
+                                                               group__name__in=["Project Manager", "Organization Admin"],
+                                                               ended_at__isnull=True)
+                            users = User.objects.filter(user_roles__in=userrole)
+                            user_ids = []
+                            for item in users:
+                                user_ids.append(item.id)
+                            api_share_form.delay(xf.id, user_ids, task_obj.id)
+                        else:
+                            userrole = UserRole.objects.filter(organization_id=request.data['share_id'],
+                                                               group__name__in=["Project Manager",
+                                                                                "Organization Admin"],
+                                                               ended_at__isnull=True)
+                            users = User.objects.filter(user_roles__in=userrole)
+                            user_ids = []
+                            for item in users:
+                                user_ids.append(item.id)
+                            api_share_form.delay(xf.id, user_ids, task_obj.id)
+
                 except IntegrityError:
                     pass
                 return Response({"message": "Form shared successfully."}, status=status.HTTP_201_CREATED)
