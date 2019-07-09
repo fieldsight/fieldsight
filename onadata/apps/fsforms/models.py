@@ -20,7 +20,7 @@ from pyxform import create_survey_from_xls, SurveyElementBuilder
 from pyxform.xform2json import create_survey_element_from_xml
 from xml.dom import Node
 
-from onadata.apps.fieldsight.models import Site, Project, Organization
+from onadata.apps.fieldsight.models import Site, Project, Organization, ProgressSettings
 from onadata.apps.fsforms.fieldsight_models import IntegerRangeField
 from onadata.apps.fsforms.utils import send_message, send_message_project_form, check_version
 # from onadata.apps.fsforms.share_xform import share_form
@@ -121,10 +121,18 @@ class Stage(models.Model):
     def active_substages(self):
         return self.parent.filter(stage_forms__isnull=False)
 
-    def get_sub_stage_list(self):
+    def get_sub_stage_list(self, sync_details=False, values_list=False):
         if not self.stage:
-            return Stage.objects.select_related('stage_forms__xf').filter(stage=self).values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username')
+            qs= Stage.objects.select_related('stage_forms__xf').filter(stage=self)
+            if sync_details:
+                if values_list:
+                    return qs.select_related('stage_forms__sync_schedule').filter(stage_forms__sync_schedule__isnull=False).values('stage_forms__sync_schedule__id', 'stage_forms__xf__title', 'stage_forms__sync_schedule__schedule', 'stage_forms__sync_schedule__date','stage_forms__sync_schedule__end_of_month')
+                else:
+                    return qs.select_related('stage_forms__sync_schedule').filter(stage_forms__sync_schedule__isnull=False)
+
+            return qs.values('stage_forms__id','name','stage_id', 'stage_forms__xf__id_string', 'stage_forms__xf__user__username')
         return []
+
 
     @property
     def xf(self):
@@ -387,6 +395,25 @@ def create_messages(sender, instance, created,  **kwargs):
     #         except IntegrityError as e:
     #             print(e)
 
+@receiver(post_save, sender=Stage)
+def update_site_progress(sender, instance, *args, **kwargs):
+    try:
+        fsxf =  instance.stage_forms
+        if fsxf.is_deployed:
+            if instance.project:
+                if ProgressSettings.objects.filter(project=instance.project, active=True, deployed=True).exists():
+                    progress_settings = ProgressSettings.objects.filter(
+                        project=fsxf.project, active=True, deployed=True)[0]
+                    if progress_settings.status in [0, 1]:
+                        from onadata.apps.fieldsight.tasks import update_sites_progress
+                        update_sites_progress.delay(progress_settings.id)
+            else:
+                from onadata.apps.fieldsight.utils.progress import set_site_progress
+                set_site_progress(instance.site,instance.site.project)
+    except:
+        pass
+
+
 @receiver(pre_delete, sender=FieldSightXF)
 def send_delete_message(sender, instance, using, **kwargs):
     if instance.project is not None:
@@ -398,6 +425,25 @@ def send_delete_message(sender, instance, using, **kwargs):
         send_message(fxf)
 
 post_save.connect(create_messages, sender=FieldSightXF)
+
+
+class SyncSchedule(models.Model):
+    MANUAL = "NA"
+    DAILY = "D"
+    WEEKLY = "W"
+    FORTNIGHT = "F"
+    MONTHLY = "M"
+    SCHEDULES = [
+        (MANUAL, "Manual"),
+        (DAILY, "Daily"),
+        (WEEKLY, "Weekly"),
+        (FORTNIGHT, "Fortnightly"),
+        (MONTHLY, "Monthly"),
+    ]
+    fxf = models.OneToOneField(FieldSightXF, related_name="sync_schedule")
+    schedule = models.CharField(choices=SCHEDULES,  default=MONTHLY, max_length=2)
+    date = models.DateField(blank=True, null=True)
+    end_of_month = models.BooleanField(default=False)
 
 
 class FieldSightParsedInstance(ParsedInstance):
@@ -954,58 +1000,58 @@ class KpiUidField(models.CharField):
         return value
 
 
-# class ObjectPermission(models.Model):
-#     ''' An application of an auth.Permission instance to a specific
-#     content_object. Call ObjectPermission.objects.get_for_object() or
-#     filter_for_object() to run queries using the content_object field. '''
-#     user = models.ForeignKey('auth.User')
-#     permission = models.ForeignKey('auth.Permission')
-#     deny = models.BooleanField(
-#         default=False,
-#         help_text='Blocks inheritance of this permission when set to True'
-#     )
-#     inherited = models.BooleanField(default=False)
-#     object_id = models.PositiveIntegerField()
-#     # We can't do something like GenericForeignKey('permission__content_type'),
-#     # so duplicate the content_type field here.
-#     content_type = models.ForeignKey(ContentType)
-#     content_object = GenericForeignKey('content_type', 'object_id')
-#     uid = KpiUidField(uid_prefix='p')
-#
-#     @property
-#     def kind(self):
-#         return 'objectpermission'
-#
-#     class Meta:
-#         db_table = 'kpi_objectpermission'
-#         managed = False
-#
-#     def save(self, *args, **kwargs):
-#         if self.permission.content_type_id is not self.content_type_id:
-#             raise ValidationError('The content type of the permission does '
-#                 'not match that of the object.')
-#         super(ObjectPermission, self).save(*args, **kwargs)
-#
-#     def __unicode__(self):
-#         for required_field in ('user', 'permission'):
-#             if not hasattr(self, required_field):
-#                 return u'incomplete ObjectPermission'
-#         return u'{}{} {} {}'.format(
-#             'inherited ' if self.inherited else '',
-#             unicode(self.permission.codename),
-#             'denied from' if self.deny else 'granted to',
-#             unicode(self.user)
-#         )
-#
-#
-# class Asset(models.Model):
-#     uid = KpiUidField(uid_prefix='a')
-#     owner = models.ForeignKey('auth.User', related_name='assets', null=True)
-#     content = JSONField(null=True)
-#
-#     class Meta:
-#         db_table = 'kpi_asset'
-#         managed = False
+class ObjectPermission(models.Model):
+    ''' An application of an auth.Permission instance to a specific
+    content_object. Call ObjectPermission.objects.get_for_object() or
+    filter_for_object() to run queries using the content_object field. '''
+    user = models.ForeignKey('auth.User')
+    permission = models.ForeignKey('auth.Permission')
+    deny = models.BooleanField(
+        default=False,
+        help_text='Blocks inheritance of this permission when set to True'
+    )
+    inherited = models.BooleanField(default=False)
+    object_id = models.PositiveIntegerField()
+    # We can't do something like GenericForeignKey('permission__content_type'),
+    # so duplicate the content_type field here.
+    content_type = models.ForeignKey(ContentType)
+    content_object = GenericForeignKey('content_type', 'object_id')
+    uid = KpiUidField(uid_prefix='p')
+
+    @property
+    def kind(self):
+        return 'objectpermission'
+
+    class Meta:
+        db_table = 'kpi_objectpermission'
+        managed = False
+
+    def save(self, *args, **kwargs):
+        if self.permission.content_type_id is not self.content_type_id:
+            raise ValidationError('The content type of the permission does '
+                'not match that of the object.')
+        super(ObjectPermission, self).save(*args, **kwargs)
+
+    def __unicode__(self):
+        for required_field in ('user', 'permission'):
+            if not hasattr(self, required_field):
+                return u'incomplete ObjectPermission'
+        return u'{}{} {} {}'.format(
+            'inherited ' if self.inherited else '',
+            unicode(self.permission.codename),
+            'denied from' if self.deny else 'granted to',
+            unicode(self.user)
+        )
+
+
+class Asset(models.Model):
+    uid = KpiUidField(uid_prefix='a')
+    owner = models.ForeignKey('auth.User', related_name='assets', null=True)
+    content = JSONField(null=True)
+
+    class Meta:
+        db_table = 'kpi_asset'
+        managed = False
 
 
 class SharedFieldSightForm(models.Model):

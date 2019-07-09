@@ -24,6 +24,36 @@ def create_instance_from_xml(request, fsid, site, fs_proj_xf, proj_id, xform):
     media_files = request.FILES.values()
     return safe_create_instance(fsid, xml_file, media_files, None, request, site, fs_proj_xf, proj_id, xform)
 
+def update_meta_details(fs_proj_xf):
+    try:
+        site = fs_proj_xf.site
+        if fs_proj_xf.id in fs_proj_xf.project.site_basic_info.get('active_forms', []):
+            site_pictue = site.project.site_basic_info.get('site_picture', None)
+            if site_picture and site_picture.get('question_type', '') == 'form' and site_picture.get('form_id', 0) > fs_proj_xf.id and site_picture.get('question', {}):
+                question_name = site_picture['question'].get('question_name', '')
+                logo_url = instance.json.get(question_name)
+                if logo_url:
+                    site.logo_url.name = logo_url
+
+            site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
+            if site_loc and site_loc.get('question_type', '') == 'form' and site_loc.get('form_id', 0) > fs_proj_xf.id and site_loc.get('question', {}):
+                question_name = site_loc['question'].get('question_name', '')
+                location = instance.json.get(question_name)
+                if location:
+                    site.location = location
+
+            for featured_img in fs_proj_xf.project.site_featured_images:
+                if featured_img.get('question_type', '') == 'form' and featured_img.get('form_id', 0) > fs_proj_xf.id and featured_img.get('question', {}):
+                    
+                    question_name = featured_img['question'].get('question_name', '')
+                    logo_url = instance.json.get(question_name)
+                    if logo_url:
+                        site.site_featured_images[question_name] = logo_url
+
+
+            site.save()
+    except:
+        pass
 
 class FSXFormSubmissionApi(XFormSubmissionApi):
     serializer_class = FieldSightSubmissionSerializer
@@ -81,6 +111,7 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                                                                  extra_message="project",
                                                                  content_object=instance.fieldsight_instance)
                     else:
+                        update_meta_details(fs_proj_xf)
                         site = Site.objects.get(pk=siteid)
                         instance.fieldsight_instance.logs.create(source=self.request.user, type=16,
                                                                  title="new Site level Submission",
@@ -198,6 +229,7 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
                                                             extra_message="project",
                                                             content_object=instance.fieldsight_instance)
             else:
+                update_meta_details(fs_proj_xf)
                 site = Site.objects.get(pk=siteid)
                 instance.fieldsight_instance.logs.create(source=self.request.user, type=16, title="new Site level Submission",
                                            organization=fs_proj_xf.project.organization,

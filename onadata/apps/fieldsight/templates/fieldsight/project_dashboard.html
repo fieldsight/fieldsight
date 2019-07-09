@@ -297,7 +297,7 @@ assigntoken(csrf_token);
 									</a>
 
 								{% else %}
-									<a class="dropdown-item" href="{% url 'fieldsight:proj-site-list' obj.id%}"><i class="la la-map-marker"></i>
+									<a class="dropdown-item" href="{% url 'fieldsight:application' %}?project={{obj.id}}#/project-sitelist"><i class="la la-map-marker"></i>
 										{% if terms_and_labels %}
 											Import {{obj.terms_and_labels.site}}
 										{% else %}
@@ -305,7 +305,7 @@ assigntoken(csrf_token);
 										{% endif %}
 									</a>
 								{% endif %}
-								<a class="dropdown-item" href="{% url 'fieldsight:project-edit' obj.pk %}"><i class="la la-clipboard"></i> {% trans 'Settings' %}</a>
+								<a class="dropdown-item" href="{% url 'fieldsight:application' %}?project={{obj.pk}}#/project-settings"><i class="la la-clipboard"></i> {% trans 'Settings' %}</a>
 
 
 								
@@ -349,7 +349,7 @@ assigntoken(csrf_token);
 										</a>
 									</li>
 									<li>
-										<a href="{% url 'fieldsight:proj-site-list' obj.id%}" title="" class="org-profile-stat-item">
+										<a href="{% url 'fieldsight:application' %}?project={{obj.id}}#/project-sitelist " title="" class="org-profile-stat-item">
 											<i class="la la-map-marker"></i>
 											<div class="org-mini-stat-info">
 												<span>{{total_sites}}</span>

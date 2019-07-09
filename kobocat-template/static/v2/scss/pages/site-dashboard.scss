@@ -1,0 +1,45 @@
+.fieldsight-new{
+    .new-dashboard{
+        .recent-photo{
+            .photo-item{
+                position: relative;
+                figure{
+                    img{
+                        max-height: 201px;
+                    }
+                }
+                figcaption{
+                    @include overlay;
+                    background-color: rgba($color-primary,0.5);
+                    @include flexvr;
+                    @include animZoom-before;
+                    @include anim05;
+                    opacity: 0;
+                    visibility: hidden;
+                    a{
+                        width:24px;
+                        height: 24px;
+                        @include flexvr;
+                        background-color: $color-blue;
+                        color:$color-white;
+                        @include radius4;
+                        @include anim03;
+                        @include backface;
+                        &:hover{
+                            background-color:$color-yellow;
+                            
+                        }
+                    }
+                }
+                &:hover{
+                    figcaption{
+                        opacity: 1;
+                        visibility: visible;
+                        @include animZoom-after;
+                        @include backface;
+                    }
+                }
+            }
+        }
+    }
+}

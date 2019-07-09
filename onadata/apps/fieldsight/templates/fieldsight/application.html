@@ -1,0 +1,30 @@
+{% extends "fieldsight/fieldsight_base.html" %}
+{% load i18n staticfiles %}
+{% load filters %}
+{% block page-title %}{% trans 'Dashboard' %}{% endblock %}
+
+{%block extracss %}
+<link rel="stylesheet" href="{% static 'application/main.css' %}?v=19_06_2019">
+{% endblock %}
+
+{% block content %}
+
+	<div id="app" class="padding">
+
+	</div>
+
+{% endblock %}
+
+{% block extrascript %}
+	<script>
+		var project_id = "{{project.id}}";
+		var organization_id = "{{organization}}";
+		var project_name = "{{project.name}}";
+		var base_url = "{{base_url}}";
+
+	</script>
+
+	<script type="text/javascript" src="{{ STATIC_URL }}application/main.js?v=19_06_2019"></script>
+{% endblock %}
+
+

@@ -9,7 +9,8 @@ from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType
+from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings
+from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
 from channels import Group as ChannelGroup
@@ -74,7 +75,25 @@ def cleanhtml(raw_html):
 class DriveException(Exception):
     pass
 
-def upload_to_drive(file_path, title, folder_title, project):
+@shared_task()
+def gsuit_assign_perm(title, emails):
+    time.sleep(5)
+    try:
+        gauth = GoogleAuth()
+        drive = GoogleDrive(gauth)
+        file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()[0]
+        for perm in emails:
+            time.sleep(1)
+            file.InsertPermission({
+                'type':'user',
+                'value':perm,
+                'role': 'writer'
+            })
+    except:
+        pass
+
+
+def upload_to_drive(file_path, title, folder_title, project, user):
     # pass
     """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
     try:
@@ -106,7 +125,15 @@ def upload_to_drive(file_path, title, folder_title, project):
         
         _project = Project.objects.get(pk=project.id) 
         gsuit_meta = _project.gsuit_meta
-        gsuit_meta[folder_title] = {'link':file['alternateLink'], 'updated_at':datetime.datetime.now().isoformat()}
+        gsuit_meta[folder_title] = {
+            'link':file['alternateLink'],
+            'updated_at':datetime.datetime.now().isoformat(),
+        }
+        if user:
+            gsuit_meta[folder_title]['user'] = {
+                'username': user.username,
+                'full_name': user.get_full_name()
+            }
         _project.gsuit_meta = gsuit_meta
         _project.save()
         permissions = file.GetPermissions()
@@ -129,29 +156,21 @@ def upload_to_drive(file_path, title, folder_title, project):
             if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "exports.fieldsight@gmail.com":
                 file.DeletePermission(permission['id'])
 
-        # file.InsertPermission({
-        #             'type':'user',
-        #             'value':'aashish.baidya.c3@gmail.com',
-        #             'role': 'writer'
-        #         })
-
-        # file.InsertPermission({
-        #             'type':'user',
-        #             'value':'skhatri.np@gmail.com',
-        #             'role': 'writer'
-        #         })
-
-
-        for perm in perm_to_add:
-            file.InsertPermission({
-                        'type':'user',
-                        'value':perm,
-                        'role': 'writer'
-                    })
-
+        try:
+            index = 0
+            for perm in perm_to_add:
+                file.InsertPermission({
+                            'type':'user',
+                            'value':perm,
+                            'role': 'writer'
+                        })
+                index += 1
+        except:
+            gsuit_assign_perm.delay(title, perm[index:])
 
     except Exception as e:
         raise DriveException({"message":e})
+
 
 
 @shared_task()
@@ -350,7 +369,7 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         task.save()
         
         if sync_to_drive:
-            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project)
+            upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id), "{} - Progress Report".format(project.id), "Site Progress", project, task.user)
 
             noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report sync to Google Drive",
                                    recipient=task.user, content_object=project, extra_object=project,
@@ -965,7 +984,7 @@ def generateSiteDetailsXls(task_prog_obj_id, project_id, region_ids, type_ids=No
             with open(temporarylocation,'wb') as out: ## Open temporary file as bytes
                 out.write(xls)                ## Read bytes into file
 
-            upload_to_drive(temporarylocation, "{} - Site Information".format(project.id), "Site Information", project)
+            upload_to_drive(temporarylocation, "{} - Site Information".format(project.id), "Site Information", project, task.user)
 
             os.remove(temporarylocation)
 
@@ -1931,9 +1950,18 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                     data[index[status_day['date'].strftime("%Y-%m-%d")]][12] = int(status_day['re_rejected'])
                     data[index[status_day['date'].strftime("%Y-%m-%d")]][13] = int(status_day['re_flagged'])
 
+
+            for status_month in status_months:
+                data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
+                data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
+                data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
+                data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
+                data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
+
             truncate_date = connection.ops.date_trunc_sql('day', 'date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
             forms_stats=forms.values('date_created').annotate(dcount=Count('user_id', distinct=True))
+
 
             for month_stat in forms_stats:
                 if month_stat['date_created'].strftime("%Y-%m-%d") in index:
@@ -1945,7 +1973,6 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
         if reportType == "Weekly":
             weekly_data = [["Week No.", "Week Start", "Week End", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions", "Submission Reviews",  "Resolved Submissions", "Approved Reviews", "Rejected Reviews", "Flagged Reviews"]]
-
             weekcount = 0
             for value in data[1:]:
                 day = datetime.datetime.strptime(value[0], "%Y-%m-%d").weekday() + 1
@@ -1968,6 +1995,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 weekly_data[weekcount][12] += value[11]
                 weekly_data[weekcount][13] += value[12]
                 weekly_data[weekcount][14] += value[13]
+
                  
 
             for value in weekly_data:
@@ -2504,6 +2532,60 @@ def check_usage_rates():
                     warning_overage_emails_monthly.apply_async(
                         args=[subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email],
                         eta=after_one_month)
+import calendar
+from django.utils import timezone
+
+def sync_form(fxf):
+    #sync
+    create_async_export(xform, export_type, query, force_xlsx, options, is_project, id, site_id, version, sync_to_gsuit, user)
+
+    pass
+
+def sync_form_controller(sync_type, sync_day, fxf, month_days):
+    date = timezone.date()
+    if sync_type == Project.MONTHLY:
+        if date.day == sync_day or sync_day > month_days:
+            sync_form(fxf)
+
+    elif sync_type == project.FORTNIGHT:
+        pass
+
+    elif sync_type == WEEKLY:
+        if (((date.weekday() + 1) % 7) + 1) == sync_day:
+            sync_form(fxf)
+    else:
+        sync_form(fxf)
+
+@shared_task(time_limit=300, soft_time_limit=300)
+def update_sites_progress(pk, task_id):
+    try:
+        time.sleep(3)
+        obj = ProgressSettings.objects.get(pk=pk)
+        project = obj.project
+        total_sites = project.sites.count()
+        page_size = 1000
+        page = 0
+        while total_sites > 0:
+            sites = project.sites.all()[page*page_size:(page+1)*page_size]
+            print("updating site progress batch", page*page_size, (page+1)*page_size)
+            for site in sites:
+                set_site_progress(site, project, obj)
+            total_sites -= page_size
+            page += 1
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+def scheduled_gsuit_sync():
+    month_days = calendar.monthrange(now.year, now.month)[1]
+    projects = Project.objects.filter(is_active=True).exclude(gsuit_sync=Project.MANUAL)
 
+    for project in projects:
+        #generate reports
+        for fxf in project.project_forms.exclude(sync_schedule__schedule=Project.MANUAL):
+            if fxf.sync_schedule:
+                sync_form(fxf.sync_schedule.schedule, fxf.sync_schedule.day, fxf, month_days)
+            else:
+                sync_form_controller(project.gsuit_sync, project.gsuit_sync_day, fxf, month_days)
+        project.gsuit_sync

@@ -64,6 +64,9 @@ class SignUpForm(forms.Form):
             if letter.isupper():
                 raise ValidationError('Username must only include small letters')
 
+        if username.__contains__(" "):
+            raise ValidationError('Username must not contains space.')
+
         if User.objects.filter(username=username):
             raise ValidationError('User with this username already exists')
         else:

@@ -14,7 +14,7 @@ from registration import forms as registration_forms
 
 from onadata.apps.fieldsight.helpers import AdminImageWidget
 from .utils.forms import HTML5BootstrapModelForm, KOModelForm
-
+from django.forms import ModelChoiceField 
 from .models import Organization, Project, Site, BluePrints, Region, SiteType, Sector
 from onadata.apps.geo.models import GeoLayer
 
@@ -25,6 +25,7 @@ import mimetypes
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Q
+from onadata.apps.fsforms.models import SyncSchedule, FieldSightXF
 
 USERNAME_REGEX = r'^[a-z][a-z0-9_]+$'
 USERNAME_MAX_LENGTH = 30
@@ -286,7 +287,7 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         exclude = ('organization', 'is_active', 'site_meta_attributes', 'gsuit_meta', 'geo_layers', 'fax',
-                   'additional_desc', 'type')
+                   'additional_desc', 'type', 'site_basic_info', 'site_featured_images', 'gsuit_sync')
         #organization_filters = ['organization']
         widgets = {
             'is_active': forms.HiddenInput(),
@@ -364,7 +365,8 @@ class SiteForm(HTML5BootstrapModelForm, KOModelForm):
 
     class Meta:
         model = Site
-        exclude = ('project', 'is_survey', 'is_active', 'region', 'current_status', 'current_progress', 'additional_desc')
+        exclude = ('project', 'is_survey', 'is_active', 'region', 'current_status', 'current_progress', 'additional_desc',
+                   'site_featured_images')
        
         project_filters = ['type']
         widgets = {
@@ -523,3 +525,101 @@ class SiteBulkEditForm(forms.Form):
 
             self.fields[q_name] = field
 
+
+class ProjectGsuitSyncForm(forms.ModelForm):
+    
+    class Meta:
+        model = Project
+        fields = ('gsuit_sync', 'gsuit_sync_date', 'gsuit_sync_end_of_month')
+        labels = {
+            'gsuit_sync': _('Project sync Schedule type'),
+            'gsuit_sync_date': _('Project sync start date'),
+            'gsuit_sync_end_of_month': _('Sync at the end of month only'),
+        }
+
+    def clean(self):
+        day = self.cleaned_data.get("gsuit_sync_date")
+        date = self.cleaned_data.get("date")
+        schedule = self.cleaned_data.get("gsuit_sync")
+        end_of_month = self.cleaned_data.get("gsuit_sync_end_of_month")
+
+        if end_of_month == True and schedule != "M":    
+            raise forms.ValidationError(
+                "End of month must be unchecked."
+            )
+
+        if day != "D" and date is None:    
+            raise forms.ValidationError(
+                "Date is required."
+            )
+        super(ProjectGsuitSyncForm, self).clean()
+
+       
+class FieldsightXFChoiceField(ModelChoiceField):
+    def label_from_instance(self, obj):
+        return obj.xf.title
+
+class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
+    fxf = FieldsightXFChoiceField(queryset=None)
+
+    def __init__(self, *args, **kwargs):
+        project_id = kwargs.pop('pk')
+        super(FieldsightFormGsuitSyncNewForm, self).__init__(*args, **kwargs)  
+        self.fields['fxf'].queryset = FieldSightXF.objects.filter(project_id=project_id, sync_schedule__isnull=True)
+
+    class Meta:
+        model = SyncSchedule
+        fields = ('fxf', 'schedule', 'date', 'end_of_month',)
+        labels = {
+            'fxf': _('Select Form'),
+            'schedule': _('Sync Schedule type'),
+            'date': _('Sync start date'),
+            'end_of_month': _('Sync at the end of month only'),
+        }
+
+
+    def clean(self):
+        day = self.cleaned_data.get("day")
+        date = self.cleaned_data.get("date")
+        schedule = self.cleaned_data.get("schedule")
+        end_of_month = self.cleaned_data.get("end_of_month")
+        
+        if end_of_month == True and schedule != "M":    
+            raise forms.ValidationError(
+                "End of month must be unchecked."
+            )
+
+        if day != "D" and date is None:    
+            raise forms.ValidationError(
+                "Date is required."
+            )
+        super(FieldsightFormGsuitSyncNewForm, self).clean()
+
+class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
+    
+    class Meta:
+        model = SyncSchedule
+        fields = ('schedule', 'date', 'end_of_month',)
+        labels = {
+            'schedule': _('Sync Schedule type'),
+            'date': _('Sync start date'),
+            'end_of_month': _('Sync at the end of month only'),
+        }
+
+    def clean(self):
+        day = self.cleaned_data.get("day")
+        date = self.cleaned_data.get("date")
+        schedule = self.cleaned_data.get("schedule")
+        end_of_month = self.cleaned_data.get("end_of_month")
+        
+        if end_of_month == True and schedule != "M":    
+            raise forms.ValidationError(
+                "End of month must be unchecked."
+            )
+
+        if day != "D" and date is None:    
+            raise forms.ValidationError(
+                "Date is required."
+            )
+        
+        super(FieldsightFormGsuitSyncEditForm, self).clean()

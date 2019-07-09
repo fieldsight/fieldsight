@@ -18,7 +18,7 @@ from onadata.libs.utils.export_tools import generate_export,\
 from onadata.libs.utils.logger_tools import mongo_sync_status, report_exception
 
 
-def create_async_export(xform, export_type, query, force_xlsx, options=None, is_project=None, id=None, site_id=None, version="0", sync_to_gsuit=False):
+def create_async_export(xform, export_type, query, force_xlsx, options=None, is_project=None, id=None, site_id=None, version="0", sync_to_gsuit=False, user=None):
     username = xform.user.username
     id_string = xform.id_string
 
@@ -36,7 +36,8 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None, is_
         'id_string': id_string,
         'export_id': export.id,
         'query': query,
-        'sync_to_gsuit': sync_to_gsuit
+        'sync_to_gsuit': sync_to_gsuit,
+        'user': user
     }
     if export_type in [Export.XLS_EXPORT, Export.GDOC_EXPORT,
                        Export.CSV_EXPORT, Export.CSV_ZIP_EXPORT,
@@ -100,7 +101,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None, is_
 def create_xls_export(username, id_string, export_id, query=None,
                       force_xlsx=True, group_delimiter='/',
                       split_select_multiples=True,
-                      binary_select_multiples=False, sync_to_gsuit=False):
+                      binary_select_multiples=False, sync_to_gsuit=False, user=None):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
     ext = 'xls' if not force_xlsx else 'xlsx'
@@ -115,7 +116,7 @@ def create_xls_export(username, id_string, export_id, query=None,
     try:
         gen_export = generate_export(
             Export.XLS_EXPORT, ext, username, id_string, export_id, query,
-            group_delimiter, split_select_multiples, binary_select_multiples, sync_to_gsuit)
+            group_delimiter, split_select_multiples, binary_select_multiples, sync_to_gsuit, user)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()

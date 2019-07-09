@@ -22,6 +22,9 @@ from django.forms.forms import NON_FIELD_ERRORS
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 
+
+from django.db.models import Sum, Case, When, IntegerField, Count
+
 import django_excel as excel
 from registration.backends.default.views import RegistrationView
 from rest_framework import status
@@ -52,7 +55,7 @@ from .models import ProjectGeoJSON, Organization, Project, Site, BluePrints, Use
     ProjectType, Sector, ProjectLevelTermsAndLabels
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
-                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm)
+                    SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm, ProjectGsuitSyncForm, FieldsightFormGsuitSyncEditForm, FieldsightFormGsuitSyncNewForm )
 
 from onadata.apps.subscriptions.models import Subscription, Customer, Package
 from django.views.generic import TemplateView
@@ -80,7 +83,7 @@ from onadata.apps.staff.models import Team
 from .metaAttribsGenerator import generateSiteMetaAttribs
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from onadata.apps.fsforms.models import SyncSchedule
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -411,7 +414,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
     @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if request.group.name == "Super Admin" or request.group.name == "Unassigned":
+            if request.group.name == "Super Admin" or request.group.name == "form_fform_orm_Unassiform_form_form_form_form_form_form_gned":
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
@@ -2066,10 +2069,9 @@ class ProjectSummaryReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         return render(request, 'fieldsight/project_summary_report.html', dashboard_data)
 
 
-class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
+class UserActivityReport(ProjectRoleMixin, TemplateView):
 
     def get(self, request, pk, *args, **kwargs):
-        user = User.objects.get(pk=self.kwargs.get('user_id'))
         start_date = self.kwargs.get('start_date')
         end_date = self.kwargs.get('end_date')
         split_startdate = start_date.split('-')
@@ -2080,6 +2082,57 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
 
         new_enddate = end + datetime.timedelta(days=1)
 
+        query = {}
+        query['pending'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=0, supervisor__project_id=pk, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['rejected'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=1, supervisor__project_id=pk, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['flagged'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=2, supervisor__project_id=pk, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['approved'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate],supervisor__form_status=3, supervisor__project_id=pk, then=1),
+                default=0, output_field=IntegerField()
+            ))    
+
+        query['re_approved'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__new_status=3, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['re_rejected'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__new_status=1, then=1),
+                default=0, output_field=IntegerField()
+            ))        
+
+        query['re_flagged'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__new_status=2, then=1),
+                default=0, output_field=IntegerField()
+            ))        
+
+        query['resolved'] = Sum(
+            Case(
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=pk, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+
+        user = User.objects.filter(pk=self.kwargs.get('user_id')).annotate(**query).first()
         roles = user.user_roles.filter(project_id=pk, ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
         # recent_images = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": "santoshkhatri"}, "start": { 
         #                     '$gte' : new_startdate.isoformat(),
@@ -2123,7 +2176,6 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
         pending = submission_queryset.filter(form_status=0).count()
         flagged = submission_queryset.filter(form_status=2).count()
              
-
         total_submissions = submission_queryset.count()
         submissions = submission_queryset.values_list(
             'project_fxf__xf__title',
@@ -2197,7 +2249,13 @@ class UserActivityReport(LoginRequiredMixin, ProjectRoleMixin, TemplateView):
             'pending': pending,
             'rejected': rejected,
             'flagged': flagged,
-            'approved': approved
+            
+            're_total': user.re_approved + user.re_rejected + user.re_flagged,
+            'resolved': user.resolved,
+            're_approved': user.re_approved,
+            're_rejected': user.re_rejected,
+            're_flagged': user.re_flagged,
+
         }
         return render(request, 'fieldsight/user_activity_report.html', dashboard_data)
 
@@ -3018,17 +3076,23 @@ class DefineProjectSiteMeta(RegionSupervisorReviewerMixin, TemplateView):
         project_obj = Project.objects.get(pk=pk)
         level = "1"
         json_questions = json.dumps(project_obj.site_meta_attributes)
+        site_basic_info = json.dumps(project_obj.site_basic_info)
+        site_featured_images = json.dumps(project_obj.site_featured_images)
+        
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project_obj).exists()
 
         return render(request, 'fieldsight/project_define_site_meta.html', {'obj': project_obj, 'json_questions':
-            json_questions, 'level': level, 'terms_and_labels': terms_and_labels})
+            json_questions, 'level': level, 'site_basic_info': site_basic_info, 'site_featured_images': site_featured_images, 'terms_and_labels': terms_and_labels})
+
 
     def post(self, request, pk, *args, **kwargs):
         project = Project.objects.get(pk=pk)
         old_meta = project.site_meta_attributes
-        # print old_meta
+        # print old_meta===================================
         # print "----"
         project.site_meta_attributes = request.POST.get('json_questions');
+        project.site_basic_info = request.POST.get('site_basic_info');
+        project.site_featured_images = request.POST.get('site_featured_images');
         new_meta = json.loads(project.site_meta_attributes)
         # print new_meta
         updated_json = None
@@ -4191,77 +4255,75 @@ class UnassignUserRegionAndSites(View):
     def post(self, request, pk, **kwargs):
         data = json.loads(self.request.body)
         ids = data.get('ids')
-        try:
-            projects = [k for k in ids if 'p' in str(k)]
 
-            ids = list(set(ids) - set(projects))
-            regions = [k for k in ids if 'r' in str(k)]
-            sites = list(set(ids) - set(regions))
-            user_id= pk
-            group_id = data.get('group')
+        projects = [k for k in ids if 'p' in str(k)]
 
-            status, data = 200, {'status':'false','message':'PermissionDenied. You do not have sufficient rights.'}
+        ids = list(set(ids) - set(projects))
+        regions = [k for k in ids if 'r' in str(k)]
+        sites = list(set(ids) - set(regions))
+        user_id= pk
+        group_id = data.get('group')
 
-            if request.group.name != "Super Admin":
+        status, data = 200, {'status':'false','message':'PermissionDenied. You do not have sufficient rights.'}
 
-                request_usr_org_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=1).order_by('organization_id').distinct('organization_id').values_list('organization_id', flat=True)
-                if not request_usr_org_role:
+        if request.group.name != "Super Admin":
 
-                    request_usr_project_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=2).order_by('project_id').distinct('project_id').values_list('project_id', flat=True)
-                    if not request_usr_project_role:
+            request_usr_org_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=1).order_by('organization_id').distinct('organization_id').values_list('organization_id', flat=True)
+            if not request_usr_org_role:
+
+                request_usr_project_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=2).order_by('project_id').distinct('project_id').values_list('project_id', flat=True)
+                if not request_usr_project_role:
+                    return JsonResponse(data, status=status)
+                if projects:
+                    project_ids = [k[1:] for k in projects]
+                    if not set(project_ids).issubset(set(request_usr_project_role)):
                         return JsonResponse(data, status=status)
-                    if projects:
-                        project_ids = [k[1:] for k in projects]
-                        if not set(project_ids).issubset(set(request_usr_project_role)):
-                            return JsonResponse(data, status=status)
 
-                    if regions:
-                        region_ids = [k[1:] for k in regions]
+                if regions:
+                    region_ids = [k[1:] for k in regions]
 
-                        if len(region_ids) != Region.objects.filter(pk__in=region_ids, project_id__in=request_usr_project_role).count():
-                            return JsonResponse(data, status=status)
+                    if len(region_ids) != Region.objects.filter(pk__in=region_ids, project_id__in=request_usr_project_role).count():
+                        return JsonResponse(data, status=status)
 
 
-                    if sites:
-                        if len(sites) != Site.objects.filter(pk__in=sites, project_id__in=request_usr_project_role).count():
-                            return JsonResponse(data, status=status)
+                if sites:
+                    if len(sites) != Site.objects.filter(pk__in=sites, project_id__in=request_usr_project_role).count():
+                        return JsonResponse(data, status=status)
 
 
-                else:
+            else:
 
-                    if projects:
-                        project_ids = [k[1:] for k in projects]
+                if projects:
+                    project_ids = [k[1:] for k in projects]
 
-                        if len(project_ids) != Project.objects.filter(pk__in=project_ids, organization_id__in=request_usr_org_role).count():
-                            return JsonResponse(data, status=status)
+                    if len(project_ids) != Project.objects.filter(pk__in=project_ids, organization_id__in=request_usr_org_role).count():
+                        return JsonResponse(data, status=status)
 
-                    if regions:
-                        region_ids = [k[1:] for k in regions]
+                if regions:
+                    region_ids = [k[1:] for k in regions]
 
-                        if len(region_ids) != Region.objects.filter(pk__in=region_ids, project__organization_id__in=request_usr_org_role).count():
-                            return JsonResponse(data, status=status)
-
-
-                    if sites:
-                        if len(sites) != Site.objects.filter(pk__in=sites, project__organization_id__in=request_usr_org_role).count():
-                            return JsonResponse(data, status=status)
+                    if len(region_ids) != Region.objects.filter(pk__in=region_ids, project__organization_id__in=request_usr_org_role).count():
+                        return JsonResponse(data, status=status)
 
 
-            status, data = 401, {'status':'false','message':'Error occured try again.'}
+                if sites:
+                    if len(sites) != Site.objects.filter(pk__in=sites, project__organization_id__in=request_usr_org_role).count():
+                        return JsonResponse(data, status=status)
 
-            if int(group_id) in [3,4]:
-                user = get_object_or_404(User, pk=pk)
-                task_obj=CeleryTaskProgress.objects.create(user=request.user, description="Removal of UserRoles", content_object = user, task_type=7)
-                if task_obj:
-                    task = UnassignUser.delay(task_obj.id, user_id, sites, regions, projects, group_id)
-                    task_obj.task_id = task.id
-                    task_obj.save()
-                    status, data = 200, {'status':'True', 'ids':ids, 'projects':projects, 'regions':regions, 'sites': sites, 'message':'Sucess, the roles are being removed. You will be notified after all the roles are removed. '}
 
-            return JsonResponse(data, status=status)
+        status, data = 401, {'status':'false','message':'Error occured try again.'}
 
-        except Exception as e:
-            return HttpResponseRedirect(reverse('fieldsight:UnassignUserRegionAndSites', kwargs={'pk': pk}, ))
+        if int(group_id) in [3,4]:
+            user = get_object_or_404(User, pk=pk)
+            task_obj=CeleryTaskProgress.objects.create(user=request.user, description="Removal of UserRoles", content_object = user, task_type=7)
+            if task_obj:
+                task = UnassignUser.delay(task_obj.id, user_id, sites, regions, projects, group_id)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'status':'True', 'ids':ids, 'projects':projects, 'regions':regions, 'sites': sites, 'message':'Sucess, the roles are being removed. You will be notified after all the roles are removed. '}
+
+        return JsonResponse(data, status=status)
+
 
 
 #class ProjectSiteListGeoJSON(ReadonlyProjectLevelRoleMixin, View):
@@ -4317,3 +4379,94 @@ def auto_create_project_site(instance, created, **kwargs):
         project_type_id = ProjectType.objects.first().id
         project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id)
         Site.objects.create(name="Example Site", project=project, identifier="example site")
+
+
+class ApplicationView(LoginRequiredMixin, TemplateView):
+    template_name = "fieldsight/application.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(ApplicationView, self).get_context_data(**kwargs)
+        project = self.request.GET.get("project", None)
+        base_url = settings.SITE_URL
+
+        if project:
+
+            project_obj = get_object_or_404(Project, id=int(project))
+            context['project'] = project_obj
+            context['organization'] = project_obj.organization.id
+            context['base_url'] = base_url
+
+            return context
+
+
+class ProjectSyncScheduleUpdateView(UpdateView):
+    template_name = 'fieldsight/project_sync_schedule.html'
+    model = Project
+    form_class = ProjectGsuitSyncForm
+
+    def get_success_url(self):
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.kwargs['pk']})
+
+    def get_context_data(self, **kwargs):
+        pk = self.kwargs['pk'] 
+        context = super(ProjectSyncScheduleUpdateView, self).get_context_data(**kwargs)
+        
+        context['schedule_forms'] = FieldSightXF.objects.select_related('xf', 'sync_schedule', 'schedule').filter(project_id=pk, is_scheduled = True, is_staged=False, is_survey=False, sync_schedule__isnull=False)
+        mainstage=[]
+        stages = Stage.objects.filter(project_id=pk)
+        for stage in stages:
+            if stage.stage_id is None:
+                substages=stage.get_sub_stage_list(sync_details=True)
+                main_stage = {'id':stage.id, 'title':stage.name, 'sub_stages':substages}
+                # stagegroup = {'main_stage':main_stage,}
+                mainstage.append(main_stage)
+
+        context['stage_forms'] = mainstage
+        context['survey_forms'] = FieldSightXF.objects.select_related('xf', 'sync_schedule').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=True, sync_schedule__isnull=False)
+        context['general_forms'] = FieldSightXF.objects.select_related('xf', 'sync_schedule').filter(project_id=pk, is_scheduled = False, is_staged=False, is_survey=False, sync_schedule__isnull=False)
+
+        context['base_template'] = "fieldsight/manage_base.html"
+        context['obj'] = Project.objects.get(pk=pk)
+        return context
+
+
+class SyncScheduleCreateView(ProjectRoleMixin, CreateView):
+    template_name = 'fieldsight/form_sync_schedule_form.html'
+    model = SyncSchedule
+    form_class = FieldsightFormGsuitSyncNewForm
+
+    def get_context_data(self, **kwargs):
+        context = super(SyncScheduleCreateView, self).get_context_data(**kwargs)
+        context['pk'] = self.kwargs.get('pk')
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        return context
+
+    def get_form_kwargs(self):
+          kwargs = super(SyncScheduleCreateView, self).get_form_kwargs()
+          kwargs['pk'] = self.kwargs.get('pk')
+          return kwargs
+
+    def get_success_url(self):
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.kwargs['pk']})
+
+
+class SyncScheduleUpdateView(ProjectRoleMixin, UpdateView):
+    template_name = 'fieldsight/form_sync_schedule_form.html'
+    model = SyncSchedule
+    form_class = FieldsightFormGsuitSyncEditForm
+
+
+    def get_success_url(self):
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.object.fxf.project.id})
+
+    def get_context_data(self, **kwargs):
+        context = super(SyncScheduleUpdateView, self).get_context_data(**kwargs)
+        context['base_template'] = "fieldsight/fieldsight_base.html"
+        return context
+
+
+class SyncScheduleDeleteView(ProjectRoleMixin, DeleteView):
+    model = SyncSchedule
+    
+    def get_success_url(self):
+        return reverse('fieldsight:sync_schedule', kwargs={'pk': self.object.fxf.project.id})
