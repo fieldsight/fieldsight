@@ -560,12 +560,11 @@ class ProjectDefineSiteMeta(APIView):
 
         new_meta = project.site_meta_attributes
 
-        ProjectMetaAttrHistory.objects.create(old_meta_attributes=old_meta, new_meta_attributes=new_meta)
+        ProjectMetaAttrHistory.objects.create(old_meta_attributes=old_meta, new_meta_attributes=new_meta, user=request.user)
 
         # try:
         if old_meta != new_meta:
             deleted = []
-            added = []
 
             for meta in old_meta:
                 if meta not in new_meta:
