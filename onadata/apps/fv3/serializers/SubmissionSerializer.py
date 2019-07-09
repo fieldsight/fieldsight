@@ -101,11 +101,13 @@ class SubmissionSerializer(serializers.ModelSerializer):
     status_data = serializers.SerializerMethodField()
     form_type = serializers.SerializerMethodField()
     form_name = serializers.SerializerMethodField()
+    edit_url = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Instance
         fields = ('submission_data', 'date_created',  'submitted_by', 'site', 'submission_history',
-                  'status_data', 'form_type','form_name','fieldsight_instance')
+                  'status_data', 'form_type','form_name','fieldsight_instance', 'edit_url', 'download_url')
 
     def get_submitted_by(self, obj):
         return obj.user.username
@@ -176,7 +178,6 @@ class SubmissionSerializer(serializers.ModelSerializer):
             return {}
         return SiteSerializer(finstance.site).data
 
-
     def get_form_type(self, obj):
         finstance = obj.fieldsight_instance
 
@@ -187,8 +188,16 @@ class SubmissionSerializer(serializers.ModelSerializer):
         }
 
     def get_form_name(self, obj):
-
         return obj.xform.title
+
+    def get_edit_url(self, obj):
+        return reverse_lazy("forms:edit_data", kwargs={'id_string':obj.xform.id_string, 'data_id':obj.id})
+
+    def get_download_url(self, obj):
+        return {'main':reverse_lazy("fieldsight:instance-responses-report", kwargs={'pk':obj.id, 'remove_null_fields':0}),
+                'null':reverse_lazy("fieldsight:instance-responses-report", kwargs={'pk':obj.id, 'remove_null_fields':1}),
+                }
+
     def get_submission_data(self, instance):
         data = []
         finstance = instance.fieldsight_instance
@@ -390,10 +399,12 @@ class SubmissionSerializer(serializers.ModelSerializer):
 class SubmissionAnswerSerializer(serializers.ModelSerializer):
     submission_data = serializers.SerializerMethodField()
     submitted_by = serializers.SerializerMethodField()
+    edit_url = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Instance
-        fields = ('submission_data', 'date_created',  'submitted_by')
+        fields = ('submission_data', 'date_created', 'submitted_by', 'download_url', 'edit_url')
 
     def get_submitted_by(self, obj):
         return obj.user.username
@@ -594,3 +605,11 @@ class SubmissionAnswerSerializer(serializers.ModelSerializer):
                 d[k] = v
             calculated_data.append(d)
         return calculated_data
+
+    def get_edit_url(self, obj):
+        return reverse_lazy("forms:edit_data", kwargs={'id_string':obj.xform.id_string, 'data_id':obj.id})
+
+    def get_download_url(self, obj):
+        return {'main':reverse_lazy("fieldsight:instance-responses-report", kwargs={'pk':obj.id, 'remove_null_fields':0}),
+                'null':reverse_lazy("fieldsight:instance-responses-report", kwargs={'pk':obj.id, 'remove_null_fields':1}),
+                }
