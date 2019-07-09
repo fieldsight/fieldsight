@@ -795,6 +795,7 @@ class ProjectMetaAttrHistory(models.Model):
     new_meta_atrributes = JSONField(default=list)
     project = models.ForeignKey(Project, related_name='meta_history')
     date = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(User, related_name='meta_change', null=True, blank=True)
 
     class Meta:
         ordering = ['-date']
