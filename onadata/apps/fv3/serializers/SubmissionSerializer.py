@@ -148,7 +148,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                 {
                     "comment": c.message,
                     "date": c.date,
-                    "get_new_status_display": "Rejected",
+                    "get_new_status_display": c.new_status_display,
                     "user_name": c.user.username,
                     "user_full_name": c.user.first_name + ' ' + c.user.last_name,
                     "user_profile_picture": c.user.user_profile.profile_picture.url,

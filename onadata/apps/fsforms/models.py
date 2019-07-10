@@ -683,6 +683,9 @@ class InstanceStatusChanged(models.Model):
     def getname(self):
         return '{0} form {1}'.format(self.finstance.site_fxf.form_type(), self.finstance.site_fxf.xf.title)
 
+    def new_status_display(self):
+        return dict(FORM_STATUS)[self.new_status]
+
     def save(self, *args, **kwargs):
         self.finstance.comment = self.message
         self.finstance.save()
