@@ -414,7 +414,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
     @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if request.group.name == "Super Admin" or request.group.name == "form_fform_orm_Unassiform_form_form_form_form_form_form_gned":
+            if request.group.name == "Super Admin" or request.group.name == "Unassigned":
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
