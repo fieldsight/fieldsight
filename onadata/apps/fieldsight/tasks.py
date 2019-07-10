@@ -1767,14 +1767,14 @@ def sendNotification(notification, recipient):
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date, end_date):
-    time.sleep(5)
+    time.sleep(3)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.status = 1
     project=get_object_or_404(Project, pk=project_id)
     task.content_object = project
     task.save()
 
-    try:  
+    try:
         buffer = BytesIO()
         sites = project.sites.filter(is_active=True)
         data = []
@@ -1811,12 +1811,38 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 default=0, output_field=IntegerField()
             )
         )
+
+        review_query = {}
+        review_query['re_flagged'] = Sum(
+            Case(
+                When(new_status=2, then=1),
+                default=0, output_field=IntegerField()
+            ))        
+
+        review_query['re_approved'] = Sum(
+            Case(
+                When(new_status=3, then=1),
+                default=0, output_field=IntegerField()
+            ))   
+
+        review_query['re_rejected'] = Sum(
+            Case(
+                When(new_status=1, then=1),
+                default=0, output_field=IntegerField()
+            ))   
+
+        review_query['resolved'] = Sum(
+            Case(
+                When(old_status__in=[1,2], new_status=3, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
         if reportType == "Monthly":
-            data.insert(0, ["Date", "Month", "Site Visits", "Submissions","Active Users","Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"])
+            data.insert(0, ["Date", "Month", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions", "Submission Reviews",  "Resolved Submissions", "Approved Reviews", "Rejected Reviews", "Flagged Reviews"])
             i=1
             for month in rrule(MONTHLY, dtstart=new_startdate, until=end):
                 str_month = month.strftime("%Y-%m")
-                data.insert(i, [str_month, month.strftime("%B"), 0, 0, 0, 0, 0, 0, 0])
+                data.insert(i, [str_month, month.strftime("%B"), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,])
                 index[str_month] = i
                 i += 1
 
@@ -1837,48 +1863,48 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 if visit['_id'] != "":
                     data[index[visit['_id']]][2] = int(visit['total_sum'])
 
-            truncate_date = connection.ops.date_trunc_sql('month', 'date_created')
-            forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
-
+            truncate_date = connection.ops.date_trunc_sql('month', 'logger_instance.date_created')
+            forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__gte=new_startdate,  date_created__lte=new_enddate).extra({'date_created':truncate_date})
+            
             forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
 
             for month_stat in forms_stats:
-                try:
+                if month_stat['date_created'].strftime("%Y-%m") in index:
                     data[index[month_stat['date_created'].strftime("%Y-%m")]][3] = int(month_stat['dcount'])
                     data[index[month_stat['date_created'].strftime("%Y-%m")]][5] = int(month_stat['approved'])
                     data[index[month_stat['date_created'].strftime("%Y-%m")]][6] = int(month_stat['pending'])
                     data[index[month_stat['date_created'].strftime("%Y-%m")]][7] = int(month_stat['rejected'])
                     data[index[month_stat['date_created'].strftime("%Y-%m")]][8] = int(month_stat['flagged'])
-                except:
-                    pass
-
-            # truncate_date = connection.ops.date_trunc_sql('month', 'fsforms_instancestatuschanged.date')
-            # status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'date':truncate_date})
-            # status=status_changed.values('date').annotate(dcount=Count('date'), **review_query)
-            # for status_month in status_months:
-            #     try:
-            #         data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
-            #         data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
-            #         data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
-            #         data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
-            #         data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
-            #     except:
-            #         pass
-
-
-
+                
+            truncate_date = connection.ops.date_trunc_sql('month', 'fsforms_instancestatuschanged.date')
+            status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'date':truncate_date})
+            status_months=status_changed.values('date').annotate(dcount=Count('date'), **review_query)
+            for status_month in status_months:
+                if status_month['date'].strftime("%Y-%m") in index:
+                
+                    data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
+                    data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
+                    data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
+                    data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
+                    data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
+                
+            truncate_date = connection.ops.date_trunc_sql('month', 'logger_instance.date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
             forms_stats=forms.values('date_created').annotate(dcount=Count('user_id', distinct=True))
 
             for month_stat in forms_stats:
-                data[index[month_stat['date_created'].strftime("%Y-%m")]][4] = int(month_stat['dcount'])
+                try:
+                    data[index[month_stat['date_created'].strftime("%Y-%m")]][4] = int(month_stat['dcount'])
+
+                except:
+                    pass
 
         if reportType in ["Daily", "Weekly"]:
-            data.insert(0, ["Date", "Day", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"])
+            data.insert(0, ["Date", "Day", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions", "Submission Reviews",  "Resolved Submissions", "Approved Reviews", "Rejected Reviews", "Flagged Reviews"])
             i=1
             for day in rrule(DAILY, dtstart=new_startdate, until=end):
                 str_day = day.strftime("%Y-%m-%d")
-                data.insert(i, [str_day, day.strftime("%A"), 0, 0, 0, 0, 0, 0, 0, 0])
+                data.insert(i, [str_day, day.strftime("%A"), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
                 index[str_day] = i
                 i += 1
 
@@ -1901,32 +1927,29 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
 
             truncate_date = connection.ops.date_trunc_sql('day', 'date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
-
             forms_stats=forms.values('date_created').annotate(dcount=Count('date_created'), **query)
-
+        
             for day_stat in forms_stats:
-                try:
+                if day_stat['date_created'].strftime("%Y-%m-%d") in index:
                     data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][3] = int(day_stat['dcount'])
-                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][5] = int(month_stat['approved'])
-                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][6] = int(month_stat['pending'])
-                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][7] = int(month_stat['rejected'])
-                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][8] = int(month_stat['flagged'])
-                except:
-                    pass
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][5] = int(day_stat['approved'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][6] = int(day_stat['pending'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][7] = int(day_stat['rejected'])
+                    data[index[day_stat['date_created'].strftime("%Y-%m-%d")]][8] = int(day_stat['flagged'])
 
-            # truncate_date = connection.ops.date_trunc_sql('month', 'fsforms_instancestatuschanged.date')
-            # status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'_date':truncate_date})
-            # status=status_changed.values('_date').annotate(dcount=Count('_date'), **review_query)
+             
+            truncate_date = connection.ops.date_trunc_sql('day', 'fsforms_instancestatuschanged.date')
+            status_changed=InstanceStatusChanged.objects.filter(finstance__project_id=project_id, date__range=[new_startdate, new_enddate]).extra({'date':truncate_date})
+            status_days=status_changed.values('date').annotate(dcount=Count('date'), **review_query)
 
-            # for status_month in status_months:
-            #     try:
-            #         data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
-            #         data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
-            #         data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
-            #         data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
-            #         data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
-            #     except:
-            #         pass
+            for status_day in status_days:
+                if status_day['date'].strftime("%Y-%m-%d") in index:
+                    data[index[status_day['date'].strftime("%Y-%m-%d")]][9] = int(status_day['dcount'])
+                    data[index[status_day['date'].strftime("%Y-%m-%d")]][10] = int(status_day['resolved'])
+                    data[index[status_day['date'].strftime("%Y-%m-%d")]][11] = int(status_day['re_approved'])
+                    data[index[status_day['date'].strftime("%Y-%m-%d")]][12] = int(status_day['re_rejected'])
+                    data[index[status_day['date'].strftime("%Y-%m-%d")]][13] = int(status_day['re_flagged'])
+
 
             for status_month in status_months:
                 data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
@@ -1935,22 +1958,28 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
                 data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
 
+            truncate_date = connection.ops.date_trunc_sql('day', 'date_created')
+            forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
+            forms_stats=forms.values('date_created').annotate(dcount=Count('user_id', distinct=True))
+
+
+            for month_stat in forms_stats:
+                if month_stat['date_created'].strftime("%Y-%m-%d") in index:
+                    data[index[month_stat['date_created'].strftime("%Y-%m-%d")]][4] = int(month_stat['dcount'])
 
         wb = Workbook()
         ws = wb.active
         ws.title = "Site Status"
 
         if reportType == "Weekly":
-
-            weekly_data = [["Week No.", "Week Start", "Week End", "Site Visits", "Submissions","Active Users","Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions"]]
-
+            weekly_data = [["Week No.", "Week Start", "Week End", "Site Visits", "Submissions", "Active Users", "Approved Submissions", "Pending Submissions", "Rejected Submissions", "Flagged Submissions", "Submission Reviews",  "Resolved Submissions", "Approved Reviews", "Rejected Reviews", "Flagged Reviews"]]
             weekcount = 0
             for value in data[1:]:
                 day = datetime.datetime.strptime(value[0], "%Y-%m-%d").weekday() + 1
                 # Since start day is Monday And in Nepa we Calculate from Saturday for now.
                 if day == 7 or weekcount == 0:
                     weekcount += 1
-                    weekly_data.insert(weekcount, ["Week "+ str(weekcount),"","",0,0,0,0,0,0,0,0])
+                    weekly_data.insert(weekcount, ["Week "+ str(weekcount), "", "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,])
 
                     weekly_data[weekcount][1] = value[0]
                 weekly_data[weekcount][2] = value[0]
@@ -1961,12 +1990,12 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                 weekly_data[weekcount][7] += value[6]
                 weekly_data[weekcount][8] += value[7]
                 weekly_data[weekcount][9] += value[8]
+                weekly_data[weekcount][10] += value[9]
+                weekly_data[weekcount][11] += value[10]
+                weekly_data[weekcount][12] += value[11]
+                weekly_data[weekcount][13] += value[12]
+                weekly_data[weekcount][14] += value[13]
 
-                # weekly_data[weekcount][10] += value[9]
-                # weekly_data[weekcount][11] += value[10]
-                # weekly_data[weekcount][12] += value[11]
-                # weekly_data[weekcount][13] += value[12]
-                # weekly_data[weekcount][14] += value[13]
                  
 
             for value in weekly_data:

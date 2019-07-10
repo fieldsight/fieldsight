@@ -414,7 +414,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
     @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if request.group.name == "Super Admin" or request.group.name == "form_fform_orm_Unassiform_form_form_form_form_form_form_gned":
+            if request.group.name == "Super Admin" or request.group.name == "Unassigned":
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
@@ -4388,14 +4388,17 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
         context = super(ApplicationView, self).get_context_data(**kwargs)
         project = self.request.GET.get("project", None)
         base_url = settings.SITE_URL
+        context['base_url'] = base_url
 
         if project:
 
             project_obj = get_object_or_404(Project, id=int(project))
             context['project'] = project_obj
             context['organization'] = project_obj.organization.id
-            context['base_url'] = base_url
 
+            return context
+
+        else:
             return context
 
 
