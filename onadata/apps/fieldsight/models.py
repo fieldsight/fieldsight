@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import json
 import datetime
 import os, tempfile
+import itertools
 from django.contrib.gis.db.models import PointField
 from django.contrib.gis.db.models import GeoManager
 from django.contrib.contenttypes.fields import GenericRelation
@@ -802,6 +803,13 @@ class ProjectMetaAttrHistory(models.Model):
 
     def __str__(self):
         return "{} {}".format(self.project.name, self.date)
+
+    def get_changed_attributes(self):
+        """
+        return the meta attributes that are present in new meta attributes but not in old meta attributes
+        also return the meta attributes that have their values changed
+        """
+        return list(itertools.ifilterfalse(lambda x: x in self.old_meta_attributes, self.new_meta_atrributes))
 
 
 @receiver(post_save, sender=ProgressSettings)
