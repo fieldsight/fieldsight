@@ -30,14 +30,17 @@ class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
         if project_id is not None:
             return self.queryset.filter(project_id=project_id, is_survey=False, is_active=True)
 
-    # def list(self, request, *args, **kwargs):
-    #     queryset = self.filter_queryset(self.get_queryset())
-    #
-    #     page = self.paginate_queryset(queryset)
-    #
-    #     if page is not None:
-    #         serializer = self.get_serializer(page, many=True)
-    #         return self.get_paginated_response(serializer.data)
-    #
-    #     serializer = self.get_serializer(queryset, many=True)
-    #     return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        search_param = request.query_params.get('q', None)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+
+            return self.get_paginated_response({'data': serializer.data, 'query': search_param})
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
