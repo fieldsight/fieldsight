@@ -18,17 +18,17 @@ from channels import Group as ChannelGroup
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 
-def create_instance_from_xml(request, fsid, site, fs_proj_xf, proj_id, xform):
+def create_instance_from_xml(request, fsid, site, fs_proj_xf, proj_id, xform, flagged_instance):
     xml_file_list = request.FILES.pop('xml_submission_file', [])
     xml_file = xml_file_list[0] if len(xml_file_list) else None
     media_files = request.FILES.values()
-    return safe_create_instance(fsid, xml_file, media_files, None, request, site, fs_proj_xf, proj_id, xform)
+    return safe_create_instance(fsid, xml_file, media_files, None, request, site, fs_proj_xf, proj_id, xform, flagged_instance)
 
-def update_meta_details(fs_proj_xf):
+def update_meta_details(fs_proj_xf, instance):
     try:
         site = fs_proj_xf.site
         if fs_proj_xf.id in fs_proj_xf.project.site_basic_info.get('active_forms', []):
-            site_pictue = site.project.site_basic_info.get('site_picture', None)
+            site_picture = site.project.site_basic_info.get('site_picture', None)
             if site_picture and site_picture.get('question_type', '') == 'form' and site_picture.get('form_id', 0) > fs_proj_xf.id and site_picture.get('question', {}):
                 question_name = site_picture['question'].get('question_name', '')
                 logo_url = instance.json.get(question_name)
@@ -91,15 +91,23 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                     return Response(status=status.HTTP_204_NO_CONTENT,
                                     headers=self.get_openrosa_headers(request),
                                     template_name=self.template_name)
-                error, instance = create_instance_from_xml(request, None, siteid, fs_proj_xf.id, proj_id, xform)
-
-                if error or not instance:
-                    return self.error_response(error, False, request)
+                edited_log = None
                 params = self.request.query_params
                 flagged_instance = params.get("instance")
                 if flagged_instance and flagged_instance is not None:
-                    EditedSubmission.objects.get_or_create(new=instance.fieldsight_instance,
-                                                           old=FInstance.objects.get(pk=flagged_instance))
+                    old = FInstance.objects.get(pk=flagged_instance)
+                    edited_log = EditedSubmission(old=old, json=old.instance.json, date=old.date, user=old.submitted_by)
+                    edited_log.save()
+
+                error, instance = create_instance_from_xml(request, None, siteid, fs_proj_xf.id, proj_id, xform, flagged_instance)
+
+                if error or not instance:
+                    return self.error_response(error, False, request)
+
+                if edited_log:
+                    edited_log.status = True
+                    edited_log.save()
+                    FInstance.objects.filter(pk=flagged_instance).update(form_status=0)
 
                 if not FieldSightLog.objects.filter(object_id=instance.id, type=16).exists():
                     if fs_proj_xf.is_survey:
@@ -111,7 +119,7 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                                                                  extra_message="project",
                                                                  content_object=instance.fieldsight_instance)
                     else:
-                        update_meta_details(fs_proj_xf)
+                        update_meta_details(fs_proj_xf, instance)
                         site = Site.objects.get(pk=siteid)
                         instance.fieldsight_instance.logs.create(source=self.request.user, type=16,
                                                                  title="new Site level Submission",
@@ -142,17 +150,24 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
             return Response(status=status.HTTP_204_NO_CONTENT,
                             headers=self.get_openrosa_headers(request),
                             template_name=self.template_name)
-        error, instance = create_instance_from_xml(request, fsxfid, siteid, fs_proj_xf, proj_id, xform)
+
+        edited_log = None
+        params = self.request.query_params
+        flagged_instance = params.get("instance")
+        if flagged_instance and flagged_instance is not None:
+            old = FInstance.objects.get(pk=flagged_instance)
+            edited_log = EditedSubmission(old=old, json=old.instance.json, date=old.date, user=old.submitted_by)
+            edited_log.save()
+        error, instance = create_instance_from_xml(request, fsxfid, siteid, fs_proj_xf, proj_id, xform, flagged_instance)
         extra_message = ""
 
         if error or not instance:
             return self.error_response(error, False, request)
 
-        params = self.request.query_params
-        flagged_instance = params.get("instance")
-        if flagged_instance and flagged_instance is not None:
-            EditedSubmission.objects.get_or_create(new=instance.fieldsight_instance,
-                                                   old=FInstance.objects.get(pk=flagged_instance))
+        if edited_log:
+            edited_log.status = True
+            edited_log.save()
+            FInstance.objects.filter(pk=flagged_instance).update(form_status=0)
 
         if fxf.is_staged:
             instance.fieldsight_instance.site.update_current_progress()
@@ -206,7 +221,16 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
             return Response(status=status.HTTP_204_NO_CONTENT,
                             headers=self.get_openrosa_headers(request),
                             template_name=self.template_name)
-        error, instance = create_instance_from_xml(request, None, siteid, fs_proj_xf.id, proj_id, xform)
+
+        params = self.request.query_params
+        flagged_instance = params.get("instance")
+        edited_log = None
+        if flagged_instance and flagged_instance is not None:
+            old = FInstance.objects.get(pk=flagged_instance)
+            edited_log = EditedSubmission(old=old, json=old.instance.json, date=old.date, user=old.submitted_by)
+            edited_log.save()
+
+        error, instance = create_instance_from_xml(request, None, siteid, fs_proj_xf.id, proj_id, xform, flagged_instance)
         if error or not instance:
             return self.error_response(error, False, request)
 
@@ -215,10 +239,11 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
         elif siteid:
             site.update_status()
 
-        params = self.request.query_params
-        flagged_instance = params.get("instance")
-        if flagged_instance and flagged_instance is not None :
-            EditedSubmission.objects.get_or_create(new=instance.fieldsight_instance, old=FInstance.objects.get(pk=flagged_instance))
+        if edited_log:
+            edited_log.status = True
+            edited_log.save()
+            FInstance.objects.filter(pk=flagged_instance).update(form_status=0)
+            
 
         if not FieldSightLog.objects.filter(object_id=instance.id, type=16).exists():
             if fs_proj_xf.is_survey:
@@ -229,7 +254,7 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
                                                             extra_message="project",
                                                             content_object=instance.fieldsight_instance)
             else:
-                update_meta_details(fs_proj_xf)
+                update_meta_details(fs_proj_xf, instance)
                 site = Site.objects.get(pk=siteid)
                 instance.fieldsight_instance.logs.create(source=self.request.user, type=16, title="new Site level Submission",
                                            organization=fs_proj_xf.project.organization,
