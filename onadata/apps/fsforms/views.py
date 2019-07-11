@@ -129,8 +129,9 @@ class LibraryFormsListView(LibraryFormView, MyLibraryListView, ProjectMixin):
     pass
 
 
-class MyOwnFormsListView(FSFormView, OwnListView):
+class MyOwnFormsListView(LoginRequiredMixin, FSFormView, OwnListView):
     pass
+
 
 class FormView(object):
     model = FieldSightXF
