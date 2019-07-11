@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from django.db.models import Prefetch
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -233,11 +233,13 @@ class ProjectTermsLabelsViewset(viewsets.ModelViewSet):
     def get_queryset(self):
 
         project_id = self.request.query_params.get('project', None)
+
         if project_id:
             project = get_object_or_404(Project, id=project_id)
+
             return self.queryset.filter(project=project)
         else:
-            return self.queryset
+            return []
 
 
 class ProjectRegionsViewset(viewsets.ModelViewSet):
@@ -265,7 +267,7 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
             return self.queryset.filter(project=project, parent=None)
 
         else:
-            return self.queryset
+            return []
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
