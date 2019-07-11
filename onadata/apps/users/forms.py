@@ -41,7 +41,7 @@ class SignUpForm(forms.Form):
                 if len(password) < 8:
                     raise ValidationError({'password': ['Passwords must be of more than 8 characters']})
                 
-                pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$")
+                pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[.@$!%*#?&'/~,;:_`{}()<>^\-\\|+])[A-Za-z\d.@$!%*#?&'/~,;:_`{}()<>^\-\\|+]{8,}$")
                 if not bool(pattern.search(password)):
                     raise ValidationError({'password': ['Password must contain alphabet characters, special characters and numbers']})
 
