@@ -1,5 +1,5 @@
 from django.db.models import Q
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -23,18 +23,22 @@ class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
         project_id = self.request.query_params.get('project', None)
         search_param = self.request.query_params.get('q', None)
 
-        if search_param and project_id is not None:
+        if search_param and project_id:
             return self.queryset.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
                                         project_id=project_id, is_survey=False, is_active=True)
 
-        if project_id is not None:
+        if project_id:
             return self.queryset.filter(project_id=project_id, is_survey=False, is_active=True)
-
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
 
-        page = self.paginate_queryset(queryset)
+        try:
+            page = self.paginate_queryset(queryset)
+
+        except:
+            return Response({"message": "Project Id is required."}, status=status.HTTP_204_NO_CONTENT)
+
         search_param = request.query_params.get('q', None)
 
         if page is not None:
