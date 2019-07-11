@@ -28,7 +28,7 @@ from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
 import sys
 
-from onadata.apps.fsforms.models import FieldSightXF, FieldSightParsedInstance, FInstance
+from onadata.apps.fsforms.models import FieldSightXF, FieldSightParsedInstance, FInstance, EditedSubmission
 from onadata.apps.fsforms.utils import FIELDSIGHT_XFORM_ID
 from onadata.apps.main.models import UserProfile
 from onadata.apps.logger.models import Attachment
@@ -84,7 +84,6 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, fxfid, project_fxf
     #     instance.uuid = new_uuid
     #     instance.save()
     if flagged_instance and flagged_instance is not None:
-        print("ffffffffffffffff")
         # edits
         # check_edit_submission_permissions(submitted_by, xform)
         instance = FInstance.objects.get(pk=flagged_instance).instance
@@ -94,7 +93,11 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, fxfid, project_fxf
         instance.uuid = new_uuid
         instance.user = submitted_by
         instance.save()
-        print("saved")
+        old = FInstance.objects.get(pk=flagged_instance)
+        old.form_status = 0
+        old.save()
+        edited_log = EditedSubmission(old=old, json=old.instance.json, date=old.date, user=old.submitted_by, status=True)
+        edited_log.save()
     else:
         # new submission
         instance = Instance.objects.create(
