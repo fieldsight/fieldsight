@@ -6,7 +6,8 @@ from django.core.urlresolvers import reverse_lazy, reverse
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
-from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged, InstanceImages
+from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged, InstanceImages, \
+    EditedSubmission
 from onadata.apps.fsforms.utils import get_version, send_message_flagged
 from onadata.apps.logger.models import Instance
 
@@ -123,32 +124,15 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     def get_submission_history(self, obj):
         finstance = obj.fieldsight_instance
-        pk_list = [finstance.id]
-        finstances = []
-        previous = finstance.new_edits.all()
-        if len(previous):
-            previous_edit = previous[0].old
-            pk_list.append(previous_edit.id)
-            finstances.append(previous_edit)
-            p_previous = previous_edit.new_edits.all()
-            if len(p_previous):
-                p_previous_edit = p_previous[0].old
-                pk_list.append(p_previous_edit.id)
-                finstances.append(p_previous_edit)
-                p_p_previous = p_previous_edit.new_edits.all()
-                if len(p_p_previous):
-                    p_p_previous_edit = p_p_previous[0].old
-                    pk_list.append(p_p_previous_edit.id)
-                    finstances.append(p_p_previous_edit)
-
-        comments = InstanceStatusChanged.objects.filter(finstance__id__in=pk_list)
+        edits = finstance.edits.all()
+        comments = InstanceStatusChanged.objects.filter(finstance=finstance)
         comment_data = []
         for c in comments:
             comment_data.append(
                 {
                     "comment": c.message,
                     "date": c.date,
-                    "get_new_status_display": c.new_status_display,
+                    "get_new_status_display": c.new_status_display(),
                     "user_name": c.user.username,
                     "user_full_name": c.user.first_name + ' ' + c.user.last_name,
                     "user_profile_picture": c.user.user_profile.profile_picture.url,
@@ -157,15 +141,15 @@ class SubmissionSerializer(serializers.ModelSerializer):
                 },
                 )
         instances_data = []
-        for fi in finstances:
+        for e in edits:
             instances_data.append(
-                {"url": reverse_lazy("fv3:submission", args=(fi.id,)),
-                 "date": fi.date,
+                {"url": reverse_lazy("fv3:submission-data", args=(e.id,)),
+                 "date": e.date,
                  "comment": "",
                  "get_new_status_display": "New Submission",
-                 "user_name":fi.submitted_by.username,
-                 "user_full_name": fi.submitted_by.first_name + ' ' + fi.submitted_by.last_name,
-                 "user_profile_picture":fi.submitted_by.user_profile.profile_picture.url,
+                 "user_name":e.user.username,
+                 "user_full_name": e.user.first_name + ' ' + e.user.last_name,
+                 "user_profile_picture":e.user.user_profile.profile_picture.url,
                 })
         # sort data past _ data
         comment_data.extend(instances_data)
@@ -396,22 +380,23 @@ class SubmissionSerializer(serializers.ModelSerializer):
         return calculated_data
 
 
-class SubmissionAnswerSerializer(serializers.ModelSerializer):
+class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
     submission_data = serializers.SerializerMethodField()
     submitted_by = serializers.SerializerMethodField()
     edit_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 
     class Meta:
-        model = Instance
-        fields = ('submission_data', 'date_created', 'submitted_by', 'download_url', 'edit_url')
+        model = EditedSubmission
+        fields = ('submission_data', 'date', 'submitted_by', 'download_url', 'edit_url')
 
     def get_submitted_by(self, obj):
         return obj.user.username
 
-    def get_submission_data(self, instance):
+    def get_submission_data(self, edit):
         data = []
-        finstance = instance.fieldsight_instance
+        finstance = edit.old
+        instance = finstance.instance
 
         def get_answer(instance):
             return instance.json
@@ -430,7 +415,7 @@ class SubmissionAnswerSerializer(serializers.ModelSerializer):
 
             return json.loads(json_data)
 
-        json_answer = get_answer(instance)
+        json_answer = get_answer(edit)
         json_question = get_question(instance, finstance)
 
         base_url = BASEURL
@@ -607,9 +592,8 @@ class SubmissionAnswerSerializer(serializers.ModelSerializer):
         return calculated_data
 
     def get_edit_url(self, obj):
-        return reverse_lazy("forms:edit_data", kwargs={'id_string':obj.xform.id_string, 'data_id':obj.id})
+        return None
 
     def get_download_url(self, obj):
-        return {'main':reverse_lazy("fieldsight:instance-responses-report", kwargs={'pk':obj.id, 'remove_null_fields':0}),
-                'null':reverse_lazy("fieldsight:instance-responses-report", kwargs={'pk':obj.id, 'remove_null_fields':1}),
+        return {
                 }

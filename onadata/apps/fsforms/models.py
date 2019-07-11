@@ -663,7 +663,11 @@ class FInstance(models.Model):
 
 class EditedSubmission(models.Model):
     old = models.ForeignKey(FInstance, related_name="edits")
-    new = models.ForeignKey(FInstance, related_name="new_edits")
+    json = JSONField(default={}, null=False)
+    date = models.DateTimeField(auto_now=True, null=True, blank=True)
+    user = models.ForeignKey(User)
+    status = models.BooleanField(default=False)
+
 
 class InstanceStatusChanged(models.Model):
     finstance = models.ForeignKey(FInstance, related_name="comments")
