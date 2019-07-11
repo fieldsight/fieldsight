@@ -4389,6 +4389,7 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
         project = self.request.GET.get("project", None)
         base_url = settings.SITE_URL
         context['base_url'] = base_url
+        context['kpi_base_url'] = settings.KPI_URL
 
         if project:
 
