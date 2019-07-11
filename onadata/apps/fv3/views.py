@@ -239,7 +239,7 @@ class ProjectTermsLabelsViewset(viewsets.ModelViewSet):
 
             return self.queryset.filter(project=project)
         else:
-            return []
+            return self.queryset
 
 
 class ProjectRegionsViewset(viewsets.ModelViewSet):
@@ -267,7 +267,7 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
             return self.queryset.filter(project=project, parent=None)
 
         else:
-            return []
+            return self.queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
