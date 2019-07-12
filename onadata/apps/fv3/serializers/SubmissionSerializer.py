@@ -92,6 +92,9 @@ class SubmissionSerializer(serializers.ModelSerializer):
         comments = InstanceStatusChanged.objects.filter(finstance=finstance)
         comment_data = []
         for c in comments:
+            url = c.images.first()
+            if url:
+                url = url.image.url
             comment_data.append(
                 {
                     "comment": c.message,
@@ -102,6 +105,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                     "user_profile_picture": c.user.user_profile.profile_picture.url,
                     "url": reverse_lazy("forms:instance_status_change_detail",
                                                 kwargs={'pk': c.id}),
+                    "media_img": url,
                 },
                 )
         instances_data = []
@@ -114,6 +118,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                  "user_name":e.user.username,
                  "user_full_name": e.user.first_name + ' ' + e.user.last_name,
                  "user_profile_picture":e.user.user_profile.profile_picture.url,
+                 "media_img ": "",
                 })
         # sort data past _ data
         comment_data.extend(instances_data)
