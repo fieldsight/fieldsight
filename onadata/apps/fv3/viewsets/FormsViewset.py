@@ -48,7 +48,7 @@ class ShareUserListViewSet(viewsets.ReadOnlyModelViewSet):
         if self.request.roles.filter(group__name="Super Admin").exists():
             return self.queryset.filter(user_roles__group__name="Project Manager")
         projects = self.request.roles.filter(
-            ended_at__isnull=True, group__name__in=["Project Manager", "Orgainzation Admin"]).\
+            ended_at__isnull=True, group__name="Project Manager").\
             values_list("project", flat=True).order_by('project').distinct().exclude(user=self.request.user)
         return self.queryset.filter(user_roles__project_id__in=projects).distinct()
 
