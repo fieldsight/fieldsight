@@ -663,7 +663,11 @@ class FInstance(models.Model):
 
 class EditedSubmission(models.Model):
     old = models.ForeignKey(FInstance, related_name="edits")
-    new = models.ForeignKey(FInstance, related_name="new_edits")
+    json = JSONField(default={}, null=False)
+    date = models.DateTimeField(auto_now=True, null=True, blank=True)
+    user = models.ForeignKey(User)
+    status = models.BooleanField(default=False)
+
 
 class InstanceStatusChanged(models.Model):
     finstance = models.ForeignKey(FInstance, related_name="comments")
@@ -682,6 +686,9 @@ class InstanceStatusChanged(models.Model):
 
     def getname(self):
         return '{0} form {1}'.format(self.finstance.site_fxf.form_type(), self.finstance.site_fxf.xf.title)
+
+    def new_status_display(self):
+        return dict(FORM_STATUS)[self.new_status]
 
     def save(self, *args, **kwargs):
         self.finstance.comment = self.message

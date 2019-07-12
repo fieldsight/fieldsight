@@ -5,24 +5,24 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
+from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged, EditedSubmission
 from onadata.apps.fv3.permissions.submission import SubmissionDetailPermission, SubmissionChangePermission
 from onadata.apps.fv3.serializers.SubmissionSerializer import SubmissionSerializer, AlterInstanceStatusSerializer, \
-    SubmissionAnswerSerializer
+    EditSubmissionAnswerSerializer
 from onadata.apps.logger.models import Instance
 
 
 class SubmissionAnswerViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Instance.objects.all()
-    serializer_class = SubmissionAnswerSerializer
-    permission_classes = [IsAuthenticated, SubmissionDetailPermission]
+    queryset = EditedSubmission.objects.all()
+    serializer_class = EditSubmissionAnswerSerializer
+    permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return self.queryset.select_related("xform","xform__user", "user").prefetch_related(
-            Prefetch('fieldsight_instance',
-                     queryset=FInstance.objects.all().select_related(
-                         'site', 'site_fxf', 'project_fxf')
-                     ))
+    # def get_queryset(self):
+    #     return self.queryset.select_related("old__xform","old__xform__user", "user").prefetch_related(
+    #         Prefetch('fieldsight_instance',
+    #                  queryset=FInstance.objects.all().select_related(
+    #                      'site', 'site_fxf', 'project_fxf')
+    #                  ))
 
     def get_serializer_context(self):
         return {'request': self.request, 'kwargs': self.kwargs,}
@@ -37,7 +37,7 @@ class SubmissionViewSet(viewsets.ReadOnlyModelViewSet):
         return self.queryset.select_related("xform","xform__user", "user").prefetch_related(
             Prefetch('fieldsight_instance',
                      queryset=FInstance.objects.all().select_related(
-                         'site', 'site_fxf', 'project_fxf').prefetch_related("comments", "new_edits")
+                         'site', 'site_fxf', 'project_fxf').prefetch_related("comments", "edits")
                      ))
 
     def get_serializer_context(self):

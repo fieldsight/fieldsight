@@ -1,4 +1,7 @@
 from __future__ import unicode_literals
+
+import datetime
+
 import json
 from django.conf import settings
 from django.db import transaction
@@ -18,17 +21,18 @@ from channels import Group as ChannelGroup
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 
-def create_instance_from_xml(request, fsid, site, fs_proj_xf, proj_id, xform):
+def create_instance_from_xml(request, fsid, site, fs_proj_xf, proj_id, xform, flagged_instance):
     xml_file_list = request.FILES.pop('xml_submission_file', [])
     xml_file = xml_file_list[0] if len(xml_file_list) else None
     media_files = request.FILES.values()
-    return safe_create_instance(fsid, xml_file, media_files, None, request, site, fs_proj_xf, proj_id, xform)
+    return safe_create_instance(fsid, xml_file, media_files, None, request, site, fs_proj_xf, proj_id, xform, flagged_instance)
 
-def update_meta_details(fs_proj_xf):
+
+def update_meta_details(fs_proj_xf, instance):
     try:
         site = fs_proj_xf.site
         if fs_proj_xf.id in fs_proj_xf.project.site_basic_info.get('active_forms', []):
-            site_pictue = site.project.site_basic_info.get('site_picture', None)
+            site_picture = site.project.site_basic_info.get('site_picture', None)
             if site_picture and site_picture.get('question_type', '') == 'form' and site_picture.get('form_id', 0) > fs_proj_xf.id and site_picture.get('question', {}):
                 question_name = site_picture['question'].get('question_name', '')
                 logo_url = instance.json.get(question_name)
@@ -54,6 +58,7 @@ def update_meta_details(fs_proj_xf):
             site.save()
     except:
         pass
+
 
 class FSXFormSubmissionApi(XFormSubmissionApi):
     serializer_class = FieldSightSubmissionSerializer
@@ -91,17 +96,32 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                     return Response(status=status.HTTP_204_NO_CONTENT,
                                     headers=self.get_openrosa_headers(request),
                                     template_name=self.template_name)
-                error, instance = create_instance_from_xml(request, None, siteid, fs_proj_xf.id, proj_id, xform)
+                params = self.request.query_params
+                flagged_instance = params.get("instance")
+
+                error, instance = create_instance_from_xml(request, None, siteid, fs_proj_xf.id, proj_id, xform, flagged_instance)
 
                 if error or not instance:
                     return self.error_response(error, False, request)
-                params = self.request.query_params
-                flagged_instance = params.get("instance")
-                if flagged_instance and flagged_instance is not None:
-                    EditedSubmission.objects.get_or_create(new=instance.fieldsight_instance,
-                                                           old=FInstance.objects.get(pk=flagged_instance))
 
-                if not FieldSightLog.objects.filter(object_id=instance.id, type=16).exists():
+                fi = instance.fieldsight_instance
+                fi_id = fi.id
+                last_edited_date = EditedSubmission.objects.filter(
+                    old__id=fi_id).last().date if EditedSubmission.objects.filter(old__id=fi_id).last() else None
+                last_instance_log = FieldSightLog.objects.filter(
+                    object_id=fi_id, type=16).first().date if FieldSightLog.objects.filter(object_id=fi_id, type=16).first() else None
+                delta = 101
+                if last_instance_log and last_edited_date:
+                    delta = (EditedSubmission.objects.filter(old__id=fi_id).last().date - FieldSightLog.objects.filter(
+                        object_id=fi_id, type=16).first().date).total_seconds()
+                if (not FieldSightLog.objects.filter(object_id=fi_id, type=16).exists()) or (
+                        flagged_instance and delta > 100):
+                    fi.form_status = 0
+                    fi.save()
+                    if fxf.is_staged:
+                        instance.fieldsight_instance.site.update_current_progress()
+                    else:
+                        instance.fieldsight_instance.site.update_status()
                     if fs_proj_xf.is_survey:
                         instance.fieldsight_instance.logs.create(source=self.request.user, type=16,
                                                                  title="new Project level Submission",
@@ -111,7 +131,7 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                                                                  extra_message="project",
                                                                  content_object=instance.fieldsight_instance)
                     else:
-                        update_meta_details(fs_proj_xf)
+                        update_meta_details(fs_proj_xf, instance)
                         site = Site.objects.get(pk=siteid)
                         instance.fieldsight_instance.logs.create(source=self.request.user, type=16,
                                                                  title="new Site level Submission",
@@ -142,26 +162,30 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
             return Response(status=status.HTTP_204_NO_CONTENT,
                             headers=self.get_openrosa_headers(request),
                             template_name=self.template_name)
-        error, instance = create_instance_from_xml(request, fsxfid, siteid, fs_proj_xf, proj_id, xform)
+
+        edited_log = None
+        params = self.request.query_params
+        flagged_instance = params.get("instance")
+        error, instance = create_instance_from_xml(request, fsxfid, siteid, fs_proj_xf, proj_id, xform, flagged_instance)
         extra_message = ""
 
         if error or not instance:
             return self.error_response(error, False, request)
 
-        params = self.request.query_params
-        flagged_instance = params.get("instance")
-        if flagged_instance and flagged_instance is not None:
-            EditedSubmission.objects.get_or_create(new=instance.fieldsight_instance,
-                                                   old=FInstance.objects.get(pk=flagged_instance))
-
-        if fxf.is_staged:
-            instance.fieldsight_instance.site.update_current_progress()
-        else:
-            instance.fieldsight_instance.site.update_status()
 
         if fxf.is_survey:
             extra_message="project"
-        if not FieldSightLog.objects.filter(object_id=instance.id, type=16).exists():
+        fi = instance.fieldsight_instance
+        fi_id = fi.id
+        last_edited_date = EditedSubmission.objects.filter(
+            old__id=fi_id).last().date if EditedSubmission.objects.filter(old__id=fi_id).last() else None
+        last_instance_log = FieldSightLog.objects.filter(object_id=fi_id, type=16).first().date if FieldSightLog.objects.filter(
+            object_id=fi_id, type=16).first() else None
+        delta = 101
+        if last_instance_log and last_edited_date:
+            delta = (EditedSubmission.objects.filter(old__id=fi_id).last().date - FieldSightLog.objects.filter(
+                object_id=fi_id, type=16).first().date).total_seconds()
+        if (not FieldSightLog.objects.filter(object_id=fi_id, type=16).exists()) or (flagged_instance and delta > 100):
             instance.fieldsight_instance.logs.create(source=self.request.user, type=16, title="new Submission",
                                            organization=instance.fieldsight_instance.site.project.organization,
                                            project=instance.fieldsight_instance.site.project,
@@ -169,6 +193,12 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                                                             extra_message=extra_message,
                                                             extra_object=instance.fieldsight_instance.site,
                                                             content_object=instance.fieldsight_instance)
+            fi.form_status = 0
+            fi.save()
+            if fxf.is_staged:
+                instance.fieldsight_instance.site.update_current_progress()
+            else:
+                instance.fieldsight_instance.site.update_status()
 
         context = self.get_serializer_context()
         serializer = FieldSightSubmissionSerializer(instance, context=context)
@@ -206,36 +236,46 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
             return Response(status=status.HTTP_204_NO_CONTENT,
                             headers=self.get_openrosa_headers(request),
                             template_name=self.template_name)
-        error, instance = create_instance_from_xml(request, None, siteid, fs_proj_xf.id, proj_id, xform)
-        if error or not instance:
-            return self.error_response(error, False, request)
-
-        if fs_proj_xf.is_staged and siteid:
-            site.update_current_progress()
-        elif siteid:
-            site.update_status()
 
         params = self.request.query_params
         flagged_instance = params.get("instance")
-        if flagged_instance and flagged_instance is not None :
-            EditedSubmission.objects.get_or_create(new=instance.fieldsight_instance, old=FInstance.objects.get(pk=flagged_instance))
+        error, instance = create_instance_from_xml(request, None, siteid, fs_proj_xf.id, proj_id, xform, flagged_instance)
+        if error or not instance:
+            return self.error_response(error, False, request)
 
-        if not FieldSightLog.objects.filter(object_id=instance.id, type=16).exists():
+        fi = instance.fieldsight_instance
+        fi_id = fi.id
+        last_edited_date = EditedSubmission.objects.filter(old__id=fi_id).last().date if EditedSubmission.objects.filter(old__id=fi_id).last() else None
+        last_instance_log = FieldSightLog.objects.filter(object_id=fi_id, type=16).first().date if FieldSightLog.objects.filter(object_id=fi_id, type=16).first() else None
+        delta = 101
+        if last_instance_log and last_edited_date:
+            delta = (EditedSubmission.objects.filter(old__id=fi_id).last().date - FieldSightLog.objects.filter(object_id=fi_id, type=16).first().date).total_seconds()
+        if (not FieldSightLog.objects.filter(object_id=fi_id, type=16).exists()) or (flagged_instance and delta > 100):
+            # Submission data not only attachments.
+
+            fi.form_status = 0
+            fi.save()
+            if fs_proj_xf.is_staged and siteid:
+                site.update_current_progress()
+            elif siteid:
+                site.update_status()
+
+
             if fs_proj_xf.is_survey:
                 instance.fieldsight_instance.logs.create(source=self.request.user, type=16, title="new Project level Submission",
                                            organization=fs_proj_xf.project.organization,
                                            project=fs_proj_xf.project,
                                                             extra_object=fs_proj_xf.project,
                                                             extra_message="project",
-                                                            content_object=instance.fieldsight_instance)
+                                                            content_object=fi)
             else:
-                update_meta_details(fs_proj_xf)
+                update_meta_details(fs_proj_xf, instance)
                 site = Site.objects.get(pk=siteid)
                 instance.fieldsight_instance.logs.create(source=self.request.user, type=16, title="new Site level Submission",
                                            organization=fs_proj_xf.project.organization,
                                            project=fs_proj_xf.project, site=site,
                                                             extra_object=site,
-                                                            content_object=instance.fieldsight_instance)
+                                                            content_object=fi)
 
         context = self.get_serializer_context()
         serializer = FieldSightSubmissionSerializer(instance, context=context)
