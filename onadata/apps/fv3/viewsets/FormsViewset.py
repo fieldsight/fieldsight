@@ -46,7 +46,12 @@ class ShareUserListViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         projects = self.request.roles.filter(
+<<<<<<< Updated upstream
             ended_at__isnull=True).values_list("project", flat=True).order_by('project').distinct()
+=======
+            ended_at__isnull=True, group__name="Project Manager").\
+            values_list("project", flat=True).order_by('project').distinct()
+>>>>>>> Stashed changes
         return self.queryset.filter(user_roles__project_id__in=projects).distinct()
 
 
