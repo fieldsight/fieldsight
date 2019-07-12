@@ -1,3 +1,5 @@
+from django.contrib.auth.models import User
+
 from rest_framework import serializers
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.fieldsight.models import UserInvite
@@ -46,12 +48,16 @@ class MyRolesSerializer(serializers.ModelSerializer):
             return obj.organization.address
 
 
-
-
 class UserInvitationSerializer(serializers.ModelSerializer):
     group = serializers.CharField(source='group.name')
     by_user = serializers.CharField(source='by_user.username')
+    current_user = serializers.SerializerMethodField()
 
     class Meta:
         model = UserInvite
-        fields = ('by_user', 'group')
+        fields = ('id', 'by_user', 'group', 'current_user')
+
+    def get_current_user(self, obj):
+
+        user = User.objects.get(email=obj.email)
+        return user.username
