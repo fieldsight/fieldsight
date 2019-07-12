@@ -109,11 +109,11 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                 last_edited_date = EditedSubmission.objects.filter(
                     old__id=fi_id).last().date if EditedSubmission.objects.filter(old__id=fi_id).last() else None
                 last_instance_log = FieldSightLog.objects.filter(
-                    object_id=fi_id).first().date if FieldSightLog.objects.filter(object_id=fi_id).first() else None
+                    object_id=fi_id, type=16).first().date if FieldSightLog.objects.filter(object_id=fi_id, type=16).first() else None
                 delta = 101
                 if last_instance_log and last_edited_date:
                     delta = (EditedSubmission.objects.filter(old__id=fi_id).last().date - FieldSightLog.objects.filter(
-                        object_id=fi_id).first().date).total_seconds()
+                        object_id=fi_id, type=16).first().date).total_seconds()
                 if (not FieldSightLog.objects.filter(object_id=fi_id, type=16).exists()) or (
                         flagged_instance and delta > 100):
                     fi.form_status = 0
@@ -179,12 +179,12 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
         fi_id = fi.id
         last_edited_date = EditedSubmission.objects.filter(
             old__id=fi_id).last().date if EditedSubmission.objects.filter(old__id=fi_id).last() else None
-        last_instance_log = FieldSightLog.objects.filter(object_id=fi_id).first().date if FieldSightLog.objects.filter(
-            object_id=fi_id).first() else None
+        last_instance_log = FieldSightLog.objects.filter(object_id=fi_id, type=16).first().date if FieldSightLog.objects.filter(
+            object_id=fi_id, type=16).first() else None
         delta = 101
         if last_instance_log and last_edited_date:
             delta = (EditedSubmission.objects.filter(old__id=fi_id).last().date - FieldSightLog.objects.filter(
-                object_id=fi_id).first().date).total_seconds()
+                object_id=fi_id, type=16).first().date).total_seconds()
         if (not FieldSightLog.objects.filter(object_id=fi_id, type=16).exists()) or (flagged_instance and delta > 100):
             instance.fieldsight_instance.logs.create(source=self.request.user, type=16, title="new Submission",
                                            organization=instance.fieldsight_instance.site.project.organization,
@@ -246,10 +246,10 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
         fi = instance.fieldsight_instance
         fi_id = fi.id
         last_edited_date = EditedSubmission.objects.filter(old__id=fi_id).last().date if EditedSubmission.objects.filter(old__id=fi_id).last() else None
-        last_instance_log = FieldSightLog.objects.filter(object_id=fi_id).first().date if FieldSightLog.objects.filter(object_id=fi_id).first() else None
+        last_instance_log = FieldSightLog.objects.filter(object_id=fi_id, type=16).first().date if FieldSightLog.objects.filter(object_id=fi_id, type=16).first() else None
         delta = 101
         if last_instance_log and last_edited_date:
-            delta = (EditedSubmission.objects.filter(old__id=fi_id).last().date - FieldSightLog.objects.filter(object_id=fi_id).first().date).total_seconds()
+            delta = (EditedSubmission.objects.filter(old__id=fi_id).last().date - FieldSightLog.objects.filter(object_id=fi_id, type=16).first().date).total_seconds()
         if (not FieldSightLog.objects.filter(object_id=fi_id, type=16).exists()) or (flagged_instance and delta > 100):
             # Submission data not only attachments.
 
