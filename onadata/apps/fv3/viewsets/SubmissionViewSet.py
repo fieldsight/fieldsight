@@ -92,6 +92,12 @@ class AlterSubmissionStatusViewSet(viewsets.ModelViewSet):
             comment_url = reverse("forms:instance_status_change_detail",
                                   kwargs={'pk': instance_status.id})
             send_message_flagged(fi, instance_status.message, comment_url)
+            url = instance_status.images.first()
+            if url:
+                try:
+                    url = url.image.url
+                except:
+                    url = None
             data = {
                 "comment": instance_status.message,
                 "date": instance_status.date,
@@ -101,6 +107,7 @@ class AlterSubmissionStatusViewSet(viewsets.ModelViewSet):
                 "user_profile_picture": instance_status.user.user_profile.profile_picture.url,
                 "url": reverse_lazy("forms:instance_status_change_detail",
                                     kwargs={'pk': instance_status.id}),
+                "media_img":url
             }
             headers = self.get_success_headers(serializer.data)
             return Response(data, status=status.HTTP_201_CREATED, headers=headers)
