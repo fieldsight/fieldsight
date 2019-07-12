@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from django.db.models import Prefetch
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -233,8 +233,10 @@ class ProjectTermsLabelsViewset(viewsets.ModelViewSet):
     def get_queryset(self):
 
         project_id = self.request.query_params.get('project', None)
+
         if project_id:
             project = get_object_or_404(Project, id=project_id)
+
             return self.queryset.filter(project=project)
         else:
             return self.queryset
@@ -474,11 +476,15 @@ class GeoLayerView(APIView):
     def get(self, request, format=None):
 
         project_id = request.query_params.get('project', None)
-        project = get_object_or_404(Project, id=project_id)
 
-        data = project.geo_layers.all().values('id', 'title')
+        if project_id:
+            project = get_object_or_404(Project, id=project_id)
 
-        return Response(data)
+            data = project.geo_layers.all().values('id', 'title')
+
+            return Response(data)
+        else:
+            return Response({'message': 'Project Id is required'}, status=status.HTTP_204_NO_CONTENT)
 
     def post(self, request, format=None):
         project_id = request.query_params.get('project', None)
@@ -500,7 +506,7 @@ class GeoLayerView(APIView):
                 project.geo_layers.remove(*previous_geo_layers)
                 return Response(status=status.HTTP_200_OK)
         except Exception as e:
-            return Response(data=str(e), status=status.HTTP_400_BAD_REQUEST)
+            return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
 
 
 @permission_classes([IsAuthenticated])
@@ -508,10 +514,13 @@ class GeoLayerView(APIView):
 def organization_geolayer(request):
     query_params = request.query_params
     project_id = query_params.get('project')
-    project = get_object_or_404(Project, id=project_id)
-    organization = project.organization
-    data = GeoLayer.objects.filter(organization=organization).values('title', 'id')
-    return Response(data)
+    if project_id:
+        project = get_object_or_404(Project, id=project_id)
+        organization = project.organization
+        data = GeoLayer.objects.filter(organization=organization).values('title', 'id')
+        return Response(data)
+    else:
+        return Response({'message': 'Project Id is required'}, status=status.HTTP_204_NO_CONTENT)
 
 
 @permission_classes([IsAuthenticated])

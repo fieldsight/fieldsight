@@ -41,7 +41,7 @@ class SignUpForm(forms.Form):
                 if len(password) < 8:
                     raise ValidationError({'password': ['Passwords must be of more than 8 characters']})
                 
-                pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$")
+                pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[.@$!%*#?&'/~,;:_`{}()<>^\-\\|+])[A-Za-z\d.@$!%*#?&'/~,;:_`{}()<>^\-\\|+]{8,}$")
                 if not bool(pattern.search(password)):
                     raise ValidationError({'password': ['Password must contain alphabet characters, special characters and numbers']})
 
@@ -65,7 +65,10 @@ class SignUpForm(forms.Form):
                 raise ValidationError('Username must only include small letters')
 
         if username.__contains__(" "):
-            raise ValidationError('Username must not contains space.')
+            raise ValidationError('Username must not contain space.')
+
+        if username.__contains__("."):
+            raise ValidationError('Username must not contain dot.')
 
         if User.objects.filter(username=username):
             raise ValidationError('User with this username already exists')
@@ -166,7 +169,7 @@ class ValidatingPasswordChangeForm(auth.forms.PasswordChangeForm):
             raise forms.ValidationError("The new password must be at least %d characters long." % self.MIN_LENGTH)
 
         # At least one letter and one non-letter
-        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$")
+        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[.@$!%*#?&'/~,;:_`{}()<>^\-\\|+])[A-Za-z\d.@$!%*#?&'/~,;:_`{}()<>^\-\\|+]{8,}$")
         if not bool(pattern.search(password1)):
             raise ValidationError('Password must contain alphabet characters, special characters and numbers')
 
@@ -184,7 +187,7 @@ class ValidatingPasswordResetForm(auth.forms.SetPasswordForm):
             raise forms.ValidationError("The new password must be at least %d characters long." % self.MIN_LENGTH)
 
         # At least one letter and one non-letter
-        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$")
+        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[.@$!%*#?&'/~,;:_`{}()<>^\-\\|+])[A-Za-z\d.@$!%*#?&'/~,;:_`{}()<>^\-\\|+]{8,}$")
         if not bool(pattern.search(password1)):
             raise ValidationError('Password must contain alphabet characters, special characters and numbers')
 
