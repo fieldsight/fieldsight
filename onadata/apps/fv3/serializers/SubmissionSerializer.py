@@ -1,14 +1,12 @@
-import datetime
-
 import json
 import re
-from django.core.urlresolvers import reverse_lazy, reverse
+from django.core.urlresolvers import reverse_lazy
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged, InstanceImages, \
     EditedSubmission
-from onadata.apps.fsforms.utils import get_version, send_message_flagged
+from onadata.apps.fsforms.utils import get_version
 from onadata.apps.logger.models import Instance
 
 from django.contrib.sites.models import Site as DjangoSite
@@ -22,46 +20,12 @@ class ImageSerializer(serializers.ModelSerializer):
 
 
 class AlterInstanceStatusSerializer(serializers.ModelSerializer):
-    images = ImageSerializer(many=True)
+    images = ImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = InstanceStatusChanged
         fields = ('finstance', 'message', 'old_status', 'new_status', 'images')
         extra_kwargs = {'images': {'write_only': True}}
-
-    def create(self, validated_data):
-        images = self.context['images']
-        validated_data.pop("images")
-        instance_status = InstanceStatusChanged.objects.create(**validated_data)
-        for image in images:
-            InstanceImages.objects.create(instance_status=instance_status, image=image)
-        fi = instance_status.finstance
-        fi.form_status = instance_status.new_status
-        fi.date = datetime.date.today()
-        fi.save()
-        if fi.site:
-            fi.site.update_current_progress()
-            extra_object = fi.site
-            extra_message = ""
-        else:
-            extra_object = fi.project
-            extra_message = "project"
-
-        org = fi.project.organization if fi.project else fi.site.project.organization
-        instance_status.logs.create(source=self.context['request'].user,
-                                    type=17,
-                                    title="form status changed",
-                                      organization=org,
-                                      project=fi.project,
-                                      site=fi.site,
-                                      content_object=fi,
-                                      extra_object=extra_object,
-                                      extra_message=extra_message
-                                      )
-        comment_url = reverse("forms:instance_status_change_detail",
-                              kwargs={'pk': instance_status.id})
-        send_message_flagged(fi, instance_status.message, comment_url)
-        return instance_status
 
 
 class SiteSerializer(serializers.ModelSerializer):
@@ -128,6 +92,9 @@ class SubmissionSerializer(serializers.ModelSerializer):
         comments = InstanceStatusChanged.objects.filter(finstance=finstance)
         comment_data = []
         for c in comments:
+            url = c.images.first()
+            if url:
+                url = url.image.url
             comment_data.append(
                 {
                     "comment": c.message,
@@ -138,6 +105,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                     "user_profile_picture": c.user.user_profile.profile_picture.url,
                     "url": reverse_lazy("forms:instance_status_change_detail",
                                                 kwargs={'pk': c.id}),
+                    "media_img": url,
                 },
                 )
         instances_data = []
@@ -150,6 +118,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                  "user_name":e.user.username,
                  "user_full_name": e.user.first_name + ' ' + e.user.last_name,
                  "user_profile_picture":e.user.user_profile.profile_picture.url,
+                 "media_img ": "",
                 })
         # sort data past _ data
         comment_data.extend(instances_data)

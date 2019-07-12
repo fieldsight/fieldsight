@@ -121,10 +121,14 @@ class ShareTeamListSerializer(serializers.ModelSerializer):
 
 
 class ShareProjectListSerializer(serializers.ModelSerializer):
+    organization = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ('id', 'name', 'logo')
+        fields = ('id', 'name', 'logo', 'organization')
+
+    def get_organization(self, obj):
+        return obj.organization.name
 
 
 class ProjectFormSerializer(serializers.ModelSerializer):
