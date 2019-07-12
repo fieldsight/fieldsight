@@ -6,8 +6,29 @@ from onadata.apps.fieldsight.models import Site
 from onadata.apps.fieldsight.utils.forms import HTML5BootstrapModelForm, KOModelForm, HRBSFormField
 from onadata.apps.logger.models import XForm
 from .models import FieldSightXF, Stage, Schedule, FormGroup, FORM_STATUS, EducationMaterial
+from onadata.apps.fsforms.models import Asset, ObjectPermission
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+from django.conf import settings
+
 
 SHARED_LEVEL = [('' ,'None'),(0, 'Global'), (1, 'Organization'), (2, 'Project'), ]
+
+
+def get_shared_asset_ids(user):
+    codenames = ['view_asset', 'change_asset']
+    permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
+    content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
+    obj_perm = ObjectPermission.objects.filter(user=user,
+                                               content_type=content_type,
+                                               permission__in=permissions,
+                                               deny=False,
+                                               inherited=False)
+    asset_uids = []
+    for item in obj_perm:
+        a = Asset.objects.get(id=item.object_id)
+        asset_uids.append(a.uid)
+    return asset_uids
 
 
 class AssignSettingsForm(forms.ModelForm):
@@ -106,6 +127,8 @@ class GeneralForm(HTML5BootstrapModelForm, KOModelForm):
         self.is_project = kwargs.pop('is_project', None)
         super(GeneralForm, self).__init__(*args, **kwargs)
         exclude_id = []
+        asset_uids = get_shared_asset_ids(self.request.user)
+
         if self.is_project:
             exclude_id = FieldSightXF.objects.filter(project=self.project_or_site).values_list('xf', flat=True).order_by('xf').distinct()
         else:
@@ -115,21 +138,21 @@ class GeneralForm(HTML5BootstrapModelForm, KOModelForm):
             if self.is_project:
                 xforms = XForm.objects.filter(
                             Q(user=self.request.user) |\
-                            Q(user__user_profile__organization=self.request.organization), deleted_xform=None)\
+                            Q(user__user_profile__organization=self.request.organization)|Q(id_string__in=asset_uids), deleted_xform=None)\
                     .exclude(pk__in=exclude_id)
             else:
                 xforms = XForm.objects.filter(
                         Q(user=self.request.user) |
-                        Q(user__user_profile__organization=self.request.organization),
+                        Q(user__user_profile__organization=self.request.organization)|Q(id_string__in=asset_uids),
                     deleted_xform=None).exclude(pk__in=exclude_id)
         else:
             if self.is_project:
                 xforms = XForm.objects.filter(
-                    Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True),
+                    Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True)|Q(id_string__in=asset_uids),
                     deleted_xform=None).exclude(pk__in=exclude_id)
             else:
                 xforms = XForm.objects.filter(
-                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True),
+                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True)|Q(id_string__in=asset_uids),
                     deleted_xform=None).exclude(pk__in=exclude_id)
         xforms = xforms.order_by('title')
         self.fields['xf'].choices = [(obj.id, obj.title) for obj in xforms]
@@ -162,20 +185,21 @@ class SubStageEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
         super(SubStageEditForm, self).__init__(*args, **kwargs)
+        asset_uids = get_shared_asset_ids(self.request.user)
         if hasattr(self.request, "project") and self.request.project is not None:
             xform = XForm.objects.filter(
                 Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True) |
                 Q(fieldsightformlibrary__project=self.request.project) |
-                Q(fieldsightformlibrary__organization=self.request.organization), deleted_xform=None)
+                Q(fieldsightformlibrary__organization=self.request.organization) | Q(id_string__in=asset_uids), deleted_xform=None)
 
         elif hasattr(self.request, "organization") and self.request.organization is not None:
             xform = XForm.objects.filter(
                 Q(user=self.request.user) |
                 Q(fieldsightformlibrary__is_global=True) |
-                Q(fieldsightformlibrary__organization=self.request.organization), deleted_xform=None)
+                Q(fieldsightformlibrary__organization=self.request.organization) | Q(id_string__in=asset_uids), deleted_xform=None)
         else:
             xform = XForm.objects.filter(
-                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True), deleted_xform=None)
+                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True) | Q(id_string__in=asset_uids), deleted_xform=None)
         self.fields['form'].choices = [(obj.id, obj.title) for obj in xform]
         self.fields['form'].empty_label = None
 
@@ -191,20 +215,21 @@ class AddSubSTageForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
         super(AddSubSTageForm, self).__init__(*args, **kwargs)
+        asset_uids = get_shared_asset_ids(self.request.user)
         if hasattr(self.request, "project") and self.request.project is not None:
             xform = XForm.objects.filter(
                 Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True) |
                 Q(fieldsightformlibrary__project=self.request.project) |
-                Q(fieldsightformlibrary__organization=self.request.organization), deleted_xform=None)
+                Q(fieldsightformlibrary__organization=self.request.organization) | Q(id_string__in=asset_uids), deleted_xform=None)
 
         elif hasattr(self.request, "organization") and self.request.organization is not None:
             xform = XForm.objects.filter(
                 Q(user=self.request.user) |
                 Q(fieldsightformlibrary__is_global=True) |
-                Q(fieldsightformlibrary__organization=self.request.organization), deleted_xform=None)
+                Q(fieldsightformlibrary__organization=self.request.organization) | Q(id_string__in=asset_uids), deleted_xform=None)
         else:
             xform = XForm.objects.filter(
-                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True), deleted_xform=None)
+                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True) | Q(id_string__in=asset_uids), deleted_xform=None)
         self.fields['form'].choices = [(obj.id, obj.title) for obj in xform]
         self.fields['form'].empty_label = None
 
@@ -264,20 +289,21 @@ class ScheduleForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
         super(ScheduleForm, self).__init__(*args, **kwargs)
+        asset_uids = get_shared_asset_ids(self.request.user)
         if hasattr(self.request, "project") and self.request.project is not None:
             xform = XForm.objects.filter(
                 Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True) |
                 Q(fieldsightformlibrary__project=self.request.project) |
-                Q(fieldsightformlibrary__organization=self.request.organization), deleted_xform=None)
+                Q(fieldsightformlibrary__organization=self.request.organization) | Q(id_string__in=asset_uids), deleted_xform=None)
 
         elif hasattr(self.request, "organization") and self.request.organization is not None:
             xform = XForm.objects.filter(
                 Q(user=self.request.user) |
                 Q(fieldsightformlibrary__is_global=True) |
-                Q(fieldsightformlibrary__organization=self.request.organization), deleted_xform=None)
+                Q(fieldsightformlibrary__organization=self.request.organization) | Q(id_string__in=asset_uids), deleted_xform=None)
         else:
             xform = XForm.objects.filter(
-                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True), deleted_xform=None)
+                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True) | Q(id_string__in=asset_uids), deleted_xform=None)
         self.fields['form'].choices = [(obj.id, obj.title) for obj in xform]
         self.fields['form_type'].choices = [(0, "General"),(1, "Scheduled")]
         self.fields['form'].empty_label = None
@@ -299,6 +325,7 @@ class KoScheduleForm(HTML5BootstrapModelForm, KOModelForm):
         self.project_or_site = kwargs.pop('project_or_site', None)
         self.is_project = kwargs.pop('is_project', None)
         super(KoScheduleForm, self).__init__(*args, **kwargs)
+        asset_uids = get_shared_asset_ids(self.request.user)
         exclude_id = []
         if self.is_project:
             exclude_id = FieldSightXF.objects.filter(project=self.project_or_site).values_list('xf', flat=True).order_by('xf').distinct()
@@ -309,21 +336,21 @@ class KoScheduleForm(HTML5BootstrapModelForm, KOModelForm):
             if self.is_project:
                 xforms = XForm.objects.filter(
                             Q(user=self.request.user) |\
-                            Q(user__user_profile__organization=self.request.organization), deleted_xform=None)\
+                            Q(user__user_profile__organization=self.request.organization) | Q(id_string__in=asset_uids), deleted_xform=None)\
                     .exclude(pk__in=exclude_id)
             else:
                 xforms = XForm.objects.filter(
                         Q(user=self.request.user) |
-                        Q(user__user_profile__organization=self.request.organization),
+                        Q(user__user_profile__organization=self.request.organization) | Q(id_string__in=asset_uids),
                     deleted_xform=None).exclude(pk__in=exclude_id)
         else:
             if self.is_project:
                 xforms = XForm.objects.filter(
-                    Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True),
+                    Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True) | Q(id_string__in=asset_uids),
                     deleted_xform=None).exclude(pk__in=exclude_id)
             else:
                 xforms = XForm.objects.filter(
-                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True),
+                Q(user=self.request.user) | Q(fieldsightformlibrary__is_global=True) | Q(id_string__in=asset_uids),
                     deleted_xform=None).exclude(pk__in=exclude_id)
         xforms = xforms.order_by('title')
         self.fields['form'].choices = [(obj.id, obj.title) for obj in xforms]

@@ -45,13 +45,12 @@ class ShareUserListViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareUserListSerializer
 
     def get_queryset(self):
+        if self.request.roles.filter(group__name="Super Admin").exists():
+            return self.queryset.filter(user_roles__group__name="Project Manager")
         projects = self.request.roles.filter(
-<<<<<<< Updated upstream
-            ended_at__isnull=True).values_list("project", flat=True).order_by('project').distinct()
-=======
             ended_at__isnull=True, group__name="Project Manager").\
             values_list("project", flat=True).order_by('project').distinct()
->>>>>>> Stashed changes
+
         return self.queryset.filter(user_roles__project_id__in=projects).distinct()
 
 
@@ -64,6 +63,8 @@ class ShareTeamListViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareTeamListSerializer
 
     def get_queryset(self):
+        if self.request.roles.filter(group__name="Super Admin").exists():
+            return self.queryset
         teams = self.request.roles.filter(
             ended_at__isnull=True, group__name="Organization Admin").values_list(
             "organization", flat=True).distinct()
@@ -79,6 +80,8 @@ class ShareProjectListViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareProjectListSerializer
 
     def get_queryset(self):
+        if self.request.roles.filter(group__name="Super Admin").exists():
+            return self.queryset
         projects = self.request.roles.filter(
             ended_at__isnull=True, group__name="Project Manager").values_list(
             "project", flat=True).order_by('project').distinct()
