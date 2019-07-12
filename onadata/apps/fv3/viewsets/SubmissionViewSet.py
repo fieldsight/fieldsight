@@ -1,11 +1,16 @@
+import datetime
+
+from django.core.urlresolvers import reverse, reverse_lazy
 from django.db.models import Prefetch
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged, EditedSubmission
+from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged, EditedSubmission, InstanceImages
+from onadata.apps.fsforms.utils import send_message_flagged
 from onadata.apps.fv3.permissions.submission import SubmissionDetailPermission, SubmissionChangePermission
 from onadata.apps.fv3.serializers.SubmissionSerializer import SubmissionSerializer, AlterInstanceStatusSerializer, \
     EditSubmissionAnswerSerializer
@@ -51,15 +56,56 @@ class AlterSubmissionStatusViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, SubmissionChangePermission]
     parser_classes = [MultiPartParser]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    def get_serializer_context(self):
+    def create(self, request, * args, **kwargs):
         images = []
         for k, v in self.request.data.items():
             if "image_" in k:
                 images.append(v)
-        return {'request': self.request, 'kwargs': self.kwargs, 'images': images}
+        # request.data.pop("images")
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            instance_status = serializer.save(user=request.user)
+            for image in images:
+                InstanceImages.objects.create(instance_status=instance_status, image=image)
+            fi = instance_status.finstance
+            fi.form_status = instance_status.new_status
+            fi.date = datetime.date.today()
+            fi.save()
+            if fi.site:
+                fi.site.update_current_progress()
+                extra_object = fi.site
+                extra_message = ""
+            else:
+                extra_object = fi.project
+                extra_message = "project"
+            org = fi.project.organization if fi.project else fi.site.project.organization
+            instance_status.logs.create(source=self.request.user,
+                                        type=17,
+                                        title="form status changed",
+                                        organization=org,
+                                        project=fi.project,
+                                        site=fi.site,
+                                        content_object=fi,
+                                        extra_object=extra_object,
+                                        extra_message=extra_message
+                                        )
+            comment_url = reverse("forms:instance_status_change_detail",
+                                  kwargs={'pk': instance_status.id})
+            send_message_flagged(fi, instance_status.message, comment_url)
+            data = {
+                "comment": instance_status.message,
+                "date": instance_status.date,
+                "get_new_status_display": instance_status.new_status_display(),
+                "user_name": instance_status.user.username,
+                "user_full_name": instance_status.user.first_name + ' ' + instance_status.user.last_name,
+                "user_profile_picture": instance_status.user.user_profile.profile_picture.url,
+                "url": reverse_lazy("forms:instance_status_change_detail",
+                                    kwargs={'pk': instance_status.id}),
+            }
+            headers = self.get_success_headers(serializer.data)
+            return Response(data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
