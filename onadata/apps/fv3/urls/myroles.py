@@ -1,6 +1,6 @@
 from django.conf.urls import url
 from onadata.apps.fv3.viewsets.MyRolesViewset import my_roles, accept_invite, decline_invite, accept_all_invites, \
-    latest_submission, map_activity
+    map_activity
 
 my_roles_urlpatterns = [
 
