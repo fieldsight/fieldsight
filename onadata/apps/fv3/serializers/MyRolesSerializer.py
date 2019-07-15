@@ -1,8 +1,10 @@
+from datetime import datetime
 from django.contrib.auth.models import User
 
 from rest_framework import serializers
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.fieldsight.models import UserInvite
+from onadata.apps.fsforms.models import FInstance
 
 
 class MyRolesSerializer(serializers.ModelSerializer):
@@ -61,3 +63,26 @@ class UserInvitationSerializer(serializers.ModelSerializer):
 
         user = User.objects.get(email=obj.email)
         return user.username
+
+
+class LatestSubmissionSerializer(serializers.ModelSerializer):
+    detail_url = serializers.SerializerMethodField()
+    form = serializers.SerializerMethodField()
+    date =serializers.SerializerMethodField()
+
+    class Meta:
+        model = FInstance
+        fields = ('id', 'date', 'form', 'detail_url')
+
+    def get_detail_url(self, obj):
+        return '/#/submission-details/{}'.format(obj.id)
+
+    def get_form(self, obj):
+        if obj.project_fxf:
+            return obj.project_fxf.xf.title
+        elif obj.site_fxf:
+            return obj.site_fxf.xf.title
+
+    def get_date(self, obj):
+        return datetime.strftime(obj.date, '%Y-%m-%d %H:%M:%S')
+

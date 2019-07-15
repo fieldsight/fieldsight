@@ -13,8 +13,9 @@ from rest_framework import status
 from onadata.apps.fieldsight.models import UserInvite, Region
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer
+from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, LatestSubmissionSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.fsforms.models import FInstance
 
 
 @permission_classes([IsAuthenticated])
@@ -48,6 +49,15 @@ def my_roles(request):
 
 @permission_classes([IsAuthenticated, ])
 @api_view(['GET'])
+def latest_submission(request):
+    latest_submissions = FInstance.objects.filter(submitted_by=request.user, is_deleted=False).order_by('-date')[:20]
+    latest_submissions_serializer = LatestSubmissionSerializer(latest_submissions, many=True)
+
+    return Response({'latest_submissions': latest_submissions_serializer.data})
+
+
+@permission_classes([IsAuthenticated, ])
+@api_view(['GET'])  
 def map_activity(request):
     cord_data = settings.MONGO_DB.instances.aggregate([{"$match":{"submitted_by": {'$in' : [str(request.user.id), int(request.user.id)]}, "_geolocation":{"$not":{ "$elemMatch": { "$eq": None }}}}}, {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":{ "type": {"$literal": "Point"}, "coordinates": "$_geolocation" }, "properties": {"id":"$_id", "fs_uuid":"$fs_uuid", "submitted_by":"$_submitted_by"}}}])
     response_cords = list(cord_data["result"])
