@@ -1,9 +1,12 @@
 from django.db.models import Q
+from django.conf import settings
 
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.userrole.models import UserRole
+from onadata.apps.users.models import UserProfile
+from django.core.exceptions import ObjectDoesNotExist
 from onadata.apps.fsforms.line_data_project import ProgressGeneratorSite, LineChartGeneratorSite
 from onadata.apps.fsforms.models import FInstance
 
@@ -43,10 +46,19 @@ class SiteSerializer(serializers.ModelSerializer):
     def get_users(self, obj):
 
         project = Site.objects.get(pk=obj.pk).project
-        users = UserRole.objects.filter(ended_at__isnull=True).filter(
-            Q(site_id=obj.pk) | Q(region__project=project)).select_related('user').distinct('user_id').values('user', 'user__username',
-                                                                                                              'user__email')
-        return users
+
+        users_role = UserRole.objects.filter(ended_at__isnull=True).filter(Q(site_id=obj.pk) | Q(region__project=project)).\
+            select_related('user', 'user__user_profile').distinct('user_id')
+        users_list = []
+        for role in users_role:
+            try:
+                users_list.append({'user': role.user.id, 'username': role.user.username, 'email': role.user.email,
+                               'profile_picture': settings.SITE_URL + role.user.user_profile.profile_picture.url})
+            except ObjectDoesNotExist:
+                UserProfile.objects.get_or_create(user=role.user)
+
+
+        return users_list
 
     def get_progress_chart_data(self, obj):
 
