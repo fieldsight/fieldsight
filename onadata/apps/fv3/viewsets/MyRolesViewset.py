@@ -59,7 +59,7 @@ def latest_submission(request):
 @permission_classes([IsAuthenticated, ])
 @api_view(['GET'])  
 def map_activity(request):
-    cord_data = settings.MONGO_DB.instances.aggregate([{"$match":{"submitted_by": {'$in' : [str(request.user.id), int(request.user.id)]}, "_geolocation":{"$not":{ "$elemMatch": { "$eq": None }}}}}, {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":{ "type": {"$literal": "Point"}, "coordinates": "$_geolocation" }, "properties": {"id":"$_id", "fs_uuid":"$fs_uuid", "submitted_by":"$_submitted_by"}}}])
+    cord_data = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": request.user.username, "_geolocation":{"$not":{ "$elemMatch": { "$eq": None }}}}}, {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":{ "type": {"$literal": "Point"}, "coordinates": "$_geolocation" }, "properties": {"id":"$_id", "fs_uuid":"$fs_uuid", "submitted_by":"$_submitted_by"}}}])
     response_cords = list(cord_data["result"])
     return Response(response_cords)
 
