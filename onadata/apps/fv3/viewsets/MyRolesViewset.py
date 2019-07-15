@@ -43,9 +43,16 @@ def my_roles(request):
 
     invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
+    return Response({'profile': profile, 'roles': roles.data, 'invitations': invitations_serializer.data})
+
+
+@permission_classes([IsAuthenticated, ])
+@api_view(['GET'])
+def latest_submission(request):
     latest_submissions = FInstance.objects.filter(submitted_by=request.user, is_deleted=False).order_by('-date')[:20]
     latest_submissions_serializer = LatestSubmissionSerializer(latest_submissions, many=True)
-    return Response({'profile': profile, 'roles': roles.data, 'invitations': invitations_serializer.data, 'latest_submissions': latest_submissions_serializer.data})
+
+    return Response({'latest_submissions': latest_submissions_serializer.data})
 
 
 @permission_classes([IsAuthenticated])
@@ -323,4 +330,3 @@ def decline_invite(request, pk):
     invitation.save()
 
     return Response(data='Decline Invitation Successfully.', status=status.HTTP_200_OK)
-
