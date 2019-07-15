@@ -1,11 +1,11 @@
 from django.db.models import Q
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User, Permission
 from django.core.exceptions import ObjectDoesNotExist
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.authentication import TokenAuthentication, BasicAuthentication
+from rest_framework.authentication import BasicAuthentication
 
-from rest_framework.decorators import permission_classes, api_view, authentication_classes
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -14,8 +14,9 @@ from rest_framework.views import APIView
 from onadata.apps.fieldsight.models import UserInvite, Region
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer
+from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, LatestSubmissionSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.fsforms.models import FInstance
 
 
 @permission_classes([IsAuthenticated])
@@ -43,6 +44,7 @@ def my_roles(request):
     invitations = UserInvite.objects.select_related('by_user').filter(email=request.user.email, is_used=False, is_declied=False)
 
     invitations_serializer = UserInvitationSerializer(invitations, many=True)
+
     return Response({'profile': profile, 'roles': roles.data, 'invitations': invitations_serializer.data})
 
 
@@ -328,6 +330,21 @@ class DeclineInvite(APIView):
         invitation.is_used = True
         invitation.is_declined = True
         invitation.save()
-
         return Response(data='Decline Invitation Successfully.', status=status.HTTP_200_OK)
 
+
+@permission_classes([IsAuthenticated, ])
+@api_view(['GET'])
+def latest_submission(request):
+    latest_submissions = FInstance.objects.filter(submitted_by=request.user, is_deleted=False).order_by('-date')[:20]
+    latest_submissions_serializer = LatestSubmissionSerializer(latest_submissions, many=True)
+
+    return Response({'latest_submissions': latest_submissions_serializer.data})
+
+
+@permission_classes([IsAuthenticated, ])
+@api_view(['GET'])
+def map_activity(request):
+    cord_data = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": request.user.username, "_geolocation":{"$not":{ "$elemMatch": { "$eq": None }}}}}, {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":{ "type": {"$literal": "Point"}, "coordinates": "$_geolocation" }, "properties": {"id":"$_id", "fs_uuid":"$fs_uuid", "submitted_by":"$_submitted_by"}}}])
+    response_cords = list(cord_data["result"])
+    return Response(response_cords)
