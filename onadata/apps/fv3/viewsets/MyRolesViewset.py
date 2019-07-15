@@ -12,8 +12,9 @@ from rest_framework import status
 from onadata.apps.fieldsight.models import UserInvite, Region
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer
+from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, LatestSubmissionSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.fsforms.models import FInstance
 
 
 @permission_classes([IsAuthenticated])
@@ -41,7 +42,10 @@ def my_roles(request):
     invitations = UserInvite.objects.select_related('by_user').filter(email=request.user.email, is_used=False, is_declied=False)
 
     invitations_serializer = UserInvitationSerializer(invitations, many=True)
-    return Response({'profile': profile, 'roles': roles.data, 'invitations': invitations_serializer.data})
+
+    latest_submissions = FInstance.objects.filter(submitted_by=request.user, is_deleted=False)[:20]
+    latest_submissions_serializer = LatestSubmissionSerializer(latest_submissions, many=True)
+    return Response({'profile': profile, 'roles': roles.data, 'invitations': invitations_serializer.data, 'latest_submissions': latest_submissions_serializer.data})
 
 
 @permission_classes([IsAuthenticated])
