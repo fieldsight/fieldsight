@@ -43,7 +43,7 @@ def my_roles(request):
 
     invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
-    latest_submissions = FInstance.objects.filter(submitted_by=request.user, is_deleted=False)[:20]
+    latest_submissions = FInstance.objects.filter(submitted_by=request.user, is_deleted=False).order_by('-date')[:20]
     latest_submissions_serializer = LatestSubmissionSerializer(latest_submissions, many=True)
     return Response({'profile': profile, 'roles': roles.data, 'invitations': invitations_serializer.data, 'latest_submissions': latest_submissions_serializer.data})
 
