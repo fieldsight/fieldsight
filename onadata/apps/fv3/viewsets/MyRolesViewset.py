@@ -60,9 +60,9 @@ class AcceptInvite(APIView):
             return Response(data='Username does not exist.', status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            invitation = UserInvite.objects.get(id=self.kwargs.get('pk', None))
+            invitation = UserInvite.objects.get(id=self.kwargs.get('pk'), is_used=False)
         except ObjectDoesNotExist:
-            return Response(data='UserInvite does not exist.', status=status.HTTP_400_BAD_REQUEST)
+            return Response(data='Invitation Id does not exist.', status=status.HTTP_400_BAD_REQUEST)
 
         profile = user.user_profile
         if not profile.organization:
@@ -323,7 +323,7 @@ class DeclineInvite(APIView):
 
     def post(self, request, *args, **kwargs):
         try:
-            invitation = UserInvite.objects.get(pk=self.kwargs.get('pk'))
+            invitation = UserInvite.objects.get(pk=self.kwargs.get('pk'), is_used=False)
         except ObjectDoesNotExist:
             return Response(data='Invitation Id does not exist.', status=status.HTTP_400_BAD_REQUEST)
 
