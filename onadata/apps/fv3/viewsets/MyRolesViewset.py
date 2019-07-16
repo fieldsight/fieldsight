@@ -347,12 +347,12 @@ def latest_submission(request):
     }])
     response_submissions = list(submissions["result"])
     for item in response_submissions:
-        id_string = item['data']['form_id_string']
+        id_string = item['properties']['form_id_string']
         xf = XForm.objects.get(id_string=id_string).title
-        item['data']['form'] = xf
+        item['properties']['form'] = xf
 
         instance_id = item['data']['id']
-        item['data']['detail_url'] = "/#/submission-details/{}".format(instance_id)
+        item['properties']['detail_url'] = "/#/submission-details/{}".format(instance_id)
 
     return Response(response_submissions)
 
