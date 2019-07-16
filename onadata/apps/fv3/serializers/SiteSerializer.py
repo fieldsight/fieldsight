@@ -19,10 +19,11 @@ class SiteSerializer(serializers.ModelSerializer):
     users = serializers.SerializerMethodField()
     # progress_chart_data = serializers.SerializerMethodField()
     line_chart_data = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
-        fields = ('id', 'name', 'address', 'logo', 'public_desc', 'region', 'total_users', 'users', 'submissions',
+        fields = ('id', 'name', 'address', 'logo', 'public_desc', 'location', 'region', 'total_users', 'users', 'submissions',
                   'line_chart_data')
 
     def get_submissions(self, obj):
@@ -36,6 +37,12 @@ class SiteSerializer(serializers.ModelSerializer):
                        }
 
         return submissions
+
+    def get_location(self, obj):
+
+        data = {'coordinates': [obj.location.x, obj.location.y]}
+
+        return data
 
     def get_total_users(self, obj):
 
@@ -56,7 +63,6 @@ class SiteSerializer(serializers.ModelSerializer):
                                'profile_picture': role.user.user_profile.profile_picture.url})
             except ObjectDoesNotExist:
                 UserProfile.objects.get_or_create(user=role.user)
-
 
         return users_list
 
