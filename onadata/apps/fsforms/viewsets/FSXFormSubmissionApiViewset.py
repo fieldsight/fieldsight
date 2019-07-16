@@ -116,7 +116,7 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                         object_id=fi_id, type=16).first().date).total_seconds()
                 if (not FieldSightLog.objects.filter(object_id=fi_id, type=16).exists()) or (
                         flagged_instance and delta > 100):
-                    fi.form_status = 0
+                    fi.form_status = None
                     fi.save()
                     if fxf.is_staged:
                         instance.fieldsight_instance.site.update_current_progress()
@@ -193,7 +193,7 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                                                             extra_message=extra_message,
                                                             extra_object=instance.fieldsight_instance.site,
                                                             content_object=instance.fieldsight_instance)
-            fi.form_status = 0
+            fi.form_status = None
             fi.save()
             if fxf.is_staged:
                 instance.fieldsight_instance.site.update_current_progress()
@@ -253,7 +253,7 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
         if (not FieldSightLog.objects.filter(object_id=fi_id, type=16).exists()) or (flagged_instance and delta > 100):
             # Submission data not only attachments.
 
-            fi.form_status = 0
+            fi.form_status = None
             fi.save()
             if fs_proj_xf.is_staged and siteid:
                 site.update_current_progress()

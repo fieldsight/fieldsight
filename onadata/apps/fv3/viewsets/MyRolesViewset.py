@@ -74,7 +74,7 @@ class AcceptInvite(APIView):
 
         site_ids = invitation.site.all().values_list('pk', flat=True)
         project_ids = invitation.project.all().values_list('pk', flat=True)
-
+    
         if invitation.regions.all().values_list('pk', flat=True).exists():
             regions_id = invitation.regions.all().values_list('pk', flat=True)
             for region_id in regions_id:
