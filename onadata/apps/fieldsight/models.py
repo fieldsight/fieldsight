@@ -609,16 +609,16 @@ class Site(models.Model):
         from onadata.apps.fsforms.models import FInstance
         if self.project.site_featured_images:
             data = self.project.site_featured_images
+            instances = []
+            form_ids = [d['form_id'] for d in data if d['question_type'] == 'Form']
 
-            for d in data:
-                if 'form_id' in d.keys():
-                    instances = []
-                    if FInstance.objects.filter(site_fxf_id=int(d['form_id']), form_status=3):
-                        instance = FInstance.objects.filter(site_fxf_id=int(d['form_id']), form_status=3).order_by('-pk')[0]
-                        instances.append(instance.instance_id)
-                    mongo_instances = settings.MONGO_DB.instances.find({"_id": {"$in": instances}})
+            for form in form_ids:
+                if FInstance.objects.filter(project_fxf_id=int(form), form_status=3):
+                    instance = FInstance.objects.filter(project_fxf_id=int(form), form_status=3).order_by('-pk')[0]
+                    instances.append(instance.instance_id)
+            mongo_instances = settings.MONGO_DB.instances.find({"_id": {"$in": instances}})
 
-                    return [instance['_attachments'][0]['download_url'] for instance in mongo_instances]
+            return [instance['_attachments'][0]['download_url'] for instance in mongo_instances]
 
     def get_absolute_url(self):
         return reverse('fieldsight:site-dashboard', kwargs={'pk': self.pk})

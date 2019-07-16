@@ -615,5 +615,5 @@ def site_documents(request):
     site_id = query_params.get('site_id')
     blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
     data = [{'name': blueprint.get_name(), 'file': blueprint.image.url} for blueprint in blueprints_obj]
-    return Response({'blueprints': data})
+    return Response(data)
 
