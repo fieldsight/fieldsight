@@ -48,6 +48,12 @@ def send_message(fxf, status=None, comment=None, comment_url=None):
     emails = [r.user.email for r in roles]
     Device = get_device_model()
     is_delete = True if status is None and fxf.fsform is not None else False
+    is_deployed = True
+    if fxf.is_deployed:
+        status_message = "New Form Deployed"
+    else:
+        is_deployed = False
+        status_message = "Form Undeployed"
     message = {'notify_type': 'Form',
                'is_delete':is_delete,
                'form_id': fxf.id,
@@ -55,7 +61,8 @@ def send_message(fxf, status=None, comment=None, comment_url=None):
                'form_name': fxf.xf.title,
                'xfid': fxf.xf.id_string,
                'form_type':fxf.form_type(), 'form_type_id':fxf.form_type_id(),
-               'status': FORM_STATUS.get(status,"New Form"),
+               'status': status_message,
+               'is_deployed': is_deployed,
                'comment_url': comment_url,
                'site': {'name': fxf.site.name, 'id': fxf.site.id}}
     save_notification(message, emails)
@@ -67,10 +74,11 @@ def send_message_project_form(fxf, status=None, comment=None, comment_url=None):
     emails = [r.user.email for r in roles]
     Device = get_device_model()
     is_delete = False
-    status_message = "New Form"
+    is_deployed = True
     if fxf.is_deployed:
         status_message = "New Form Deployed"
     else:
+        is_deployed = False
         status_message = "Form Undeployed"
     message = {'notify_type': 'ProjectForm',
                'is_delete':is_delete,
@@ -80,6 +88,7 @@ def send_message_project_form(fxf, status=None, comment=None, comment_url=None):
                'xfid': fxf.xf.id_string,
                'form_type':fxf.form_type(), 'form_type_id':fxf.form_type_id(),
                'status': status_message,
+               'is_deployed': is_deployed,
                'comment_url': comment_url,
                'site': {},
                'project': {'name': fxf.project.name, 'id': fxf.project.id}}
