@@ -597,3 +597,12 @@ class ProjectDefineSiteMeta(APIView):
 
         # except Exception as e:
         #     return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def site_recent_pictures(request):
+    query_params = request.query_params
+    site_id = query_params.get('site')
+    site_featured_images = Site.objects.get(pk=site_id).get_site_featured_images()
+    return Response({'site_featured_images': site_featured_images})

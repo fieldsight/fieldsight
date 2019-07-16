@@ -5,7 +5,8 @@ from onadata.apps.fv3.urls.project_settings import progress_urlpatterns
 from onadata.apps.fv3.urls.myroles import my_roles_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
     ProjectUpdateViewset, sectors_subsectors, ProjectSiteTypesViewset, ProjectTermsLabelsViewset, \
-    ProjectRegionsViewset, GeoLayerView, ProjectDefineSiteMeta, ProjectSitesViewset, organization_geolayer, check_region
+    ProjectRegionsViewset, GeoLayerView, ProjectDefineSiteMeta, ProjectSitesViewset, organization_geolayer, check_region, \
+    site_recent_pictures
 
 from onadata.apps.fv3.viewsets.OrganizationViewSet import OrganizationViewSet
 from onadata.apps.fv3.viewsets.SiteViewSet import SiteViewSet, site_map, SiteSubmissionsViewSet
@@ -75,6 +76,8 @@ urlpatterns = [
     url(r'api/form/projects/$', ShareProjectListViewSet.as_view({'get': 'list'}), name='shareable-project'),
 
     url(r'^api/project-site-list/', ProjectSitesListViewSet.as_view({'get': 'list'}), name='project_sites_list'),
+    url(r'^api/site-recent-pictures/', site_recent_pictures, name='site_recent_pictures'),
+
 ]
 
 urlpatterns += progress_urlpatterns
