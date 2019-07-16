@@ -2,6 +2,7 @@ from django.db.models import Q
 
 from rest_framework import serializers
 
+from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.models import UserProfile
@@ -79,10 +80,35 @@ class SiteSerializer(serializers.ModelSerializer):
 
 
 class FInstanceSerializer(serializers.ModelSerializer):
-    form = serializers.CharField(source='site_fxf.xf.title')
+    form = serializers.SerializerMethodField()
     status = serializers.CharField(source='get_form_status_display')
     submitted_by = serializers.CharField(source='submitted_by.username')
+    reviewed_by = serializers.SerializerMethodField()
+    date = serializers.SerializerMethodField()
 
     class Meta:
         model = FInstance
-        fields = ('id', 'date', 'form', 'status', 'submitted_by')
+        fields = ('id', 'date', 'form', 'status', 'submitted_by', 'reviewed_by')
+
+    def get_form(self, obj):
+        if obj.site_fxf:
+            return obj.site_fxf.xf.title
+
+        elif obj.project_fxf:
+            return obj.project_fxf.xf.title
+
+    def get_reviewed_by(self, obj):
+        if FieldSightLog.objects.filter(type=17, object_id=obj.id).select_related('source').exists():
+            log = FieldSightLog.objects.filter(type=17, object_id=obj.id).select_related('source').order_by('-pk')[0]
+            return log.source.get_full_name()
+
+        else:
+            return None
+
+    def get_date(self, obj):
+        if FieldSightLog.objects.filter(type=17, object_id=obj.id).select_related('source').exists():
+            log = FieldSightLog.objects.filter(type=17, object_id=obj.id).select_related('source').order_by('-pk')[0]
+            return log.date
+
+        else:
+            return obj.date
