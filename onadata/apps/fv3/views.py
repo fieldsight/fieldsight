@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from django.db.models import Prefetch
-from django.http import Http404, JsonResponse
+from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -616,3 +616,4 @@ def site_documents(request):
     blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
     data = [{'name': blueprint.get_name(), 'file': blueprint.image.url} for blueprint in blueprints_obj]
     return Response({'blueprints': data})
+
