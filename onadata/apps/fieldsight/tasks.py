@@ -1951,13 +1951,6 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                     data[index[status_day['date'].strftime("%Y-%m-%d")]][13] = int(status_day['re_flagged'])
 
 
-            for status_month in status_months:
-                data[index[status_month['date'].strftime("%Y-%m")]][9] = int(status_month['dcount'])
-                data[index[status_month['date'].strftime("%Y-%m")]][10] = int(status_month['resolved'])
-                data[index[status_month['date'].strftime("%Y-%m")]][11] = int(status_month['re_approved'])
-                data[index[status_month['date'].strftime("%Y-%m")]][12] = int(status_month['re_rejected'])
-                data[index[status_month['date'].strftime("%Y-%m")]][13] = int(status_month['re_flagged'])
-
             truncate_date = connection.ops.date_trunc_sql('day', 'date_created')
             forms=Instance.objects.filter(fieldsight_instance__project_id=project_id, date_created__range=[new_startdate, new_enddate]).extra({'date_created':truncate_date})
             forms_stats=forms.values('date_created').annotate(dcount=Count('user_id', distinct=True))
