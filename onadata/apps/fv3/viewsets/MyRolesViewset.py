@@ -351,7 +351,7 @@ def latest_submission(request):
         xf = XForm.objects.get(id_string=id_string).title
         item['properties']['form'] = xf
 
-        instance_id = item['data']['id']
+        instance_id = item['properties']['id']
         item['properties']['detail_url'] = "/#/submission-details/{}".format(instance_id)
 
     return Response(response_submissions)
