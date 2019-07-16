@@ -598,8 +598,3 @@ class ProjectDefineSiteMeta(APIView):
         # except Exception as e:
         #     return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
 
-
-def site_meta(request):
-    from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
-    print(get_site_meta_ans(75))
-    return HttpResponse(get_site_meta_ans(75))
