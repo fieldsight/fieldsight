@@ -1,5 +1,4 @@
 from django.db.models import Q
-from django.conf import settings
 
 from rest_framework import serializers
 
@@ -53,7 +52,7 @@ class SiteSerializer(serializers.ModelSerializer):
         for role in users_role:
             try:
                 users_list.append({'user': role.user.id, 'username': role.user.username, 'email': role.user.email,
-                               'profile_picture': settings.SITE_URL + role.user.user_profile.profile_picture.url})
+                               'profile_picture': role.user.user_profile.profile_picture.url})
             except ObjectDoesNotExist:
                 UserProfile.objects.get_or_create(user=role.user)
 
