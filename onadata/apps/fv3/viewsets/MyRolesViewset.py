@@ -17,7 +17,7 @@ from onadata.apps.userrole.models import UserRole
 from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, LatestSubmissionSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fsforms.models import FInstance
-
+from onadata.apps.logger.models import XForm
 
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
@@ -336,10 +336,25 @@ class DeclineInvite(APIView):
 @permission_classes([IsAuthenticated, ])
 @api_view(['GET'])
 def latest_submission(request):
-    latest_submissions = FInstance.objects.filter(submitted_by=request.user, is_deleted=False).order_by('-date')[:20]
-    latest_submissions_serializer = LatestSubmissionSerializer(latest_submissions, many=True)
+    submissions = settings.MONGO_DB.instances.aggregate([{"$match": {"_submitted_by": request.user.username}}, {
+        "$project": {
+            "_id": 0, "type": {"$literal": "Feature"},
+            "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"}, "properties": {
+                "id": "$_id", "form_id_string": "$_xform_id_string", "submitted_by": "$_submitted_by",
+                "status": "$fs_status"
+            }
+        }
+    }])
+    response_submissions = list(submissions["result"])
+    for item in response_submissions:
+        id_string = item['data']['form_id_string']
+        xf = XForm.objects.get(id_string=id_string).title
+        item['data']['form'] = xf
 
-    return Response({'latest_submissions': latest_submissions_serializer.data})
+        instance_id = item['data']['id']
+        item['data']['detail_url'] = "/#/submission-details/{}".format(instance_id)
+
+    return Response(response_submissions)
 
 
 @permission_classes([IsAuthenticated, ])
