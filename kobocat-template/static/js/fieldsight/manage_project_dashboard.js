@@ -589,7 +589,7 @@ window.exportSitesToProject = new Vue({
       }
       
       function successCallback(response) {
-          alert(response.body);
+          alert(response.body.message)
           self.loading = false;
       }
       function errorCallback() {
