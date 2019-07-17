@@ -15,7 +15,7 @@ from onadata.apps.fsforms.models import FInstance
 
 
 class SiteSubmissionsPagination(PageNumberPagination):
-    page_size = 6
+    page_size = 100
     page_size_query_param = 'page_size'
 
 

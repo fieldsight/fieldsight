@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from django.db.models import Prefetch
-from django.http import Http404, JsonResponse
+from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -597,3 +597,23 @@ class ProjectDefineSiteMeta(APIView):
 
         # except Exception as e:
         #     return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def site_recent_pictures(request):
+    query_params = request.query_params
+    site_id = query_params.get('site')
+    site_featured_images = Site.objects.get(pk=site_id).get_site_featured_images()
+    return Response({'site_featured_images': site_featured_images})
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def site_documents(request):
+    query_params = request.query_params
+    site_id = query_params.get('site_id')
+    blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
+    data = [{'name': blueprint.get_name(), 'file': blueprint.image.url} for blueprint in blueprints_obj]
+    return Response(data)
+

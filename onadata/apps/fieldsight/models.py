@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
-import json
 import datetime
-import os, tempfile
+import tempfile
 import itertools
 from django.contrib.gis.db.models import PointField
 from django.contrib.gis.db.models import GeoManager
@@ -12,7 +11,6 @@ from django.conf import settings
 from django.db.models import IntegerField, Count, Case, When, Sum
 from django.db.models.signals import post_save
 from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from django.utils.text import slugify
 from jsonfield import JSONField
 
@@ -606,6 +604,21 @@ class Site(models.Model):
         response['approved'] = approved
 
         return response
+
+    def get_site_featured_images(self):
+        from onadata.apps.fsforms.models import FInstance
+        if self.project.site_featured_images:
+            data = self.project.site_featured_images
+            instances = []
+            form_ids = [d['form_id'] for d in data if d['question_type'] == 'Form']
+
+            for form in form_ids:
+                if FInstance.objects.filter(project_fxf_id=int(form), form_status=3):
+                    instance = FInstance.objects.filter(project_fxf_id=int(form), form_status=3).order_by('-pk')[0]
+                    instances.append(instance.instance_id)
+            mongo_instances = settings.MONGO_DB.instances.find({"_id": {"$in": instances}})
+
+            return [instance['_attachments'][0]['download_url'] for instance in mongo_instances]
 
     def get_absolute_url(self):
         return reverse('fieldsight:site-dashboard', kwargs={'pk': self.pk})
