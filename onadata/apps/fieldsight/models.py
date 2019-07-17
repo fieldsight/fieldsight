@@ -452,6 +452,8 @@ class Site(models.Model):
     site_featured_images = JSONField(default=dict)
     current_progress = models.IntegerField(default=0)
     current_status = models.IntegerField(default=0)
+    enable_subsites = models.BooleanField(default=False)
+    site = models.ForeignKey('self', blank=True, null=True, related_name="sub_sites")
     all_objects = SiteAllManager()
     objects = SiteManager()
     
