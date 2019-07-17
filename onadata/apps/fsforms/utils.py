@@ -15,6 +15,9 @@ from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from xml.dom import Node
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+from django.conf import settings
 
 FIELDSIGHT_XFORM_ID = u"_fieldsight_xform_id"
 
@@ -393,3 +396,20 @@ def inject_instanceid(xml_str, uuid):
         uuid_tag.appendChild(text_node)
         return xml.toxml()
     return xml_str
+
+
+def get_shared_asset_ids(user):
+    from onadata.apps.fsforms.models import Asset, ObjectPermission
+    codenames = ['view_asset', 'change_asset']
+    permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
+    content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
+    obj_perm = ObjectPermission.objects.filter(user=user,
+                                               content_type=content_type,
+                                               permission__in=permissions,
+                                               deny=False,
+                                               inherited=False)
+    asset_uids = []
+    for item in obj_perm:
+        a = Asset.objects.get(id=item.object_id)
+        asset_uids.append(a.uid)
+    return asset_uids
