@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 
 def clear_user_cache(sender, user, request, **kwargs):
     cache.delete('roles_{}'.format(user.id))
+    cache.delete('admin_{}'.format(user.id))
 
 
 user_logged_out.connect(clear_user_cache, sender=User)
