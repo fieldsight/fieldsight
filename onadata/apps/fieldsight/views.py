@@ -414,7 +414,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
     @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if request.group.name == "Super Admin" or request.group.name == "Unassigned":
+            if request.roles.filter(group__name__in=["Unassigned", "Super Admin"]).exists():
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
@@ -465,7 +465,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
         # ChannelGroup("notify-{}".format(self.object.id)).send({"text": json.dumps(result)})
         # ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
-        if self.request.group.name == "Unassigned":
+        if self.request.roles.filter(group__name="Unassigned").exists():
             previous_group = UserRole.objects.get(user=self.request.user, group__name=self.request.group.name)
             previous_group.delete()
 
@@ -3885,7 +3885,7 @@ class DeleteSitesTypeView(DeleteView):
         return reverse('fieldsight:site-types', kwargs={'pk': project.pk})
 
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if is_super_admin:
             return super(DeleteSitesTypeView, self).dispatch(request, *args, **kwargs)
 
         type_id = self.kwargs.get('pk')
@@ -3910,7 +3910,7 @@ class EditSitesTypeView(UpdateView):
     form_class = SiteTypeForm
 
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return super(EditSitesTypeView, self).dispatch(request, *args, **kwargs)
 
         type_id = self.kwargs.get('pk')
@@ -4266,7 +4266,7 @@ class UnassignUserRegionAndSites(View):
 
         status, data = 200, {'status':'false','message':'PermissionDenied. You do not have sufficient rights.'}
 
-        if request.group.name != "Super Admin":
+        if request.is_super_admin:
 
             request_usr_org_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=1).order_by('organization_id').distinct('organization_id').values_list('organization_id', flat=True)
             if not request_usr_org_role:

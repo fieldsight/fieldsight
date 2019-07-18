@@ -2432,7 +2432,7 @@ class FormVersions(LoginRequiredMixin, View):
         kwargs['latest'] = fsf.xf
 
 
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return super(FormVersions, self).dispatch(request, is_donor_only=False, *args, **kwargs)
         user_role = request.roles.filter(project_id=project_id, group_id=2)
 

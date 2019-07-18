@@ -14,7 +14,7 @@ class SubmissionDetailPermission(permissions.BasePermission):
         finstance = obj.fieldsight_instance
         form = finstance.fsxf
         is_doner = False
-        if request.group and request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
 
         if form.site is not None:

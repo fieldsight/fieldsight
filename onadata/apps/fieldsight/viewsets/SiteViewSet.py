@@ -26,35 +26,35 @@ class SiteSurveyPermission(BasePermission):
     def has_object_permission(self, request, view, obj):
         if not obj.is_survey:
             return False
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return obj.project.organization == request.organization
-        return request.project == obj.project
+        if request.roles.filter(organization_id=obj.project.organization_id, group__name="Organization Admin").exists():
+            return True
+        return request.roles.filter(project_id=obj.project_id, group__name__in=["Project Manager"]).exists()
 
 
 class AllSiteViewPermission(BasePermission):
     def has_permission(self, request, view):
-        return request.group.name in ["Super Admin", "Organization Admin", "Project Manager", "Reviewer"]
+        return request.roles.filter(group__name__in = ["Super Admin", "Organization Admin", "Project Manager", "Reviewer"])
 
 
 class SiteUnderProjectPermission(BasePermission):
     def has_object_permission(self, request, view, obj):
         if not obj.is_survey:
             return True
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return obj.project.organization == request.organization
-        return request.project == obj.project
+        if request.roles.filter(organization_id=obj.project.organization_id, group__name="Organization Admin").exists():
+            return True
+        return request.roles.filter(project_id=obj.project_id, group__name__in=["Project Manager"]).exists()
 
 
 class SiteSurveyUpdatePermission(BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return obj.project.organization == request.organization
+        if request.roles.filter(organization_id=obj.project.organization_id, group__name="Organization Admin").exists():
+            return True
         return obj.project == request.project
 
 
