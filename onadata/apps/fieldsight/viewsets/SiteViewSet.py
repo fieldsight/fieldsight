@@ -121,7 +121,7 @@ class ProjectSiteViewSet(viewsets.ModelViewSet):
 
     def filter_queryset(self, queryset):
         project = self.kwargs.get('pk', None)
-        qs = queryset.filter(project__id=project, is_active=True)[:4]
+        qs = queryset.filter(project__id=project, is_active=True)
         return qs
 
 
