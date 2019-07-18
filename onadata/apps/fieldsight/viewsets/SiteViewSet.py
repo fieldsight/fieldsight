@@ -13,6 +13,7 @@ from onadata.apps.fieldsight.serializers.SiteSerializer import SuperMinimalSiteS
     SiteReviewSerializer, ProjectTypeSerializer, SiteUpdateSerializer, ProjectUpdateSerializer, RegionSerializer, \
     SiteTypeSerializer
 from onadata.apps.fieldsight.serializers.ProjectTermsSerializer import ProjectLevelTermsSerializers
+from onadata.apps.fieldsight.serializers.SiteSerializer import ProjectSiteListSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.userrole.models import UserRole
 from django.contrib.auth.models import Group
@@ -107,6 +108,21 @@ class SiteViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         return {'request': self.request}
+
+
+class ProjectSiteViewSet(viewsets.ModelViewSet):
+    """
+    A simple ViewSet for viewing sites.
+    """
+    queryset = Site.objects.all()\
+        .select_related("region", "project", "type")
+    serializer_class = ProjectSiteListSerializer
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+
+    def filter_queryset(self, queryset):
+        project = self.kwargs.get('pk', None)
+        qs = queryset.filter(project__id=project, is_active=True)[:4]
+        return qs
 
 
 class SiteUpdateViewSet(viewsets.ModelViewSet):

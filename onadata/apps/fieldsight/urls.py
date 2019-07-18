@@ -70,6 +70,8 @@ from .views import (
     SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView
 )
 
+from onadata.apps.fieldsight.viewsets.SiteViewSet import ProjectSiteViewSet
+
 
 from onadata.apps.geo.views import (
     GeoLayersView,
@@ -138,6 +140,8 @@ urlpatterns = [
     url(r'^project/add-proj-manager/(?P<pk>\d+)/$', add_proj_manager, name='add_proj_manager'),
     url(r'^project/add-role/(?P<pk>\d+)/$', add_project_role, name='add_project_staffs'),
     url(r'^api/project-sites/(?P<pk>\d+)/$', SiteViewSet.as_view({'get': 'list'}), name='project_sites'),
+    url(r'^api/project-sites-list/(?P<pk>\d+)/$', ProjectSiteViewSet.as_view({'get': 'list'}), name='project_sites_list'),
+
     url(r'^api/update-site/(?P<pk>\d+)$', SiteUpdateViewSet.as_view({'get': 'retrieve','post': 'update'}), name='update_site_api'),
     url(r'^api/update-project/(?P<pk>\d+)$', ProjectUpdateViewSet.as_view({'put': 'update'}), name='update_project_api'),
 
