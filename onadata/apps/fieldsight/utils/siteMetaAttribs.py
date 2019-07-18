@@ -1,6 +1,15 @@
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FieldSightXF
 
+"""
+This module is used to get the site meta attributes answers of a specified site.
+The site meta attributes answers that are to be selected from forms are not directly stored in the database.
+To remove the overhead computation of calculating such answers repeatedly, it would be a lot easier if they are saved 
+in the database directly. 
+
+To be used in the future this module provides site meta attributes answers in a format to be saved in the database directly.
+"""
+
 
 def get_form_answer(site_id, meta):
     fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
