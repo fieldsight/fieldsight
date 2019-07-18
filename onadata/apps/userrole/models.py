@@ -146,7 +146,8 @@ class UserRole(models.Model):
 
     @staticmethod
     def get_active_roles(user):
-        return UserRole.objects.filter(user=user,ended_at=None).select_related('group', 'organization')
+        return UserRole.objects.filter(user=user, ended_at=None
+                                       ).select_related('group', 'organization', 'project', 'region', 'site', 'staff_project')
 
     @staticmethod
     def get_active_site_roles(user):
@@ -192,6 +193,7 @@ class UserRole(models.Model):
         return UserRole.objects.filter(user=self.user, group__name__in=['Project Manager', 'Reviewer'], organization=self.organization)
 
 
+# to share the forms assigned to the project where user is assigned as project manager, uncomment below code if commented
 @receiver(post_save, sender=UserRole)
 def create_messages(sender, instance, created,  **kwargs):
     if created and instance.site is not None and instance.group.name in ["Site Supervisor"]:

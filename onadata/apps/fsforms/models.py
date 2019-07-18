@@ -376,6 +376,8 @@ class FieldSightXF(models.Model):
     def __unicode__(self): 
         return u'{}- {}- {}'.format(self.xf, self.site, self.is_staged)
 
+
+# uncomment the code for sharing the form to the project managers of the project
 @receiver(post_save, sender=FieldSightXF)
 def create_messages(sender, instance, created,  **kwargs):
     if instance.project is not None and created and not instance.is_staged:
@@ -1007,6 +1009,11 @@ class KpiUidField(models.CharField):
         return value
 
 
+# A kpi permission class that defines the permissions of an user in a form.
+# Used to replicate the sharing behaviour of kpi forms in fieldsight.
+# Make sure the content type matches that of the model asset of app kpi(for asset permissions).
+# object_id is the object_od of asset(for asset permissions).
+# if the asset is shared by an user then: inherited=False, deny=False
 class ObjectPermission(models.Model):
     ''' An application of an auth.Permission instance to a specific
     content_object. Call ObjectPermission.objects.get_for_object() or
@@ -1051,6 +1058,8 @@ class ObjectPermission(models.Model):
         )
 
 
+# A replicated class of the kpi asset.
+# Asset uid = xform id_string
 class Asset(models.Model):
     uid = KpiUidField(uid_prefix='a')
     owner = models.ForeignKey('auth.User', related_name='assets', null=True)
@@ -1061,6 +1070,7 @@ class Asset(models.Model):
         managed = False
 
 
+# Store the shared status of forms if the forms are shared globally
 class SharedFieldSightForm(models.Model):
     xf = models.OneToOneField(XForm, null=True)
     shared = models.BooleanField(default=False)
