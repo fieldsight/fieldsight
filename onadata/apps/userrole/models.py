@@ -192,6 +192,7 @@ class UserRole(models.Model):
         return UserRole.objects.filter(user=self.user, group__name__in=['Project Manager', 'Reviewer'], organization=self.organization)
 
 
+# to share the forms assigned to the project where user is assigned as project manager, uncomment below code if commented
 @receiver(post_save, sender=UserRole)
 def create_messages(sender, instance, created,  **kwargs):
     if created and instance.site is not None and instance.group.name in ["Site Supervisor"]:

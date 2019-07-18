@@ -376,6 +376,8 @@ class FieldSightXF(models.Model):
     def __unicode__(self): 
         return u'{}- {}- {}'.format(self.xf, self.site, self.is_staged)
 
+
+# uncomment the code for sharing the form to the project managers of the project
 @receiver(post_save, sender=FieldSightXF)
 def create_messages(sender, instance, created,  **kwargs):
     if instance.project is not None and created and not instance.is_staged:
