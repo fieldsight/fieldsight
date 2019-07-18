@@ -330,25 +330,25 @@ class ProjectMixin(object):
 class ReviewerMixin(object):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated():
-            if request.group.name == "Super Admin":
+            if request.is_super_admin:
                 return super(ReviewerMixin, self).dispatch(request, *args, **kwargs)
-            elif request.group.name == "Organization Admin":
-                pk = self.kwargs.get('pk', False)
-                if not pk:
-                    return super(ReviewerMixin, self).dispatch(request, *args, **kwargs)
-                else:
-                    site = Site.objects.get(pk=pk)
-                    organization = site.project.organization
-                    if organization == request.organization:
-                        return super(ReviewerMixin, self).dispatch(request, *args, **kwargs)
-            elif request.role.group.name in USURPERS['Reviewer']:
-                pk = self.kwargs.get('pk', False)
-                if not pk:
-                    return super(ReviewerMixin, self).dispatch(request, *args, **kwargs)
-                else:
-                    site = Site.objects.get(pk=pk)
-                    if site.project == request.project:
-                        return super(ReviewerMixin, self).dispatch(request, *args, **kwargs)
+            # elif request.group.name == "Organization Admin":
+            #     pk = self.kwargs.get('pk', False)
+            #     if not pk:
+            #         return super(ReviewerMixin, self).dispatch(request, *args, **kwargs)
+            #     else:
+            #         site = Site.objects.get(pk=pk)
+            #         organization = site.project.organization
+            #         if organization == request.organization:
+            #             return super(ReviewerMixin, self).dispatch(request, *args, **kwargs)
+            # elif request.role.group.name in USURPERS['Reviewer']:
+            #     pk = self.kwargs.get('pk', False)
+            #     if not pk:
+            #         return super(ReviewerMixin, self).dispatch(request, *args, **kwargs)
+            #     else:
+            #         site = Site.objects.get(pk=pk)
+            #         if site.project == request.project:
+            #             return super(ReviewerMixin, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
 

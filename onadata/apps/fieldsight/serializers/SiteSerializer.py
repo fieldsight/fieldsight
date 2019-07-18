@@ -4,6 +4,13 @@ from rest_framework import serializers
 from onadata.apps.fieldsight.models import Site, Region, SiteCreateSurveyImages, ProjectType, Project, SiteType
 
 
+class ProjectSiteListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Site
+        fields = ('id', 'identifier', 'name', 'address')
+
+
 class SiteSerializer(serializers.ModelSerializer):
     type_label = serializers.ReadOnlyField(source='type.name', read_only=True)
     prog = serializers.SerializerMethodField('get_progress', read_only=True)

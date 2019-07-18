@@ -1429,19 +1429,19 @@ class RolesView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(RolesView, self).get_context_data(**kwargs)
-        context['org_admin'] = self.request.roles.select_related('organization').filter(group__name="Organization Admin", organization__is_active = True)
-        context['proj_manager'] = self.request.roles.select_related('project').filter(group__name = "Project Manager", project__is_active = True)
-        context['proj_donor'] = self.request.roles.select_related('project').filter(group__name = "Project Donor", project__is_active = True)
-        context['site_reviewer'] = self.request.roles.select_related('site').filter(group__name = "Reviewer", site__is_active = True)
-        context['site_supervisor'] = self.request.roles.select_related('site').filter(group__name="Site Supervisor",
+        context['org_admin'] = self.request.roles.filter(group__name="Organization Admin", organization__is_active = True)
+        context['proj_manager'] = self.request.roles.filter(group__name="Project Manager", project__is_active = True)
+        context['proj_donor'] = self.request.roles.filter(group__name="Project Donor", project__is_active = True)
+        context['site_reviewer'] = self.request.roles.filter(group__name="Reviewer", site__is_active = True)
+        context['site_supervisor'] = self.request.roles.filter(group__name="Site Supervisor",
                                                                                       site__is_active=True)
 
-        context['region_supervisor'] = self.request.roles.select_related('region').filter(group__name="Region Supervisor",
+        context['region_supervisor'] = self.request.roles.filter(group__name="Region Supervisor",
                                                                                           region__is_active=True)
-        context['region_reviewer'] = self.request.roles.select_related('region').filter(group__name="Region Reviewer",
+        context['region_reviewer'] = self.request.roles.filter(group__name="Region Reviewer",
                                                                                           region__is_active=True)
 
-        context['staff_project_manager'] = self.request.roles.select_related('staff_project').filter(group__name = "Staff Project Manager", staff_project__is_deleted = False)
+        context['staff_project_manager'] = self.request.roles.filter(group__name="Staff Project Manager", staff_project__is_deleted = False)
         context['unassigned'] = self.request.roles.filter(group__name="Unassigned")
         has_user_profile = UserProfile.objects.filter(user=self.request.user).exists()
 
@@ -1452,8 +1452,8 @@ class RolesView(LoginRequiredMixin, TemplateView):
         else:
             context['base_template'] = "fieldsight/fieldsight_not_user_base.html"
 
-        if Team.objects.filter(leader_id = self.request.user.id).exists():
-            context['staff_teams'] = Team.objects.filter(leader_id = self.request.user.id, is_deleted=False)
+        if Team.objects.filter(leader_id=self.request.user.id).exists():
+            context['staff_teams'] = Team.objects.filter(leader_id=self.request.user.id, is_deleted=False)
         else:
             context['staff_teams'] = []
         return context

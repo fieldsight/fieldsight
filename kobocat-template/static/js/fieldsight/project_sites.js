@@ -245,7 +245,7 @@ function SitesViewModel(project, url) {
   self.loadSites = function(){
     App.showProcessing();
         $.ajax({
-            url: '/fieldsight/api/project-sites/'+self.project+'/',
+            url: '/fieldsight/api/project-sites-list/'+self.project+'/',
             method: 'GET',
             dataType: 'json',
             // data: post_data,

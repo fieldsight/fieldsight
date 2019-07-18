@@ -147,7 +147,7 @@ class UserRole(models.Model):
     @staticmethod
     def get_active_roles(user):
         return UserRole.objects.filter(user=user, ended_at=None
-                                       ).select_related('group', 'organization', 'project', 'region', 'site')
+                                       ).select_related('group', 'organization', 'project', 'region', 'site', 'staff_project')
 
     @staticmethod
     def get_active_site_roles(user):
