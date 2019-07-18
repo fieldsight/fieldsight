@@ -13,7 +13,7 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
 
     def has_permission(self, request, view):
 
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
 
         project_id = request.query_params.get('project', None)
@@ -63,7 +63,7 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
 
     def has_object_permission(self, request, view, obj):
 
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
 
         elif obj:
