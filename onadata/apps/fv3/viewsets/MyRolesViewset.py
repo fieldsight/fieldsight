@@ -333,9 +333,12 @@ class DeclineInvite(APIView):
         return Response(data='Decline Invitation Successfully.', status=status.HTTP_200_OK)
 
 
+# get the submissions made my user along with the location point
+# used for the my profile page
 @permission_classes([IsAuthenticated, ])
 @api_view(['GET'])
 def latest_submission(request):
+    # submissions are to be extracted from mongodb to retrieve the submission data along with latlong points
     submissions = settings.MONGO_DB.instances.aggregate([{"$match": {"_submitted_by": request.user.username}}, {
         "$project": {
             "_id": 0, "type": {"$literal": "Feature"},
@@ -356,10 +359,3 @@ def latest_submission(request):
 
     return Response(response_submissions)
 
-
-@permission_classes([IsAuthenticated, ])
-@api_view(['GET'])
-def map_activity(request):
-    cord_data = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": request.user.username, "_geolocation":{"$not":{ "$elemMatch": { "$eq": None }}}}}, {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":{ "type": {"$literal": "Point"}, "coordinates": "$_geolocation" }, "properties": {"id":"$_id", "fs_uuid":"$fs_uuid", "submitted_by":"$_submitted_by"}}}])
-    response_cords = list(cord_data["result"])
-    return Response(response_cords)

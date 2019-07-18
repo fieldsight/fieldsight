@@ -172,6 +172,8 @@ def clone_form(user_id, project_id, task_id):
     CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
 
 
+# task to share the form for all the project managers of a project where the form is assigned
+# used whenever a new form has been assigned to a project
 @shared_task(max_retires=5)
 def share_form_managers(fxf, task_id):
     fxf = FieldSightXF.objects.get(pk=fxf)
@@ -184,6 +186,8 @@ def share_form_managers(fxf, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+# task to share forms to a single person assigned as the project manager of a project
+# shares all the forms that have been assigned previously to a project
 @shared_task(max_retires=5)
 def created_manager_form_share(userrole, task_id):
     userrole = UserRole.objects.get(pk=userrole)
@@ -195,6 +199,7 @@ def created_manager_form_share(userrole, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+# share form to the users as specified
 @shared_task(max_retries=5)
 def api_share_form(xf, users, task_id):
     xf = XForm.objects.get(pk=xf)
@@ -209,6 +214,7 @@ def api_share_form(xf, users, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+# clone the specified form but not assign to the project
 @shared_task(max_retries=5)
 def api_clone_form(form_id, user_id, task_id):
     user = User.objects.get(id=user_id)
