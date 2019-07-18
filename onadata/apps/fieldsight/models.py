@@ -822,7 +822,14 @@ class ProjectMetaAttrHistory(models.Model):
         return the meta attributes that are present in new meta attributes but not in old meta attributes
         also return the meta attributes that have their values changed
         """
+        #  use filterfalse for python3 as ifilterfalse is not supported by itertools for python3
         return list(itertools.ifilterfalse(lambda x: x in self.old_meta_attributes, self.new_meta_atrributes))
+
+    def get_deleted_attributres(self):
+        """
+        return the meta attributes that have been deleted for the old meta attributes
+        """
+        return list(itertools.ifilterfalse(lambda x: x in self.new_meta_atrributes, self.old_meta_attributes))
 
 
 @receiver(post_save, sender=ProgressSettings)
