@@ -65,10 +65,11 @@ from .views import (
     SiteSearchView, ProjectDashboardStageResponsesStatus, GeoJSONContent, DonorFullMap, ProjectSiteListGeoJSON,
     SiteBulkEditView, site_refrenced_metas, UnassignUserRegionAndSites, MainRegionsAndSitesAPI, redirectToSite,
     municipality_data, FormResponseSite, DonorRegionalSitelist, SubRegionAndSitesAPI, SiteSearchLiteView,
-    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites, ApplicationView,
+    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites,
+    ApplicationView,
     ProjectTermsAndLabelView, project_terms_label_create, ProjectSyncScheduleUpdateView, ProjectTermsLabelUpdate,
-    SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView
-)
+    SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView,
+    SubSiteCreateView)
 
 
 from onadata.apps.geo.views import (
@@ -158,6 +159,7 @@ urlpatterns = [
     url(r'^site/$', SiteListView.as_view(), name='sites-list'),
     url(r'^site/$', SiteListView.as_view(), name='site-list'),
     url(r'^site/add/(?P<pk>[0-9]+)/$', SiteCreateView.as_view(), name='site-add'),
+    url(r'^site/add/subsite/(?P<pk>[0-9]+)/(?P<site>[0-9]+)$', SubSiteCreateView.as_view(), name='sub-site-add'),
     url(r'^site/(?P<pk>[0-9]+)/$', SiteUpdateView.as_view(), name='site-edit'),
 
     url(r'^site/blue-prints/(?P<id>[0-9]+)/$', BluePrintsView.as_view(), name='site-blue-prints'),

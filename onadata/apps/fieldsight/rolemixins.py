@@ -74,6 +74,7 @@ class ProjectRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         if request.group and request.group.name == "Super Admin":
             return super(ProjectRoleMixin, self).dispatch(request, *args, **kwargs)
+        print(self.kwargs)
         
         project_id = self.kwargs.get('pk')
         user_id = request.user.id

@@ -985,6 +985,69 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         return form
 
 
+class SubSiteCreateView(SiteView, ProjectRoleMixin, CreateView):
+    def get_context_data(self, **kwargs):
+        context = super(SubSiteCreateView, self).get_context_data(**kwargs)
+        project = Project.objects.get(pk=self.kwargs.get('pk'))
+        site = Site.objects.get(pk=self.kwargs.get('site'))
+        context['project'] = project
+        context['site'] = site
+        context['pk'] = self.kwargs.get('pk')
+        context['site'] = self.kwargs.get('site')
+        context['json_questions'] = json.dumps(project.site_meta_attributes)
+        context['obj'] = project
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        context['terms_and_labels'] = terms_and_labels
+        if terms_and_labels:
+
+            context['site_name'] = project.terms_and_labels.site
+
+        else:
+            context['site_name'] = "Site"
+
+        return context
+
+    def get_success_url(self):
+        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.object.id})
+
+    def form_valid(self, form):
+
+        existing_identifier = Site.objects.filter(identifier=form.cleaned_data.get('identifier'),
+                                                    project_id=self.kwargs.get('pk'))
+        if existing_identifier:
+            messages.add_message(self.request, messages.INFO,
+                                 'Your identifier "' + form.cleaned_data.get(
+                'identifier') + '" conflict with existing site please use different identifier to create site')
+
+            return HttpResponseRedirect(reverse(
+                'fieldsight:sub-site-add',
+                kwargs={
+                    'pk': self.kwargs.get('pk'),
+                    'site': self.kwargs.get('site'),
+                }
+            ))
+
+        self.object = form.save(project_id=self.kwargs.get('pk'), new=True, site_id=self.kwargs.get('site'))
+        noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
+                                       organization=self.object.project.organization,
+                                       project=self.object.project, content_object=self.object, extra_object=self.object.project,
+                                       description='{0} created a new Sub site named {1} in {2}'.format(self.request.user.get_full_name(),
+                                                                                 self.object.name, self.object.project.name))
+
+
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_form(self, *args, **kwargs):
+
+        form = super(SubSiteCreateView, self).get_form(*args, **kwargs)
+        # form.project = Project.objects.get(pk=self.kwargs.get('pk'))
+        # form.site = Site.objects.get(pk=self.kwargs.get('site'))
+        if hasattr(form.Meta, 'project_filters'):
+            for field in form.Meta.project_filters:
+                form.fields[field].queryset = form.fields[field].queryset.filter(project_id=self.kwargs.get('pk'), deleted=False)
+        return form
+
+
 class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super(SiteUpdateView, self).get_context_data(**kwargs)
