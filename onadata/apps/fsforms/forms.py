@@ -6,29 +6,10 @@ from onadata.apps.fieldsight.models import Site
 from onadata.apps.fieldsight.utils.forms import HTML5BootstrapModelForm, KOModelForm, HRBSFormField
 from onadata.apps.logger.models import XForm
 from .models import FieldSightXF, Stage, Schedule, FormGroup, FORM_STATUS, EducationMaterial
-from onadata.apps.fsforms.models import Asset, ObjectPermission
-from django.contrib.auth.models import Permission
-from django.contrib.contenttypes.models import ContentType
-from django.conf import settings
+from onadata.apps.fsforms.utils import get_shared_asset_ids
 
 
 SHARED_LEVEL = [('' ,'None'),(0, 'Global'), (1, 'Organization'), (2, 'Project'), ]
-
-
-def get_shared_asset_ids(user):
-    codenames = ['view_asset', 'change_asset']
-    permissions = Permission.objects.filter(content_type__app_label='kpi', codename__in=codenames)
-    content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
-    obj_perm = ObjectPermission.objects.filter(user=user,
-                                               content_type=content_type,
-                                               permission__in=permissions,
-                                               deny=False,
-                                               inherited=False)
-    asset_uids = []
-    for item in obj_perm:
-        a = Asset.objects.get(id=item.object_id)
-        asset_uids.append(a.uid)
-    return asset_uids
 
 
 class AssignSettingsForm(forms.ModelForm):
