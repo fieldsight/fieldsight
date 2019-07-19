@@ -11,7 +11,7 @@ from django.contrib.auth.views import password_reset
 urlpatterns = [
 
     url(r'^accounts/login/', web_login, name='web_login'),
-    url(r'^accounts/password/reset/', password_reset, {'template_name':'users/login.html','html_email_template_name':'registration/password_reset_email.html', 'post_reset_redirect':'/users/accounts/login/?reset=1', 'extra_context':{'reset':'1'}}, name='password_reset'),
+    url(r'^accounts/password/reset/', password_reset, {'template_name': 'users/login.html', 'html_email_template_name': 'registration/html_password_reset_email.html', 'post_reset_redirect':'/users/accounts/login/?reset=1', 'extra_context':{'reset':'1'}}, name='password_reset'),
     url(r'^signup/', web_signup, name='web_signup'),
     url(r'^create_role/', create_role, name='create_role'),
     url(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
