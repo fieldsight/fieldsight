@@ -234,6 +234,7 @@ class CeleryTaskProgress(models.Model):
         (22, 'Clone Form'),
         (22, 'Update Sites Progress'),
         (23, 'Update Site Progress'),
+        (24, 'Update and Create History of Site Meta-attributes Answers')
 
     )
     task_id = models.CharField(max_length=255, blank=True, null=True)

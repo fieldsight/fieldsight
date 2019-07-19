@@ -9,7 +9,7 @@ from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings
+from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings, SiteMetaAttrAnsHistory
 from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
@@ -2582,3 +2582,23 @@ def scheduled_gsuit_sync():
             else:
                 sync_form_controller(project.gsuit_sync, project.gsuit_sync_day, fxf, month_days)
         project.gsuit_sync
+
+
+@shared_task(time_limit=300, max_retries=5, soft_time_limit=300)
+def create_site_meta_attribs_ans_history(pk, task_id):
+    from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
+    try:
+        sites = Site.objects.filter(project_id=pk)
+        for site in sites:
+            time.sleep(3)
+            metas = get_site_meta_ans(site.id)
+            if metas == site.site_meta_attributes_ans:
+                continue
+            else:
+                SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans,
+                                                      status=2)
+                site.site_meta_attributes_ans = metas
+                site.save()
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
