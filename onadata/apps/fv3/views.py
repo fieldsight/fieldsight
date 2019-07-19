@@ -17,7 +17,7 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from django.contrib.gis.geos import Point
-from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels, ProjectMetaAttrHistory
+from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels, ProjectMetaAttrHistory, SiteMetaAttrAnsHistory
 from onadata.apps.fsforms.models import FInstance, ProgressSettings
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
@@ -32,6 +32,8 @@ from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.project_settings import ProgressSettingsSerializer
 from .role_api_permissions import ProjectRoleApiPermissions
+
+from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
 
 
 class ProjectSitesPagination(PageNumberPagination):
@@ -592,6 +594,12 @@ class ProjectDefineSiteMeta(APIView):
 
                 other_project.save()
         project.save()
+        sites = Site.objects.filter(project_id=project.id)
+        for site in sites:
+            SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=2)
+            metas = get_site_meta_ans(site.id)
+            site.site_meta_attributes_ans = metas
+            site.save()
 
         return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
 
