@@ -795,7 +795,7 @@ class SiteProgressHistory(models.Model):
 
 
 class SiteMetaAttrAnsHistory(models.Model):
-    meta_attributes = JSONField(default=dict)
+    meta_attributes_ans = JSONField(default=dict)
     site = models.ForeignKey(Site, related_name="meta_history")
     date = models.DateTimeField(auto_now=True)
 
