@@ -1,3 +1,6 @@
+from datetime import datetime
+from collections import OrderedDict
+
 from django.db.models import Q
 
 from rest_framework import serializers
@@ -7,8 +10,38 @@ from onadata.apps.fieldsight.models import Site
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.models import UserProfile
 from django.core.exceptions import ObjectDoesNotExist
-from onadata.apps.fsforms.line_data_project import ProgressGeneratorSite, LineChartGeneratorSite
+from onadata.apps.fsforms.line_data_project import ProgressGeneratorSite
 from onadata.apps.fsforms.models import FInstance
+
+from onadata.apps.fsforms.line_data_project import date_range
+
+
+class FormSubmissionChartGenerator(object):
+
+    def __init__(self, site):
+        self.site = site
+        self.date_list = list(date_range(site.date_created.strftime("%Y%m%d"), datetime.today().strftime("%Y%m%d"), 6))
+
+    def get_count(self, date):
+        import datetime as dt
+        date = date + dt.timedelta(days=1)
+        obj = self.site.site_instances.filter(date__lte=date.date())
+        total_submissions = obj.count()
+        pending_submissions = obj.filter(form_status=0).count()
+        rejected_submissions = obj.filter(form_status=1).count()
+        flagged_submissions = obj.filter(form_status=2).count()
+        approved_submissions = obj.filter(form_status=3).count()
+
+        return {'total_submissions': total_submissions, 'pending_submissions': pending_submissions, 'approved_submissions':
+                approved_submissions, 'rejected_submissions': rejected_submissions, 'flagged_submissions': flagged_submissions}
+
+    def data(self):
+        d = OrderedDict()
+        dt = self.date_list
+        for date in dt:
+            count = self.get_count(date)
+            d[date.strftime('%Y-%m-%d')] = count
+        return d
 
 
 class SiteSerializer(serializers.ModelSerializer):
@@ -17,14 +50,14 @@ class SiteSerializer(serializers.ModelSerializer):
     submissions = serializers.SerializerMethodField()
     total_users = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
-    # progress_chart_data = serializers.SerializerMethodField()
-    line_chart_data = serializers.SerializerMethodField()
+    site_progress_chart_data = serializers.SerializerMethodField()
+    form_submissions_chart_data = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
         fields = ('id', 'name', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
-                  'total_users', 'users', 'submissions', 'line_chart_data')
+                  'total_users', 'users', 'submissions', 'form_submissions_chart_data', 'site_progress_chart_data')
 
     def get_submissions(self, obj):
         response = obj.get_site_submission_count()
@@ -66,21 +99,31 @@ class SiteSerializer(serializers.ModelSerializer):
 
         return users_list
 
-    def get_progress_chart_data(self, obj):
+    def get_site_progress_chart_data(self, obj):
 
         progress_chart = ProgressGeneratorSite(obj)
         progress_chart_data = progress_chart.data()
 
-        data = {'progress_data':  progress_chart_data.keys(), 'progress_labels':  progress_chart_data.values()}
+        data = {'labels':  progress_chart_data.keys(), 'data':  progress_chart_data.values()}
 
         return data
 
-    def get_line_chart_data(self, obj):
+    def get_form_submissions_chart_data(self, obj):
 
-        line_chart = LineChartGeneratorSite(obj)
+        line_chart = FormSubmissionChartGenerator(obj)
         line_chart_data = line_chart.data()
 
-        data = {'line_data': line_chart_data.values(), 'line_labels': line_chart_data.keys()}
+        data = {'total_submissions':
+                    {'data': [d['total_submissions'] for d in line_chart_data.values()], 'labels': line_chart_data.keys()},
+                'pending_submissions':
+                    {'data': [d['pending_submissions'] for d in line_chart_data.values()], 'labels': line_chart_data.keys()},
+                'approved_submissions':
+                    {'data': [d['approved_submissions'] for d in line_chart_data.values()], 'labels': line_chart_data.keys()},
+                'rejected_submissions':
+                    {'data': [d['rejected_submissions'] for d in line_chart_data.values()], 'labels': line_chart_data.keys()},
+                'flagged_submissions':
+                    {'data': [d['flagged_submissions'] for d in line_chart_data.values()], 'labels': line_chart_data.keys()}
+                }
 
         return data
 
