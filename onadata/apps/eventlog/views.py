@@ -120,7 +120,9 @@ class SiteLog(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing and editing sites.
     """
-    queryset = FieldSightLog.objects.select_related('source__user_profile').filter(recipient=None)
+    queryset = FieldSightLog.objects.select_related('source__user_profile', 'project').prefetch_related('seen_by',
+                                                                                                        'content_object', 'content_object', 'extra_object').\
+        filter(recipient=None)
     serializer_class = NotificationSerializer
     pagination_class = LargeResultsSetPagination
 
