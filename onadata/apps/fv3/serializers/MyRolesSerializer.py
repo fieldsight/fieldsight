@@ -1,53 +1,134 @@
 from datetime import datetime
 from django.contrib.auth.models import User
+from django.conf import settings
+from django.db.models import Q
 
 from rest_framework import serializers
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fieldsight.models import UserInvite
+from onadata.apps.fieldsight.models import UserInvite, Project
 from onadata.apps.fsforms.models import FInstance
+
+
+class MyProjectSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='project_id')
+    name = serializers.CharField(source='project.name')
+    has_project_access = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserRole
+        fields = ('id', 'name', 'has_project_access')
+
+    def get_has_project_access(self, obj):
+        if obj.group.name == "Project Manager" or obj.group.name == "Project Donor":
+            has_access = True
+
+        else:
+            has_access = False
+
+        return has_access
+
+    def get_project_url(self, obj):
+        has_project_access = self.get_has_project_access(obj)
+
+        if has_project_access:
+            project_url = settings.SITE_URL + obj.project.get_absolute_url()
+
+            return project_url
 
 
 class MyRolesSerializer(serializers.ModelSerializer):
 
     name = serializers.SerializerMethodField()
-    post = serializers.SerializerMethodField()
+    # post = serializers.SerializerMethodField()
     address = serializers.SerializerMethodField()
+    logo = serializers.SerializerMethodField()
+    has_organization_access = serializers.SerializerMethodField()
+    team_url = serializers.SerializerMethodField()
+    projects = serializers.SerializerMethodField()
 
     class Meta:
         model = UserRole
-        fields = ('post', 'name', 'address')
-
-    def get_post(self, obj):
-
-        return obj.group.name
+        fields = ('name', 'address', 'logo', 'has_organization_access', 'team_url', 'projects')
 
     def get_name(self, obj):
-
-        if obj.group.name == 'Region Supervisor' or obj.group.name == 'Region Reviewer':
-            return obj.region.name
-
-        elif obj.group.name == 'Project Manager' or obj.group.name == 'Project Donor' or obj.group.name == 'Staff Project Manager':
-            return obj.project.name
-
-        elif obj.group.name == 'Site Supervisor' or obj.group.name == 'Site Reviewer':
-            return obj.site.name
-
-        elif obj.group.name == 'Organization Admin':
-            return obj.organization.name
+        return obj.organization.name
 
     def get_address(self, obj):
+        return obj.organization.address
 
-        if obj.group.name == 'Region Supervisor' or obj.group.name == 'Region Reviewer':
-            return None
+    def get_logo(self, obj):
+        return obj.organization.logo.url
 
-        elif obj.group.name == 'Project Manager' or obj.group.name == 'Project Donor' or obj.group.name == 'Staff Project Manager':
-            return obj.project.address
+    def get_has_organization_access(self, obj):
+        if obj.group.name == "Organization Admin":
+            has_access = True
 
-        elif obj.group.name == 'Site Supervisor' or obj.group.name == 'Site Reviewer':
-            return obj.site.address
+        else:
+            has_access = False
 
-        elif obj.group.name == 'Organization Admin':
-            return obj.organization.address
+        return has_access
+
+    def get_projects(self, obj):
+        org_admin = self.get_has_organization_access(obj)
+
+        if org_admin:
+            roles = Project.objects.filter(organization=obj.organization, is_active=True).values('id', 'name')
+            # roles = [{'id': proj.id, 'name': proj.name, 'project_url': settings.SITE_URL + proj.get_absolute_url()} for proj in data]
+
+        else:
+            data = UserRole.objects.filter(user=obj.user, organization=obj.organization).select_related('user', 'group', 'site', 'organization',
+                                                                      'staff_project', 'region').filter(Q(group__name="Project Manager", project__is_active=True)|
+                                                                    Q(group__name="Site Supervisor", site__is_active=True)|
+                                                                    Q(group__name="Site Reviewer", site__is_active=True)|
+                                                                    Q(group__name="Region Reviewer", region__is_active=True)|
+                                                                    Q(group__name="Region Supervisor", region__is_active=True)|
+                                                                    Q(group__name="Project Donor", project__is_active=True)
+                                                                                                        ).distinct('project')
+            roles = MyProjectSerializer(data, many=True).data
+        return roles
+
+    def get_team_url(self, obj):
+        return settings.SITE_URL + obj.organization.get_absolute_url()
+
+    def to_representation(self, obj):
+        data = super(MyRolesSerializer, self).to_representation(obj)
+
+        if obj.group.name != "Organization Admin":
+            data.pop('team_url')
+
+        return data
+    #
+    # def get_post(self, obj):
+    #
+    #     return obj.group.name
+
+    # def get_name(self, obj):
+    #
+    #     if obj.group.name == 'Region Supervisor' or obj.group.name == 'Region Reviewer':
+    #         return obj.region.name
+    #
+    #     elif obj.group.name == 'Project Manager' or obj.group.name == 'Project Donor' or obj.group.name == 'Staff Project Manager':
+    #         return obj.project.name
+    #
+    #     elif obj.group.name == 'Site Supervisor' or obj.group.name == 'Site Reviewer':
+    #         return obj.site.name
+    #
+    #     elif obj.group.name == 'Organization Admin':
+    #         return obj.organization.name
+
+    # def get_address(self, obj):
+    #
+    #     if obj.group.name == 'Region Supervisor' or obj.group.name == 'Region Reviewer':
+    #         return None
+    #
+    #     elif obj.group.name == 'Project Manager' or obj.group.name == 'Project Donor' or obj.group.name == 'Staff Project Manager':
+    #         return obj.project.address
+    #
+    #     elif obj.group.name == 'Site Supervisor' or obj.group.name == 'Site Reviewer':
+    #         return obj.site.address
+    #
+    #     elif obj.group.name == 'Organization Admin':
+    #         return obj.organization.address
 
 
 class UserInvitationSerializer(serializers.ModelSerializer):

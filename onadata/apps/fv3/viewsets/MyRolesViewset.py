@@ -29,7 +29,7 @@ def my_roles(request):
                'twitter': profile_obj.twitter, 'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype,
                'google_talk': profile_obj.google_talk}
 
-    roles = UserRole.objects.filter(user=request.user).select_related('user', 'group', 'site', 'organization',
+    teams = UserRole.objects.filter(user=request.user).select_related('user', 'group', 'site', 'organization',
                                                                       'staff_project', 'region').filter(Q(group__name="Organization Admin", organization__is_active=True)|
                                                                    Q(group__name="Project Manager", project__is_active=True)|
                                                                    Q(group__name="Project Donor", project__is_active=True)|
@@ -39,13 +39,14 @@ def my_roles(request):
                                                                    Q(group__name="Site Reviewer", site__is_active=True)|
                                                                    Q(group__name="Staff Project Manager", staff_project__is_deleted=False)
 
-                                                                   )
-    roles = MyRolesSerializer(roles, many=True)
+                                                                   ).distinct('organization')
+    teams = MyRolesSerializer(teams, many=True)
+
     invitations = UserInvite.objects.select_related('by_user').filter(email=request.user.email, is_used=False, is_declied=False)
 
     invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
-    return Response({'profile': profile, 'roles': roles.data, 'invitations': invitations_serializer.data})
+    return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data})
 
 
 class AcceptInvite(APIView):
