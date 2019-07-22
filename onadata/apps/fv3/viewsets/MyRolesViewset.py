@@ -11,13 +11,14 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 
-from onadata.apps.fieldsight.models import UserInvite, Region
+from onadata.apps.fieldsight.models import UserInvite, Region, Project
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, LatestSubmissionSerializer
+from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, \
+    LatestSubmissionSerializer, MyRegionSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fsforms.models import FInstance
 from onadata.apps.logger.models import XForm
+
 
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
@@ -47,6 +48,36 @@ def my_roles(request):
     invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
     return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data})
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def my_regions(request):
+
+    project_id = request.query_params.get('project', None)
+
+    if project_id:
+        try:
+            project_obj = Project.objects.get(id=project_id)
+            is_project_manager = UserRole.objects.filter(user=request.user, group__name="Project Manager",
+                                                         project=project_obj, project__is_active=True).exists()
+
+            if is_project_manager:
+                data = Region.objects.filter(project=project_obj, region__is_active=True, parent=None)
+
+                regions = MyRegionSerializer(data, many=True)
+
+            else:
+                regions_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
+                                                                      'staff_project', 'region').filter(
+                                                                   Q(group__name="Region Supervisor", region__is_active=True)|
+                                                                   Q(group__name="Region Reviewer", region__is_active=True)).values_list('region_id', flat=True)
+                data = Region.objects.filter(parent=None, id__in=regions_id)
+                regions = MyRegionSerializer(data, many=True, context={'request': request})
+            return Response({'regions': regions.data})
+
+        except ObjectDoesNotExist:
+            return Response(data="Project does not exist.", status=status.HTTP_204_NO_CONTENT)
 
 
 class AcceptInvite(APIView):

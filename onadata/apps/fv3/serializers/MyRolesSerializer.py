@@ -5,7 +5,7 @@ from django.db.models import Q
 
 from rest_framework import serializers
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fieldsight.models import UserInvite, Project
+from onadata.apps.fieldsight.models import UserInvite, Project, Region
 from onadata.apps.fsforms.models import FInstance
 
 
@@ -34,6 +34,36 @@ class MyProjectSerializer(serializers.ModelSerializer):
             project_url = settings.SITE_URL + obj.project.get_absolute_url()
 
             return project_url
+
+
+class MyRegionSerializer(serializers.ModelSerializer):
+    total_sites = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
+    region_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Region
+        fields = ('id', 'identifier', 'name', 'total_sites', 'role', 'region_url')
+
+    def get_total_sites(self, obj):
+        return obj.get_sites_count()
+
+    def get_role(self, obj):
+        user = self.context['request'].user
+        obj = obj.region_roles.select_related('group').filter(user=user)
+
+        if len(obj) > 1:
+            group = "Region Supervisor"
+        elif len(obj) == 1:
+            group = obj.get().group.name
+
+        else:
+            group = None
+
+        return group
+
+    def get_region_url(self, obj):
+        return settings.SITE_URL + obj.get_absolute_url()
 
 
 class MyRolesSerializer(serializers.ModelSerializer):
