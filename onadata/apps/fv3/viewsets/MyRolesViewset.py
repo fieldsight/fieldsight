@@ -11,11 +11,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 
-from onadata.apps.fieldsight.models import UserInvite, Region, Project
+from onadata.apps.fieldsight.models import UserInvite, Region, Project, Site
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, \
-    LatestSubmissionSerializer, MyRegionSerializer
+    LatestSubmissionSerializer, MyRegionSerializer, MySiteSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import XForm
 
@@ -59,10 +59,11 @@ def my_regions(request):
     if project_id:
         try:
             project_obj = Project.objects.get(id=project_id)
-            is_project_manager = UserRole.objects.filter(user=request.user, group__name="Project Manager",
-                                                         project=project_obj, project__is_active=True).exists()
+            is_project_manager_or_team_admin = UserRole.objects.filter(user=request.user).filter(Q(group__name="Project Manager",
+                                                         project=project_obj, project__is_active=True)|Q(group__name="Organization Admin",
+                                                         organization=project_obj.organization, organization__is_active=True)).exists()
 
-            if is_project_manager:
+            if is_project_manager_or_team_admin:
                 data = Region.objects.filter(project=project_obj, is_active=True, parent=None)
 
                 regions = MyRegionSerializer(data, many=True, context={'request': request})
@@ -91,25 +92,27 @@ def my_sites(request):
     if project_id:
         try:
             project_obj = Project.objects.get(id=project_id)
-            is_project_manager = UserRole.objects.filter(user=request.user, group__name="Project Manager",
-                                                         project=project_obj, project__is_active=True).exists()
+            is_project_manager_or_team_admin = UserRole.objects.filter(user=request.user).filter(Q(group__name="Project Manager",
+                                                         project=project_obj, project__is_active=True)|
+                                                                       Q(group__name="Organization Admin",
+                                                         organization=project_obj.organization, organization__is_active=True)).exists()
 
-            if is_project_manager:
-                data = Region.objects.filter(project=project_obj, is_active=True, parent=None)
+            if is_project_manager_or_team_admin:
+                data = Site.objects.filter(project=project_obj, is_active=True)
 
-                regions = MyRegionSerializer(data, many=True, context={'request': request})
+                sites = MySiteSerializer(data, many=True, context={'request': request})
 
             else:
-                regions_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
+                sites_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
                                                                       'staff_project', 'region').filter(
-                                                                   Q(group__name="Region Supervisor", region__is_active=True)|
-                                                                   Q(group__name="Region Reviewer", region__is_active=True)).values_list('region_id', flat=True)
-                data = Region.objects.filter(parent=None, id__in=regions_id)
-                regions = MyRegionSerializer(data, many=True, context={'request': request})
-            return Response({'regions': regions.data})
+                                                                   Q(group__name="Site Supervisor", site__is_active=True)|
+                                                                   Q(group__name="Site Reviewer", site__is_active=True)).values_list('site_id', flat=True)
+                data = Site.objects.filter(id__in=sites_id)
+                sites = MySiteSerializer(data, many=True, context={'request': request})
+            return Response({'sites': sites.data})
 
-        except ObjectDoesNotExist:
-            return Response(data="Project Id does not exist.", status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
     else:
         return Response(data="Project Id params required.", status=status.HTTP_400_BAD_REQUEST)
 

@@ -5,8 +5,10 @@ from django.db.models import Q
 
 from rest_framework import serializers
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fieldsight.models import UserInvite, Project, Region
+from onadata.apps.fieldsight.models import UserInvite, Project, Region, Site
 from onadata.apps.fsforms.models import FInstance
+
+FORM_STATUS = {0: 'Pending', 1: "Rejected", 2: 'Flagged', 3: 'Approved'}
 
 
 class MyProjectSerializer(serializers.ModelSerializer):
@@ -50,20 +52,84 @@ class MyRegionSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         user = self.context['request'].user
-        obj = obj.region_roles.select_related('group').filter(user=user)
-
-        if len(obj) > 1:
-            group = "Region Supervisor"
-        elif len(obj) == 1:
-            group = obj.get().group.name
+        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name="Project Manager", project=obj.project)|
+                                                                         Q(group__name="Organization Admin",
+                                                                           organization=obj.project.organization)).exists()
+        if is_project_manager_or_team_admin:
+            group = None
 
         else:
-            group = None
+
+            obj = obj.region_roles.select_related('group').filter(user=user)
+
+            if len(obj) > 1:
+                group = "Region Supervisor"
+            else:
+                group = obj.get().group.name
 
         return group
 
     def get_region_url(self, obj):
         return settings.SITE_URL + obj.get_absolute_url()
+
+
+class MySiteSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+    submissions = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    site_url = serializers.SerializerMethodField()
+    region = serializers.CharField(source='region.name')
+
+    class Meta:
+        model = Site
+        fields = ('id', 'identifier', 'name', 'address', 'site_url', 'region', 'role', 'submissions', 'progress', 'status')
+
+    def get_role(self, obj):
+        user = self.context['request'].user
+        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name="Project Manager", project=obj.project)|
+                                                          Q(group__name="Organization Admin", organization=obj.project.organization)).exists()
+
+        if is_project_manager_or_team_admin:
+            group = None
+
+        else:
+            obj = obj.site_roles.select_related('group').filter(user=user)
+
+            if len(obj) > 1:
+                group = "Site Supervisor"
+            else:
+                group = obj.get().group.name
+
+        return group
+
+    def get_submissions(self, obj):
+        response = obj.get_site_submission_count()
+        submissions = response['outstanding'] + response['flagged'] + response['approved'] + response['rejected']
+
+        return submissions
+
+    def get_status(self, obj):
+
+        try:
+            if obj.site_instances.all():
+                return FORM_STATUS[obj.current_status]
+        except:
+            return None
+
+    def get_progress(self, obj):
+
+        if obj.current_progress:
+            return obj.current_progress
+        else:
+            return 0
+
+    def get_site_url(self, obj):
+        return settings.SITE_URL + obj.get_absolute_url()
+
+    def get_region_url(self, obj):
+        if obj.region:
+            return settings.SITE_URL + obj.region.get_absolute_url()
 
 
 class MyRolesSerializer(serializers.ModelSerializer):
