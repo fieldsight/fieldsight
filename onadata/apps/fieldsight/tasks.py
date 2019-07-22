@@ -2169,7 +2169,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                         },
                         "start": { 
                             '$gte' : new_startdate.isoformat(),
-                            '$lte' : end.isoformat() 
+                            '$lte' : new_enddate.isoformat() 
                         },
                         "fs_project": {'$in' : [str(project_id), int(project_id)]}
                     }
@@ -2228,7 +2228,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
         query['daily'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[new_startdate, new_enddate], supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[end, new_enddate], supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
