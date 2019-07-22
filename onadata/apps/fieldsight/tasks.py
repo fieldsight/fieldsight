@@ -2214,6 +2214,11 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         
         query={}
         last_month = new_enddate - datetime.timedelta(days=30)
+        query['all_submissions'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate], supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))
         query['monthly'] = Sum(
             Case(
                 When(supervisor__instance__date_created__range=[last_month, new_enddate], supervisor__project_id=project_id, then=1),
@@ -2290,7 +2295,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         users=User.objects.filter(user_roles__project_id=project_id, user_roles__group_id__in=[2, 3, 4, 9]).distinct('id').values('id')
         activity_dict = {}
         for user in User.objects.filter(pk__in=users).annotate(**query):
-            activity_dict[str(user.id)] = [user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, 0, 0, 0, 0, 0]
+            activity_dict[str(user.id)] = [user.username, user.get_full_name(), user.email, user.all_submissions, user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, 0, 0, 0, 0, 0]
 
         for user in User.objects.filter(pk__in=users).annotate(**review_query):
             activity_dict[str(user.id)][13:18] = [user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.re_approved, user.re_flagged, user.re_rejected]
