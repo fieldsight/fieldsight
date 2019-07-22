@@ -11,9 +11,9 @@ from rest_framework import status
 
 from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
 from onadata.apps.eventlog.models import FieldSightLog
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.fieldsight.models import Site, SiteMetaAttrAnsHistory
 from onadata.apps.fsforms.models import FieldSightXF, Stage, Schedule, SubmissionOfflineSite, FInstance, \
-    EditedSubmission, SiteMetaAttrAnsHistory
+    EditedSubmission
 from onadata.apps.fsforms.serializers.FieldSightSubmissionSerializer import FieldSightSubmissionSerializer
 from ..fieldsight_logger_tools import safe_create_instance
 from channels import Group as ChannelGroup
@@ -57,7 +57,7 @@ def update_meta_details(fs_proj_xf, instance):
         # change site meta attributes answer
         meta_ans = site.site_meta_attributes_ans
         for item in fs_proj_xf.project.site_meta_attributes:
-            if item.get('question_type', '') == 'Form' and fs_proj_xf.id == item.get('form_id', 0):
+            if item.get('question_type') == 'Form' and fs_proj_xf.id == item.get('form_id', 0):
                 if item['question']['type'] == "repeat":
                     answer = ""
                 else:
@@ -65,6 +65,21 @@ def update_meta_details(fs_proj_xf, instance):
                 if item['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
                     answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fs_proj_xf.xf.user.username + '/attachments/' + answer
                 meta_ans[item['question_name']] = answer
+
+            elif item.get('question_type') == 'FormSubStat' and fs_proj_xf.id == item.get('form_id', 0):
+                answer = "Last submitted on " + instance.date.strftime("%d %b %Y %I:%M %P")
+                meta_ans[item['question_name']] = answer
+
+            elif item.get('question_type') == "FormQuestionAnswerStatus":
+                get_answer = instance.json.get(item.get('question').get('name'), None)
+                if get_answer:
+                    answer = "Answered"
+                else:
+                    answer = ""
+                meta_ans[item['question_name']] = answer
+
+            elif item.get('question_type') == "FormSubCountQuestion":
+                meta_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
 
         SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
         site.site_meta_attributes_ans = meta_ans
