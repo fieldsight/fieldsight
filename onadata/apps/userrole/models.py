@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from fcm.utils import get_device_model
 from django.contrib.auth.models import Group
@@ -206,20 +206,14 @@ def create_messages(sender, instance, created,  **kwargs):
                 Device.objects.filter(name=email).send_message(message)
             except:
                 pass
-    
-    # if created and instance.group.name == "Project Manager":
-    #     from onadata.apps.fsforms.tasks import created_manager_form_share
-    #     task_obj = CeleryTaskProgress.objects.create(
-    #         user=instance.user,
-    #         description='Share all forms',
-    #         task_type=18,
-    #         content_object=instance
-    #         )
-    #     if task_obj:
-    #         try:
-    #             with transaction.atomic():
-    #                 created_manager_form_share.apply_async(kwargs={'userrole': instance.id, 'task_id': task_obj.id}, countdown=5)
-    #         except IntegrityError:
-    #             pass
+
+    roles = UserRole.get_active_roles(instance.user)
+    # roles = Role.objects.filter(user=request.user).select_related('group', 'organization')
+    if roles:
+        cache.set('roles_{}'.format(instance.user.id), roles, 2 * 60)
+        if roles.filter(group__name="Super Admin").exists():
+            cache.set('admin_{}'.format(instance.user.id), True, 2 * 60)
+        else:
+            cache.set('admin_{}'.format(instance.user.id), False, 2 * 60)
 
 post_save.connect(create_messages, sender=UserRole)
