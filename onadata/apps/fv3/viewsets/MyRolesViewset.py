@@ -63,7 +63,7 @@ def my_regions(request):
                                                          project=project_obj, project__is_active=True).exists()
 
             if is_project_manager:
-                data = Region.objects.filter(project=project_obj, region__is_active=True, parent=None)
+                data = Region.objects.filter(project=project_obj, is_active=True, parent=None)
 
                 regions = MyRegionSerializer(data, many=True)
 
