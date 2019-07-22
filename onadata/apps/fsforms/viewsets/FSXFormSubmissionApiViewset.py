@@ -13,7 +13,7 @@ from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
 from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FieldSightXF, Stage, Schedule, SubmissionOfflineSite, FInstance, \
-    EditedSubmission
+    EditedSubmission, SiteMetaAttrAnsHistory
 from onadata.apps.fsforms.serializers.FieldSightSubmissionSerializer import FieldSightSubmissionSerializer
 from ..fieldsight_logger_tools import safe_create_instance
 from channels import Group as ChannelGroup
@@ -65,6 +65,8 @@ def update_meta_details(fs_proj_xf, instance):
                 if item['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
                     answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fs_proj_xf.xf.user.username + '/attachments/' + answer
                 meta_ans[item['question_name']] = answer
+
+        SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
         site.site_meta_attributes_ans = meta_ans
         site.save()
     except:
