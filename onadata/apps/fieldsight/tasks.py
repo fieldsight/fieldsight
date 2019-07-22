@@ -2158,7 +2158,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         new_enddate = end + datetime.timedelta(days=1)
 
        
-        header = ["UserName", "Full name", "Email", "Submssions made", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today", "Approved Submissions", "Pending Submissions", "Flagged Submissions", "Rejected Submissions", "Reviewed Submissions", "Resolved Submissions", "Approved Reviews", "Flagged Reviews", "Rejected Reviews"]
+        headers = ["UserName", "Full name", "Email", "Submssions made", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today", "Approved Submissions", "Pending Submissions", "Flagged Submissions", "Rejected Submissions", "Reviewed Submissions", "Resolved Submissions", "Approved Reviews", "Flagged Reviews", "Rejected Reviews"]
 
         site_visits = settings.MONGO_DB.instances.aggregate(
             [
