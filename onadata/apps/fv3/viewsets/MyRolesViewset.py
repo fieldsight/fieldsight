@@ -6,6 +6,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authentication import BasicAuthentication
 
 from rest_framework.decorators import permission_classes, api_view
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -18,6 +19,10 @@ from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, Us
     LatestSubmissionSerializer, MyRegionSerializer, MySiteSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import XForm
+
+
+class MySitesPagination(PageNumberPagination):
+    page_size = 100
 
 
 @permission_classes([IsAuthenticated])
@@ -59,7 +64,8 @@ def my_regions(request):
     if project_id:
         try:
             project_obj = Project.objects.get(id=project_id)
-            is_project_manager_or_team_admin = UserRole.objects.filter(user=request.user).filter(Q(group__name="Project Manager",
+            is_project_manager_or_team_admin = UserRole.objects.filter(user=request.user).select_related('user', 'group', 'site', 'organization',
+                                                                      'staff_project', 'region').filter(Q(group__name="Project Manager",
                                                          project=project_obj, project__is_active=True)|Q(group__name="Organization Admin",
                                                          organization=project_obj.organization, organization__is_active=True)).exists()
 
@@ -83,38 +89,45 @@ def my_regions(request):
         return Response(data="Project Id params required.", status=status.HTTP_400_BAD_REQUEST)
 
 
-@permission_classes([IsAuthenticated])
-@api_view(['GET'])
-def my_sites(request):
+class MySitesView(APIView):
+    permission_classes = (IsAuthenticated,)
 
-    project_id = request.query_params.get('project', None)
+    def get(self, request, *args,  **kwargs):
 
-    if project_id:
-        try:
-            project_obj = Project.objects.get(id=project_id)
-            is_project_manager_or_team_admin = UserRole.objects.filter(user=request.user).filter(Q(group__name="Project Manager",
-                                                         project=project_obj, project__is_active=True)|
-                                                                       Q(group__name="Organization Admin",
-                                                         organization=project_obj.organization, organization__is_active=True)).exists()
+        project_id = request.query_params.get('project', None)
 
-            if is_project_manager_or_team_admin:
-                data = Site.objects.filter(project=project_obj, is_active=True)
+        if project_id:
+            try:
+                project_obj = Project.objects.get(id=project_id)
+                is_project_manager_or_team_admin = UserRole.objects.select_related().filter(user=request.user).filter(Q(group__name="Project Manager",
+                                                             project=project_obj, project__is_active=True)|
+                                                                           Q(group__name="Organization Admin",
+                                                             organization=project_obj.organization, organization__is_active=True)).exists()
 
-                sites = MySiteSerializer(data, many=True, context={'request': request})
+                if is_project_manager_or_team_admin:
+                    data = Site.objects.filter(project=project_obj, is_active=True)
 
-            else:
-                sites_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
-                                                                      'staff_project', 'region').filter(
-                                                                   Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                   Q(group__name="Site Reviewer", site__is_active=True)).values_list('site_id', flat=True)
-                data = Site.objects.filter(id__in=sites_id)
-                sites = MySiteSerializer(data, many=True, context={'request': request})
-            return Response({'sites': sites.data})
+                    paginator = PageNumberPagination()
 
-        except Exception as e:
-            return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
-    else:
-        return Response(data="Project Id params required.", status=status.HTTP_400_BAD_REQUEST)
+                    paginator.page_size = 50
+                    result_page = paginator.paginate_queryset(data, request)
+
+                    sites = MySiteSerializer(result_page, many=True, context={'request': request})
+                    return Response(sites.data)
+
+                else:
+                    sites_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
+                                                                          'staff_project', 'region').filter(
+                                                                       Q(group__name="Site Supervisor", site__is_active=True)|
+                                                                       Q(group__name="Site Reviewer", site__is_active=True)).values_list('site_id', flat=True)
+                    data = Site.objects.filter(id__in=sites_id)
+                    sites = MySiteSerializer(data, many=True, context={'request': request})
+                    return Response({'sites': sites.data})
+
+            except Exception as e:
+                return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(data="Project Id params required.", status=status.HTTP_400_BAD_REQUEST)
 
 
 class AcceptInvite(APIView):
