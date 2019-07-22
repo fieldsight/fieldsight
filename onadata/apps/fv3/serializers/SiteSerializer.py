@@ -104,7 +104,7 @@ class SiteSerializer(serializers.ModelSerializer):
         progress_chart = ProgressGeneratorSite(obj)
         progress_chart_data = progress_chart.data()
 
-        data = {'labels':  progress_chart_data.keys(), 'data':  progress_chart_data.values()}
+        data = {'labels':  progress_chart_data.values(), 'data':  progress_chart_data.keys()}
 
         return data
 

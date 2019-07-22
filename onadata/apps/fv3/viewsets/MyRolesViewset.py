@@ -65,7 +65,7 @@ def my_regions(request):
             if is_project_manager:
                 data = Region.objects.filter(project=project_obj, is_active=True, parent=None)
 
-                regions = MyRegionSerializer(data, many=True)
+                regions = MyRegionSerializer(data, many=True, context={'request': request})
 
             else:
                 regions_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
@@ -77,7 +77,41 @@ def my_regions(request):
             return Response({'regions': regions.data})
 
         except ObjectDoesNotExist:
-            return Response(data="Project does not exist.", status=status.HTTP_204_NO_CONTENT)
+            return Response(data="Project Id does not exist.", status=status.HTTP_204_NO_CONTENT)
+    else:
+        return Response(data="Project Id params required.", status=status.HTTP_400_BAD_REQUEST)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def my_sites(request):
+
+    project_id = request.query_params.get('project', None)
+
+    if project_id:
+        try:
+            project_obj = Project.objects.get(id=project_id)
+            is_project_manager = UserRole.objects.filter(user=request.user, group__name="Project Manager",
+                                                         project=project_obj, project__is_active=True).exists()
+
+            if is_project_manager:
+                data = Region.objects.filter(project=project_obj, is_active=True, parent=None)
+
+                regions = MyRegionSerializer(data, many=True, context={'request': request})
+
+            else:
+                regions_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
+                                                                      'staff_project', 'region').filter(
+                                                                   Q(group__name="Region Supervisor", region__is_active=True)|
+                                                                   Q(group__name="Region Reviewer", region__is_active=True)).values_list('region_id', flat=True)
+                data = Region.objects.filter(parent=None, id__in=regions_id)
+                regions = MyRegionSerializer(data, many=True, context={'request': request})
+            return Response({'regions': regions.data})
+
+        except ObjectDoesNotExist:
+            return Response(data="Project Id does not exist.", status=status.HTTP_204_NO_CONTENT)
+    else:
+        return Response(data="Project Id params required.", status=status.HTTP_400_BAD_REQUEST)
 
 
 class AcceptInvite(APIView):
