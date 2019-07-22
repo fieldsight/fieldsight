@@ -54,8 +54,19 @@ def update_meta_details(fs_proj_xf, instance):
                     if logo_url:
                         site.site_featured_images[question_name] = logo_url
 
-
-            site.save()
+        # change site meta attributes answer
+        meta_ans = site.site_meta_attributes_ans
+        for item in fs_proj_xf.project.site_meta_attributes:
+            if item.get('question_type', '') == 'Form' and fs_proj_xf.id == item.get('form_id', 0):
+                if item['question']['type'] == "repeat":
+                    answer = ""
+                else:
+                    answer = instance.get(item.get('question').get('name'), '')
+                if item['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
+                    answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fs_proj_xf.xf.user.username + '/attachments/' + answer
+                meta_ans[item['question_name']] = answer
+        site.site_meta_attributes_ans = meta_ans
+        site.save()
     except:
         pass
 
