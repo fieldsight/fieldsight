@@ -51,7 +51,7 @@ from django.utils import timezone
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
-from onadata.apps.fsforms.models import Instance
+from onadata.apps.logger.models import Instance
 from onadata.apps.fieldsight.fs_exports.log_generator import log_types
 
 from django.db.models import Q
