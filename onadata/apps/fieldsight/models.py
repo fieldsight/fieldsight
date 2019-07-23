@@ -795,10 +795,17 @@ class SiteProgressHistory(models.Model):
         return "{} {}".format(self.site.name, self.progress)
 
 
-class SiteMetaAttrHistory(models.Model):
-    meta_attributes = JSONField(default=list)
+META_CHANGE_STATUS = (
+    (1, 'By submission'),
+    (2, 'By change in meta attributes')
+)
+
+
+class SiteMetaAttrAnsHistory(models.Model):
+    meta_attributes_ans = JSONField(default={})
     site = models.ForeignKey(Site, related_name="meta_history")
     date = models.DateTimeField(auto_now=True)
+    status = models.IntegerField(choices=META_CHANGE_STATUS, null=True, blank=True)
 
     class Meta:
         ordering = ['-date']
