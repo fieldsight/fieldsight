@@ -244,7 +244,13 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
                                                             extra_message="project",
                                                             content_object=fi)
             else:
-                update_meta_details(fs_proj_xf, instance)
+                task_obj = CeleryTaskProgress.objects.create(user=self.request.user,
+                                                             description='Change site info',
+                                                             task_type=25,
+                                                             content_obj=instance.fieldsight_instance)
+                if task_obj:
+                    from onadata.apps.fieldsight.tasks import update_meta_details
+                    update_meta_details.delay(fs_proj_xf.id, instance.id, task_obj.id)
                 site = Site.objects.get(pk=siteid)
                 instance.fieldsight_instance.logs.create(source=self.request.user, type=16, title="new Site level Submission",
                                            organization=fs_proj_xf.project.organization,
