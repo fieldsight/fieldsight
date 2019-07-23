@@ -110,7 +110,7 @@ def get_site_meta_ans(site_id):
                     metas[meta.get('question_text')] = answer
 
                 else:
-                    answer = ""
+                    answer = "No site referenced"
                     metas[meta.get('question_text')] = answer
 
             else:
