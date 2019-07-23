@@ -100,7 +100,10 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                                                                  extra_message="project",
                                                                  content_object=instance.fieldsight_instance)
                     else:
-                        task_obj = CeleryTaskProgress.objects.create(user=request.user, description='Change site info', task_type=25, content_obj=instance)
+                        task_obj = CeleryTaskProgress.objects.create(user=self.request.user,
+                                                                     description='Change site info',
+                                                                     task_type=25,
+                                                                     content_obj=instance.fieldsight_instance)
                         if task_obj:
                             from onadata.apps.fieldsight.tasks import update_meta_details
                             update_meta_details.delay(fs_proj_xf.id, instance.id, task_obj.id)
