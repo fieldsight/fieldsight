@@ -2,7 +2,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 from django.db.models import Q
-
+from django.conf import settings
 from rest_framework import serializers
 
 from onadata.apps.eventlog.models import FieldSightLog
@@ -11,7 +11,7 @@ from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.models import UserProfile
 from django.core.exceptions import ObjectDoesNotExist
 from onadata.apps.fsforms.line_data_project import ProgressGeneratorSite
-from onadata.apps.fsforms.models import FInstance
+from onadata.apps.fsforms.models import FInstance, Stage
 
 from onadata.apps.fsforms.line_data_project import date_range
 
@@ -161,3 +161,18 @@ class FInstanceSerializer(serializers.ModelSerializer):
 
         else:
             return obj.date
+
+
+class StageFormSerializer(serializers.ModelSerializer):
+    sub_stages = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+
+        fields = ('name', 'sub_stages')
+
+    def get_sub_stages(self, obj):
+        data = [{'form_name': form.stage_forms.xf.title, 'new_submission_url': settings.SITE_URL + '/forms/new-submission/' +
+                                                                     str(form.stage_forms.id) + '/' + str(self.context['site_id']) + '/'}
+                for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')]
+        return data
