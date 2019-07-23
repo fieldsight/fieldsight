@@ -596,7 +596,7 @@ class ProjectDefineSiteMeta(APIView):
         project.save()
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                      description="Update site meta attributes answer and store history",
-                                                     task_type=20, content_object=project)
+                                                     task_type=24, content_object=project)
         if task_obj:
             create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
 
