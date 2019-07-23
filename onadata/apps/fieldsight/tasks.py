@@ -2670,5 +2670,6 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id):
         site.site_meta_attributes_ans = meta_ans
         site.save()
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
-    except:
+    except Exception as e:
+        print('Exception occured', e)
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
