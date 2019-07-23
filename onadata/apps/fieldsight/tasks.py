@@ -2605,11 +2605,11 @@ def create_site_meta_attribs_ans_history(pk, task_id):
 
 
 @shared_task(max_retries=5, time_limit=300, soft_time_limit=300)
-def update_meta_details(fs_proj_xf_id, instance_id, task_id):
+def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
     try:
         instance = Instance.objects.get(id=instance_id)
         fs_proj_xf = FieldSightXF.objects.get(id=fs_proj_xf_id)
-        site = fs_proj_xf.site
+        site = Site.objects.get(id=site_id)
         if fs_proj_xf.id in fs_proj_xf.project.site_basic_info.get('active_forms', []):
             site_picture = site.project.site_basic_info.get('site_picture', None)
             if site_picture and site_picture.get('question_type', '') == 'form' and site_picture.get('form_id',
