@@ -51,7 +51,7 @@ from django.utils import timezone
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
-from onadata.apps.fsforms.models import Instance
+from onadata.apps.logger.models import Instance
 from onadata.apps.fieldsight.fs_exports.log_generator import log_types
 
 from django.db.models import Q
@@ -2590,7 +2590,7 @@ def create_site_meta_attribs_ans_history(pk, task_id):
     try:
         sites = Site.objects.filter(project_id=pk)
         for site in sites:
-            time.sleep(3)
+            time.sleep(1)
             metas = get_site_meta_ans(site.id)
             if metas == site.site_meta_attributes_ans:
                 continue
@@ -2605,11 +2605,11 @@ def create_site_meta_attribs_ans_history(pk, task_id):
 
 
 @shared_task(max_retries=5, time_limit=300, soft_time_limit=300)
-def update_meta_details(fs_proj_xf_id, instance_id, task_id):
+def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
     try:
         instance = Instance.objects.get(id=instance_id)
         fs_proj_xf = FieldSightXF.objects.get(id=fs_proj_xf_id)
-        site = fs_proj_xf.site
+        site = Site.objects.get(id=site_id)
         if fs_proj_xf.id in fs_proj_xf.project.site_basic_info.get('active_forms', []):
             site_picture = site.project.site_basic_info.get('site_picture', None)
             if site_picture and site_picture.get('question_type', '') == 'form' and site_picture.get('form_id',
@@ -2670,5 +2670,6 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id):
         site.site_meta_attributes_ans = meta_ans
         site.save()
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
-    except:
+    except Exception as e:
+        print('Exception occured', e)
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
