@@ -27,11 +27,13 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles
+from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, create_site_meta_attribs_ans_history
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.project_settings import ProgressSettingsSerializer
 from .role_api_permissions import ProjectRoleApiPermissions
+
+
 
 
 class ProjectSitesPagination(PageNumberPagination):
@@ -592,6 +594,11 @@ class ProjectDefineSiteMeta(APIView):
 
                 other_project.save()
         project.save()
+        task_obj = CeleryTaskProgress.objects.create(user=request.user,
+                                                     description="Update site meta attributes answer and store history",
+                                                     task_type=24, content_object=project)
+        if task_obj:
+            create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
 
         return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
 
