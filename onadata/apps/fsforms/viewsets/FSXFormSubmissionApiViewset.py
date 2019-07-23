@@ -17,6 +17,7 @@ from onadata.apps.fsforms.models import FieldSightXF, Stage, Schedule, Submissio
 from onadata.apps.fsforms.serializers.FieldSightSubmissionSerializer import FieldSightSubmissionSerializer
 from ..fieldsight_logger_tools import safe_create_instance
 from channels import Group as ChannelGroup
+from onadata.apps.eventlog.models import CeleryTaskProgress
 # 10,000,000 bytes
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
@@ -26,66 +27,6 @@ def create_instance_from_xml(request, fsid, site, fs_proj_xf, proj_id, xform, fl
     xml_file = xml_file_list[0] if len(xml_file_list) else None
     media_files = request.FILES.values()
     return safe_create_instance(fsid, xml_file, media_files, None, request, site, fs_proj_xf, proj_id, xform, flagged_instance)
-
-
-def update_meta_details(fs_proj_xf, instance):
-    try:
-        site = fs_proj_xf.site
-        if fs_proj_xf.id in fs_proj_xf.project.site_basic_info.get('active_forms', []):
-            site_picture = site.project.site_basic_info.get('site_picture', None)
-            if site_picture and site_picture.get('question_type', '') == 'form' and site_picture.get('form_id', 0) > fs_proj_xf.id and site_picture.get('question', {}):
-                question_name = site_picture['question'].get('question_name', '')
-                logo_url = instance.json.get(question_name)
-                if logo_url:
-                    site.logo_url.name = logo_url
-
-            site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
-            if site_loc and site_loc.get('question_type', '') == 'form' and site_loc.get('form_id', 0) > fs_proj_xf.id and site_loc.get('question', {}):
-                question_name = site_loc['question'].get('question_name', '')
-                location = instance.json.get(question_name)
-                if location:
-                    site.location = location
-
-            for featured_img in fs_proj_xf.project.site_featured_images:
-                if featured_img.get('question_type', '') == 'form' and featured_img.get('form_id', 0) > fs_proj_xf.id and featured_img.get('question', {}):
-                    
-                    question_name = featured_img['question'].get('question_name', '')
-                    logo_url = instance.json.get(question_name)
-                    if logo_url:
-                        site.site_featured_images[question_name] = logo_url
-
-        # change site meta attributes answer
-        meta_ans = site.site_meta_attributes_ans
-        for item in fs_proj_xf.project.site_meta_attributes:
-            if item.get('question_type') == 'Form' and fs_proj_xf.id == item.get('form_id', 0):
-                if item['question']['type'] == "repeat":
-                    answer = ""
-                else:
-                    answer = instance.get(item.get('question').get('name'), '')
-                if item['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
-                    answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fs_proj_xf.xf.user.username + '/attachments/' + answer
-                meta_ans[item['question_name']] = answer
-
-            elif item.get('question_type') == 'FormSubStat' and fs_proj_xf.id == item.get('form_id', 0):
-                answer = "Last submitted on " + instance.date.strftime("%d %b %Y %I:%M %P")
-                meta_ans[item['question_name']] = answer
-
-            elif item.get('question_type') == "FormQuestionAnswerStatus":
-                get_answer = instance.json.get(item.get('question').get('name'), None)
-                if get_answer:
-                    answer = "Answered"
-                else:
-                    answer = ""
-                meta_ans[item['question_name']] = answer
-
-            elif item.get('question_type') == "FormSubCountQuestion":
-                meta_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
-
-        SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
-        site.site_meta_attributes_ans = meta_ans
-        site.save()
-    except:
-        pass
 
 
 class FSXFormSubmissionApi(XFormSubmissionApi):
@@ -159,7 +100,10 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                                                                  extra_message="project",
                                                                  content_object=instance.fieldsight_instance)
                     else:
-                        update_meta_details(fs_proj_xf, instance)
+                        task_obj = CeleryTaskProgress.objects.create(user=request.user, description='Change site info', task_type=25, content_obj=instance)
+                        if task_obj:
+                            from onadata.apps.fieldsight.tasks import update_meta_details
+                            update_meta_details.delay(fs_proj_xf.id, instance.id, task_obj.id)
                         site = Site.objects.get(pk=siteid)
                         instance.fieldsight_instance.logs.create(source=self.request.user, type=16,
                                                                  title="new Site level Submission",
