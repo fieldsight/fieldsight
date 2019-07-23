@@ -15,7 +15,13 @@ def get_images_for_sites_count(site_id):
         return {'result':[]}
 
 def get_images_for_site(site_id):
-    return settings.MONGO_DB.instances.aggregate([{"$match":{"fs_site": {'$in' : [str(site_id), int(site_id)]}}}, {"$unwind":"$_attachments"},{"$match":{"_attachments.mimetype" : "image/jpeg"}}, { "$sort" : { "_id": -1 }}, { "$limit": 6 }])
+    return settings.MONGO_DB.instances.aggregate(
+        [{"$match":{
+            "fs_site":{'$in' : [str(site_id), int(site_id)]},
+            '_deleted_at': {'$exists': False}}},
+            {"$unwind":"$_attachments"},
+            {"$match":{"_attachments.mimetype" : "image/jpeg"}},
+            { "$sort" : { "_id": -1 }}, { "$limit": 6 }])
 
 def get_images_for_site_all(site_id):
     return settings.MONGO_DB.instances.aggregate([{"$match":{"fs_site": {'$in' : [str(site_id), int(site_id)]}}}, {"$unwind":"$_attachments"},{"$match":{"_attachments.mimetype" : "image/jpeg"}}, { "$sort" : { "_id": -1 }}])
