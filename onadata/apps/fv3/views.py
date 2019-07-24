@@ -615,12 +615,31 @@ def site_recent_pictures(request):
     return Response({'site_featured_images': site_featured_images})
 
 
+def check_file_extension(file_url):
+    type = None
+
+    if file_url.endswith(('.jpg', '.png', '.jpeg')):
+        type = 'image'
+
+    elif file_url.endswith(('.xls', '.xlsx')):
+        type = 'excel'
+
+    elif file_url.endswith('.pdf'):
+        type = 'pdf'
+
+    elif file_url.endswith(('.doc', '.docm', 'docx', '.dot', '.dotm', '.dot', '.txt', '.odt')):
+        type = 'word'
+
+    return type
+
+
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def site_documents(request):
     query_params = request.query_params
     site_id = query_params.get('site_id')
     blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
-    data = [{'name': blueprint.get_name(), 'file': blueprint.image.url} for blueprint in blueprints_obj]
+    data = [{'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
+            for blueprint in blueprints_obj]
     return Response(data)
 
