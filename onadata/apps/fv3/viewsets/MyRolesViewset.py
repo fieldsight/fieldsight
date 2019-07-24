@@ -158,9 +158,10 @@ def submissions_map(request):
             if is_project_manager_or_team_admin:
                 submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user, project=project_obj).order_by('-date')
 
-                data = [{'submitted_by': history.get_source_name(), 'form_name': history.get_event_name(), 'form_url': settings.SITE_URL+
+                data = [{'submitted_by': history.get_source_name(), 'form_name': history.get_event_name(),
+                         'profile': history.get_source_url(), 'form_url': settings.SITE_URL+
                                                                                                       str(history.get_event_url()),
-                         'extra_object': history.get_extraobj_name(), 'extra_object_url': history.get_extraobj_url(), 'date': history.date} for history in submission_history]
+                         'extra_object': history.get_extraobj_name(), 'extra_object_url':  settings.SITE_URL + history.get_extraobj_url(), 'date': history.date} for history in submission_history]
 
                 return Response(data=data)
 
@@ -183,10 +184,11 @@ def submissions_map(request):
                 submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user,
                                                                                            site_id__in=merge_site_ids).order_by('-date')
 
-                data = [{'submitted_by': history.get_source_name(), 'form_name': history.get_event_name(),
+                data = [{'submitted_by': history.get_source_name(), 'profile': history.get_source_url(),
+                         'form_name': history.get_event_name(),
                          'form_url': settings.SITE_URL +
                                      str(history.get_event_url()),
-                         'extra_object': history.get_extraobj_name(), 'extra_object_url': history.get_extraobj_url(),
+                         'extra_object': history.get_extraobj_name(), 'extra_object_url': settings.SITE_URL + history.get_extraobj_url(),
                          'date': history.date} for history in submission_history]
 
                 return Response(data=data)
