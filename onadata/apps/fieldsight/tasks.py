@@ -2617,7 +2617,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
             question_name = site_picture['question'].get('name', '')
             logo_url = instance.json.get(question_name)
             if logo_url:
-                site.logo.name = instance.json.get('_submitted_by') + '/' +\
+                site.logo.name = instance.json.get('_submitted_by') + '/attachments/' +\
                                  instance.json.get('formhub/uuid') + '/' + \
                                  instance.json.get('meta/instanceID').split(':')[1] + '/' + logo_url
 
@@ -2634,7 +2634,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 question_name = featured_img['question'].get('name', '')
                 logo_url = instance.json.get(question_name)
                 if logo_url:
-                    site.site_featured_images[question_name] = instance.json.get('_submitted_by') + '/' + \
+                    site.site_featured_images[question_name] = instance.json.get('_submitted_by') + '/attachments/' + \
                                                                instance.json.get('formhub/uuid') + '/' + \
                                                                instance.json.get('meta/instanceID').split(':')[1] + \
                                                                '/' + logo_url
