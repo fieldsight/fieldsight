@@ -2610,34 +2610,33 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         instance = Instance.objects.get(id=instance_id)
         fs_proj_xf = FieldSightXF.objects.get(id=fs_proj_xf_id)
         site = Site.objects.get(id=site_id)
-        if fs_proj_xf.id in fs_proj_xf.project.site_basic_info.get('active_forms', []):
-            site_picture = site.project.site_basic_info.get('site_picture', None)
-            if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
-                                                                                                     0) > fs_proj_xf.id and site_picture.get(
+        site_picture = site.project.site_basic_info.get('site_picture', None)
+        if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
+                                                                                                 0) == fs_proj_xf.id and site_picture.get(
+                'question', {}):
+            question_name = site_picture['question'].get('question_name', '')
+            logo_url = instance.json.get(question_name)
+            if logo_url:
+                site.logo_url.name = logo_url
+
+        site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
+        if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id',
+                                                                                     0) == fs_proj_xf.id and site_loc.get(
+                'question', {}):
+            question_name = site_loc['question'].get('question_name', '')
+            location = instance.json.get(question_name)
+            if location:
+                site.location = location
+
+        for featured_img in fs_proj_xf.project.site_featured_images:
+            if featured_img.get('question_type', '') == 'Form' and featured_img.get('form_id',
+                                                                                    0) == fs_proj_xf.id and featured_img.get(
                     'question', {}):
-                question_name = site_picture['question'].get('question_name', '')
+
+                question_name = featured_img['question'].get('question_name', '')
                 logo_url = instance.json.get(question_name)
                 if logo_url:
-                    site.logo_url.name = logo_url
-
-            site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
-            if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id',
-                                                                                         0) > fs_proj_xf.id and site_loc.get(
-                    'question', {}):
-                question_name = site_loc['question'].get('question_name', '')
-                location = instance.json.get(question_name)
-                if location:
-                    site.location = location
-
-            for featured_img in fs_proj_xf.project.site_featured_images:
-                if featured_img.get('question_type', '') == 'Form' and featured_img.get('form_id',
-                                                                                        0) > fs_proj_xf.id and featured_img.get(
-                        'question', {}):
-
-                    question_name = featured_img['question'].get('question_name', '')
-                    logo_url = instance.json.get(question_name)
-                    if logo_url:
-                        site.site_featured_images[question_name] = logo_url
+                    site.site_featured_images[question_name] = logo_url
 
         # change site meta attributes answer
         meta_ans = site.site_meta_attributes_ans
