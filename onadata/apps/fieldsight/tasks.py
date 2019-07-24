@@ -2638,7 +2638,6 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                                                                instance.json.get('formhub/uuid') + '/' + \
                                                                instance.json.get('meta/instanceID').split(':')[1] + \
                                                                '/' + logo_url
-                    site.site_featured_images[question_name]['_id'] = fs_proj_xf_id
 
         # change site meta attributes answer
         meta_ans = site.site_meta_attributes_ans
