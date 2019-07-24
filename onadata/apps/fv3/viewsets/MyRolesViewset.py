@@ -22,11 +22,44 @@ from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, Us
     LatestSubmissionSerializer, MyRegionSerializer, MySiteSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import XForm
-from onadata.apps.fsforms.models import FInstance
 
 
 class MySitesPagination(PageNumberPagination):
     page_size = 100
+
+
+def is_project_manager_or_team_admin(project_obj, user):
+    is_pm_admin = UserRole.objects.filter(user=user).select_related('user',
+                                                                    'group',
+                                                                    'site',
+                                                                    'organization',
+                                                                    'staff_project',
+                                                                    'region').filter(
+        Q(group__name="Project Manager",
+          project=project_obj, project__is_active=True) | Q(group__name="Organization Admin",
+                                                            organization=project_obj.organization,
+                                                            organization__is_active=True)).exists()
+
+    return is_pm_admin
+
+
+def my_site_ids(project_obj, user):
+    queryset = UserRole.objects.filter(user=user, project=project_obj).select_related('user',
+                                                                                              'group',
+                                                                                              'site',
+                                                                                              'organization',
+                                                                                              'staff_project',
+                                                                                              'region')
+    region_ids = queryset.filter(Q(group__name="Region Supervisor") |
+                                 Q(group__name="Region Reviewer")).values_list('region', flat=True).distinct()
+    region_site_ids = Site.objects.filter(region_id__in=region_ids).values_list('id', flat=True)
+
+    site_ids = queryset.filter(Q(group__name="Site Supervisor") |
+                               Q(group__name="Site Reviewer")).values_list('site', flat=True).distinct()
+
+    merge_site_ids = list(chain(site_ids, region_site_ids))
+
+    return merge_site_ids
 
 
 @permission_classes([IsAuthenticated])
@@ -68,12 +101,8 @@ def my_regions(request):
     if project_id:
         try:
             project_obj = Project.objects.get(id=project_id)
-            is_project_manager_or_team_admin = UserRole.objects.filter(user=request.user).select_related('user', 'group', 'site', 'organization',
-                                                                      'staff_project', 'region').filter(Q(group__name="Project Manager",
-                                                         project=project_obj, project__is_active=True)|Q(group__name="Organization Admin",
-                                                         organization=project_obj.organization, organization__is_active=True)).exists()
 
-            if is_project_manager_or_team_admin:
+            if is_project_manager_or_team_admin(project_obj, request.user):
                 data = Region.objects.filter(project=project_obj, is_active=True, parent=None)
 
                 regions = MyRegionSerializer(data, many=True, context={'request': request})
@@ -103,15 +132,10 @@ class MySitesView(APIView):
         if project_id:
             try:
                 project_obj = Project.objects.get(id=project_id)
-                is_project_manager_or_team_admin = UserRole.objects.select_related().filter(user=request.user).filter(Q(group__name="Project Manager",
-                                                             project=project_obj, project__is_active=True)|
-                                                                           Q(group__name="Organization Admin",
-                                                             organization=project_obj.organization, organization__is_active=True)).exists()
-
                 paginator = PageNumberPagination()
                 paginator.page_size = 50
 
-                if is_project_manager_or_team_admin:
+                if is_project_manager_or_team_admin(project_obj, request.user):
                     data = Site.objects.filter(project=project_obj, is_active=True)
 
                     result_page = paginator.paginate_queryset(data, request)
@@ -141,62 +165,99 @@ def submissions_map(request):
     type = request.query_params.get('type')
     project_id = request.query_params.get('project')
 
-    if type == "submissions" and project_id:
+    if project_id:
         try:
             project_obj = Project.objects.get(id=project_id)
-            is_project_manager_or_team_admin = UserRole.objects.filter(user=request.user).select_related('user',
-                                                                                                         'group',
-                                                                                                         'site',
-                                                                                                         'organization',
-                                                                                                         'staff_project',
-                                                                                                         'region').filter(
-                Q(group__name="Project Manager",
-                  project=project_obj, project__is_active=True) | Q(group__name="Organization Admin",
-                                                                    organization=project_obj.organization,
-                                                                    organization__is_active=True)).exists()
 
-            if is_project_manager_or_team_admin:
-                submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user, project=project_obj).order_by('-date')
+            if type == "submissions":
 
-                data = [{'submitted_by': history.get_source_name(), 'form_name': history.get_event_name(),
-                         'profile': history.get_source_url(), 'form_url': settings.SITE_URL+
-                                                                                                      str(history.get_event_url()),
-                         'extra_object': history.get_extraobj_name(), 'extra_object_url':  settings.SITE_URL + history.get_extraobj_url(), 'date': history.date} for history in submission_history]
+                if is_project_manager_or_team_admin(project_obj, request.user):
+                    submission_history = FieldSightLog.objects.select_related('source').filter(type=16,
+                                                                                               source=request.user,
+                                                                                               project=project_obj).order_by(
+                        '-date')
 
-                return Response(data=data)
+                    data = [{'submitted_by': history.get_source_name(), 'form_name': history.get_event_name(),
+                             'profile': history.get_source_url(), 'form_url': settings.SITE_URL+
+                                                                                                          str(history.get_event_url()),
+                             'extra_object': history.get_extraobj_name(), 'extra_object_url':  settings.SITE_URL + history.get_extraobj_url(), 'date': history.date} for history in submission_history]
 
+                    return Response(data=data)
+
+                else:
+
+                    merge_site_ids = my_site_ids(project_obj, request.user)
+
+                    submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user,
+                                                                                               site_id__in=merge_site_ids).order_by('-date')
+
+                    data = [{'submitted_by': history.get_source_name(), 'profile': history.get_source_url(),
+                             'form_name': history.get_event_name(),
+                             'form_url': settings.SITE_URL +
+                                         str(history.get_event_url()),
+                             'extra_object': history.get_extraobj_name(), 'extra_object_url': settings.SITE_URL + history.get_extraobj_url(),
+                             'date': history.date} for history in submission_history]
+
+                    return Response(data=data)
+
+            elif type == 'map':
+                if is_project_manager_or_team_admin(project_obj, request.user):
+
+                    submissions = settings.MONGO_DB.instances.aggregate(
+                        [{"$match": {"fs_project": {"$in": [int(project_id), str(project_id), unicode(project_id)]}, "_submitted_by": request.user.username}}, {
+                            "$project": {
+                                "_id": 0, "type": {"$literal": "Feature"},
+                                "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"}, "properties": {
+                                    "id": "$_id", "form_id_string": "$_xform_id_string", "submitted_by": "$_submitted_by",
+                                    "status": "$fs_status"
+                                }
+                            }
+                        }])
+                    response_submissions = list(submissions["result"])
+                    for item in response_submissions:
+                        id_string = item['properties']['form_id_string']
+                        xf = XForm.objects.get(id_string=id_string).title
+                        item['properties']['form'] = xf
+
+                        instance_id = item['properties']['id']
+                        item['properties']['detail_url'] = settings.SITE_URL + "/#/submission-details/{}".format(str(instance_id))
+                    return Response(response_submissions)
+                else:
+                    int_merge_site_ids = my_site_ids(project_obj, request.user)
+                    str_merge_site_ids = map(str, int_merge_site_ids)
+                    merge_site_ids = list(set(int_merge_site_ids+str_merge_site_ids))
+
+                    submissions = settings.MONGO_DB.instances.aggregate(
+                        [{"$match": {"fs_site": {"$in": merge_site_ids}, "_submitted_by": "santoshk"}}, {
+                            "$project": {
+                                "_id": 0, "type": {"$literal": "Feature"},
+                                "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"},
+                                "properties": {
+                                    "id": "$_id", "form_id_string": "$_xform_id_string",
+                                    "submitted_by": "$_submitted_by",
+                                    "status": "$fs_status"
+                                }
+                            }
+                        }])
+                    response_submissions = list(submissions["result"])
+                    for item in response_submissions:
+                        id_string = item['properties']['form_id_string']
+                        xf = XForm.objects.get(id_string=id_string).title
+                        item['properties']['form'] = xf
+
+                        instance_id = item['properties']['id']
+                        item['properties']['detail_url'] = settings.SITE_URL + "/#/submission-details/{}".format(
+                            str(instance_id))
+
+                    return Response(response_submissions)
             else:
-                queryset = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user',
-                                                                                                            'group',
-                                                                                                            'site',
-                                                                                                            'organization',
-                                                                                                            'staff_project',
-                                                                                                            'region')
-                region_ids = queryset.filter(Q(group__name="Region Supervisor")|
-                                             Q(group__name="Region Reviewer")).values_list('region', flat=True).distinct()
-                region_site_ids = Site.objects.filter(region_id__in=region_ids).values_list('id', flat=True)
-
-                site_ids = queryset.filter(Q(group__name="Site Supervisor")|
-                                             Q(group__name="Site Reviewer")).values_list('site', flat=True).distinct()
-
-                merge_site_ids = list(chain(site_ids, region_site_ids))
-
-                submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user,
-                                                                                           site_id__in=merge_site_ids).order_by('-date')
-
-                data = [{'submitted_by': history.get_source_name(), 'profile': history.get_source_url(),
-                         'form_name': history.get_event_name(),
-                         'form_url': settings.SITE_URL +
-                                     str(history.get_event_url()),
-                         'extra_object': history.get_extraobj_name(), 'extra_object_url': settings.SITE_URL + history.get_extraobj_url(),
-                         'date': history.date} for history in submission_history]
-
-                return Response(data=data)
+                    return Response(data="type params required.", status=status.HTTP_400_BAD_REQUEST)
 
         except ObjectDoesNotExist:
             return Response(data="Project Id does not exist.", status=status.HTTP_204_NO_CONTENT)
+
     else:
-        return Response(data="type params required.", status=status.HTTP_400_BAD_REQUEST)
+        return Response(data="Project Id required.", status=status.HTTP_400_BAD_REQUEST)
 
 
 class AcceptInvite(APIView):
