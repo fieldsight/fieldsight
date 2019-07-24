@@ -2634,11 +2634,11 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 question_name = featured_img['question'].get('name', '')
                 logo_url = instance.json.get(question_name)
                 if logo_url:
-                    site.site_featured_images[question_name] = instance.json.get('_submitted_by') + '/attachments/' + \
+                    site.site_featured_images[str(question_name)] = instance.json.get('_submitted_by') + '/attachments/' + \
                                                                instance.json.get('formhub/uuid') + '/' + \
                                                                instance.json.get('meta/instanceID').split(':')[1] + \
                                                                '/' + logo_url
-                    site.site_featured_images[question_name]['_id'] = fs_proj_xf_id
+                    site.site_featured_images[str(question_name)]['_id'] = fs_proj_xf_id
 
         # change site meta attributes answer
         meta_ans = site.site_meta_attributes_ans
