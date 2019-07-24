@@ -51,7 +51,7 @@ from django.utils import timezone
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, Attachment
 from onadata.apps.fieldsight.fs_exports.log_generator import log_types
 
 from django.db.models import Q
@@ -2617,7 +2617,8 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
             question_name = site_picture['question'].get('name', '')
             logo_url = instance.json.get(question_name)
             if logo_url:
-                site.logo.name = logo_url
+                attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                site.logo = attachment.media_file
 
         site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
         if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == fs_proj_xf.id and site_loc.get('question', {}):
@@ -2633,9 +2634,8 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 logo_url = instance.json.get(question_name)
                 if logo_url:
                     attachments = {}
-                    attachments['_attachments'] = instance.json.get('_submitted_by') + '/attachments/' + \
-                                                  instance.json.get('formhub/uuid') + '/' + \
-                                                  instance.json.get('uuid') + '/' + logo_url
+                    attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                    attachments['_attachments'] = attachment.media_file.url
                     attachments['_id'] = instance.id
                     site.site_featured_images[question_name] = attachments
 
