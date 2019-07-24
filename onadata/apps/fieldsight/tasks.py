@@ -2614,7 +2614,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
                                                                                                  0) == fs_proj_xf.id and site_picture.get(
                 'question', {}):
-            question_name = site_picture['question'].get('question_name', '')
+            question_name = site_picture['question'].get('name', '')
             logo_url = instance.json.get(question_name)
             if logo_url:
                 site.logo_url.name = logo_url
@@ -2623,7 +2623,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id',
                                                                                      0) == fs_proj_xf.id and site_loc.get(
                 'question', {}):
-            question_name = site_loc['question'].get('question_name', '')
+            question_name = site_loc['question'].get('name', '')
             location = instance.json.get(question_name)
             if location:
                 site.location = location
@@ -2633,7 +2633,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                                                                                     0) == fs_proj_xf.id and featured_img.get(
                     'question', {}):
 
-                question_name = featured_img['question'].get('question_name', '')
+                question_name = featured_img['question'].get('name', '')
                 logo_url = instance.json.get(question_name)
                 if logo_url:
                     site.site_featured_images[question_name] = logo_url
