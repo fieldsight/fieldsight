@@ -1,3 +1,5 @@
+from itertools import chain
+
 from django.db.models import Q
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -15,10 +17,12 @@ from rest_framework.views import APIView
 from onadata.apps.fieldsight.models import UserInvite, Region, Project, Site
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
+from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, \
     LatestSubmissionSerializer, MyRegionSerializer, MySiteSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import XForm
+from onadata.apps.fsforms.models import FInstance
 
 
 class MySitesPagination(PageNumberPagination):
@@ -133,10 +137,11 @@ class MySitesView(APIView):
 
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
-def submissions(request):
-    project_id = request.query_params.get('project', None)
+def submissions_map(request):
+    type = request.query_params.get('type')
+    project_id = request.query_params.get('project')
 
-    if project_id:
+    if type == "submissions" and project_id:
         try:
             project_obj = Project.objects.get(id=project_id)
             is_project_manager_or_team_admin = UserRole.objects.filter(user=request.user).select_related('user',
@@ -151,27 +156,45 @@ def submissions(request):
                                                                     organization__is_active=True)).exists()
 
             if is_project_manager_or_team_admin:
-                data = Region.objects.filter(project=project_obj, is_active=True, parent=None)
+                submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user, project=project_obj).order_by('-date')
 
-                regions = MyRegionSerializer(data, many=True, context={'request': request})
+                data = [{'submitted_by': history.get_source_name, 'form_name': history.get_event_name(), 'form_url': settings.SITE_URL+
+                                                                                                      str(history.get_event_url()),
+                         'extra_object': history.get_extraobj_name(), 'extra_object_url': history.get_extraobj_url(), 'date': history.date} for history in submission_history]
+
+                return Response(data=data)
 
             else:
-                regions_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user',
+                queryset = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user',
                                                                                                             'group',
                                                                                                             'site',
                                                                                                             'organization',
                                                                                                             'staff_project',
-                                                                                                            'region').filter(
-                    Q(group__name="Region Supervisor", region__is_active=True) |
-                    Q(group__name="Region Reviewer", region__is_active=True)).values_list('region_id', flat=True)
-                data = Region.objects.filter(parent=None, id__in=regions_id)
-                regions = MyRegionSerializer(data, many=True, context={'request': request})
-            return Response({'regions': regions.data})
+                                                                                                            'region')
+                region_ids = queryset.filter(Q(group__name="Region Supervisor")|
+                                             Q(group__name="Region Reviewer")).values_list('region', flat=True).distinct()
+                region_site_ids = Site.objects.filter(region_id__in=region_ids).values_list('id', flat=True)
+
+                site_ids = queryset.filter(Q(group__name="Site Supervisor")|
+                                             Q(group__name="Site Reviewer")).values_list('site', flat=True).distinct()
+
+                merge_site_ids = list(chain(site_ids, region_site_ids))
+
+                submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user,
+                                                                                           site_id__in=merge_site_ids).order_by('-date')
+
+                data = [{'submitted_by': history.get_source_name, 'form_name': history.get_event_name(),
+                         'form_url': settings.SITE_URL +
+                                     str(history.get_event_url()),
+                         'extra_object': history.get_extraobj_name(), 'extra_object_url': history.get_extraobj_url(),
+                         'date': history.date} for history in submission_history]
+
+                return Response(data=data)
 
         except ObjectDoesNotExist:
             return Response(data="Project Id does not exist.", status=status.HTTP_204_NO_CONTENT)
     else:
-        return Response(data="Project Id params required.", status=status.HTTP_400_BAD_REQUEST)
+        return Response(data="type params required.", status=status.HTTP_400_BAD_REQUEST)
 
 
 class AcceptInvite(APIView):
