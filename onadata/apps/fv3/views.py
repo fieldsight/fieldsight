@@ -627,6 +627,9 @@ def check_file_extension(file_url):
     elif file_url.endswith('.pdf'):
         type = 'pdf'
 
+    elif file_url.endswith(('.doc', '.docm', 'docx', '.dot', '.dotm', '.dot', '.txt', '.odt')):
+        type = 'word'
+
     return type
 
 
