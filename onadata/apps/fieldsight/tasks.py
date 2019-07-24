@@ -2634,7 +2634,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 if logo_url:
                     attachments = {}
                     attachments['_attachments'] = instance.json.get('_submitted_by') + '/attachments/' + \
-                                                  instance.json.get('formhub/uuid') + \
+                                                  instance.json.get('formhub/uuid') + '/' + \
                                                   instance.json.get('meta/instanceID').split(':')[1] + '/' + logo_url
                     attachments['_id'] = fs_proj_xf_id
                     site.site_featured_images[question_name] = attachments
