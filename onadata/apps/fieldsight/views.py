@@ -363,32 +363,54 @@ class SiteDashboardView(SiteRoleMixin, TemplateView):
         }
         return dashboard_data
 
-# class SiteSupervisorDashboardView(SiteSupervisorRoleMixin, TemplateView):
-#     template_name = 'fieldsight/site_supervisor_dashboard.html'
 
-#     def get_context_data(self, **kwargs):
-#         dashboard_data = super(SiteSupervisorDashboardView, self).get_context_data(**kwargs)
-#         obj = Site.objects.get(pk=self.kwargs.get('pk'))
-#         peoples_involved = obj.site_roles.all().order_by('user__first_name')
-#         data = serialize('custom_geojson', [obj], geometry_field='location',
-#                          fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone', 'id'))
+class GenerateSiteReport(SiteRoleMixin, TemplateView):
+    template_name = 'fieldsight/generate_site_report.html'
 
-#         line_chart = LineChartGeneratorSite(obj)
-#         line_chart_data = line_chart.data()
+    def get_context_data(self, is_supervisor_only, **kwargs):
+        obj = get_object_or_404(Site, pk=self.kwargs.get('pk'), is_active=True)
+        peoples_involved = UserRole.objects.filter(ended_at__isnull=True).filter(
+            Q(site=obj) | Q(region__project=obj.project)).select_related('user').distinct('user_id').count()
+        data = serialize('custom_geojson', [obj], geometry_field='location',
+                         fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone', 'id'))
 
-#         outstanding, flagged, approved, rejected = obj.get_site_submission()
-#         dashboard_data = {
-#             'obj': obj,
-#             'peoples_involved': peoples_involved,
-#             'outstanding': outstanding,
-#             'flagged': flagged,
-#             'approved': approved,
-#             'rejected': rejected,
-#             'data': data,
-#             'cumulative_data': line_chart_data.values(),
-#             'cumulative_labels': line_chart_data.keys(),
-#         }
-#         return dashboard_data
+        meta_questions = obj.project.site_meta_attributes
+        meta_answers = obj.site_meta_attributes_ans
+        mylist = []
+        for question in meta_questions:
+            if question['question_name'] in meta_answers:
+                mylist.append({question['question_text']: meta_answers[question['question_name']]})
+        myanswers = mylist
+
+        result = get_images_for_sites_count(obj.id)
+
+        countlist = list(result["result"])
+        if countlist:
+            total_count = countlist[0]['count']
+        else:
+            total_count = 0
+        outstanding, flagged, approved, rejected = obj.get_site_submission()
+        response = obj.get_site_submission_count()
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=obj.project).exists()
+
+        dashboard_data = {
+            'obj': obj,
+            'peoples_involved': peoples_involved,
+            'outstanding': outstanding,
+            'flagged': flagged,
+            'approved': approved,
+            'rejected': rejected,
+            'data': data,
+            'meta_data': myanswers,
+            'is_supervisor_only': is_supervisor_only,
+            'next_photos_count': total_count - 5 if total_count > 5 else 0,
+            'total_photos': total_count,
+            'terms_and_labels': terms_and_labels,
+
+
+        }
+        return dashboard_data
+
 
 class OrganizationView(object):
     model = Organization
@@ -4450,6 +4472,7 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super(ApplicationView, self).get_context_data(**kwargs)
         project = self.request.GET.get("project", None)
+        site = self.request.GET.get("site", None)
         base_url = settings.SITE_URL
         context['base_url'] = base_url
         context['kpi_base_url'] = settings.KPI_URL
@@ -4461,6 +4484,14 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
             context['organization'] = project_obj.organization.id
 
             return context
+
+        elif site:
+            site_obj = get_object_or_404(Site, id=int(site))
+            context['site_id'] = site_obj.name
+            context['project'] = site_obj.project.name
+
+            if site_obj.enable_subsites is False:
+                context['root_site'] = site_obj.site
 
         else:
             return context
