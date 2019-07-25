@@ -193,7 +193,6 @@ class UserRole(models.Model):
         return UserRole.objects.filter(user=self.user, group__name__in=['Project Manager', 'Reviewer'], organization=self.organization)
 
 
-# to share the forms assigned to the project where user is assigned as project manager, uncomment below code if commented
 @receiver(post_save, sender=UserRole)
 def create_messages(sender, instance, created,  **kwargs):
     if created and instance.site is not None and instance.group.name in ["Site Supervisor"]:
@@ -205,6 +204,21 @@ def create_messages(sender, instance, created,  **kwargs):
                 save_notification(message, [str(email)])
                 Device.objects.filter(name=email).send_message(message)
             except:
+                pass
+
+    if created and instance.group.name == "Project Manager":
+        from onadata.apps.fsforms.tasks import created_manager_form_share
+        task_obj = CeleryTaskProgress.objects.create(
+            user=instance.user,
+            description='Share all forms',
+            task_type=18,
+            content_object=instance
+            )
+        if task_obj:
+            try:
+                with transaction.atomic():
+                    created_manager_form_share.apply_async(kwargs={'userrole': instance.id, 'task_id': task_obj.id}, countdown=5)
+            except IntegrityError:
                 pass
 
     roles = UserRole.get_active_roles(instance.user)

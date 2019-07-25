@@ -34,6 +34,7 @@ from onadata.apps.viewer.models import ParsedInstance
 from onadata.apps.fsforms.fsxform_responses import \
     get_instances_for_field_sight_form
 from onadata.settings.local_settings import XML_VERSION_MAX_ITER
+from django.db import transaction
 
 
 SHARED_LEVEL = [(0, 'Global'), (1, 'Organization'), (2, 'Project')]
@@ -436,23 +437,23 @@ def create_messages(sender, instance, created,  **kwargs):
     elif created and instance.site is not None and not instance.is_staged:
         send_message(instance)
 
-    # if instance.project is not None and created:
-    #     from onadata.apps.fsforms.tasks import share_form_managers
-    #     task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
-    #                                                  description="Share Forms",
-    #                                                  task_type=17, content_object=instance)
-    #     if task_obj:
-    #         try:
-    #             with transaction.atomic():
-    #                 share_form_managers.apply_async(kwargs={'fxf': instance.id, 'task_id': task_obj.id}, countdown=5)
-    #         except IntegrityError as e:
-    #             print(e)
+    if instance.project is not None and created:
+        from onadata.apps.fsforms.tasks import share_form_managers
+        task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
+                                                     description="Share Forms",
+                                                     task_type=17, content_object=instance)
+        if task_obj:
+            try:
+                with transaction.atomic():
+                    share_form_managers.apply_async(kwargs={'fxf': instance.id, 'task_id': task_obj.id}, countdown=5)
+            except IntegrityError as e:
+                print(e)
 
 
 @receiver(post_save, sender=Stage)
 def update_site_progress(sender, instance, *args, **kwargs):
     try:
-        fsxf =  instance.stage_forms
+        fsxf = instance.stage_forms
         if fsxf.is_deployed:
             if instance.project:
                 if ProgressSettings.objects.filter(project=instance.project, active=True, deployed=True).exists():
