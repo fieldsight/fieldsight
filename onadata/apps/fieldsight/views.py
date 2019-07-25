@@ -4487,8 +4487,8 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
 
         elif site:
             site_obj = get_object_or_404(Site, id=int(site))
-            context['site_id'] = site_obj.name
-            context['project'] = site_obj.project.name
+            context['site_id'] = site_obj.id
+            context['project'] = site_obj.project
 
             if site_obj.enable_subsites is False:
                 context['root_site'] = site_obj.site
