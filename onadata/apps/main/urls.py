@@ -58,7 +58,7 @@ urlpatterns = patterns(
             'set_password_form': ValidatingPasswordResetForm,
             'post_reset_redirect': '/accounts/password/reset/complete'
         },
-        name='auth_password_reset_confirm'),
+        name='password_reset_confirm'),
     url(r'^accounts/', include('onadata.apps.main.registration_urls')),
 
     # oath2_provider

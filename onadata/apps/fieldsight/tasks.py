@@ -2148,7 +2148,6 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
     try:  
         buffer = BytesIO()
         sites = project.sites.filter(is_active=True)
-        data = []
         index = {}
         split_startdate = start_date.split('-')
         split_enddate = end_date.split('-')
@@ -2159,7 +2158,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         new_enddate = end + datetime.timedelta(days=1)
 
        
-        data.insert(0, ["UserName", "Full name", "Email", "Submssions made", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today", "Approved Submissions", "Pending Submissions", "Flagged Submissions", "Rejected Submissions", "Reviewed Submissions", "Resolved Submissions", "Approved Reviews", "Flagged Reviews", "Rejected Reviews"])
+        headers = ["UserName", "Full name", "Email", "Submssions made", "Sites Visited", "Days worked", "Submissions last month", "Submissions last week", "submissions Today", "Approved Submissions", "Pending Submissions", "Flagged Submissions", "Rejected Submissions", "Reviewed Submissions", "Resolved Submissions", "Approved Reviews", "Flagged Reviews", "Rejected Reviews"]
 
         site_visits = settings.MONGO_DB.instances.aggregate(
             [
@@ -2170,7 +2169,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                         },
                         "start": { 
                             '$gte' : new_startdate.isoformat(),
-                            '$lte' : end.isoformat() 
+                            '$lte' : new_enddate.isoformat() 
                         },
                         "fs_project": {'$in' : [str(project_id), int(project_id)]}
                     }
@@ -2215,6 +2214,11 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         
         query={}
         last_month = new_enddate - datetime.timedelta(days=30)
+        query['all_submissions'] = Sum(
+            Case(
+                When(supervisor__instance__date_created__range=[new_startdate, new_enddate], supervisor__project_id=project_id, then=1),
+                default=0, output_field=IntegerField()
+            ))
         query['monthly'] = Sum(
             Case(
                 When(supervisor__instance__date_created__range=[last_month, new_enddate], supervisor__project_id=project_id, then=1),
@@ -2229,7 +2233,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
         query['daily'] = Sum(
             Case(
-                When(supervisor__instance__date_created__range=[new_startdate, new_enddate], supervisor__project_id=project_id, then=1),
+                When(supervisor__instance__date_created__range=[end, new_enddate], supervisor__project_id=project_id, then=1),
                 default=0, output_field=IntegerField()
             ))
 
@@ -2257,25 +2261,26 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                 default=0, output_field=IntegerField()
             ))    
 
-        query['re_approved'] = Sum(
+        review_query = {}
+        review_query['re_approved'] = Sum(
             Case(
                 When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=3, then=1),
                 default=0, output_field=IntegerField()
             ))
 
-        query['re_rejected'] = Sum(
+        review_query['re_rejected'] = Sum(
             Case(
                 When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=1, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
-        query['re_flagged'] = Sum(
+        review_query['re_flagged'] = Sum(
             Case(
                 When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__new_status=2, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
-        query['resolved'] = Sum(
+        review_query['resolved'] = Sum(
             Case(
                 When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
                 default=0, output_field=IntegerField()
@@ -2288,9 +2293,12 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         }
 
         users=User.objects.filter(user_roles__project_id=project_id, user_roles__group_id__in=[2, 3, 4, 9]).distinct('id').values('id')
-
+        activity_dict = {}
         for user in User.objects.filter(pk__in=users).annotate(**query):
-            data.append([user.username, user.get_full_name(), user.email, user_stats.get(user.username, dumb_visits)['submissions'], user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.re_approved, user.re_flagged, user.re_rejected])
+            activity_dict[str(user.id)] = [user.username, user.get_full_name(), user.email, user.all_submissions, user_stats.get(user.username, dumb_visits)['sites_visited'], user_stats.get(user.username, dumb_visits)['total_worked_days'], user.monthly, user.weekly, user.daily, user.approved, user.pending, user.flagged, user.rejected, 0, 0, 0, 0, 0]
+
+        for user in User.objects.filter(pk__in=users).annotate(**review_query):
+            activity_dict[str(user.id)][13:18] = [user.re_approved + user.re_rejected + user.re_flagged, user.resolved, user.re_approved, user.re_flagged, user.re_rejected]
 
         wb = Workbook()
         ws = wb.active
@@ -2300,7 +2308,8 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
             if ch in sheet_name:
                 sheet_name=sheet_name.replace(ch,"_")
         ws.title=sheet_name
-        for row in data:
+        ws.append(headers)
+        for key, row in activity_dict.items():
             ws.append(row)
         wb.save(buffer)
         buffer.seek(0)
