@@ -51,7 +51,7 @@ from django.utils import timezone
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, Attachment
 from onadata.apps.fieldsight.fs_exports.log_generator import log_types
 
 from django.db.models import Q
@@ -2614,29 +2614,30 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
                                                                                                  0) == fs_proj_xf.id and site_picture.get(
                 'question', {}):
-            question_name = site_picture['question'].get('question_name', '')
+            question_name = site_picture['question'].get('name', '')
             logo_url = instance.json.get(question_name)
             if logo_url:
-                site.logo_url.name = logo_url
+                attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                site.logo = attachment.media_file
 
         site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
-        if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id',
-                                                                                     0) == fs_proj_xf.id and site_loc.get(
-                'question', {}):
-            question_name = site_loc['question'].get('question_name', '')
+        if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == fs_proj_xf.id and site_loc.get('question', {}):
+            question_name = site_loc['question'].get('name', '')
             location = instance.json.get(question_name)
             if location:
                 site.location = location
 
         for featured_img in fs_proj_xf.project.site_featured_images:
-            if featured_img.get('question_type', '') == 'Form' and featured_img.get('form_id',
-                                                                                    0) == fs_proj_xf.id and featured_img.get(
-                    'question', {}):
+            if featured_img.get('question_type', '') == 'Form' and featured_img.get('form_id', '') == str(fs_proj_xf.id) and featured_img.get('question', {}):
 
-                question_name = featured_img['question'].get('question_name', '')
+                question_name = featured_img['question'].get('name', '')
                 logo_url = instance.json.get(question_name)
                 if logo_url:
-                    site.site_featured_images[question_name] = logo_url
+                    attachments = {}
+                    attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                    attachments['_attachments'] = attachment.media_file.url
+                    attachments['_id'] = instance.id
+                    site.site_featured_images[question_name] = attachments
 
         # change site meta attributes answer
         meta_ans = site.site_meta_attributes_ans

@@ -438,7 +438,7 @@ class Site(models.Model):
         "Additional Description", blank=True, null=True)
     project = models.ForeignKey(Project, related_name='sites')
     logo = models.ImageField(
-        upload_to="logo", default="logo/default_site_image.png")
+        upload_to="logo", default="logo/default_site_image.png", max_length=500)
     is_active = models.BooleanField(db_index=True, default=True)
     location = PointField(geography=True, srid=4326, blank=True, null=True)
     is_survey = models.BooleanField(default=False)
