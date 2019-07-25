@@ -620,7 +620,7 @@ def site_recent_pictures(request):
 
 
 def check_file_extension(file_url):
-    type = None
+    type = 'others'
 
     if file_url.endswith(('.jpg', '.png', '.jpeg')):
         type = 'image'

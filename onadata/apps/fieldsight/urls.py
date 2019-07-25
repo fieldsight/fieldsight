@@ -69,7 +69,7 @@ from .views import (
     ApplicationView,
     ProjectTermsAndLabelView, project_terms_label_create, ProjectSyncScheduleUpdateView, ProjectTermsLabelUpdate,
     SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView,
-    SubSiteCreateView)
+    SubSiteCreateView, GenerateSiteReport)
 
 from onadata.apps.fieldsight.viewsets.SiteViewSet import ProjectSiteViewSet
 
@@ -197,6 +197,8 @@ urlpatterns = [
     url(r'^project/report/summary/(?P<pk>\d+)/$', ProjectSummaryReport.as_view(), name='project-summary-report'),
     url(r'^user/report/activity/(?P<pk>\d+)/(?P<user_id>\d+)/(?P<start_date>\d{4}-\d{2}-\d{2})/(?P<end_date>\d{4}-\d{2}-\d{2})/$', UserActivityReport.as_view(), name='user-activity-report'),
     url(r'^site/report/summary/(?P<pk>\d+)/$', SiteSummaryReport.as_view(), name='site-summary-report'),
+    url(r'^generate-site-report/(?P<pk>\d+)/$', GenerateSiteReport.as_view(), name='generate_site_report'),
+
     url(r'map-view/$',views.viewfullmap, name='full-map'),
     url(r'org-map/(?P<pk>[0-9]+)/$', OrgFullmap.as_view(), name='org-loc-map'),
     url(r'proj-map/(?P<pk>[0-9]+)/$', ProjFullmap.as_view(), name='proj-loc-map'),

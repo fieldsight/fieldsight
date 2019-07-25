@@ -340,7 +340,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
         calculated_data = []
         for d in data:
             for k, v in d.items():
-                if "${" in v:
+                if v and "${" in v:
                     calcluate_keys = re.findall(pattern, v)
                     for key in calcluate_keys:
                         for cd in calculations_dict:

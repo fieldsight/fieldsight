@@ -508,7 +508,8 @@ def web_login(request):
     return render(request, 'users/login.html', {'form': form,
     'valid_email': True,
     'email_error': False,
-    'reset':reset
+    'reset':reset,
+    'site_email': settings.SITE_EMAIL
     })
 
 
