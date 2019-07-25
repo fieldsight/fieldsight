@@ -21,6 +21,7 @@ from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteTy
 from onadata.apps.fsforms.models import FInstance, ProgressSettings
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
+from onadata.apps.fsforms.reports_util import get_recent_images
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
     SiteTypeSerializer, ProjectLevelTermsAndLabelsSerializer, ProjectRegionSerializer, ProjectSitesSerializer
 from onadata.apps.logger.models import Instance
@@ -611,8 +612,11 @@ class ProjectDefineSiteMeta(APIView):
 def site_recent_pictures(request):
     query_params = request.query_params
     site_id = query_params.get('site')
-    site_featured_images = Site.objects.get(pk=site_id).get_site_featured_images()
-    return Response({'site_featured_images': site_featured_images})
+    site_featured_images = Site.objects.get(pk=site_id).site_featured_images
+    recent_pictures = get_recent_images(site_id)
+    recent_pictures = list(recent_pictures["result"])
+    return Response({'site_featured_images': site_featured_images,
+                     'recent_pictures': recent_pictures})
 
 
 @permission_classes([IsAuthenticated])
