@@ -1,5 +1,6 @@
 import re
 import StringIO
+import uuid
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -18,6 +19,9 @@ from rest_framework.authentication import (
     SessionAuthentication,)
 from rest_framework.response import Response
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
+
+from onadata.apps.fsforms.fieldsight_logger_tools import save_submission
+from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models.parsed_instance import update_mongo_instance
@@ -55,6 +59,7 @@ def dict_lists2strings(d):
 def create_instance_from_xml(username, request):
     xml_file_list = request.FILES.pop('xml_submission_file', [])
     xml_file = xml_file_list[0] if len(xml_file_list) else None
+
     media_files = request.FILES.values()
 
     return safe_create_instance(username, xml_file, media_files, None, request)
@@ -197,6 +202,14 @@ Here is some example JSON, it would replace `[the JSON]` above:
 
     def create(self, request, *args, **kwargs):
         username = self.kwargs.get('username')
+        site = self.request.query_params.get('site')
+        form = self.request.query_params.get('form')
+        if request.method.upper() == 'HEAD':
+            return Response(status=status.HTTP_204_NO_CONTENT,
+                            headers=self.get_openrosa_headers(request),
+                            template_name=self.template_name)
+        if form:
+            return self.create_new_submission(request, site, form)
         # if self.request.user.is_anonymous():
         #     if username is None:
         #         # raises a permission denied exception, forces authentication
@@ -214,10 +227,7 @@ Here is some example JSON, it would replace `[the JSON]` above:
         #     # get the username from the user if not set
         #     username = (request.user and request.user.username)
 
-        if request.method.upper() == 'HEAD':
-            return Response(status=status.HTTP_204_NO_CONTENT,
-                            headers=self.get_openrosa_headers(request),
-                            template_name=self.template_name)
+
 
         is_json_request = is_json(request)
 
@@ -251,3 +261,92 @@ Here is some example JSON, it would replace `[the JSON]` above:
         return Response({'error': error_msg},
                         headers=self.get_openrosa_headers(request),
                         status=status_code)
+
+    def create_new_submission(self, request, site, form):
+        fs_xf = FieldSightXF.objects.get(pk=form)
+        xform = fs_xf.xf
+        xml_file_list = self.request.FILES.pop('xml_submission_file', [])
+        xml_file = xml_file_list[0] if len(xml_file_list) else None
+        xml = xml_file.read()
+        username = self.kwargs.get('username')
+        user = get_object_or_404(User, username=username.lower())
+        media_files = request.FILES.values()
+        new_uuid = str(uuid.uuid4())
+        site_id = site
+        with transaction.atomic():
+            if fs_xf.is_survey:
+                instance = save_submission(
+                    xform=xform,
+                    xml=xml,
+                    media_files=media_files,
+                    new_uuid=new_uuid,
+                    submitted_by=user,
+                    status='submitted_via_web',
+                    date_created_override=None,
+                    fxid=None,
+                    site=None,
+                    fs_poj_id=fs_xf.id,
+                    project=fs_xf.project.id,
+                )
+            else:
+                if fs_xf.site:
+                    instance = save_submission(
+                        xform=xform,
+                        xml=xml,
+                        media_files=media_files,
+                        new_uuid=new_uuid,
+                        submitted_by=user,
+                        status='submitted_via_web',
+                        date_created_override=None,
+                        fxid=fs_xf.id,
+                        site=site_id,
+                    )
+                else:
+                    instance = save_submission(
+                        xform=xform,
+                        xml=xml,
+                        media_files=media_files,
+                        new_uuid=new_uuid,
+                        submitted_by=user,
+                        status='submitted_via_web',
+                        date_created_override=None,
+                        fxid=None,
+                        site=site_id,
+                        fs_poj_id=fs_xf.id,
+                        project=fs_xf.project.id,
+                    )
+
+            noti_type = 16
+            title = "new submission"
+
+            if instance.fieldsight_instance.site:
+                extra_object = instance.fieldsight_instance.site
+                extra_message = ""
+                project = extra_object.project
+                site = extra_object
+                organization = extra_object.project.organization
+
+            else:
+                extra_object = instance.fieldsight_instance.project
+                extra_message = "project"
+                project = extra_object
+                site = None
+                organization = extra_object.organization
+
+            instance.fieldsight_instance.logs.create(source=user,
+                                                     type=noti_type,
+                                                     title=title,
+
+                                                     organization=organization,
+                                                     project=project,
+                                                     site=site,
+                                                     extra_object=extra_object,
+                                                     extra_message=extra_message,
+                                                     content_object=instance.fieldsight_instance)
+
+        context = self.get_serializer_context()
+        serializer = SubmissionSerializer(instance, context=context)
+        return Response(serializer.data,
+                        headers=self.get_openrosa_headers(request),
+                        status=status.HTTP_201_CREATED,
+                        template_name=self.template_name)
