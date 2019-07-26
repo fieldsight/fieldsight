@@ -26,12 +26,9 @@ class ProjectPermission(BasePermission):
     #     return False
 
     def has_object_permission(self, request, view, obj):
-        if request.group:
-            if request.group.name == "Super Admin":
-                return True
-            if request.group.name == "Organization Admin":
-                return obj.organization == request.organization
-        return False
+        if request.is_super_admin:
+            return True
+        return request.roles.filter(organization_id=obj.organization_id, group__name="Organization Admin").exists()
 
 
 class ProjectCreationViewSet(viewsets.ModelViewSet):
@@ -62,13 +59,13 @@ class ProjectCreationViewSet(viewsets.ModelViewSet):
         return project
 
 
-class ProjectsPermission(BasePermission):
-    def has_permission(self, request, view):
-        return request.group.name in ["Super Admin", "Organization Admin" ]
-
-    def has_object_permission(self, request, view, obj):
-        if request.group.name == "Organization Admin":
-            return obj.organization == request.organization
+# class ProjectsPermission(BasePermission):
+#     def has_permission(self, request, view):
+#         return request.group.name in ["Super Admin", "Organization Admin" ]
+#
+#     def has_object_permission(self, request, view, obj):
+#         if request.group.name == "Organization Admin":
+#             return obj.organization == request.organization
 
 
 class ProjectTypeViewSet(viewsets.ModelViewSet):
@@ -117,10 +114,9 @@ class MyProjectlistViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectMiniSerializer
 
     def filter_queryset(self, queryset):
-        if self.request.group.name == "Super Admin":
+        if self.request.is_super_admin:
             return queryset
 
-        user_id = self.kwargs.get('pk', None)
         exclude_pk = self.kwargs.get('exclude_pk', 0)
         project_ids = self.request.roles.filter(group_id=2).values('project_id')
         org_ids = self.request.roles.filter(group_id=1).values('organization_id')

@@ -50,6 +50,7 @@ class ShareUserListViewSet(viewsets.ReadOnlyModelViewSet):
         projects = self.request.roles.filter(
             ended_at__isnull=True, group__name="Project Manager").\
             values_list("project", flat=True).order_by('project').distinct()
+
         return self.queryset.filter(user_roles__project_id__in=projects).distinct()
 
 
@@ -275,12 +276,11 @@ class CloneFormViewSet(APIView):
         serializer = CloneFormSerializer(data=request.data)
         if serializer.is_valid():
             xf = XForm.objects.get(id_string=request.data['id_string'])
-            project = Project.objects.get(id=request.data['project'])
             task_obj = CeleryTaskProgress.objects.create(user=request.user, description="Clone Form",
                                                          task_type=22, content_object=xf)
             if task_obj:
                 from onadata.apps.fsforms.tasks import api_clone_form
-                api_clone_form.delay(xf.id, project.id, request.user.id, task_obj.id)
+                api_clone_form.delay(xf.id, request.user.id, task_obj.id)
                 return Response({"message": "Form cloned successfully"}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

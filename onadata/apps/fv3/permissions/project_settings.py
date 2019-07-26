@@ -9,17 +9,15 @@ class ProjectSettingsPermission(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        if request.group and request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
 
-        project_id = obj.project.id
-        organization_id = Project.objects.get(pk=project_id).organization.id
-        user_role_asorgadmin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
+        user_role_asorgadmin = request.roles.filter(organization_id=obj.project.organization_id, group__name="Organization Admin")
         if user_role_asorgadmin:
             return True
 
 
-        user_role = request.roles.filter(project_id=project_id, group__name="Project Manager")
+        user_role = request.roles.filter(project_id=obj.project_id, group__name="Project Manager")
         if user_role:
             return True
 

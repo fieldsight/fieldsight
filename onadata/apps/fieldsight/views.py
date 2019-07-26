@@ -363,32 +363,54 @@ class SiteDashboardView(SiteRoleMixin, TemplateView):
         }
         return dashboard_data
 
-# class SiteSupervisorDashboardView(SiteSupervisorRoleMixin, TemplateView):
-#     template_name = 'fieldsight/site_supervisor_dashboard.html'
 
-#     def get_context_data(self, **kwargs):
-#         dashboard_data = super(SiteSupervisorDashboardView, self).get_context_data(**kwargs)
-#         obj = Site.objects.get(pk=self.kwargs.get('pk'))
-#         peoples_involved = obj.site_roles.all().order_by('user__first_name')
-#         data = serialize('custom_geojson', [obj], geometry_field='location',
-#                          fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone', 'id'))
+class GenerateSiteReport(SiteRoleMixin, TemplateView):
+    template_name = 'fieldsight/generate_site_report.html'
 
-#         line_chart = LineChartGeneratorSite(obj)
-#         line_chart_data = line_chart.data()
+    def get_context_data(self, is_supervisor_only, **kwargs):
+        obj = get_object_or_404(Site, pk=self.kwargs.get('pk'), is_active=True)
+        peoples_involved = UserRole.objects.filter(ended_at__isnull=True).filter(
+            Q(site=obj) | Q(region__project=obj.project)).select_related('user').distinct('user_id').count()
+        data = serialize('custom_geojson', [obj], geometry_field='location',
+                         fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone', 'id'))
 
-#         outstanding, flagged, approved, rejected = obj.get_site_submission()
-#         dashboard_data = {
-#             'obj': obj,
-#             'peoples_involved': peoples_involved,
-#             'outstanding': outstanding,
-#             'flagged': flagged,
-#             'approved': approved,
-#             'rejected': rejected,
-#             'data': data,
-#             'cumulative_data': line_chart_data.values(),
-#             'cumulative_labels': line_chart_data.keys(),
-#         }
-#         return dashboard_data
+        meta_questions = obj.project.site_meta_attributes
+        meta_answers = obj.site_meta_attributes_ans
+        mylist = []
+        for question in meta_questions:
+            if question['question_name'] in meta_answers:
+                mylist.append({question['question_text']: meta_answers[question['question_name']]})
+        myanswers = mylist
+
+        result = get_images_for_sites_count(obj.id)
+
+        countlist = list(result["result"])
+        if countlist:
+            total_count = countlist[0]['count']
+        else:
+            total_count = 0
+        outstanding, flagged, approved, rejected = obj.get_site_submission()
+        response = obj.get_site_submission_count()
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=obj.project).exists()
+
+        dashboard_data = {
+            'obj': obj,
+            'peoples_involved': peoples_involved,
+            'outstanding': outstanding,
+            'flagged': flagged,
+            'approved': approved,
+            'rejected': rejected,
+            'data': data,
+            'meta_data': myanswers,
+            'is_supervisor_only': is_supervisor_only,
+            'next_photos_count': total_count - 5 if total_count > 5 else 0,
+            'total_photos': total_count,
+            'terms_and_labels': terms_and_labels,
+
+
+        }
+        return dashboard_data
+
 
 class OrganizationView(object):
     model = Organization
@@ -414,7 +436,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
     @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if request.group.name == "Super Admin" or request.group.name == "Unassigned":
+            if request.roles.filter(group__name__in=["Unassigned", "Super Admin"]).exists():
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
@@ -465,7 +487,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
         # ChannelGroup("notify-{}".format(self.object.id)).send({"text": json.dumps(result)})
         # ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
-        if self.request.group.name == "Unassigned":
+        if self.request.roles.filter(group__name="Unassigned").exists():
             previous_group = UserRole.objects.get(user=self.request.user, group__name=self.request.group.name)
             previous_group.delete()
 
@@ -985,6 +1007,69 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         return form
 
 
+class SubSiteCreateView(SiteView, ProjectRoleMixin, CreateView):
+    def get_context_data(self, **kwargs):
+        context = super(SubSiteCreateView, self).get_context_data(**kwargs)
+        project = Project.objects.get(pk=self.kwargs.get('pk'))
+        site = Site.objects.get(pk=self.kwargs.get('site'))
+        context['project'] = project
+        context['site'] = site
+        context['pk'] = self.kwargs.get('pk')
+        context['site'] = self.kwargs.get('site')
+        context['json_questions'] = json.dumps(project.site_meta_attributes)
+        context['obj'] = project
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        context['terms_and_labels'] = terms_and_labels
+        if terms_and_labels:
+
+            context['site_name'] = project.terms_and_labels.site
+
+        else:
+            context['site_name'] = "Site"
+
+        return context
+
+    def get_success_url(self):
+        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.object.id})
+
+    def form_valid(self, form):
+
+        existing_identifier = Site.objects.filter(identifier=form.cleaned_data.get('identifier'),
+                                                    project_id=self.kwargs.get('pk'))
+        if existing_identifier:
+            messages.add_message(self.request, messages.INFO,
+                                 'Your identifier "' + form.cleaned_data.get(
+                'identifier') + '" conflict with existing site please use different identifier to create site')
+
+            return HttpResponseRedirect(reverse(
+                'fieldsight:sub-site-add',
+                kwargs={
+                    'pk': self.kwargs.get('pk'),
+                    'site': self.kwargs.get('site'),
+                }
+            ))
+
+        self.object = form.save(project_id=self.kwargs.get('pk'), new=True, site_id=self.kwargs.get('site'))
+        noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
+                                       organization=self.object.project.organization,
+                                       project=self.object.project, content_object=self.object, extra_object=self.object.project,
+                                       description='{0} created a new Sub site named {1} in {2}'.format(self.request.user.get_full_name(),
+                                                                                 self.object.name, self.object.project.name))
+
+
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_form(self, *args, **kwargs):
+
+        form = super(SubSiteCreateView, self).get_form(*args, **kwargs)
+        # form.project = Project.objects.get(pk=self.kwargs.get('pk'))
+        # form.site = Site.objects.get(pk=self.kwargs.get('site'))
+        if hasattr(form.Meta, 'project_filters'):
+            for field in form.Meta.project_filters:
+                form.fields[field].queryset = form.fields[field].queryset.filter(project_id=self.kwargs.get('pk'), deleted=False)
+        return form
+
+
 class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super(SiteUpdateView, self).get_context_data(**kwargs)
@@ -1429,19 +1514,19 @@ class RolesView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(RolesView, self).get_context_data(**kwargs)
-        context['org_admin'] = self.request.roles.select_related('organization').filter(group__name="Organization Admin", organization__is_active = True)
-        context['proj_manager'] = self.request.roles.select_related('project').filter(group__name = "Project Manager", project__is_active = True)
-        context['proj_donor'] = self.request.roles.select_related('project').filter(group__name = "Project Donor", project__is_active = True)
-        context['site_reviewer'] = self.request.roles.select_related('site').filter(group__name = "Reviewer", site__is_active = True)
-        context['site_supervisor'] = self.request.roles.select_related('site').filter(group__name="Site Supervisor",
+        context['org_admin'] = self.request.roles.filter(group__name="Organization Admin", organization__is_active = True)
+        context['proj_manager'] = self.request.roles.filter(group__name="Project Manager", project__is_active = True)
+        context['proj_donor'] = self.request.roles.filter(group__name="Project Donor", project__is_active = True)
+        context['site_reviewer'] = self.request.roles.filter(group__name="Reviewer", site__is_active = True)
+        context['site_supervisor'] = self.request.roles.filter(group__name="Site Supervisor",
                                                                                       site__is_active=True)
 
-        context['region_supervisor'] = self.request.roles.select_related('region').filter(group__name="Region Supervisor",
+        context['region_supervisor'] = self.request.roles.filter(group__name="Region Supervisor",
                                                                                           region__is_active=True)
-        context['region_reviewer'] = self.request.roles.select_related('region').filter(group__name="Region Reviewer",
+        context['region_reviewer'] = self.request.roles.filter(group__name="Region Reviewer",
                                                                                           region__is_active=True)
 
-        context['staff_project_manager'] = self.request.roles.select_related('staff_project').filter(group__name = "Staff Project Manager", staff_project__is_deleted = False)
+        context['staff_project_manager'] = self.request.roles.filter(group__name="Staff Project Manager", staff_project__is_deleted = False)
         context['unassigned'] = self.request.roles.filter(group__name="Unassigned")
         has_user_profile = UserProfile.objects.filter(user=self.request.user).exists()
 
@@ -1452,8 +1537,8 @@ class RolesView(LoginRequiredMixin, TemplateView):
         else:
             context['base_template'] = "fieldsight/fieldsight_not_user_base.html"
 
-        if Team.objects.filter(leader_id = self.request.user.id).exists():
-            context['staff_teams'] = Team.objects.filter(leader_id = self.request.user.id, is_deleted=False)
+        if Team.objects.filter(leader_id=self.request.user.id).exists():
+            context['staff_teams'] = Team.objects.filter(leader_id=self.request.user.id, is_deleted=False)
         else:
             context['staff_teams'] = []
         return context
@@ -3885,7 +3970,7 @@ class DeleteSitesTypeView(DeleteView):
         return reverse('fieldsight:site-types', kwargs={'pk': project.pk})
 
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if is_super_admin:
             return super(DeleteSitesTypeView, self).dispatch(request, *args, **kwargs)
 
         type_id = self.kwargs.get('pk')
@@ -3910,7 +3995,7 @@ class EditSitesTypeView(UpdateView):
     form_class = SiteTypeForm
 
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return super(EditSitesTypeView, self).dispatch(request, *args, **kwargs)
 
         type_id = self.kwargs.get('pk')
@@ -4266,7 +4351,7 @@ class UnassignUserRegionAndSites(View):
 
         status, data = 200, {'status':'false','message':'PermissionDenied. You do not have sufficient rights.'}
 
-        if request.group.name != "Super Admin":
+        if request.is_super_admin:
 
             request_usr_org_role = UserRole.objects.filter(user_id=request.user.id, ended_at = None, group_id=1).order_by('organization_id').distinct('organization_id').values_list('organization_id', flat=True)
             if not request_usr_org_role:
@@ -4387,6 +4472,7 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super(ApplicationView, self).get_context_data(**kwargs)
         project = self.request.GET.get("project", None)
+        site = self.request.GET.get("site", None)
         base_url = settings.SITE_URL
         context['base_url'] = base_url
         context['kpi_base_url'] = settings.KPI_URL
@@ -4398,6 +4484,14 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
             context['organization'] = project_obj.organization.id
 
             return context
+
+        elif site:
+            site_obj = get_object_or_404(Site, id=int(site))
+            context['site_id'] = site_obj.name
+            context['project'] = site_obj.project.name
+
+            if site_obj.enable_subsites is False:
+                context['root_site'] = site_obj.site
 
         else:
             return context

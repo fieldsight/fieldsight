@@ -1,20 +1,15 @@
 from onadata.apps.userrole.models import UserRole as Role
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import logout
-from django.contrib.auth.models import Group
-from django.shortcuts import get_object_or_404, render, redirect
+from django.core.cache import cache
+
+from django.shortcuts import render
 
 
 
 def clear_roles(request):
-    request.__class__.role = None
-    request.__class__.organization = None
-    request.__class__.project = None
-    request.__class__.site = None
-    request.__class__.group = None
     request.__class__.roles = Role.objects.none()
     request.__class__.is_super_admin = False
-    # request.__class__.groups = []
     return request
 
 
@@ -30,31 +25,27 @@ class RoleMiddleware(object):
 
         if not request.user.is_anonymous():
 
-            role = None
-            if request.session.get('role'):
-                try:
-                    role = Role.objects.select_related('group', 'organization').get(pk=request.session.get('role'),
-                                                                                    user=request.user)
-                except Role.DoesNotExist:
-                    pass
+            roles = cache.get('roles_{}'.format(request.user.id))
+            is_admin = cache.get('admin_{}'.format(request.user.id), False)
+            if roles:
+                request.__class__.roles = roles
+                request.__class__.is_super_admin = is_admin
 
-            if not role:
+            if not roles:
                 roles = Role.get_active_roles(request.user)
                 # roles = Role.objects.filter(user=request.user).select_related('group', 'organization')
                 if roles:
-                    role = roles[0]
-                    request.session['role'] = role.id
+                    cache.set('roles_{}'.format(request.user.id), roles, 2 * 60)
+                    if roles.filter(group__name="Super Admin").exists():
+                        request.__class__.is_super_admin = True
+                        cache.set('admin_{}'.format(request.user.id), True, 2 * 60)
+                    else:
+                        request.__class__.is_super_admin = False
+                        cache.set('admin_{}'.format(request.user.id), False, 2 * 60)
+                    request.__class__.roles = roles
             
-            if role:
-                request.__class__.role = role
-                request.__class__.organization = role.organization
-                request.__class__.project = role.project
-                request.__class__.site = role.site
-                request.__class__.group = role.group
-                request.__class__.roles = Role.get_active_roles(request.user)
-            else:
+            if not roles:
                 logout(request)
-
                 return render(request, 'fieldsight/permission_denied.html')
 
         else:

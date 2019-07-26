@@ -61,7 +61,9 @@ class SiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = ('id', 'name', 'latitude', 'longitude', 'address', 'phone',
-                  'current_progress', 'identifier', 'type', 'region', 'project', 'date_modified', 'is_active', 'site_meta_attributes_ans')
+                  'current_progress', 'identifier', 'type', 'region', 'project',
+                  'date_modified', 'is_active', 'site_meta_attributes_ans',
+                  'enable_subsites', 'site')
 
 
 class ProjectSerializer(serializers.ModelSerializer):

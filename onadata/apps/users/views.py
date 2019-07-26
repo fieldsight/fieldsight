@@ -366,7 +366,7 @@ class MyProfile(SameOrganizationProfileRoleMixin, View):
 
             responses = FInstance.objects.filter(submitted_by = user).order_by('-date')[:10]
             
-            if request.role is not None and request.role.group.name != "Super Admin":
+            if not request.is_super_admin:
                 org_ids = request.user.user_roles.select_related('organization').filter(ended_at__isnull=True).distinct('organization_id').values('organization_id')
                 roles_org = roles_org.filter(organization_id__in=org_ids)
                 roles_project = roles_project.filter(organization_id__in=org_ids)
@@ -381,7 +381,7 @@ class MyProfile(SameOrganizationProfileRoleMixin, View):
                 own_manager_roles =[]
                 own_org_admin=[]
                 
-                if request.role.group.name == "Super Admin":
+                if request.is_super_admin:
                     is_super_admin = True
                 else:
                     is_super_admin = False

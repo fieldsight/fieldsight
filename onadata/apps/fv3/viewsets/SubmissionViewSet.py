@@ -94,7 +94,10 @@ class AlterSubmissionStatusViewSet(viewsets.ModelViewSet):
             send_message_flagged(fi, instance_status.message, comment_url)
             url = instance_status.images.first()
             if url:
-                url = url.image.url
+                try:
+                    url = url.image.url
+                except:
+                    url = None
             data = {
                 "comment": instance_status.message,
                 "date": instance_status.date,

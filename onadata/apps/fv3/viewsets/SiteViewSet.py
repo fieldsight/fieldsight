@@ -1,21 +1,24 @@
 import json
 
-from rest_framework import viewsets
+from django.db.models import Q
+from rest_framework import viewsets, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from django.core.serializers import serialize
+from django.conf import settings
 from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
 
-from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanceSerializer
+from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanceSerializer, StageFormSerializer
 from onadata.apps.fieldsight.models import Site
-from onadata.apps.fsforms.models import FInstance
+from onadata.apps.fsforms.models import FInstance, Schedule, Stage, FieldSightXF
 
 
 class SiteSubmissionsPagination(PageNumberPagination):
-    page_size = 6
+    page_size = 100
     page_size_query_param = 'page_size'
 
 
@@ -47,4 +50,60 @@ class SiteSubmissionsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         site_id = self.request.query_params.get('site', None)
         site = get_object_or_404(Site, id=int(site_id))
-        return self.queryset.filter(site=site)
+        return self.queryset.filter(site=site, is_deleted=False)
+
+
+class SiteForms(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args,  **kwargs):
+
+        site_id = self.kwargs.get('site_id', None)
+        query_params = self.request.query_params.get('type')
+
+        if site_id and query_params:
+            try:
+                project_id = get_object_or_404(Site, pk=site_id).project.id
+
+                if query_params == 'general':
+                    generals = FieldSightXF.objects.select_related('xf').filter(is_staged=False, is_deleted=False, is_scheduled=False,
+                                                           is_survey=False). \
+                        filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
+
+                    data = [{'form_name': obj.xf.title, 'new_submission_url':
+                             settings.SITE_URL + '/forms/new-submission/' + str(obj.id) + '/' + str(site_id) + '/'} for obj in generals]
+
+                    return Response({'general_forms': data})
+
+                elif query_params == 'scheduled':
+
+                    schedules = Schedule.objects.prefetch_related('schedule_forms__xf').filter(schedule_forms__is_deleted=False,
+                                                        schedule_forms__isnull=False).filter(
+                        Q(site__id=site_id, schedule_forms__from_project=False)
+                        | Q(project__id=project_id))
+
+                    data = [{'form_name': obj.schedule_forms.xf.title, 'new_submission_url':
+                             settings.SITE_URL + '/forms/new-submission/' + str(obj.id) + '/' + str(site_id) + '/'} for obj in schedules]
+
+                    return Response({'scheduled_forms': data})
+
+                elif query_params == 'stage':
+
+                    stages_queryset = Stage.objects.filter(
+                        stage__isnull=True
+                    ).filter(Q(site__id=site_id,
+                               project_stage_id=0
+                               ) | Q(
+                        project__id=project_id
+                    )).order_by('order', 'date_created')
+                    stages = StageFormSerializer(stages_queryset, many=True, context={'site_id': site_id})
+
+                    return Response({'stage_forms': stages.data})
+
+                else:
+                    return Response(data="Form of type " + str(query_params) + " not found.", status=status.HTTP_204_NO_CONTENT)
+
+            except Exception as e:
+                return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(data="Site Id and form type required.", status=status.HTTP_400_BAD_REQUEST)

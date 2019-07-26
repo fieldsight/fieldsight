@@ -280,9 +280,9 @@ class CloneProjectSites(ProjectRoleMixin, View):
                 result='Sites are being Imported. You will be notified in notifications list as well.'
             else:
                 result = 'Sites cannot be imported a the moment.'
-            return JsonResponse({result}, status=status.HTTP_200_OK)
+            return JsonResponse({"message": result}, status=status.HTTP_200_OK, safe=False)
         except Exception as e:
-            return JsonResponse({'Site Import Failed, Contact Fieldsight Team'}, status=status.HTTP_200_OK)
+            return JsonResponse({"message": 'Site Import Failed, Contact Fieldsight Team'}, status=status.HTTP_200_OK, safe=False)
 
 # class CloneProjectSites(ProjectRoleMixin, View):
 #     def post(self, *args, **kwargs):

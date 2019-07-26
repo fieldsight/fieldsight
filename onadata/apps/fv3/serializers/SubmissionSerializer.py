@@ -94,7 +94,10 @@ class SubmissionSerializer(serializers.ModelSerializer):
         for c in comments:
             url = c.images.first()
             if url:
-                url = url.image.url
+                try:
+                    url = url.image.url
+                except:
+                    url = None
             comment_data.append(
                 {
                     "comment": c.message,
