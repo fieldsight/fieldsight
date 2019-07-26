@@ -43,7 +43,7 @@ from onadata.apps.fsforms.utils import send_message, send_message_stages, send_m
     send_message_un_deploy, send_bulk_message_stages_deployed_project, send_bulk_message_stages_deployed_site, \
     send_bulk_message_stage_deployed_project, send_bulk_message_stage_deployed_site, send_sub_stage_deployed_project, \
     send_sub_stage_deployed_site, send_message_flagged, send_message_un_deploy_project, get_version, image_urls_dict, \
-    inject_instanceid
+    inject_instanceid, enketo_preview_url
 from onadata.apps.logger.models import XForm, Attachment, Instance
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.views import set_xform_owner_data
@@ -1165,7 +1165,7 @@ class FormPreviewView(View):
         form_url = _get_form_url(request, xform.user.username, settings.ENKETO_PROTOCOL)
 
         try:
-            url = enketo_url(
+            url = enketo_preview_url(
                 form_url, xform.id_string
             )
         except Exception as e:
