@@ -4492,6 +4492,7 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
 
             if site_obj.enable_subsites is False:
                 context['root_site'] = site_obj.site
+            return context
 
         else:
             return context
