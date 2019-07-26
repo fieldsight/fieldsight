@@ -110,7 +110,8 @@
                       </td>
                       <td>
                             {% if not  is_donor_only %}
-                          <a target="_blank" href="{% url 'forms:new-submission' obj.id site %}">
+                          <a target="_blank"
+                             href="{% url 'forms:new_data' site obj.id  %}">
                               <i class="la la-plus" aria-hidden="true"></i>
                           </a>
                           {% endif %}
@@ -254,7 +255,8 @@
                       <td>
                           {% if  not is_donor_only %}
                           {% if obj.form %}
-                                  <a target="_blank" href="{% url 'forms:new-submission' obj.form.id site %}">
+                                  <a target="_blank"
+                                     href="{% url 'forms:new_data' site obj.form.id %}">
                                       <i class="la la-plus" aria-hidden="true"></i>
                                   </a>
                           {% endif %}
@@ -404,7 +406,8 @@
                                <td>
                                    {% if  not is_donor_only %}
                                 {% if obj.form %}
-                                  <a target="_blank" href="{% url 'forms:new-submission' obj.form.id site %}">
+                                  <a target="_blank"
+                                     href="{% url 'forms:new_data' site obj.form.id %}">
                                       <i class="la la-plus" aria-hidden="true"></i>
                                   </a>
                                 {% endif %}

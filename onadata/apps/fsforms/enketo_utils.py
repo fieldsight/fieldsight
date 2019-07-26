@@ -112,6 +112,79 @@ def enketo_view_url(form_url, id_string, instance_xml=None,
     return False
 
 
+def enketo_preview_url(form_url, id_string, return_url=None):
+    if not hasattr(settings, 'ENKETO_URL')\
+            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
+        return False
+
+    values = {
+        'form_id': id_string,
+        'server_url': form_url,
+        'return_url': return_url
+    }
+    url = settings.ENKETO_URL + '/api/v2/survey/preview/iframe'
+
+    req = requests.post(url, data=values,
+                        auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
+
+    if req.status_code in [200, 201]:
+        try:
+            response = req.json()
+        except ValueError:
+            pass
+        else:
+            if 'preview_url' in response:
+                return response['preview_url']
+    else:
+        try:
+            response = req.json()
+        except ValueError:
+            pass
+        else:
+            if 'message' in response:
+                raise EnketoError(response['message'])
+    return False
+
+def enketo_url_new_submission(form_url, id_string, site=None,
+               form=None, return_url=None):
+
+    if not hasattr(settings, 'ENKETO_URL')\
+            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
+        return False
+
+
+    url = settings.ENKETO_URL + '/api/v2/survey/single?key={}_{}'.format(
+        site, form)
+
+    values = {
+        'form_id': id_string,
+        'server_url': form_url,
+        'return_url': ''
+    }
+
+    req = requests.post(url, data=values,
+                        auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
+    if req.status_code in [200, 201]:
+        try:
+            response = req.json()
+        except ValueError:
+            pass
+        else:
+            if 'single_url' in response:
+                return response['single_url']
+    else:
+        try:
+            response = req.json()
+        except ValueError:
+            pass
+        else:
+            if 'message' in response:
+                raise EnketoError(response['message'])
+    return False
+
+
+
+
 class CsrfExemptSessionAuthentication(SessionAuthentication):
     def enforce_csrf(self, request):
         return
