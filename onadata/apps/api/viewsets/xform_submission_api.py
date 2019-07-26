@@ -211,9 +211,16 @@ Here is some example JSON, it would replace `[the JSON]` above:
         form = self.request.query_params.get('form')
         dep = self.request.query_params.get('dep', False)
         if request.method.upper() == 'HEAD':
-            return Response(status=status.HTTP_204_NO_CONTENT,
-                            headers=self.get_openrosa_headers(request),
-                            template_name=self.template_name)
+            if dep:
+                uuid_value = dep.replace("uuid:", "")
+                if not Instance.objects.filter(uuid=uuid_value).exists():
+                    return Response(status=status.HTTP_400_BAD_REQUEST,
+                                    headers=self.get_openrosa_headers(request),
+                                    template_name=self.template_name)
+            else:
+                return Response(status=status.HTTP_200_OK,
+                                headers=self.get_openrosa_headers(request),
+                                template_name=self.template_name)
         if form and form != "undefined" and not dep:
 
             return self.create_new_submission(request, site, form)
