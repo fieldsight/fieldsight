@@ -30,7 +30,8 @@ from rest_framework.response import Response
 from channels import Group as ChannelGroup
 
 from onadata.apps.fieldsight.models import Site, Project
-from onadata.apps.fsforms.enketo_utils import enketo_view_url, enketo_url_new_submission
+from onadata.apps.fsforms.enketo_utils import enketo_view_url, \
+    enketo_url_new_submission, enketo_preview_url
 from onadata.apps.users.models import UserProfile
 from onadata.apps.fsforms.reports_util import delete_form_instance, get_images_for_site_all, get_instances_for_field_sight_form, build_export_context, \
     get_xform_and_perms, query_mongo, get_instance, update_status, get_instances_for_project_field_sight_form
@@ -1163,9 +1164,10 @@ class FormPreviewView(View):
         id_string = self.kwargs.get('id_string')
         xform = XForm.objects.get(id_string=id_string)
         form_url = _get_form_url(request, xform.user.username, settings.ENKETO_PROTOCOL)
+        print(form_url)
 
         try:
-            url = enketo_url(
+            url = enketo_preview_url(
                 form_url, xform.id_string
             )
         except Exception as e:
