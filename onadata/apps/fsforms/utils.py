@@ -18,6 +18,9 @@ from xml.dom import Node
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
+import requests
+from onadata.libs.utils.viewer_tools import EnketoError
+
 
 FIELDSIGHT_XFORM_ID = u"_fieldsight_xform_id"
 
@@ -413,3 +416,41 @@ def get_shared_asset_ids(user):
         a = Asset.objects.get(id=item.object_id)
         asset_uids.append(a.uid)
     return asset_uids
+
+
+def enketo_preview_url(form_url, id_string):
+    if not hasattr(settings, 'ENKETO_URL')\
+            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
+        return False
+
+    url = settings.ENKETO_PREVIEW_URL
+
+    values = {
+        'form_id': id_string,
+        'server_url': form_url
+    }
+
+    req = requests.post(url, data=values,
+                        auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
+
+    if req.status_code in [200, 201]:
+        try:
+            response = req.json()
+        except ValueError:
+            pass
+        else:
+            if 'edit_url' in response:
+                return response['edit_url']
+            if settings.ENKETO_OFFLINE_SURVEYS and ('offline_url' in response):
+                return response['offline_url']
+            if 'url' in response:
+                return response['url']
+    else:
+        try:
+            response = req.json()
+        except ValueError:
+            pass
+        else:
+            if 'message' in response:
+                raise EnketoError(response['message'])
+    return False
