@@ -428,7 +428,7 @@ class ViewInvitations(LoginRequiredMixin, TemplateView):
 
         email = User.objects.values('email').get(pk=kwargs.get('pk'))
         context['has_org'] = Organization.objects.filter(owner=self.request.user).exists()
-        context['invitations'] = UserInvite.objects.filter(email=email['email'], is_used=False, is_declied=False)
+        context['invitations'] = UserInvite.objects.filter(email__iexact=email['email'], is_used=False, is_declied=False)
         return context
 
 
