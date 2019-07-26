@@ -24,7 +24,7 @@ from onadata.apps.fsforms.fieldsight_logger_tools import save_submission
 from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.xform_instance_parser import \
-    get_deprecated_uuid_from_xml
+    get_deprecated_uuid_from_xml, get_uuid_from_xml
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models.parsed_instance import update_mongo_instance
 from onadata.libs import filters
@@ -97,10 +97,7 @@ def update_mongo(i):
     """
     d = i.parsed_instance.to_dict_for_mongo()
     try:
-        print("ffffffffffffffffffffffffiiiiiiiiiiiiiiiiiiiiiiiiiiii check")
-        print(i.id)
         x = i.fieldsight_instance
-        print("fuuuuuuuuuuuuuuuuuuuuuu")
         d.update(
             {'fs_project_uuid': str(x.project_fxf_id),
              'fs_project': x.project_id,
@@ -114,7 +111,6 @@ def update_mongo(i):
             d['fs_uuid'] = str(x.site_fxf_id)
         try:
             synced = update_mongo_instance(d, i.id)
-            print(synced, "updated in mongo success")
         except Exception as e:
             print(str(e))
     except Exception as e:
@@ -266,7 +262,7 @@ Here is some example JSON, it would replace `[the JSON]` above:
         username = self.kwargs.get('username')
         user = get_object_or_404(User, username=username.lower())
         media_files = request.FILES.values()
-        new_uuid = str(uuid.uuid4())
+        new_uuid = get_uuid_from_xml(xml)
         site_id = site
         with transaction.atomic():
             if fs_xf.is_survey:
