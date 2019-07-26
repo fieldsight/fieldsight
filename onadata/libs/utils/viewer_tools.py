@@ -179,6 +179,7 @@ def enketo_url(form_url, id_string, instance_xml=None,
 
     url = settings.ENKETO_URL + settings.ENKETO_API_SURVEY_PATH
 
+
     values = {
         'form_id': id_string,
         'server_url': form_url
@@ -186,6 +187,7 @@ def enketo_url(form_url, id_string, instance_xml=None,
 
     if instance_id is not None and instance_xml is not None:
         url = settings.ENKETO_URL + settings.ENKETO_API_INSTANCE_PATH
+
         values.update({
             'instance': instance_xml,
             'instance_id': instance_id,

@@ -23,6 +23,8 @@ from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from onadata.apps.fsforms.fieldsight_logger_tools import save_submission
 from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.logger.models import Instance
+from onadata.apps.logger.xform_instance_parser import \
+    get_deprecated_uuid_from_xml
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models.parsed_instance import update_mongo_instance
 from onadata.libs import filters
@@ -95,7 +97,10 @@ def update_mongo(i):
     """
     d = i.parsed_instance.to_dict_for_mongo()
     try:
+        print("ffffffffffffffffffffffffiiiiiiiiiiiiiiiiiiiiiiiiiiii check")
+        print(i.id)
         x = i.fieldsight_instance
+        print("fuuuuuuuuuuuuuuuuuuuuuu")
         d.update(
             {'fs_project_uuid': str(x.project_fxf_id),
              'fs_project': x.project_id,
@@ -204,33 +209,18 @@ Here is some example JSON, it would replace `[the JSON]` above:
         username = self.kwargs.get('username')
         site = self.request.query_params.get('site')
         form = self.request.query_params.get('form')
+        dep = self.request.query_params.get('dep', False)
         if request.method.upper() == 'HEAD':
             return Response(status=status.HTTP_204_NO_CONTENT,
                             headers=self.get_openrosa_headers(request),
                             template_name=self.template_name)
-        if form:
-            return self.create_new_submission(request, site, form)
-        # if self.request.user.is_anonymous():
-        #     if username is None:
-        #         # raises a permission denied exception, forces authentication
-        #         self.permission_denied(self.request)
-        #     else:
-        #         user = get_object_or_404(User, username=username.lower())
-        #
-        #         profile, created = UserProfile.objects.get_or_create(user=user)
-        #
-        #         if profile.require_auth:
-        #             # raises a permission denied exception,
-        #             # forces authentication
-        #             self.permission_denied(self.request)
-        # elif not username:
-        #     # get the username from the user if not set
-        #     username = (request.user and request.user.username)
+        if form and form != "undefined" and not dep:
 
+            return self.create_new_submission(request, site, form)
 
 
         is_json_request = is_json(request)
-
+        #
         error, instance = (create_instance_from_json if is_json_request else
                            create_instance_from_xml)(username, request)
 
