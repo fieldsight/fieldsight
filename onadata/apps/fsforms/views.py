@@ -1165,7 +1165,7 @@ class FormPreviewView(View):
         form_url = _get_form_url(request, xform.user.username, settings.ENKETO_PROTOCOL)
 
         try:
-            url = enketo_preview_url(
+            url = enketo_url(
                 form_url, xform.id_string
             )
         except Exception as e:
