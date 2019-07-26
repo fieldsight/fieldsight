@@ -20,10 +20,10 @@
 		var project_id = "{{project.id}}";
 		var organization_id = "{{organization}}";
 		var project_name = "{{project.name}}";
-		var site_id = "{{site_id}}";
-		var base_url = "{{base_url}}";
+		var site_id_with_comma = "{{site_id}}";
+        var site_id = +(site_id_with_comma.replace(/,/g,''));
 
-		console.log('siteeee', "{{site_id}}");
+		var base_url = "{{base_url}}";
 
 	</script>
 
