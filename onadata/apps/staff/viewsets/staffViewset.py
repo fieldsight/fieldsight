@@ -19,14 +19,14 @@ def staffdesignations(request):
 def staffgender(request):
     return HttpResponse(json.dumps(GENDER_TYPES), status=200)
 
+
 class TeamAccessPermission(BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated():
             return False
-        
-        if request.group:
-            if request.group.name == "Super Admin":
-                return True
+
+        if request.is_super_admin:
+            return True
 
         team_leader = Team.objects.filter(is_deleted=False, pk=view.kwargs.get('team_id'), leader_id = request.user.id)
         
@@ -34,6 +34,7 @@ class TeamAccessPermission(BasePermission):
             return True
 
         return False
+
 
 class BankViewSet(viewsets.ModelViewSet):
     queryset = Bank.objects.all()

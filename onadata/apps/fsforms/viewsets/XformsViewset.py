@@ -19,9 +19,9 @@ class XFormViewSet(viewsets.ReadOnlyModelViewSet):
         if self.request.user.user_roles.filter(group__name="Super Admin").exists():
             return self.queryset.filter(
                 Q(user=self.request.user) |
-                Q(user__user_profile__organization=self.request.organization) |
+                Q(user__user_profile__organization=self.request.user.user_profile.organization) |
                 Q(id_string__in=asset_uids), deleted_xform=None)
         return self.queryset.filter(
             Q(user=self.request.user) |
-            Q(user__user_profile__organization=self.request.organization) |
+            Q(user__user_profile__organization=self.request.user.user_profile.organization) |
             Q(id_string__in=asset_uids), deleted_xform=None)
