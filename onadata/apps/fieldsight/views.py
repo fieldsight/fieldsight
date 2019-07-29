@@ -3367,19 +3367,20 @@ class SiteSearchLiteView(ListView):
 
     def get_queryset(self, **kwargs):
         region_id = self.kwargs.get('region_id', None)
-        # import pdb; pdb.set_trace()
         query = self.request.GET.get('q')
 
-        if region_id:
-            if region_id == "0":
-                filtered_objects = self.model.objects.filter(region=None, project_id=self.kwargs.get('pk'))
+        if query:
+            if region_id:
+                if region_id == "0":
+                    filtered_objects = self.model.objects.filter(region=None, project_id=self.kwargs.get('pk'))
 
+                else:
+                    filtered_objects = self.model.objects.filter(region_id=region_id, project_id=self.kwargs.get('pk'))
             else:
-                filtered_objects = self.model.objects.filter(region_id=region_id, project_id=self.kwargs.get('pk'))    
+                filtered_objects = self.model.objects.filter(project_id=self.kwargs.get('pk'))
+            return filtered_objects.filter(Q(name__icontains=query) | Q(identifier__icontains=query))
         else:
-            filtered_objects = self.model.objects.filter(project_id=self.kwargs.get('pk'))
-        # import pdb; pdb.set_trace()
-        return filtered_objects.filter(Q(name__icontains=query) | Q(identifier__icontains=query))
+            return Site.objects.none()
 
 # def get_project_stage_status(request, pk, q_keyword,page_list):
 #     data = []
