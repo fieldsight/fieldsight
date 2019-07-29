@@ -54,7 +54,8 @@ def supervisor_projects(request):
     project_ids = UserRole.objects.filter(user=request.user,
                                       ended_at=None,
                                       group__name__in=["Region Supervisor", "Site Supervisor"]
-                                      ).values_list('project', flat=True)
+                                      ).values_list('project',
+                                                    flat=True).distinct()
     "Projects where a user is assigned as Region Supervisor or Site Supervisor"
 
     projects = Project.objects.filter(pk__in=project_ids).select_related('organization').prefetch_related(
@@ -162,11 +163,12 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
             p = Point(round(float(long), 6), round(float(lat), 6), srid=4326)
             instance.location = p
             instance.save()
-        noti = instance.logs.create(source=self.request.user, type=14, title="Edit Project",
+        instance.logs.create(source=self.request.user, type=14, title="Edit Project",
                                        organization=instance.organization,
                                        project=instance, content_object=instance,
-                                       description='{0} changed the details of project named {1}'.format(
-                                           self.request.user.get_full_name(), instance.name))
+                                       description="{0} changed the details of project named {1}".format(
+                                           self.request.user.get_full_name(),
+                                           str(instance.name)))
         return Response(serializer.data)
 
     def perform_destroy(self, instance):

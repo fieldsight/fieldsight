@@ -20,6 +20,7 @@ from rest_framework.authentication import (
 from rest_framework.response import Response
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 
+from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fsforms.fieldsight_logger_tools import save_submission
 from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.logger.models import Instance
@@ -115,6 +116,21 @@ def update_mongo(i):
             print(str(e))
     except Exception as e:
         print(str(e))
+
+
+def update_meta(instance):
+    if instance.fieldsight_instance.project_fxf and \
+            instance.fieldsight_instance.site:
+        task_obj = CeleryTaskProgress.objects.create(user=instance.user,
+                                                     description='Change site info',
+                                                     task_type=25,
+                                                     content_object=instance.fieldsight_instance)
+        if task_obj:
+            from onadata.apps.fieldsight.tasks import update_meta_details
+            update_meta_details.apply_async(
+                (instance.fieldsight_instance.project_fxf.id, instance.id,
+                 task_obj.id, instance.fieldsight_instance.site.id),
+                countdown=1)
 
 
 class XFormSubmissionApi(OpenRosaHeadersMixin,
@@ -228,6 +244,7 @@ Here is some example JSON, it would replace `[the JSON]` above:
         if error or not instance:
             return self.error_response(error, is_json_request, request)
         update_mongo(instance)
+        update_meta(instance)
         context = self.get_serializer_context()
         serializer = SubmissionSerializer(instance, context=context)
 
@@ -306,6 +323,17 @@ Here is some example JSON, it would replace `[the JSON]` above:
                         fs_poj_id=fs_xf.id,
                         project=fs_xf.project.id,
                     )
+                    task_obj = CeleryTaskProgress.objects.create(
+                        user=user,
+                        description='Change site info',
+                        task_type=25,
+                        content_object=instance.fieldsight_instance)
+                    if task_obj:
+                        from onadata.apps.fieldsight.tasks import \
+                            update_meta_details
+                        update_meta_details.apply_async(
+                            (fs_xf.id, instance.id, task_obj.id, site_id),
+                            countdown=1)
 
             noti_type = 16
             title = "new submission"

@@ -35,13 +35,16 @@ class RoleMiddleware(object):
                 roles = Role.get_active_roles(request.user)
                 # roles = Role.objects.filter(user=request.user).select_related('group', 'organization')
                 if roles:
-                    cache.set('roles_{}'.format(request.user.id), roles, 2 * 60)
+                    cache.set('roles_{}'.format(request.user.id), roles,
+                              20 * 60)
                     if roles.filter(group__name="Super Admin").exists():
                         request.__class__.is_super_admin = True
-                        cache.set('admin_{}'.format(request.user.id), True, 2 * 60)
+                        cache.set('admin_{}'.format(request.user.id), True,
+                                  20 * 60)
                     else:
                         request.__class__.is_super_admin = False
-                        cache.set('admin_{}'.format(request.user.id), False, 2 * 60)
+                        cache.set('admin_{}'.format(request.user.id), False,
+                                  20 * 60)
                     request.__class__.roles = roles
             
             if not roles:
