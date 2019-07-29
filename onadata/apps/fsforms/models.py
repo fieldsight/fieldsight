@@ -34,7 +34,7 @@ from onadata.apps.viewer.models import ParsedInstance
 from onadata.apps.fsforms.fsxform_responses import \
     get_instances_for_field_sight_form
 from onadata.settings.local_settings import XML_VERSION_MAX_ITER
-from django.db import transaction
+from django.db import transaction, IntegrityError
 
 
 SHARED_LEVEL = [(0, 'Global'), (1, 'Organization'), (2, 'Project')]
@@ -439,6 +439,7 @@ def create_messages(sender, instance, created,  **kwargs):
 
     if instance.project is not None and created:
         from onadata.apps.fsforms.tasks import share_form_managers
+        from onadata.apps.eventlog.models import CeleryTaskProgress
         task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
                                                      description="Share Forms",
                                                      task_type=17, content_object=instance)
