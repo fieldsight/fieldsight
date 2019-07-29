@@ -439,6 +439,7 @@ def create_messages(sender, instance, created,  **kwargs):
 
     if instance.project is not None and created:
         from onadata.apps.fsforms.tasks import share_form_managers
+        from onadata.apps.eventlog.models import CeleryTaskProgress
         task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
                                                      description="Share Forms",
                                                      task_type=17, content_object=instance)
