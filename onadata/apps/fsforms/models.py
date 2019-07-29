@@ -34,7 +34,7 @@ from onadata.apps.viewer.models import ParsedInstance
 from onadata.apps.fsforms.fsxform_responses import \
     get_instances_for_field_sight_form
 from onadata.settings.local_settings import XML_VERSION_MAX_ITER
-from django.db import transaction
+from django.db import transaction, IntegrityError
 
 
 SHARED_LEVEL = [(0, 'Global'), (1, 'Organization'), (2, 'Project')]
@@ -462,7 +462,17 @@ def update_site_progress(sender, instance, *args, **kwargs):
                         project=fsxf.project, active=True, deployed=True)[0]
                     if progress_settings.status in [0, 1]:
                         from onadata.apps.fieldsight.tasks import update_sites_progress
-                        update_sites_progress.delay(progress_settings.id)
+                        from onadata.apps.eventlog.models import CeleryTaskProgress
+                        task_obj = CeleryTaskProgress.objects.create(user=instance.xf.user,
+                                                                     description='Update site progress',
+                                                                     task_type=23, content_object=instance)
+                        if task_obj:
+                            try:
+                                with transaction.atomic():
+                                    update_sites_progress.apply_async(
+                                        kwargs={'pk': progress_settings.id, 'task_id': task_obj.id}, countdown=5)
+                            except IntegrityError as e:
+                                print(e)
             else:
                 from onadata.apps.fieldsight.utils.progress import set_site_progress
                 set_site_progress(instance.site,instance.site.project)
