@@ -1,4 +1,6 @@
 import json
+from urlparse import urlparse
+
 from django.contrib.gis.geos import Point
 from rest_framework import serializers
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
@@ -107,22 +109,27 @@ class TaskSerializer(serializers.ModelSerializer):
     def get_terms_and_labels(self, obj):
 
         if obj.task_type in [0, 2, 3, 4, 8, 10, 13]:
-            project_id = int(obj.get_event_url().split('/')[3])
-            project = Project.objects.get(id=project_id)
-            terms = ProjectLevelTermsAndLabels.objects.filter(project_id=project.id).exists()
 
-            if terms:
-                return {'site': project.terms_and_labels.site,
-                        'donor': project.terms_and_labels.donor,
-                        'site_supervisor': project.terms_and_labels.site_supervisor,
-                        'site_reviewer': project.terms_and_labels.site_reviewer,
-                        'region': project.terms_and_labels.region,
-                        'region_supervisor': project.terms_and_labels.region_supervisor,
-                        'region_reviewer': project.terms_and_labels.region_reviewer,
-                        }
+            if obj.get_event_url():
+                project_id = int(obj.get_event_url().split('/')[3])
+                project = Project.objects.get(id=project_id)
+                terms = ProjectLevelTermsAndLabels.objects.filter(project_id=project.id).exists()
+
+                if terms:
+                    return {'site': project.terms_and_labels.site,
+                            'donor': project.terms_and_labels.donor,
+                            'site_supervisor': project.terms_and_labels.site_supervisor,
+                            'site_reviewer': project.terms_and_labels.site_reviewer,
+                            'region': project.terms_and_labels.region,
+                            'region_supervisor': project.terms_and_labels.region_supervisor,
+                            'region_reviewer': project.terms_and_labels.region_reviewer,
+                            }
+                else:
+                    return None
 
         elif obj.task_type == 6:
-            site_id = int(obj.get_event_url().split('/')[3])
+            o = urlparse(obj.get_event_url())
+            site_id = int(o.query.split('=')[1])
             site = Site.objects.get(id=site_id)
             project = Project.objects.get(id=site.project.id)
 
