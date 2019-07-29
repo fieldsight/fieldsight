@@ -531,6 +531,15 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                             'type'] == 'video':
                             answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[question]
+                        elif first_children['type'] == 'select one':
+                            for select_children in first_children['children']:
+                                if json_answer[question] == select_children['name']:
+                                    answer = select_children['label']
+                        elif first_children['type'] == 'select all that apply':
+                            answer = ''
+                            for select_children in first_children['children']:
+                                if select_children['name'] in json_answer[question]:
+                                    answer = answer + select_children['label'] + ' '
                         else:
                             answer = json_answer[question]
                     if 'label' in first_children:
