@@ -163,11 +163,12 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
             p = Point(round(float(long), 6), round(float(lat), 6), srid=4326)
             instance.location = p
             instance.save()
-        noti = instance.logs.create(source=self.request.user, type=14, title="Edit Project",
+        instance.logs.create(source=self.request.user, type=14, title="Edit Project",
                                        organization=instance.organization,
                                        project=instance, content_object=instance,
-                                       description='{0} changed the details of project named {1}'.format(
-                                           self.request.user.get_full_name(), instance.name))
+                                       description="{0} changed the details of project named {1}".format(
+                                           self.request.user.get_full_name(),
+                                           str(instance.name)))
         return Response(serializer.data)
 
     def perform_destroy(self, instance):
