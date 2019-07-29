@@ -220,7 +220,7 @@ def submissions_map(request):
                         item['properties']['form'] = xf
 
                         instance_id = item['properties']['id']
-                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/#/submission-details/{}".format(str(instance_id))
+                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/?submission={}#/submission-details".format(str(instance_id))
                     return Response(response_submissions)
                 else:
                     int_merge_site_ids = my_site_ids(project_obj, request.user)
@@ -246,7 +246,7 @@ def submissions_map(request):
                         item['properties']['form'] = xf
 
                         instance_id = item['properties']['id']
-                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/#/submission-details/{}".format(
+                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/?submission={}#/submission-details".format(
                             str(instance_id))
 
                     return Response(response_submissions)
