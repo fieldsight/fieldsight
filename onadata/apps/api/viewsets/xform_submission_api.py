@@ -119,7 +119,8 @@ def update_mongo(i):
 
 
 def update_meta(instance):
-    if instance.fieldsight_instance.project_fxf:
+    if instance.fieldsight_instance.project_fxf and \
+            instance.fieldsight_instance.site:
         task_obj = CeleryTaskProgress.objects.create(user=instance.user,
                                                      description='Change site info',
                                                      task_type=25,
