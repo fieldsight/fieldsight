@@ -2649,8 +2649,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                     site.site_featured_images[question_name] = attachments
 
         # change site meta attributes answer
-        old_meta_ans = site.site_meta_attributes_ans
-        meta_ans = {}
+        meta_ans = site.site_meta_attributes_ans
         for item in fs_proj_xf.project.site_meta_attributes:
             if item.get('question_type') == 'Form' and fs_proj_xf.id == item.get('form_id', 0):
                 if item['question']['type'] == "repeat":
