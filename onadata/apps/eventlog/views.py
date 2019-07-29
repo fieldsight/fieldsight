@@ -79,7 +79,7 @@ class MyTaskListViewSet(viewsets.ModelViewSet):
         exclude_task_type = [15, 17, 18, 19, 20, 21, 22, 23, 24, 25]
         
         if self.request.is_super_admin:
-            return queryset.order_by('-date_updateded')
+            return queryset.filter(~Q(task_type__in=exclude_task_type)).order_by('-date_updateded')
 
         return queryset.filter(~Q(task_type__in=exclude_task_type), user_id=self.request.user.id).order_by('-date_updateded')
 
