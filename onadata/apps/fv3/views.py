@@ -54,7 +54,8 @@ def supervisor_projects(request):
     project_ids = UserRole.objects.filter(user=request.user,
                                       ended_at=None,
                                       group__name__in=["Region Supervisor", "Site Supervisor"]
-                                      ).values_list('project', flat=True)
+                                      ).values_list('project',
+                                                    flat=True).distinct()
     "Projects where a user is assigned as Region Supervisor or Site Supervisor"
 
     projects = Project.objects.filter(pk__in=project_ids).select_related('organization').prefetch_related(
