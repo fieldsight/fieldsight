@@ -93,9 +93,10 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
         last_updated = query_params.get('last_updated')
 
         if region_id:  # Region Reviewer Roles
-            sites = Site.all_objects.filter(region=region_id)
+            sites = Site.objects.filter(region=region_id)
         elif project_id:  # Site Supervisor Roles
-            sites = Site.all_objects.filter(project=project_id, site_roles__region__isnull=True,
+            sites = Site.objects.filter(project=project_id,
+                                            site_roles__region__isnull=True,
                                             site_roles__group__name="Site Supervisor",
                                             site_roles__user=self.request.user).order_by('id').distinct('id')
 
