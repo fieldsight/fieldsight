@@ -87,7 +87,7 @@
           <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
           <td>{{ sub.site.name }}</td>
           <td>{{ sub.site.identifier }}</td>
-          <td><a href="{% url 'forms:instance' sub.project_fxf.pk %}#/{{ sub.instance.id|stringformat:'d'}}">{{ sub.instance.id }}</a></td>
+          <td><a href="{% url 'fieldsight:application' %}?submission={{sub.instance.id}}#/submission-details">{{ sub.instance.id }}</a></td>
           <td>{{ sub.submitted_by.user_profile.getname }}</td>
           <td>{{ sub.date }}</td>
             <td>
@@ -161,7 +161,7 @@
       <tr>
         <td>{{ forloop.counter }}</td>
             {% if site_id %}
-        <td><a href="{% url 'forms:instance' sub.fsxfid site_id %}#/{{ sub.instance.id|stringformat:'d'}}">{{ sub.instance.id }}</a> </td>
+        <td><a href="{% url 'fieldsight:application' %}?submission={{sub.instance.id}}#/submission-details">{{ sub.instance.id }}</a> </td>
         {% else %}
             <td><a href="{% url 'forms:instance' sub.fsxfid  %}#/{{ sub.instance.id|stringformat:'d'}}">{{ sub.instance.id }}</a> </td>
          {% endif %}

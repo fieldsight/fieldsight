@@ -67,7 +67,7 @@ def my_site_ids(project_obj, user):
 def my_roles(request):
 
     profile_obj = UserProfile.objects.select_related('user').get(user=request.user)
-    profile = {'id': profile_obj.user.id, 'fullname': profile_obj.getname(), 'username': profile_obj.user.username, 'email': profile_obj.user.email,
+    profile = {'id': profile_obj.id, 'fullname': profile_obj.getname(), 'username': profile_obj.user.username, 'email': profile_obj.user.email,
                'address': profile_obj.address, 'phone': profile_obj.phone, 'profile_picture': profile_obj.profile_picture.url,
                'twitter': profile_obj.twitter, 'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype,
                'google_talk': profile_obj.google_talk}
@@ -220,7 +220,7 @@ def submissions_map(request):
                         item['properties']['form'] = xf
 
                         instance_id = item['properties']['id']
-                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/#/submission-details/{}".format(str(instance_id))
+                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/?submission={}#/submission-details".format(str(instance_id))
                     return Response(response_submissions)
                 else:
                     int_merge_site_ids = my_site_ids(project_obj, request.user)
@@ -246,7 +246,7 @@ def submissions_map(request):
                         item['properties']['form'] = xf
 
                         instance_id = item['properties']['id']
-                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/#/submission-details/{}".format(
+                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/?submission={}#/submission-details".format(
                             str(instance_id))
 
                     return Response(response_submissions)

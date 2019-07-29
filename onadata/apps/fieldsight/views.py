@@ -4473,6 +4473,7 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
         context = super(ApplicationView, self).get_context_data(**kwargs)
         project = self.request.GET.get("project", None)
         site = self.request.GET.get("site", None)
+        submission = self.request.GET.get("submission", None)
         base_url = settings.SITE_URL
         context['base_url'] = base_url
         context['kpi_base_url'] = settings.KPI_URL
@@ -4492,6 +4493,13 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
 
             if site_obj.enable_subsites is False:
                 context['root_site'] = site_obj.site
+            return context
+
+        elif submission:
+            submission = get_object_or_404(Instance, id=int(submission.replace(',','')))
+
+            context['submission_id'] = submission.id
+
             return context
 
         else:

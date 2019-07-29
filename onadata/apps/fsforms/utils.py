@@ -18,6 +18,9 @@ from xml.dom import Node
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
+import requests
+from onadata.libs.utils.viewer_tools import EnketoError
+
 
 FIELDSIGHT_XFORM_ID = u"_fieldsight_xform_id"
 
@@ -413,3 +416,4 @@ def get_shared_asset_ids(user):
         a = Asset.objects.get(id=item.object_id)
         asset_uids.append(a.uid)
     return asset_uids
+

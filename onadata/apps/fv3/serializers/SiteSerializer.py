@@ -92,8 +92,8 @@ class SiteSerializer(serializers.ModelSerializer):
         users_list = []
         for role in users_role:
             try:
-                users_list.append({'user': role.user.id, 'username': role.user.username, 'email': role.user.email,
-                               'profile_picture': role.user.user_profile.profile_picture.url})
+                users_list.append({'user': role.user.id, 'username': role.user.username, 'full_name': role.user.first_name + ' ' + role.user.last_name,
+                                   'email': role.user.email, 'profile_picture': role.user.user_profile.profile_picture.url})
             except ObjectDoesNotExist:
                 UserProfile.objects.get_or_create(user=role.user)
 

@@ -4,7 +4,7 @@
 {% block page-title %}{% trans 'Dashboard' %}{% endblock %}
 
 {%block extracss %}
-<link rel="stylesheet" href="{% static 'application/main.css' %}?v=26_07_2019">
+<link rel="stylesheet" href="{% static 'application/main.css' %}?v=29_07_2019">
 {% endblock %}
 
 {% block content %}
@@ -17,17 +17,20 @@
 
 {% block extrascript %}
 	<script>
+		var base_url = "{{base_url}}";
+
 		var project_id = "{{project.id}}";
 		var organization_id = "{{organization}}";
 		var project_name = "{{project.name}}";
+
 		var site_id_with_comma = "{{site_id}}";
         var site_id = +(site_id_with_comma.replace(/,/g,''));
 
-		var base_url = "{{base_url}}";
-
+		var submission_id_with_comma = "{{submission_id}}";
+		var submission_id = +(submission_id_with_comma.replace(/,/g,''));
 	</script>
 
-	<script type="text/javascript" src="{{ STATIC_URL }}application/main.js?v=25.07.2019.06"></script>
+	<script type="text/javascript" src="{{ STATIC_URL }}application/main.js?v=29.07.2019.42"></script>
 {% endblock %}
 
 
