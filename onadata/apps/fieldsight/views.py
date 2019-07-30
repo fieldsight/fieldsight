@@ -89,32 +89,32 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 @login_required
 def dashboard(request):
-    current_role_count = request.roles.count()
-    if current_role_count == 1:
-        current_role = request.roles[0]
-        role_type = request.roles[0].group.name
-
-        if role_type == "Staff Project Manager":
-            return HttpResponseRedirect(reverse("staff:staff-project-detail"))
-        if role_type == "Unassigned":
-            return HttpResponseRedirect(reverse("fieldsight:roles-dashboard"))
-        if role_type == "Site Supervisor":
-            return HttpResponseRedirect(reverse("fieldsight:site-dashboard",  kwargs={'pk': current_role.site.pk}))
-        if role_type == "Reviewer":
-            return HttpResponseRedirect(reverse("fieldsight:site-dashboard", kwargs={'pk': current_role.site.pk}))
-        if role_type == "Region Supervisor":
-            return HttpResponseRedirect(reverse("fieldsight:regional-sites",  kwargs={'pk': current_role.project.pk, 'region_id': current_role.region.pk}))
-        if role_type == "Region Reviewer":
-            return HttpResponseRedirect(reverse("fieldsight:regional-sites", kwargs={'pk': current_role.project.pk, 'region_id': current_role.region.pk}))
-        if role_type == "Project Donor":
-            return HttpResponseRedirect(reverse("fieldsight:donor_project_dashboard_lite", kwargs={'pk': current_role.project.pk}))
-        if role_type == "Project Manager":
-            return HttpResponseRedirect(reverse("fieldsight:project-dashboard", kwargs={'pk': current_role.project.pk}))
-        if role_type == "Organization Admin":
-            return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard",
-                                                kwargs={'pk': current_role.organization.pk}))
-    if current_role_count > 1:
-        return HttpResponseRedirect(reverse("fieldsight:roles-dashboard"))
+    # current_role_count = request.roles.count()
+    # if current_role_count == 1:
+    #     current_role = request.roles[0]
+    #     role_type = request.roles[0].group.name
+    #
+    #     if role_type == "Staff Project Manager":
+    #         return HttpResponseRedirect(reverse("staff:staff-project-detail"))
+    #     if role_type == "Unassigned":
+    #         HttpResponseRedirect("/fieldsight/application/#/my-roles")
+    #     if role_type == "Site Supervisor":
+    #         return HttpResponseRedirect(reverse("fieldsight:site-dashboard",  kwargs={'pk': current_role.site.pk}))
+    #     if role_type == "Reviewer":
+    #         return HttpResponseRedirect(reverse("fieldsight:site-dashboard", kwargs={'pk': current_role.site.pk}))
+    #     if role_type == "Region Supervisor":
+    #         return HttpResponseRedirect(reverse("fieldsight:regional-sites",  kwargs={'pk': current_role.project.pk, 'region_id': current_role.region.pk}))
+    #     if role_type == "Region Reviewer":
+    #         return HttpResponseRedirect(reverse("fieldsight:regional-sites", kwargs={'pk': current_role.project.pk, 'region_id': current_role.region.pk}))
+    #     if role_type == "Project Donor":
+    #         return HttpResponseRedirect(reverse("fieldsight:donor_project_dashboard_lite", kwargs={'pk': current_role.project.pk}))
+    #     if role_type == "Project Manager":
+    #         return HttpResponseRedirect(reverse("fieldsight:project-dashboard", kwargs={'pk': current_role.project.pk}))
+    #     if role_type == "Organization Admin":
+    #         return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard",
+    #                                             kwargs={'pk': current_role.organization.pk}))
+    if not request.is_super_admin:
+        return HttpResponseRedirect("/fieldsight/application/#/my-roles")
 
     # total_users = User.objects.all().count()
     # total_organizations = Organization.objects.all().count()
@@ -1091,7 +1091,7 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
         return context
 
     def get_success_url(self):
-        return "/fieldsight/application/#/site-dashboard/{}".format(self.object.pk)
+        return self.object.get_absolute_url()
 
     def form_valid(self, form):
         site = Site.objects.get(pk=self.kwargs.get('pk'))
@@ -2920,7 +2920,7 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
         return context
 
     def get_success_url(self):
-        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.object.id})
+        return self.object.get_absolute_url()
 
     def form_valid(self, form):
         self.object = form.save(project_id=self.kwargs.get('pk'), region_id=self.kwargs.get('region_pk'), new=True)

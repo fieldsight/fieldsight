@@ -322,7 +322,8 @@ class ProfileCreateView(MyProfileView, CreateView):
         user.save()
         form.instance.user = self.request.user
         self.object = form.save()
-        return HttpResponseRedirect(reverse_lazy('users:view_invitations', kwargs={'pk':user.pk}))
+        # return HttpResponseRedirect(reverse_lazy('users:view_invitations', kwargs={'pk':user.pk}))
+        return HttpResponseRedirect('/fieldsight/application/#/my-roles')
 
 
 class ProfileUpdateView(MyProfileView, OwnerMixin, UpdateView):
