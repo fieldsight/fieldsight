@@ -75,7 +75,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                   'status_data', 'form_type','form_name','fieldsight_instance', 'edit_url', 'download_url')
 
     def get_submitted_by(self, obj):
-        return obj.user.username
+        return obj.user.first_name + obj.user.last_name
 
     def get_status_data(self, obj):
         finstance = obj.fieldsight_instance
