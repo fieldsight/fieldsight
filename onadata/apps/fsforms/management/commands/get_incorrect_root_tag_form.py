@@ -29,6 +29,8 @@ class Command(BaseCommand):
                         d = {'Xform id': form.id, 'id_string': form.id_string, 'Form name': form.title}
                         j = json.dumps(d)
                         f.write(j)
+            total_xf -= page_size
+            page += 1
 
         # for  ever forms history
         total_xfhist = XformHistory.objects.all().count()
@@ -47,3 +49,5 @@ class Command(BaseCommand):
                             d = {'Xform history id': form.id, 'id_string': form.id_string, 'Form name': form.title, 'Form version': form.version}
                             j = json.dumps(d)
                             f.write(j)
+            total_xfhist -= page_size
+            page += 1
