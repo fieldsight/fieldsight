@@ -24,8 +24,8 @@ class Command(BaseCommand):
                 xml = form.xml
                 if id_string + '_' in xml:
                     with open('invalid.txt', 'a+') as f:
-                        print('Xform: ' + str(form.id) + str(form.id_string) + str(form.version) + str(form.title))
-                        f.write('Xform: ' + str(form.id) + str(form.id_string) + str(form.version) + str(form.title) + '\n')
+                        print('Xform: ' + str(form.id) + str(form.id_string) + str(form.title))
+                        f.write('Xform: ' + str(form.id) + str(form.id_string) + str(form.title) + '\n')
 
         # for  ever forms history
         total_xfhist = XformHistory.objects.all().count()
