@@ -4,6 +4,7 @@ from collections import OrderedDict
 from django.db.models import Q
 from django.conf import settings
 from rest_framework import serializers
+from rest_framework.reverse import reverse_lazy
 
 from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.fieldsight.models import Site
@@ -49,6 +50,7 @@ class SiteSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='region.name')
     submissions = serializers.SerializerMethodField()
     total_users = serializers.SerializerMethodField()
+    total_subsites = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
     site_progress_chart_data = serializers.SerializerMethodField()
     form_submissions_chart_data = serializers.SerializerMethodField()
@@ -57,7 +59,9 @@ class SiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Site
         fields = ('id', 'name', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
-                  'total_users', 'users', 'submissions', 'form_submissions_chart_data', 'site_progress_chart_data')
+                  'total_users', 'users', 'submissions',
+                  'form_submissions_chart_data', 'site_progress_chart_data',
+                  'total_subsites')
 
     def get_submissions(self, obj):
         response = obj.get_site_submission_count()
@@ -82,6 +86,11 @@ class SiteSerializer(serializers.ModelSerializer):
         peoples_involved = UserRole.objects.filter(ended_at__isnull=True).filter(
             Q(site=obj) | Q(region__project=obj.project)).select_related('user').distinct('user_id').count()
         return peoples_involved
+
+    def get_total_subsites(self, obj):
+        if obj.enable_subsites:
+            return obj.sub_sites.count()
+        return 0
 
     def get_users(self, obj):
 
