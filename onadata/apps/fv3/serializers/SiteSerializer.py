@@ -144,10 +144,11 @@ class FInstanceSerializer(serializers.ModelSerializer):
     submitted_by = serializers.CharField(source='submitted_by.username')
     reviewed_by = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
+    instance_id = serializers.IntegerField(source="instance.id")
 
     class Meta:
         model = FInstance
-        fields = ('id', 'date', 'form', 'status', 'submitted_by', 'reviewed_by')
+        fields = ('id', 'instance_id', 'date', 'form', 'status', 'submitted_by', 'reviewed_by')
 
     def get_form(self, obj):
         if obj.site_fxf:
