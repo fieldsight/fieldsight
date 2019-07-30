@@ -44,10 +44,9 @@ class Command(BaseCommand):
                     id_string = form.id_string
                     xml = form.xml
                     if id_string + '_' in xml:
-                        with open('invalid.txt', 'a+') as f:
-                            print('Xform history: ', form.id, form.id_string, form.version, form.title)
-                            d = {'Xform history id': form.id, 'id_string': form.xform.id_string, 'Form name': form.xform.title, 'Form version': form.version}
-                            j = json.dumps(d)
-                            f.write(j)
+                        print('Xform history: ', form.id, form.id_string, form.version, form.title)
+                        d = {'Xform history id': form.id, 'id_string': form.xform.id_string, 'Form name': form.xform.title, 'Form version': form.version}
+                        j = json.dumps(d)
+                        f.write(j)
             total_xfhist -= page_size
             page += 1
