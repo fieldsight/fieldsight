@@ -24,11 +24,13 @@ class Command(BaseCommand):
                 for form in xf:
                     id_string = form.id_string
                     xml = form.xml
-                    if id_string + '_' in xml:
-                        print('Xform: ', form.id, form.id_string, form.title)
-                        d = {'Xform id': form.id, 'id_string': form.id_string, 'Form name': form.title}
-                        j = json.dumps(d)
-                        f.write(j)
+                    pattern = re.compile(str(id_string)+'_[A-Za-z0-9]+')
+                    match = pattern.search(xml)
+                    if match:
+                        print(match.group(0))
+                        xml = xml.replace(match.group(0), id_string)
+                        form.xml = xml
+                        form.save()
             total_xf -= page_size
             page += 1
 
@@ -41,12 +43,14 @@ class Command(BaseCommand):
             print('Checking xform history from ', page * page_size, (page + 1) * page_size)
             with open("invalid.json", "a+") as f:
                 for form in xfhist:
-                    id_string = form.id_string
+                    id_string = form.xform.id_string
                     xml = form.xml
-                    if id_string + '_' in xml:
-                        print('Xform history: ', form.id, form.id_string, form.version, form.title)
-                        d = {'Xform history id': form.id, 'id_string': form.xform.id_string, 'Form name': form.xform.title, 'Form version': form.version}
-                        j = json.dumps(d)
-                        f.write(j)
+                    pattern = re.compile(str(id_string) + '_[A-Za-z0-9]+')
+                    match = pattern.search(xml)
+                    if match:
+                        print(match.group(0))
+                        xml = xml.replace(match.group(0), id_string)
+                        form.xml = xml
+                        form.save()
             total_xfhist -= page_size
             page += 1
