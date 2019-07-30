@@ -75,7 +75,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                   'status_data', 'form_type','form_name','fieldsight_instance', 'edit_url', 'download_url')
 
     def get_submitted_by(self, obj):
-        return obj.user.first_name + obj.user.last_name
+        return obj.user.first_name + ' ' + obj.user.last_name
 
     def get_status_data(self, obj):
         finstance = obj.fieldsight_instance
@@ -364,7 +364,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
         fields = ('submission_data', 'date', 'submitted_by', 'download_url', 'edit_url', 'form_name')
 
     def get_submitted_by(self, obj):
-        return obj.user.first_name + obj.user.last_name
+        return obj.user.first_name + ' ' + obj.user.last_name
 
     def get_form_name(self, obj):
         if obj.old.project_fxf:
