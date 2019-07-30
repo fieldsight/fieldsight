@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.fsforms.models import XformHistory
 import re
+import json
 
 
 class Command(BaseCommand):
@@ -19,13 +20,15 @@ class Command(BaseCommand):
         while total_xf > 100:
             xf = XForm.objects.all()[page*page_size:(page+1)*page_size]
             print('Checking xform from ', page * page_size, (page + 1) * page_size)
-            for form in xf:
-                id_string = form.id_string
-                xml = form.xml
-                if id_string + '_' in xml:
-                    with open('invalid.txt', 'a+') as f:
-                        print('Xform: ' + str(form.id) + str(form.id_string) + str(form.title))
-                        f.write('Xform: ' + str(form.id) + str(form.id_string) + str(form.title) + '\n')
+            with open("invalid.json", "a+") as f:
+                for form in xf:
+                    id_string = form.id_string
+                    xml = form.xml
+                    if id_string + '_' in xml:
+                        print('Xform: ', form.id, form.id_string, form.title)
+                        d = {'Xform id': form.id, 'id_string': form.id_string, 'Form name': form.title}
+                        j = json.dumps(d)
+                        f.write(j)
 
         # for  ever forms history
         total_xfhist = XformHistory.objects.all().count()
@@ -34,10 +37,13 @@ class Command(BaseCommand):
         while total_xfhist > 100:
             xfhist = XformHistory.objects.all()[page*page_size:(page+1)*page_size]
             print('Checking xform history from ', page * page_size, (page + 1) * page_size)
-            for form in xfhist:
-                id_string = form.id_string
-                xml = form.xml
-                if id_string + '_' in xml:
-                    with open('invalid.txt', 'a+') as f:
-                        print('Xform history: ' + str(form.id) + str(form.id_string) + str(form.version) + str(form.title))
-                        f.write('Xform history: ' + str(form.id) + str(form.id_string) + str(form.version) + str(form.title) + '\n')
+            with open("invalid.json", "a+") as f:
+                for form in xfhist:
+                    id_string = form.id_string
+                    xml = form.xml
+                    if id_string + '_' in xml:
+                        with open('invalid.txt', 'a+') as f:
+                            print('Xform history: ', form.id, form.id_string, form.version, form.title)
+                            d = {'Xform history id': form.id, 'id_string': form.id_string, 'Form name': form.title, 'Form version': form.version}
+                            j = json.dumps(d)
+                            f.write(j)
