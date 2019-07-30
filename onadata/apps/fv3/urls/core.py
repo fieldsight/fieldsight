@@ -9,7 +9,7 @@ from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset,
     site_recent_pictures, site_documents
 
 from onadata.apps.fv3.viewsets.OrganizationViewSet import OrganizationViewSet
-from onadata.apps.fv3.viewsets.SiteViewSet import SiteViewSet, site_map, SiteSubmissionsViewSet, SiteForms
+from onadata.apps.fv3.viewsets.SiteViewSet import SiteViewSet, site_map, SiteSubmissionsViewSet, SiteForms, SiteCropImage
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, MyProjectFormsViewSet, ShareFormViewSet, \
     ShareProjectFormViewSet, ShareTeamFormViewSet, ShareGlobalFormViewSet, FormAddLanguageViewSet, CloneFormViewSet, \
     MyFormDeleteViewSet, ShareUserListViewSet, ShareTeamListViewSet, ShareProjectListViewSet, MySharedFormViewSet
@@ -82,6 +82,7 @@ urlpatterns = [
         {'get': 'list'}), name='sub_sites_list'),
     url(r'^api/site-recent-pictures/$', site_recent_pictures, name='site_recent_pictures'),
     url(r'^api/site/documents/$', site_documents, name='site_documents'),
+    url(r'^api/site-crop-image/(?P<pk>[0-9]+)/$', SiteCropImage.as_view(), name='site_crop_image'),
 
 ]
 

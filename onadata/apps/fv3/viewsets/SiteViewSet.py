@@ -1,7 +1,9 @@
 import json
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from rest_framework import viewsets, status
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
@@ -12,7 +14,9 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 
-from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanceSerializer, StageFormSerializer
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanceSerializer, StageFormSerializer, \
+    SiteCropImageSerializer
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, Schedule, Stage, FieldSightXF
 
@@ -107,3 +111,29 @@ class SiteForms(APIView):
                 return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(data="Site Id and form type required.", status=status.HTTP_400_BAD_REQUEST)
+
+
+class SiteCropImage(APIView):
+    """
+    Retrieve and update site logo.
+    """
+    authentication_classes = (CsrfExemptSessionAuthentication, SessionAuthentication, BasicAuthentication)
+
+    def get_object(self, pk):
+        try:
+            return Site.objects.get(pk=pk)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+    def get(self, request, pk, format=None):
+        site = self.get_object(pk)
+        serializer = SiteCropImageSerializer(site)
+        return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+        snippet = self.get_object(pk)
+        serializer = SiteCropImageSerializer(snippet, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

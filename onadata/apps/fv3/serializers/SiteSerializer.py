@@ -8,6 +8,7 @@ from rest_framework.reverse import reverse_lazy
 
 from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.fieldsight.models import Site
+from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.models import UserProfile
 from django.core.exceptions import ObjectDoesNotExist
@@ -185,3 +186,13 @@ class StageFormSerializer(serializers.ModelSerializer):
                                                                      str(form.stage_forms.id) + '/' + str(self.context['site_id']) + '/'}
                 for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')]
         return data
+
+
+class SiteCropImageSerializer(serializers.ModelSerializer):
+    logo = Base64ImageField(
+        max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
+    )
+
+    class Meta:
+        model = Site
+        fields = ('id', 'logo',)

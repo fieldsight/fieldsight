@@ -136,7 +136,7 @@ class MySitesView(APIView):
             try:
                 project_obj = Project.objects.get(id=project_id)
                 paginator = PageNumberPagination()
-                paginator.page_size = 50
+                paginator.page_size = 200
 
                 if is_project_manager_or_team_admin(project_obj, request.user):
                     data = Site.objects.filter(project=project_obj, is_active=True)
