@@ -141,10 +141,11 @@ class MyRolesSerializer(serializers.ModelSerializer):
     has_organization_access = serializers.SerializerMethodField()
     team_url = serializers.SerializerMethodField()
     projects = serializers.SerializerMethodField()
+    id = serializers.IntegerField(source='organization.id')
 
     class Meta:
         model = UserRole
-        fields = ('name', 'address', 'logo', 'has_organization_access', 'team_url', 'projects')
+        fields = ('id', 'name', 'address', 'logo', 'has_organization_access', 'team_url', 'projects')
 
     def get_name(self, obj):
         return obj.organization.name
