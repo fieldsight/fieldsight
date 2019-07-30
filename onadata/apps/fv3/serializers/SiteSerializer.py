@@ -89,9 +89,8 @@ class SiteSerializer(serializers.ModelSerializer):
 
     def get_total_subsites(self, obj):
         if obj.enable_subsites:
-            return {'count': obj.sub_sites.count(), 'url': reverse_lazy(
-                'fv3:sub_sites_list', ()) + "?site={}".format(obj.id)}
-        return {'count': 0, 'url': ''}
+            return obj.sub_sites.count()
+        return 0
 
     def get_users(self, obj):
 
