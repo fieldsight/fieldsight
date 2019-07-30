@@ -18,8 +18,8 @@ from onadata.apps.fv3.viewsets.ReportViewsets import ReportVs
 
 from onadata.apps.fv3.viewsets.SubmissionViewSet import AlterSubmissionStatusViewSet, SubmissionAnswerViewSet, \
     SubmissionViewSet
-from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectSitesListViewSet
-
+from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
+    ProjectSitesListViewSet, SubSitesListViewSet
 
 router = routers.DefaultRouter()
 
@@ -78,6 +78,8 @@ urlpatterns = [
     url(r'api/form/projects/$', ShareProjectListViewSet.as_view({'get': 'list'}), name='shareable-project'),
 
     url(r'^api/project-site-list/$', ProjectSitesListViewSet.as_view({'get': 'list'}), name='project_sites_list'),
+    url(r'^api/sub-site-list/$', SubSitesListViewSet.as_view(
+        {'get': 'list'}), name='sub_sites_list'),
     url(r'^api/site-recent-pictures/$', site_recent_pictures, name='site_recent_pictures'),
     url(r'^api/site/documents/$', site_documents, name='site_documents'),
 
