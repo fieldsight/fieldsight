@@ -67,10 +67,13 @@ def my_site_ids(project_obj, user):
 def my_roles(request):
 
     profile_obj = UserProfile.objects.select_related('user').get(user=request.user)
+    can_create_team = True
+    if request.user.organizations.all():
+        can_create_team = False
     profile = {'id': profile_obj.id, 'fullname': profile_obj.getname(), 'username': profile_obj.user.username, 'email': profile_obj.user.email,
                'address': profile_obj.address, 'phone': profile_obj.phone, 'profile_picture': profile_obj.profile_picture.url,
                'twitter': profile_obj.twitter, 'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype,
-               'google_talk': profile_obj.google_talk}
+               'google_talk': profile_obj.google_talk, 'can_create_team': can_create_team}
 
     teams = UserRole.objects.filter(user=request.user).select_related('user', 'group', 'site', 'organization',
                                                                       'staff_project', 'region').filter(Q(group__name="Organization Admin", organization__is_active=True)|
@@ -141,7 +144,7 @@ class MySitesView(APIView):
                     result_page = paginator.paginate_queryset(data, request)
 
                     sites = MySiteSerializer(result_page, many=True, context={'request': request})
-                    return paginator.get_paginated_response(sites.data)
+                    return paginator.get_paginated_response({'data': sites.data})
 
                 else:
                     sites_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
@@ -151,7 +154,7 @@ class MySitesView(APIView):
                     data = Site.objects.filter(id__in=sites_id)
                     result_page = paginator.paginate_queryset(data, request)
                     sites = MySiteSerializer(result_page, many=True, context={'request': request})
-                    return paginator.get_paginated_response(sites.data)
+                    return paginator.get_paginated_response({'data': sites.data})
 
             except Exception as e:
                 return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
