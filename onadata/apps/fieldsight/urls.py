@@ -28,7 +28,7 @@ from .views import (
     ProjectCreateView,
     ProjectUpdateView,
     ProjectDeleteView,
-    Project_dashboard, project_dashboard_peoples, project_dashboard_map, project_dashboard_graphs,
+    ProjectDashboard, project_dashboard_peoples, project_dashboard_map, project_dashboard_graphs,
     alter_proj_status,
     add_proj_manager,
     SiteListView,
@@ -112,7 +112,7 @@ urlpatterns = [
     # url(r'^project/add/$', ProjectCreateView.as_view(), name='project-add'),
     url(r'^project/add/(?P<pk>[0-9]+)/$', ProjectCreateView.as_view(), name='project-add'),
     url(r'^project/(?P<pk>[0-9]+)/$', ProjectUpdateView.as_view(), name='project-edit'),
-    url(r'^project-dashboard/(?P<pk>[0-9]+)/$', Project_dashboard.as_view(), name='project-dashboard'),
+    url(r'^project-dashboard/(?P<pk>[0-9]+)/$', ProjectDashboard.as_view(), name='project-dashboard'),
     url(r'^api/org-projects/(?P<pk>\d+)/$', OrganizationsProjectViewSet.as_view({'get': 'list'})),
     url(r'^api/async_save_project/$', ajax_save_project),
 

@@ -227,13 +227,15 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         return dashboard_data
 
 
-class Project_dashboard(ProjectRoleMixin, TemplateView):
+class ProjectDashboard(ProjectRoleMixin, TemplateView):
     template_name = "fieldsight/project_dashboard.html"
     
     def get_context_data(self, **kwargs):
         obj = get_object_or_404(Project, pk=self.kwargs.get('pk'), is_active=True)
         peoples_involved = obj.project_roles.filter(ended_at__isnull=True).distinct('user').count()
-        total_sites = obj.sites.filter(is_active=True, is_survey=False).count()
+        total_sites = obj.sites.filter(is_active=True, is_survey=False,
+                                       site__isnull=True
+                                       ).count()
         total_survey_sites = obj.sites.filter(is_survey=True)
         outstanding, flagged, approved, rejected = obj.get_submissions_count()
         one_week_ago = datetime.datetime.today() - datetime.timedelta(days=7)
@@ -3774,7 +3776,8 @@ class DonorProjectDashboard(DonorRoleMixin, TemplateView):
 
         peoples_involved = obj.project_roles.filter(ended_at__isnull=True).distinct('user')
         total_sites = obj.sites.filter(is_active=True, is_survey=False).count()
-        sites = obj.sites.filter(is_active=True, is_survey=False)[:200]
+        sites = obj.sites.filter(is_active=True, is_survey=False,
+                                 site__isnull=True)[:200]
         data = serialize('custom_geojson', sites, geometry_field='location',
                          fields=('location', 'id',))
 
