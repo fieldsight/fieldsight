@@ -269,7 +269,7 @@
 											{% for role in roles_reviewer %}
 											
 											<div class="col-lg-6 col-md-6 margin-top">
-												<a href="{% url 'fieldsight:site-dashboard' role.site.pk %}" title="">
+												<a href="{{role.site.get_absolute_url}}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
 														<img src="{% if role.site.logo %}{{ role.site.logo.url }}{% else %}{% static 'dummy/assets/img/default_image.png' %}{% endif %}" alt="" width="50" height="50">
@@ -307,7 +307,7 @@
 											{% for role in roles_SA %}
 											
 											<div class="col-lg-6 col-md-6 margin-top">
-												<a href="{% url 'fieldsight:site-dashboard' role.site.pk %}" title="">
+												<a href="{{role.site.get_absolute_url}}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
 														<img src="{% if role.site.logo %}{{ role.site.logo.url }}{% else %}{% static 'dummy/assets/img/default_image.png' %}{% endif %}" alt="" width="50" height="50">

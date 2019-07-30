@@ -278,7 +278,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                   {% block breadcrumbs %}
             <ol class="breadcrumb">
                         {% if level == "0" %}
-              <li class="breadcrumb-item"><a href="{% url 'fieldsight:site-dashboard' pk %}">{{ obj.name }}</a></li>
+              <li class="breadcrumb-item"><a href="{{obj.get_absolute_url}}">{{ obj.name }}</a></li>
                         {% endif %}
                         {% if level == "1" %}
               <li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' pk %}">{{ obj.name }}</a></li>

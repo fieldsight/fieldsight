@@ -1091,7 +1091,7 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
         return context
 
     def get_success_url(self):
-        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.kwargs['pk']})
+        return "/fieldsight/application/#/site-dashboard/{}".format(self.object.pk)
 
     def form_valid(self, form):
         site = Site.objects.get(pk=self.kwargs.get('pk'))

@@ -128,8 +128,7 @@ class TaskSerializer(serializers.ModelSerializer):
                     return None
 
         elif obj.task_type == 6:
-            o = urlparse(obj.get_event_url())
-            site_id = int(o.query.split('=')[1])
+            site_id = int(obj.get_event_url().split('/')[5])
             site = Site.objects.get(id=site_id)
             project = Project.objects.get(id=site.project.id)
 

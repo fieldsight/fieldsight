@@ -608,7 +608,7 @@ class Site(models.Model):
         return response
 
     def get_absolute_url(self):
-        return "/fieldsight/application/?site={}#/site-dashboard".format(self.pk)
+        return "/fieldsight/application/#/site-dashboard/{}".format(self.pk)
 
 
 def get_image_filename(instance, filename):
