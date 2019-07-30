@@ -167,9 +167,9 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
         instance.logs.create(source=self.request.user, type=14, title="Edit Project",
                                        organization=instance.organization,
                                        project=instance, content_object=instance,
-                                       description="{0} changed the details of project named {1}".format(
+                                       description=u"{0} changed the details of project named {1}".format(
                                            self.request.user.get_full_name(),
-                                           str(instance.name)))
+                                           instance.name))
         return Response(serializer.data)
 
     def perform_destroy(self, instance):
