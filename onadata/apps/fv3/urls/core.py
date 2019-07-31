@@ -21,7 +21,7 @@ from onadata.apps.fv3.viewsets.SubmissionViewSet import AlterSubmissionStatusVie
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
     ProjectSitesListViewSet, SubSitesListViewSet
 
-from onadata.apps.fv3.views import RegionalSites
+from onadata.apps.fv3.views import RegionalSites, sub_regions
 
 router = routers.DefaultRouter()
 
@@ -86,6 +86,7 @@ urlpatterns = [
     url(r'^api/site/documents/$', site_documents, name='site_documents'),
     url(r'^api/site-crop-image/(?P<pk>[0-9]+)/$', SiteCropImage.as_view(), name='site_crop_image'),
     url(r'^api/regional-sites/$', RegionalSites.as_view({'get' : 'list'}), name='regional_sites'),
+    url(r'^api/sub-regions/$', sub_regions, name='sub_regions'),
 
 ]
 

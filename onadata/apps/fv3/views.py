@@ -676,16 +676,24 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
             return Response({"message": "Region Id is required."}, status=status.HTTP_204_NO_CONTENT)
 
         search_param = request.query_params.get('q', None)
-        region_id = self.request.query_params.get('region', None)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            region_queryset = Region.objects.select_related('parent', 'project').filter(parent=region_id, is_active=True)
-            region_data = [{'identifier': r.identifier, 'name': r.name, 'total_sites': r.get_sites_count()} for r in region_queryset]
-            return self.get_paginated_response({'data': serializer.data, 'query': search_param, 'sub_regions': region_data})
+            return self.get_paginated_response({'data': serializer.data, 'query': search_param})
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     def get_serializer_context(self):
         return {'is_region': True}
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def sub_regions(request):
+    query_params = request.query_params
+    region_id = query_params.get('region')
+    region_queryset = Region.objects.select_related('parent', 'project').filter(parent=region_id, is_active=True)
+    region_data = [{'identifier': r.identifier, 'name': r.name, 'total_sites': r.get_sites_count()} for r in
+                   region_queryset]
+    return Response(region_data)
