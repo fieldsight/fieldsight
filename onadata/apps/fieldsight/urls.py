@@ -65,10 +65,13 @@ from .views import (
     SiteSearchView, ProjectDashboardStageResponsesStatus, GeoJSONContent, DonorFullMap, ProjectSiteListGeoJSON,
     SiteBulkEditView, site_refrenced_metas, UnassignUserRegionAndSites, MainRegionsAndSitesAPI, redirectToSite,
     municipality_data, FormResponseSite, DonorRegionalSitelist, SubRegionAndSitesAPI, SiteSearchLiteView,
-    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites, ApplicationView,
+    EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites,
+    ApplicationView,
     ProjectTermsAndLabelView, project_terms_label_create, ProjectSyncScheduleUpdateView, ProjectTermsLabelUpdate,
-    SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView
-)
+    SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView,
+    SubSiteCreateView, GenerateSiteReport)
+
+from onadata.apps.fieldsight.viewsets.SiteViewSet import ProjectSiteViewSet
 
 
 from onadata.apps.geo.views import (
@@ -138,6 +141,8 @@ urlpatterns = [
     url(r'^project/add-proj-manager/(?P<pk>\d+)/$', add_proj_manager, name='add_proj_manager'),
     url(r'^project/add-role/(?P<pk>\d+)/$', add_project_role, name='add_project_staffs'),
     url(r'^api/project-sites/(?P<pk>\d+)/$', SiteViewSet.as_view({'get': 'list'}), name='project_sites'),
+    url(r'^api/project-sites-list/(?P<pk>\d+)/$', ProjectSiteViewSet.as_view({'get': 'list'}), name='project_sites_list'),
+
     url(r'^api/update-site/(?P<pk>\d+)$', SiteUpdateViewSet.as_view({'get': 'retrieve','post': 'update'}), name='update_site_api'),
     url(r'^api/update-project/(?P<pk>\d+)$', ProjectUpdateViewSet.as_view({'put': 'update'}), name='update_project_api'),
 
@@ -158,6 +163,7 @@ urlpatterns = [
     url(r'^site/$', SiteListView.as_view(), name='sites-list'),
     url(r'^site/$', SiteListView.as_view(), name='site-list'),
     url(r'^site/add/(?P<pk>[0-9]+)/$', SiteCreateView.as_view(), name='site-add'),
+    url(r'^site/add/subsite/(?P<pk>[0-9]+)/(?P<site>[0-9]+)$', SubSiteCreateView.as_view(), name='sub-site-add'),
     url(r'^site/(?P<pk>[0-9]+)/$', SiteUpdateView.as_view(), name='site-edit'),
 
     url(r'^site/blue-prints/(?P<id>[0-9]+)/$', BluePrintsView.as_view(), name='site-blue-prints'),
@@ -191,6 +197,8 @@ urlpatterns = [
     url(r'^project/report/summary/(?P<pk>\d+)/$', ProjectSummaryReport.as_view(), name='project-summary-report'),
     url(r'^user/report/activity/(?P<pk>\d+)/(?P<user_id>\d+)/(?P<start_date>\d{4}-\d{2}-\d{2})/(?P<end_date>\d{4}-\d{2}-\d{2})/$', UserActivityReport.as_view(), name='user-activity-report'),
     url(r'^site/report/summary/(?P<pk>\d+)/$', SiteSummaryReport.as_view(), name='site-summary-report'),
+    url(r'^generate-site-report/(?P<pk>\d+)/$', GenerateSiteReport.as_view(), name='generate_site_report'),
+
     url(r'map-view/$',views.viewfullmap, name='full-map'),
     url(r'org-map/(?P<pk>[0-9]+)/$', OrgFullmap.as_view(), name='org-loc-map'),
     url(r'proj-map/(?P<pk>[0-9]+)/$', ProjFullmap.as_view(), name='proj-loc-map'),

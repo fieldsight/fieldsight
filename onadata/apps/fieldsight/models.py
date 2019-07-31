@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
-import json
 import datetime
-import os, tempfile
+import tempfile
 import itertools
 from django.contrib.gis.db.models import PointField
 from django.contrib.gis.db.models import GeoManager
@@ -12,7 +11,6 @@ from django.conf import settings
 from django.db.models import IntegerField, Count, Case, When, Sum
 from django.db.models.signals import post_save
 from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from django.utils.text import slugify
 from jsonfield import JSONField
 
@@ -440,7 +438,7 @@ class Site(models.Model):
         "Additional Description", blank=True, null=True)
     project = models.ForeignKey(Project, related_name='sites')
     logo = models.ImageField(
-        upload_to="logo", default="logo/default_site_image.png")
+        upload_to="logo", default="logo/default_site_image.png", max_length=500)
     is_active = models.BooleanField(db_index=True, default=True)
     location = PointField(geography=True, srid=4326, blank=True, null=True)
     is_survey = models.BooleanField(default=False)
@@ -452,6 +450,8 @@ class Site(models.Model):
     site_featured_images = JSONField(default=dict)
     current_progress = models.IntegerField(default=0)
     current_status = models.IntegerField(default=0)
+    enable_subsites = models.BooleanField(default=False)
+    site = models.ForeignKey('self', blank=True, null=True, related_name="sub_sites")
     all_objects = SiteAllManager()
     objects = SiteManager()
     
@@ -506,14 +506,9 @@ class Site(models.Model):
         return self.type.name
 
     def update_current_progress(self):
-        from onadata.apps.fieldsight.utils.progress import set_site_progress
-        set_site_progress(self, self.project)
-        try:
-            status = self.site_instances.order_by('-date').first().form_status
-        except:
-            status = 0
-        self.current_status = status
-        self.save()
+        from onadata.apps.fieldsight.tasks import update_current_progress_site
+        update_current_progress_site.apply_async(
+            kwargs={'site_id': self.id}, countdown=5)
 
     def progress(self):
         approved_site_forms_weight = self.site_instances.filter(form_status=3, site_fxf__is_staged=True).distinct('site_fxf').values_list('site_fxf__stage__weight', flat=True)
@@ -779,10 +774,17 @@ class SiteProgressHistory(models.Model):
         return "{} {}".format(self.site.name, self.progress)
 
 
-class SiteMetaAttrHistory(models.Model):
-    meta_attributes = JSONField(default=list)
+META_CHANGE_STATUS = (
+    (1, 'By submission'),
+    (2, 'By change in meta attributes')
+)
+
+
+class SiteMetaAttrAnsHistory(models.Model):
+    meta_attributes_ans = JSONField(default={})
     site = models.ForeignKey(Site, related_name="meta_history")
     date = models.DateTimeField(auto_now=True)
+    status = models.IntegerField(choices=META_CHANGE_STATUS, null=True, blank=True)
 
     class Meta:
         ordering = ['-date']
@@ -809,7 +811,14 @@ class ProjectMetaAttrHistory(models.Model):
         return the meta attributes that are present in new meta attributes but not in old meta attributes
         also return the meta attributes that have their values changed
         """
+        #  use filterfalse for python3 as ifilterfalse is not supported by itertools for python3
         return list(itertools.ifilterfalse(lambda x: x in self.old_meta_attributes, self.new_meta_atrributes))
+
+    def get_deleted_attributres(self):
+        """
+        return the meta attributes that have been deleted for the old meta attributes
+        """
+        return list(itertools.ifilterfalse(lambda x: x in self.new_meta_atrributes, self.old_meta_attributes))
 
 
 @receiver(post_save, sender=ProgressSettings)
@@ -821,4 +830,5 @@ def check_deployed(sender, instance, created,  **kwargs):
                                                      description="Update Sites Progress",
                                                      task_type=23, content_object=instance)
         if task_obj:
-            update_sites_progress.delay(instance.pk, task_obj.id)
+            update_sites_progress.apply_async(kwargs={'pk': instance.id,
+                                                      'task_id': task_obj.id}, countdown=5)

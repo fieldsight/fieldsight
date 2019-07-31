@@ -14,12 +14,12 @@ def events(request):
     pid = 0
     sid = 0
     logs = []
-    if request.group is not None:
-        if hasattr(request, "organization") and request.organization:
-            oid = request.organization.id
-    else:
-        logs = []
-        oid = None
+    # if request.group is not None:
+    #     if hasattr(request, "organization") and request.organization:
+    #         oid = request.organization.id
+    # else:
+    #     logs = []
+    #     oid = None
     channels_url = settings.WEBSOCKET_URL+":"+settings.WEBSOCKET_PORT+"/" \
     if settings.WEBSOCKET_PORT else settings.WEBSOCKET_URL+"/"
     return {

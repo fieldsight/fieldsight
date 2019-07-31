@@ -172,6 +172,8 @@ def clone_form(user_id, project_id, task_id):
     CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
 
 
+# task to share the form for all the project managers of a project where the form is assigned
+# used whenever a new form has been assigned to a project
 @shared_task(max_retires=5)
 def share_form_managers(fxf, task_id):
     fxf = FieldSightXF.objects.get(pk=fxf)
@@ -184,6 +186,8 @@ def share_form_managers(fxf, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+# task to share forms to a single person assigned as the project manager of a project
+# shares all the forms that have been assigned previously to a project
 @shared_task(max_retires=5)
 def created_manager_form_share(userrole, task_id):
     userrole = UserRole.objects.get(pk=userrole)
@@ -195,6 +199,7 @@ def created_manager_form_share(userrole, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+# share form to the users as specified
 @shared_task(max_retries=5)
 def api_share_form(xf, users, task_id):
     xf = XForm.objects.get(pk=xf)
@@ -209,19 +214,18 @@ def api_share_form(xf, users, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+# clone the specified form but not assign to the project
 @shared_task(max_retries=5)
-def api_clone_form(form_id, project_id, user_id, task_id):
+def api_clone_form(form_id, user_id, task_id):
     user = User.objects.get(id=user_id)
     xf = XForm.objects.get(id=form_id)
-    project = Project.objects.get(id=project_id)
 
     token = user.auth_token.key
 
     # general clone
     clone, id_string = clone_kpi_form(xf.id_string, token, task_id, xf.title)
     if clone:
-        xf = XForm.objects.get(id_string=id_string, user=user)
-        FieldSightXF.objects.get_or_create(xf=xf, project=project, is_deployed=True)
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     else:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
         raise ValueError(" Failed  clone and deploy")

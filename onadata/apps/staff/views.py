@@ -88,7 +88,7 @@ class TeamDetail(StaffTeamRoleMixin, DetailView):
         
         context['is_project_manager'] = False
         user_role = self.request.roles.filter(group_id=8, staff_project_id=self.get_object().staffproject.id)
-        if user_role or self.request.group.name == "Super Admin":
+        if user_role or self.request.is_super_admin:
             context['is_project_manager'] = True
         context['staff_list'] = Staff.objects.filter(team_id = self.kwargs.get('pk'), is_deleted=False)
         context['attendance_list'] = self.object.get_attendance()

@@ -26,7 +26,7 @@ class LoginRequiredMixin(object):
 
 class HasStaffRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return super(HasStaffRoleMixin, self).dispatch(request, *args, **kwargs)
         
         # user_role = request.roles.filter(group_id=8)
@@ -37,7 +37,7 @@ class HasStaffRoleMixin(LoginRequiredMixin):
 
 class StaffProjectRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return super(StaffProjectRoleMixin, self).dispatch(request, *args, **kwargs)
         staff_project_id = self.kwargs.get('pk')
         user_role = request.roles.filter(group_id=8, staff_project_id=staff_project_id)
@@ -47,7 +47,7 @@ class StaffProjectRoleMixin(LoginRequiredMixin):
 
 class StaffProjectTeamRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return super(StaffProjectTeamRoleMixin, self).dispatch(request, *args, **kwargs)
         staff_team_id = self.kwargs.get('pk')
         staff_project_id = get_object_or_404(Team, pk=staff_team_id).staffproject_id
@@ -58,7 +58,7 @@ class StaffProjectTeamRoleMixin(LoginRequiredMixin):
 
 class StaffTeamRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return super(StaffTeamRoleMixin, self).dispatch(request, *args, **kwargs)
 
         team = get_object_or_404(Team, pk=self.kwargs.get('pk'))        
@@ -78,7 +78,7 @@ class StaffTeamRoleMixin(LoginRequiredMixin):
 
 class StaffRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return super(StaffRoleMixin, self).dispatch(request, *args, **kwargs)
 
         staff = get_object_or_404(Staff, pk=self.kwargs.get('pk'))

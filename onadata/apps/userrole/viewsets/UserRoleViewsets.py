@@ -14,7 +14,7 @@ from onadata.apps.fieldsight.mixins import USURPERS
 from onadata.apps.fieldsight.models import Site, Project, Organization
 from onadata.apps.userrole.serializers.UserRoleSerializer import UserRoleSerializer
 from onadata.apps.fieldsight.serializers.ProjectSerializer import ProjectTypeSerializer
-from onadata.apps.fieldsight.serializers.SiteSerializer import SiteSerializer
+from onadata.apps.fieldsight.serializers.SiteSerializer import SiteSerializer, ProjectSiteListSerializer
 from onadata.apps.userrole.models import UserRole
 from django.db.models import Q
 from django.views.generic import View
@@ -289,12 +289,17 @@ class MultiUserlistViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(organization__id=organization.id, ended_at__isnull=True).distinct('user_id')
         return queryset
 
+
 class MultiOPSlistViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, ManagePeoplePermission)
     # pagination_class = LargeResultsSetPagination
+
     def get_serializer_class(self):
         if self.kwargs.get('level') == "0":
-            return SiteSerializer
+            # return SiteSerializer
+
+            return ProjectSiteListSerializer
+
         elif self.kwargs.get('level') == "1":
             return ProjectTypeSerializer
         else:
@@ -305,7 +310,9 @@ class MultiOPSlistViewSet(viewsets.ModelViewSet):
         level = self.kwargs.get('level', None)
         pk = self.kwargs.get('pk', None)
         if level == "0":
-            queryset = Site.objects.filter(project__id=pk)
+
+            queryset = Site.objects.filter(project__id=pk).select_related('project', 'region', 'type')
+
         elif level == "1":
             queryset = Project.objects.filter(organization__id=pk)
         return queryset

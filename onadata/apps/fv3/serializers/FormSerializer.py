@@ -139,7 +139,9 @@ class ProjectFormSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'forms')
 
     def get_forms(self, obj):
-        xf = XForm.objects.filter(field_sight_form__project=obj).distinct()
+        xf = XForm.objects.filter(field_sight_form__project=obj,
+                                  field_sight_form__is_deployed=True,
+                                  field_sight_form__is_deleted=False).distinct()
         serializer = XFormSerializer(xf, many=True)
         return serializer.data
 
@@ -171,7 +173,6 @@ class AddLanguageSerializer(serializers.Serializer):
 
 class CloneFormSerializer(serializers.Serializer):
     id_string = serializers.CharField()
-    project = serializers.IntegerField()
 
 
 class MyFormDeleteSerializer(serializers.Serializer):

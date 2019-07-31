@@ -13,6 +13,7 @@ from onadata.apps.fieldsight.serializers.SiteSerializer import SuperMinimalSiteS
     SiteReviewSerializer, ProjectTypeSerializer, SiteUpdateSerializer, ProjectUpdateSerializer, RegionSerializer, \
     SiteTypeSerializer
 from onadata.apps.fieldsight.serializers.ProjectTermsSerializer import ProjectLevelTermsSerializers
+from onadata.apps.fieldsight.serializers.SiteSerializer import ProjectSiteListSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.userrole.models import UserRole
 from django.contrib.auth.models import Group
@@ -25,35 +26,35 @@ class SiteSurveyPermission(BasePermission):
     def has_object_permission(self, request, view, obj):
         if not obj.is_survey:
             return False
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return obj.project.organization == request.organization
-        return request.project == obj.project
+        if request.roles.filter(organization_id=obj.project.organization_id, group__name="Organization Admin").exists():
+            return True
+        return request.roles.filter(project_id=obj.project_id, group__name__in=["Project Manager"]).exists()
 
 
 class AllSiteViewPermission(BasePermission):
     def has_permission(self, request, view):
-        return request.group.name in ["Super Admin", "Organization Admin", "Project Manager", "Reviewer"]
+        return request.roles.filter(group__name__in = ["Super Admin", "Organization Admin", "Project Manager", "Reviewer"])
 
 
 class SiteUnderProjectPermission(BasePermission):
     def has_object_permission(self, request, view, obj):
         if not obj.is_survey:
             return True
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return obj.project.organization == request.organization
-        return request.project == obj.project
+        if request.roles.filter(organization_id=obj.project.organization_id, group__name="Organization Admin").exists():
+            return True
+        return request.roles.filter(project_id=obj.project_id, group__name__in=["Project Manager"]).exists()
 
 
 class SiteSurveyUpdatePermission(BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return obj.project.organization == request.organization
+        if request.roles.filter(organization_id=obj.project.organization_id, group__name="Organization Admin").exists():
+            return True
         return obj.project == request.project
 
 
@@ -68,11 +69,14 @@ class SiteViewPermission(BasePermission):
 
 class ProjectViewPermission(BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return obj.project.organization == request.organization
-        return request.project == obj.project
+        if request.roles.filter(group__name="Organization Admin",
+                                organization=obj.project.organization).exists():
+            return True
+        return request.roles.filter(group__name__in=["Project Manager",
+                                                    "Project Donor"],
+                                project=obj.project).exists()
 
 class ReviewerViewPermission(BasePermission):
     def has_permission(self, request, view):
@@ -107,6 +111,21 @@ class SiteViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         return {'request': self.request}
+
+
+class ProjectSiteViewSet(viewsets.ModelViewSet):
+    """
+    A simple ViewSet for viewing sites.
+    """
+    queryset = Site.objects.all()\
+        .select_related("region", "project", "type")
+    serializer_class = ProjectSiteListSerializer
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+
+    def filter_queryset(self, queryset):
+        project = self.kwargs.get('pk', None)
+        qs = queryset.filter(project__id=project, is_active=True)
+        return qs
 
 
 class SiteUpdateViewSet(viewsets.ModelViewSet):

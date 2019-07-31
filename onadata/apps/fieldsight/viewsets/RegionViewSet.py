@@ -15,14 +15,12 @@ from django.db.models import Q
 
 
 class RegionAccessPermission(BasePermission):
+    # TODO check object  level
     def has_permission(self, request, view):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return True
-        if request.group.name == "Project Manager":
-            return True
-        return False
+
+        return request.roles.filter(group__name__in=["Organization Admin", "Project Manager"])
 
 
 class RegionViewSet(viewsets.ModelViewSet):

@@ -1,8 +1,8 @@
 import json
 from datetime import datetime
 
-from django.db.models import Prefetch
-from django.http import Http404, JsonResponse
+from django.db.models import Prefetch, Q
+from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -21,17 +21,20 @@ from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteTy
 from onadata.apps.fsforms.models import FInstance, ProgressSettings
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
+from onadata.apps.fsforms.reports_util import get_recent_images
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
     SiteTypeSerializer, ProjectLevelTermsAndLabelsSerializer, ProjectRegionSerializer, ProjectSitesSerializer
 from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles
+from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, create_site_meta_attribs_ans_history
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.project_settings import ProgressSettingsSerializer
 from .role_api_permissions import ProjectRoleApiPermissions
+
+
 
 
 class ProjectSitesPagination(PageNumberPagination):
@@ -51,7 +54,8 @@ def supervisor_projects(request):
     project_ids = UserRole.objects.filter(user=request.user,
                                       ended_at=None,
                                       group__name__in=["Region Supervisor", "Site Supervisor"]
-                                      ).values_list('project', flat=True)
+                                      ).values_list('project',
+                                                    flat=True).distinct()
     "Projects where a user is assigned as Region Supervisor or Site Supervisor"
 
     projects = Project.objects.filter(pk__in=project_ids).select_related('organization').prefetch_related(
@@ -89,11 +93,17 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
         last_updated = query_params.get('last_updated')
 
         if region_id:  # Region Reviewer Roles
-            sites = Site.all_objects.filter(region=region_id)
+            sites = Site.objects.filter(Q(region=region_id) | Q(
+                site__region=region_id))
         elif project_id:  # Site Supervisor Roles
-            sites = Site.all_objects.filter(project=project_id, site_roles__region__isnull=True,
-                                            site_roles__group__name="Site Supervisor",
-                                            site_roles__user=self.request.user).order_by('id').distinct('id')
+            sites = Site.objects.filter(project=project_id).filter(Q(
+                site_roles__region__isnull=True,
+                site_roles__group__name="Site Supervisor",
+                site_roles__user=self.request.user) | Q(
+                site__site_roles__region__isnull=True,
+                site__site_roles__group__name="Site Supervisor",
+                site__site_roles__user=self.request.user)).order_by(
+                'id').distinct('id')
 
         else:
             sites = []
@@ -159,11 +169,12 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
             p = Point(round(float(long), 6), round(float(lat), 6), srid=4326)
             instance.location = p
             instance.save()
-        noti = instance.logs.create(source=self.request.user, type=14, title="Edit Project",
+        instance.logs.create(source=self.request.user, type=14, title="Edit Project",
                                        organization=instance.organization,
                                        project=instance, content_object=instance,
-                                       description='{0} changed the details of project named {1}'.format(
-                                           self.request.user.get_full_name(), instance.name))
+                                       description=u"{0} changed the details of project named {1}".format(
+                                           self.request.user.get_full_name(),
+                                           instance.name))
         return Response(serializer.data)
 
     def perform_destroy(self, instance):
@@ -592,8 +603,55 @@ class ProjectDefineSiteMeta(APIView):
 
                 other_project.save()
         project.save()
+        task_obj = CeleryTaskProgress.objects.create(user=request.user,
+                                                     description="Update site meta attributes answer and store history",
+                                                     task_type=24, content_object=project)
+        if task_obj:
+            create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
 
         return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
 
         # except Exception as e:
         #     return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def site_recent_pictures(request):
+    query_params = request.query_params
+    site_id = query_params.get('site')
+    site_featured_images = Site.objects.get(pk=site_id).site_featured_images
+    recent_pictures = get_recent_images(site_id)
+    recent_pictures = list(recent_pictures["result"])
+    return Response({'site_featured_images': site_featured_images,
+                     'recent_pictures': recent_pictures})
+
+
+def check_file_extension(file_url):
+    type = 'others'
+
+    if file_url.endswith(('.jpg', '.png', '.jpeg')):
+        type = 'image'
+
+    elif file_url.endswith(('.xls', '.xlsx')):
+        type = 'excel'
+
+    elif file_url.endswith('.pdf'):
+        type = 'pdf'
+
+    elif file_url.endswith(('.doc', '.docm', 'docx', '.dot', '.dotm', '.dot', '.txt', '.odt')):
+        type = 'word'
+
+    return type
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def site_documents(request):
+    query_params = request.query_params
+    site_id = query_params.get('site_id')
+    blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
+    data = [{'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
+            for blueprint in blueprints_obj]
+    return Response(data)
+

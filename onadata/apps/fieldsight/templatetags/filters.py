@@ -135,7 +135,8 @@ class RoleInGroup(template.Node):
 
     def render(self, context):
         request = template.resolve_variable('request', context)
-        if request.role and request.role.group.name in USURPERS[self.role]:
+        user_groups = request.roles.values_list("group__name", flat=True)
+        if not set(USURPERS[self.role]).isdisjoint(user_groups):
             return self.nodelist.render(context)
         else:
             return ''

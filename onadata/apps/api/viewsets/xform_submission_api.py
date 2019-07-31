@@ -1,5 +1,6 @@
 import re
 import StringIO
+import uuid
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -18,7 +19,13 @@ from rest_framework.authentication import (
     SessionAuthentication,)
 from rest_framework.response import Response
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
+
+from onadata.apps.eventlog.models import CeleryTaskProgress
+from onadata.apps.fsforms.fieldsight_logger_tools import save_submission
+from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.logger.models import Instance
+from onadata.apps.logger.xform_instance_parser import \
+    get_deprecated_uuid_from_xml, get_uuid_from_xml
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models.parsed_instance import update_mongo_instance
 from onadata.libs import filters
@@ -55,6 +62,7 @@ def dict_lists2strings(d):
 def create_instance_from_xml(username, request):
     xml_file_list = request.FILES.pop('xml_submission_file', [])
     xml_file = xml_file_list[0] if len(xml_file_list) else None
+
     media_files = request.FILES.values()
 
     return safe_create_instance(username, xml_file, media_files, None, request)
@@ -104,11 +112,25 @@ def update_mongo(i):
             d['fs_uuid'] = str(x.site_fxf_id)
         try:
             synced = update_mongo_instance(d, i.id)
-            print(synced, "updated in mongo success")
         except Exception as e:
             print(str(e))
     except Exception as e:
         print(str(e))
+
+
+def update_meta(instance):
+    if instance.fieldsight_instance.project_fxf and \
+            instance.fieldsight_instance.site:
+        task_obj = CeleryTaskProgress.objects.create(user=instance.user,
+                                                     description='Change site info',
+                                                     task_type=25,
+                                                     content_object=instance.fieldsight_instance)
+        if task_obj:
+            from onadata.apps.fieldsight.tasks import update_meta_details
+            update_meta_details.apply_async(
+                (instance.fieldsight_instance.project_fxf.id, instance.id,
+                 task_obj.id, instance.fieldsight_instance.site.id),
+                countdown=1)
 
 
 class XFormSubmissionApi(OpenRosaHeadersMixin,
@@ -197,36 +219,32 @@ Here is some example JSON, it would replace `[the JSON]` above:
 
     def create(self, request, *args, **kwargs):
         username = self.kwargs.get('username')
-        # if self.request.user.is_anonymous():
-        #     if username is None:
-        #         # raises a permission denied exception, forces authentication
-        #         self.permission_denied(self.request)
-        #     else:
-        #         user = get_object_or_404(User, username=username.lower())
-        #
-        #         profile, created = UserProfile.objects.get_or_create(user=user)
-        #
-        #         if profile.require_auth:
-        #             # raises a permission denied exception,
-        #             # forces authentication
-        #             self.permission_denied(self.request)
-        # elif not username:
-        #     # get the username from the user if not set
-        #     username = (request.user and request.user.username)
-
+        site = self.request.query_params.get('site')
+        form = self.request.query_params.get('form')
+        dep = self.request.query_params.get('dep', False)
         if request.method.upper() == 'HEAD':
             return Response(status=status.HTTP_204_NO_CONTENT,
                             headers=self.get_openrosa_headers(request),
                             template_name=self.template_name)
+        if form and form != "undefined" and not dep:
 
+            return self.create_new_submission(request, site, form)
+
+        if dep:
+            uuid_value = dep.replace("uuid:", "")
+            if not Instance.objects.filter(uuid=uuid_value).exists():
+                return Response({'error': "Cannot edit this submission"},
+                                headers=self.get_openrosa_headers(request),
+                                status=status.HTTP_400_BAD_REQUEST)
         is_json_request = is_json(request)
-
+        #
         error, instance = (create_instance_from_json if is_json_request else
                            create_instance_from_xml)(username, request)
 
         if error or not instance:
             return self.error_response(error, is_json_request, request)
         update_mongo(instance)
+        update_meta(instance)
         context = self.get_serializer_context()
         serializer = SubmissionSerializer(instance, context=context)
 
@@ -251,3 +269,107 @@ Here is some example JSON, it would replace `[the JSON]` above:
         return Response({'error': error_msg},
                         headers=self.get_openrosa_headers(request),
                         status=status_code)
+
+    def create_new_submission(self, request, site, form):
+        fs_xf = FieldSightXF.objects.get(pk=form)
+        xform = fs_xf.xf
+        xml_file_list = self.request.FILES.pop('xml_submission_file', [])
+        xml_file = xml_file_list[0] if len(xml_file_list) else None
+        xml = xml_file.read()
+        username = self.kwargs.get('username')
+        user = get_object_or_404(User, username=username)
+        media_files = request.FILES.values()
+        new_uuid = get_uuid_from_xml(xml)
+        site_id = site
+        with transaction.atomic():
+            if fs_xf.is_survey:
+                instance = save_submission(
+                    xform=xform,
+                    xml=xml,
+                    media_files=media_files,
+                    new_uuid=new_uuid,
+                    submitted_by=user,
+                    status='submitted_via_web',
+                    date_created_override=None,
+                    fxid=None,
+                    site=None,
+                    fs_poj_id=fs_xf.id,
+                    project=fs_xf.project.id,
+                )
+            else:
+                if fs_xf.site:
+                    instance = save_submission(
+                        xform=xform,
+                        xml=xml,
+                        media_files=media_files,
+                        new_uuid=new_uuid,
+                        submitted_by=user,
+                        status='submitted_via_web',
+                        date_created_override=None,
+                        fxid=fs_xf.id,
+                        site=site_id,
+                    )
+                else:
+                    instance = save_submission(
+                        xform=xform,
+                        xml=xml,
+                        media_files=media_files,
+                        new_uuid=new_uuid,
+                        submitted_by=user,
+                        status='submitted_via_web',
+                        date_created_override=None,
+                        fxid=None,
+                        site=site_id,
+                        fs_poj_id=fs_xf.id,
+                        project=fs_xf.project.id,
+                    )
+                    task_obj = CeleryTaskProgress.objects.create(
+                        user=user,
+                        description='Change site info',
+                        task_type=25,
+                        content_object=instance.fieldsight_instance)
+                    if task_obj:
+                        from onadata.apps.fieldsight.tasks import \
+                            update_meta_details
+                        update_meta_details.apply_async(
+                            (fs_xf.id, instance.id, task_obj.id, site_id),
+                            countdown=1)
+                    if fs_xf.is_staged:
+                        instance.fieldsight_instance.site.update_current_progress()
+                    else:
+                        instance.fieldsight_instance.site.update_status()
+
+            noti_type = 16
+            title = "new submission"
+
+            if instance.fieldsight_instance.site:
+                extra_object = instance.fieldsight_instance.site
+                extra_message = ""
+                project = extra_object.project
+                site = extra_object
+                organization = extra_object.project.organization
+
+            else:
+                extra_object = instance.fieldsight_instance.project
+                extra_message = "project"
+                project = extra_object
+                site = None
+                organization = extra_object.organization
+
+            instance.fieldsight_instance.logs.create(source=user,
+                                                     type=noti_type,
+                                                     title=title,
+
+                                                     organization=organization,
+                                                     project=project,
+                                                     site=site,
+                                                     extra_object=extra_object,
+                                                     extra_message=extra_message,
+                                                     content_object=instance.fieldsight_instance)
+
+        context = self.get_serializer_context()
+        serializer = SubmissionSerializer(instance, context=context)
+        return Response(serializer.data,
+                        headers=self.get_openrosa_headers(request),
+                        status=status.HTTP_201_CREATED,
+                        template_name=self.template_name)

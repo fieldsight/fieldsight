@@ -9,7 +9,7 @@ from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings
+from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings, SiteMetaAttrAnsHistory
 from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
@@ -51,7 +51,7 @@ from django.utils import timezone
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
-from onadata.apps.fsforms.models import Instance
+from onadata.apps.logger.models import Instance, Attachment
 from onadata.apps.fieldsight.fs_exports.log_generator import log_types
 
 from django.db.models import Q
@@ -2591,3 +2591,105 @@ def scheduled_gsuit_sync():
             else:
                 sync_form_controller(project.gsuit_sync, project.gsuit_sync_day, fxf, month_days)
         project.gsuit_sync
+
+
+@shared_task(time_limit=300, max_retries=5, soft_time_limit=300)
+def create_site_meta_attribs_ans_history(pk, task_id):
+    from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
+    try:
+        sites = Site.objects.filter(project_id=pk)
+        for site in sites:
+            time.sleep(1)
+            metas = get_site_meta_ans(site.id)
+            if metas == site.site_meta_attributes_ans:
+                continue
+            else:
+                SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans,
+                                                      status=2)
+                site.site_meta_attributes_ans = metas
+                site.save()
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+
+@shared_task(max_retries=5, time_limit=300, soft_time_limit=300)
+def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
+    try:
+        instance = Instance.objects.get(id=instance_id)
+        fs_proj_xf = FieldSightXF.objects.get(id=fs_proj_xf_id)
+        site = Site.objects.get(id=site_id)
+        site_picture = site.project.site_basic_info.get('site_picture', None)
+        if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
+                                                                                                 0) == fs_proj_xf.id and site_picture.get(
+                'question', {}):
+            question_name = site_picture['question'].get('name', '')
+            logo_url = instance.json.get(question_name)
+            if logo_url:
+                attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                site.logo = attachment.media_file
+
+        site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
+        if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == fs_proj_xf.id and site_loc.get('question', {}):
+            question_name = site_loc['question'].get('name', '')
+            location = instance.json.get(question_name)
+            if location:
+                site.location = location
+
+        for featured_img in fs_proj_xf.project.site_featured_images:
+            if featured_img.get('question_type', '') == 'Form' and featured_img.get('form_id', '') == str(fs_proj_xf.id) and featured_img.get('question', {}):
+
+                question_name = featured_img['question'].get('name', '')
+                logo_url = instance.json.get(question_name)
+                if logo_url:
+                    attachments = {}
+                    attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                    attachments['_attachments'] = attachment.media_file.url
+                    attachments['_id'] = instance.id
+                    site.site_featured_images[question_name] = attachments
+
+        # change site meta attributes answer
+        meta_ans = site.site_meta_attributes_ans
+        for item in fs_proj_xf.project.site_meta_attributes:
+            if item.get('question_type') == 'Form' and fs_proj_xf.id == item.get('form_id', 0):
+                if item['question']['type'] == "repeat":
+                    answer = ""
+                else:
+                    answer = instance.get(item.get('question').get('name'), '')
+                if item['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
+                    answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fs_proj_xf.xf.user.username + '/attachments/' + answer
+                meta_ans[item['question_name']] = answer
+
+            elif item.get('question_type') == 'FormSubStat' and fs_proj_xf.id == item.get('form_id', 0):
+                answer = "Last submitted on " + instance.date.strftime("%d %b %Y %I:%M %P")
+                meta_ans[item['question_name']] = answer
+
+            elif item.get('question_type') == "FormQuestionAnswerStatus":
+                get_answer = instance.json.get(item.get('question').get('name'), None)
+                if get_answer:
+                    answer = "Answered"
+                else:
+                    answer = ""
+                meta_ans[item['question_name']] = answer
+
+            elif item.get('question_type') == "FormSubCountQuestion":
+                meta_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
+
+        SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
+        site.site_meta_attributes_ans = meta_ans
+        site.save()
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception as e:
+        print('Exception occured', e)
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+@shared_task()
+def update_current_progress_site(site_id):
+    site = Site.objects.get(pk=site_id)
+    set_site_progress(site, site.project)
+    try:
+        status = site.site_instances.order_by('-date').first().form_status
+    except:
+        status = 0
+    site.current_status = status
+    site.save()

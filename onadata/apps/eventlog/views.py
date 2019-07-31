@@ -53,7 +53,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     pagination_class = LargeResultsSetPagination
 
     def filter_queryset(self, queryset):
-        if self.request.group.name == "Super Admin":
+        if self.request.is_super_admin:
             return queryset 
         org_ids = self.request.roles.filter(group__name='Organization Admin').values('organization_id')
         project_ids = self.request.roles.filter(group__name='Project Manager').values('project_id')
@@ -76,10 +76,10 @@ class MyTaskListViewSet(viewsets.ModelViewSet):
         profile.task_last_view_date = datetime.now()
         profile.save()
 
-        exclude_task_type = [15, 17, 18, 19, 20, 21, 22, 23]
+        exclude_task_type = [15, 17, 18, 19, 20, 21, 22, 23, 24, 25]
         
-        if self.request.group.name == "Super Admin":
-            return queryset.order_by('-date_updateded')
+        if self.request.is_super_admin:
+            return queryset.filter(~Q(task_type__in=exclude_task_type)).order_by('-date_updateded')
 
         return queryset.filter(~Q(task_type__in=exclude_task_type), user_id=self.request.user.id).order_by('-date_updateded')
 
@@ -95,7 +95,7 @@ class OtherTaskListViewSet(viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         # if self.request.group.name == "Super Admin":
         #     return queryset 
-        if self.request.group.name == "Super Admin":
+        if self.request.is_super_admin:
             return queryset.order_by('-date_updateded')
 
         self_projects = UserRole.objects.filter(user_id=self.request.user.id, ended_at__isnull=False, project_id__isnull=False).distinct('project_id').values_list('project_id', flat=True)
@@ -120,7 +120,9 @@ class SiteLog(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing and editing sites.
     """
-    queryset = FieldSightLog.objects.select_related('source__user_profile').filter(recipient=None)
+    queryset = FieldSightLog.objects.select_related('source__user_profile', 'project').prefetch_related('seen_by',
+                                                                                                        'content_object', 'content_object', 'extra_object').\
+        filter(recipient=None)
     serializer_class = NotificationSerializer
     pagination_class = LargeResultsSetPagination
 
@@ -150,7 +152,7 @@ class NotificationCountnSeen(View):
                 queryset = FieldSightLog.objects.filter(date__gt=request.user.user_profile.notification_seen_date).prefetch_related('seen_by')
             else:
                 return JsonResponse({'error': 'Please log In'})
-            if request.group.name == "Super Admin":
+            if request.is_super_admin:
                 count = queryset.filter().exclude(seen_by__id=request.user.id).count()
                 task_count = CeleryTaskProgress.objects.filter(status__in=[2,3], date_updateded__gte = request.user.user_profile.task_last_view_date).count()
             else:
