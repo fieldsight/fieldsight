@@ -38,7 +38,7 @@ from rest_framework import viewsets, serializers, status
 from onadata.apps.fsforms.models import FInstance
 from django.db.models import Q
 from onadata.apps.fieldsight.rolemixins import LoginRequiredMixin, EndRoleMixin, SameOrganizationProfileRoleMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, MultipleObjectsReturned
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.template.loader import render_to_string
 from .signup_tokens import account_activation_token
@@ -497,6 +497,7 @@ def all_notification(user, message):
         })
     })
 
+
 def web_authenticate(username=None, password=None):
         try:
             if "@" in username:
@@ -509,6 +510,9 @@ def web_authenticate(username=None, password=None):
                 return None, True  # Email is correct
         except User.DoesNotExist:
             return None, False   # false Email incorrect
+        except MultipleObjectsReturned:
+            print("username multiple", username)
+            return None, False
 
 
 def web_login(request):
