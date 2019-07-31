@@ -277,7 +277,7 @@ Here is some example JSON, it would replace `[the JSON]` above:
         xml_file = xml_file_list[0] if len(xml_file_list) else None
         xml = xml_file.read()
         username = self.kwargs.get('username')
-        user = get_object_or_404(User, username=username.lower())
+        user = get_object_or_404(User, username=username)
         media_files = request.FILES.values()
         new_uuid = get_uuid_from_xml(xml)
         site_id = site
