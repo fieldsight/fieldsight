@@ -506,14 +506,9 @@ class Site(models.Model):
         return self.type.name
 
     def update_current_progress(self):
-        from onadata.apps.fieldsight.utils.progress import set_site_progress
-        set_site_progress(self, self.project)
-        try:
-            status = self.site_instances.order_by('-date').first().form_status
-        except:
-            status = 0
-        self.current_status = status
-        self.save()
+        from onadata.apps.fieldsight.tasks import update_current_progress_site
+        update_current_progress_site.apply_async(
+            kwargs={'site_id': self.id}, countdown=5)
 
     def progress(self):
         approved_site_forms_weight = self.site_instances.filter(form_status=3, site_fxf__is_staged=True).distinct('site_fxf').values_list('site_fxf__stage__weight', flat=True)
@@ -835,4 +830,5 @@ def check_deployed(sender, instance, created,  **kwargs):
                                                      description="Update Sites Progress",
                                                      task_type=23, content_object=instance)
         if task_obj:
-            update_sites_progress.delay(instance.pk, task_obj.id)
+            update_sites_progress.apply_async(kwargs={'pk': instance.id,
+                                                      'task_id': task_obj.id}, countdown=5)
