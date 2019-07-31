@@ -39,3 +39,9 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
         else:
             return 0
 
+    def to_representation(self, obj):
+        data = super(ProjectSitesListSerializer, self).to_representation(obj)
+        if self.context.get('is_region', None):
+
+            data.pop('region')
+        return data

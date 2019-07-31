@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -25,7 +25,6 @@ from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fsforms.reports_util import get_recent_images
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
     SiteTypeSerializer, ProjectLevelTermsAndLabelsSerializer, ProjectRegionSerializer, ProjectSitesSerializer
-from onadata.apps.fv3.serializers import ProjectSitesListSerializer
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectsitesPagination
 from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
@@ -34,6 +33,7 @@ from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, create_site_meta_attribs_ans_history
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
+from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 from onadata.apps.fv3.serializers.project_settings import ProgressSettingsSerializer
 from .role_api_permissions import ProjectRoleApiPermissions
 
@@ -658,6 +658,34 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
 
         region_id = self.request.query_params.get('region', None)
+        search_param = self.request.query_params.get('q', None)
+
+        if search_param and region_id:
+            return self.queryset.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
+                                        region_id=region_id, is_survey=False, is_active=True)
 
         if region_id:
-            return self.queryset.filter(region_id=region_id, is_active=True)
+            return self.queryset.filter(region_id=region_id, is_survey=False, is_active=True)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        try:
+            page = self.paginate_queryset(queryset)
+        except:
+            return Response({"message": "Region Id is required."}, status=status.HTTP_204_NO_CONTENT)
+
+        search_param = request.query_params.get('q', None)
+        region_id = self.request.query_params.get('region', None)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            region_queryset = Region.objects.select_related('parent', 'project').filter(parent=region_id, is_active=True)
+            region_data = [{'identifier': r.identifier, 'name': r.name, 'total_sites': r.get_sites_count()} for r in region_queryset]
+            return self.get_paginated_response({'data': serializer.data, 'query': search_param, 'sub_regions': region_data})
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def get_serializer_context(self):
+        return {'is_region': True}
