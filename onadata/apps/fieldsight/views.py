@@ -438,7 +438,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
     @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if request.roles.filter(group__name__in=["Unassigned", "Super Admin"]).exists():
+            if request.roles.filter(group__name="Super Admin").exists() or not request.user.organizations.all():
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
@@ -966,7 +966,7 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         return context
         
     def get_success_url(self):
-        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.object.id})
+        return self.object.get_absolute_url()
 
     def form_valid(self, form):
 
@@ -1032,7 +1032,7 @@ class SubSiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         return context
 
     def get_success_url(self):
-        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.object.id})
+        return self.object.get_absolute_url()
 
     def form_valid(self, form):
 

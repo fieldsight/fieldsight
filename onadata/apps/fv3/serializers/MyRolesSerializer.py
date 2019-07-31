@@ -169,7 +169,8 @@ class MyRolesSerializer(serializers.ModelSerializer):
         org_admin = self.get_has_organization_access(obj)
 
         if org_admin:
-            roles = Project.objects.filter(organization=obj.organization, is_active=True).values('id', 'name')
+            data = Project.objects.filter(organization=obj.organization, is_active=True)
+            roles = [{'id': r.id, 'name': r.name, 'has_access': True} for r in data]
             # roles = [{'id': proj.id, 'name': proj.name, 'project_url': settings.SITE_URL + proj.get_absolute_url()} for proj in data]
 
         else:
