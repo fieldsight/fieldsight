@@ -193,7 +193,7 @@ class MyRolesSerializer(serializers.ModelSerializer):
         data = super(MyRolesSerializer, self).to_representation(obj)
         user = self.context['user']
 
-        if obj.organization_id in user.user_roles.filter(group__name="Organization Admin").values_list('organization_id', flat=True):
+        if obj.organization_id not in user.user_roles.filter(group__name="Organization Admin").values_list('organization_id', flat=True):
 
             data.pop('team_url')
 

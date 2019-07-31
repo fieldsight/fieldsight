@@ -7,7 +7,7 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse_lazy
 
 from onadata.apps.eventlog.models import FieldSightLog
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.fieldsight.models import Site, ProjectLevelTermsAndLabels
 from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.models import UserProfile
@@ -56,13 +56,14 @@ class SiteSerializer(serializers.ModelSerializer):
     site_progress_chart_data = serializers.SerializerMethodField()
     form_submissions_chart_data = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
+    terms_and_labels = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
         fields = ('id', 'name', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
                   'total_users', 'users', 'submissions',
                   'form_submissions_chart_data', 'site_progress_chart_data',
-                  'total_subsites')
+                  'total_subsites', 'terms_and_labels')
 
     def get_submissions(self, obj):
         response = obj.get_site_submission_count()
@@ -136,6 +137,29 @@ class SiteSerializer(serializers.ModelSerializer):
                 }
 
         return data
+
+    def get_terms_and_labels(self, obj):
+        project = obj.project
+        if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=project).exists():
+
+            return {'site': project.terms_and_labels.site,
+                    'donor': project.terms_and_labels.donor,
+                    'site_supervisor': project.terms_and_labels.site_supervisor,
+                    'site_reviewer': project.terms_and_labels.site_reviewer,
+                    'region': project.terms_and_labels.region,
+                    'region_supervisor': project.terms_and_labels.region_supervisor,
+                    'region_reviewer': project.terms_and_labels.region_reviewer,
+                    }
+
+        else:
+            return {'site': 'Site',
+                    'donor': 'Donor',
+                    'site_supervisor': 'Site Supervisor',
+                    'site_reviewer': 'Site Reviewer',
+                    'region': 'Region',
+                    'region_supervisor': 'Region Supervisor',
+                    'region_reviewer': 'Region Reviewer',
+                    }
 
 
 class FInstanceSerializer(serializers.ModelSerializer):

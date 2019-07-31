@@ -129,7 +129,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
         elif obj.task_type == 6:
             site_id = int(obj.get_event_url().split('/')[5])
-            site = Site.objects.get(id=site_id)
+            site = Site.all_objects.get(id=site_id)
             project = Project.objects.get(id=site.project.id)
 
             terms = ProjectLevelTermsAndLabels.objects.filter(project_id=project.id).exists()

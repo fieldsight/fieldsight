@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch
 from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
@@ -24,6 +25,8 @@ from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fsforms.reports_util import get_recent_images
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
     SiteTypeSerializer, ProjectLevelTermsAndLabelsSerializer, ProjectRegionSerializer, ProjectSitesSerializer
+from onadata.apps.fv3.serializers import ProjectSitesListSerializer
+from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectsitesPagination
 from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
@@ -33,8 +36,6 @@ from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.project_settings import ProgressSettingsSerializer
 from .role_api_permissions import ProjectRoleApiPermissions
-
-
 
 
 class ProjectSitesPagination(PageNumberPagination):
@@ -647,3 +648,16 @@ def site_documents(request):
             for blueprint in blueprints_obj]
     return Response(data)
 
+
+class RegionalSites(viewsets.ReadOnlyModelViewSet):
+    queryset = Site.objects.select_related('project', 'region', 'type')
+    serializer_class = ProjectSitesListSerializer
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = ProjectsitesPagination
+
+    def get_queryset(self):
+
+        region_id = self.request.query_params.get('region', None)
+
+        if region_id:
+            return self.queryset.filter(region_id=region_id, is_active=True)
