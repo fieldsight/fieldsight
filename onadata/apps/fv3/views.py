@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -93,12 +93,17 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
         last_updated = query_params.get('last_updated')
 
         if region_id:  # Region Reviewer Roles
-            sites = Site.objects.filter(region=region_id)
+            sites = Site.objects.filter(Q(region=region_id) | Q(
+                site__region=region_id))
         elif project_id:  # Site Supervisor Roles
-            sites = Site.objects.filter(project=project_id,
-                                            site_roles__region__isnull=True,
-                                            site_roles__group__name="Site Supervisor",
-                                            site_roles__user=self.request.user).order_by('id').distinct('id')
+            sites = Site.objects.filter(project=project_id).filter(Q(
+                site_roles__region__isnull=True,
+                site_roles__group__name="Site Supervisor",
+                site_roles__user=self.request.user) | Q(
+                site__site_roles__region__isnull=True,
+                site__site_roles__group__name="Site Supervisor",
+                site__site_roles__user=self.request.user)).order_by(
+                'id').distinct('id')
 
         else:
             sites = []
