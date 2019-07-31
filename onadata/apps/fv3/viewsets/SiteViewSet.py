@@ -20,6 +20,8 @@ from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanc
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, Schedule, Stage, FieldSightXF
 
+from onadata.apps.fsforms.reports_util import get_recent_images
+
 
 class SiteSubmissionsPagination(PageNumberPagination):
     page_size = 100
@@ -137,3 +139,44 @@ class SiteCropImage(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def site_recent_pictures(request):
+    query_params = request.query_params
+    site_id = query_params.get('site')
+    site_featured_images = Site.objects.get(pk=site_id).site_featured_images
+    recent_pictures = get_recent_images(site_id)
+    recent_pictures = list(recent_pictures["result"])
+    return Response({'site_featured_images': site_featured_images,
+                     'recent_pictures': recent_pictures})
+
+
+def check_file_extension(file_url):
+    type = 'others'
+
+    if file_url.endswith(('.jpg', '.png', '.jpeg')):
+        type = 'image'
+
+    elif file_url.endswith(('.xls', '.xlsx')):
+        type = 'excel'
+
+    elif file_url.endswith('.pdf'):
+        type = 'pdf'
+
+    elif file_url.endswith(('.doc', '.docm', 'docx', '.dot', '.dotm', '.dot', '.txt', '.odt')):
+        type = 'word'
+
+    return type
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def site_documents(request):
+    query_params = request.query_params
+    site_id = query_params.get('site_id')
+    blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
+    data = [{'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
+            for blueprint in blueprints_obj]
+    return Response(data)

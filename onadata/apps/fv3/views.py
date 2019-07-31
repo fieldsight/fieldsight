@@ -1,9 +1,7 @@
 import json
 from datetime import datetime
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch, Q
-from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -22,9 +20,8 @@ from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteTy
 from onadata.apps.fsforms.models import FInstance, ProgressSettings
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
-from onadata.apps.fsforms.reports_util import get_recent_images
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
-    SiteTypeSerializer, ProjectLevelTermsAndLabelsSerializer, ProjectRegionSerializer, ProjectSitesSerializer
+    ProjectRegionSerializer, ProjectSitesSerializer
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectsitesPagination
 from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
@@ -34,7 +31,6 @@ from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, Unass
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
-from onadata.apps.fv3.serializers.project_settings import ProgressSettingsSerializer
 from .role_api_permissions import ProjectRoleApiPermissions
 
 
@@ -203,118 +199,6 @@ class sectors_subsectors(viewsets.ModelViewSet):
 
         else:
             return queryset
-
-
-class ProjectSiteTypesViewset(viewsets.ModelViewSet):
-    """
-    A simple ViewSet for viewing and creating site types of project. Allowed methods 'get', 'post', 'put', 'delete'.
-    """
-    queryset = SiteType.objects.all()
-    serializer_class = SiteTypeSerializer
-    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
-
-    def get_queryset(self):
-
-        project_id = self.request.query_params.get('project', None)
-        if project_id:
-            project = get_object_or_404(Project, id=project_id)
-            return self.queryset.filter(project=project)
-        else:
-            return self.queryset
-
-
-class ProjectTermsLabelsViewset(viewsets.ModelViewSet):
-    """
-    A simple ViewSet for viewing, creating, updating and deleting terms and labels. Allowed methods 'get', 'post', 'put',
-    'delete'.
-    """
-    queryset = ProjectLevelTermsAndLabels.objects.filter(project__is_active=True)
-    serializer_class = ProjectLevelTermsAndLabelsSerializer
-    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
-
-    def get_queryset(self):
-
-        project_id = self.request.query_params.get('project', None)
-
-        if project_id:
-            project = get_object_or_404(Project, id=project_id)
-
-            return self.queryset.filter(project=project)
-        else:
-            return self.queryset
-
-
-class ProjectRegionsViewset(viewsets.ModelViewSet):
-    """
-    A simple ViewSet for viewing, creating, updating and deleting regions. Allowed methods 'get', 'post', 'put', 'delete'.
-    """
-    queryset = Region.objects.all()
-    serializer_class = ProjectRegionSerializer
-    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
-
-    def get_queryset(self):
-
-        project_id = self.request.query_params.get('project', None)
-        region_id = self.request.query_params.get('region', None)
-
-        if project_id and region_id:
-
-            region = get_object_or_404(Region, id=region_id)
-            project = get_object_or_404(Project, id=project_id)
-            return self.queryset.filter(project=project, parent_id=region.id)
-
-        elif project_id:
-            project = get_object_or_404(Project, id=project_id)
-            return self.queryset.filter(project=project, parent=None)
-
-        else:
-            return self.queryset
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        valid = serializer.is_valid(raise_exception=False)
-        if valid:
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        else:
-
-            project_id = serializer.data.get('project')
-            # parent_identifier = Region.objects.get(pk=self.kwargs.get('parent_pk')).get_concat_identifier()
-            # form.cleaned_data['identifier'] = parent_identifier + form.cleaned_data.get('identifier')
-
-            existing_identifier = Region.objects.filter(identifier=serializer.data.get('identifier'),
-                                                        project_id=project_id)
-
-            if existing_identifier:
-                return Response({'status': status.HTTP_400_BAD_REQUEST,
-                                 'message': 'Your identifier conflict with existing region please use different identifier to create region'})
-
-    def perform_create(self, serializer):
-        parent_exists = serializer.validated_data.get('parent', None)
-
-        if parent_exists is not None:
-            if serializer.validated_data['parent']:
-
-                parent_identifier = serializer.validated_data['parent'].get_concat_identifier()
-                new_identifier = parent_identifier + serializer.validated_data['identifier']
-                serializer.save(identifier=new_identifier)
-        else:
-
-            serializer.save()
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            site = Site.objects.filter(region=instance)
-            site.update(region_id=None)
-            self.perform_destroy(instance)
-            return Response(status=status.HTTP_200_OK)
-        except Http404:
-            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ProjectSitesViewset(viewsets.ModelViewSet):
@@ -606,47 +490,6 @@ class ProjectDefineSiteMeta(APIView):
 
         # except Exception as e:
         #     return Response(data='Error: ' + str(e), status=status.HTTP_400_BAD_REQUEST)
-
-
-@permission_classes([IsAuthenticated])
-@api_view(['GET'])
-def site_recent_pictures(request):
-    query_params = request.query_params
-    site_id = query_params.get('site')
-    site_featured_images = Site.objects.get(pk=site_id).site_featured_images
-    recent_pictures = get_recent_images(site_id)
-    recent_pictures = list(recent_pictures["result"])
-    return Response({'site_featured_images': site_featured_images,
-                     'recent_pictures': recent_pictures})
-
-
-def check_file_extension(file_url):
-    type = 'others'
-
-    if file_url.endswith(('.jpg', '.png', '.jpeg')):
-        type = 'image'
-
-    elif file_url.endswith(('.xls', '.xlsx')):
-        type = 'excel'
-
-    elif file_url.endswith('.pdf'):
-        type = 'pdf'
-
-    elif file_url.endswith(('.doc', '.docm', 'docx', '.dot', '.dotm', '.dot', '.txt', '.odt')):
-        type = 'word'
-
-    return type
-
-
-@permission_classes([IsAuthenticated])
-@api_view(['GET'])
-def site_documents(request):
-    query_params = request.query_params
-    site_id = query_params.get('site_id')
-    blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
-    data = [{'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
-            for blueprint in blueprints_obj]
-    return Response(data)
 
 
 class RegionalSites(viewsets.ReadOnlyModelViewSet):
