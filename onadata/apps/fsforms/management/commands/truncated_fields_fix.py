@@ -34,21 +34,23 @@ CORRECTION_ACTION = {
 }
 
 EVENTS = {
-    "homeowner_training":"homeowner_trai",
-    "project_introduction":"project_introd",
-    "introduction_about_tsc":"introduction_a",
-    "municipal_process_of_drawing":"municipal_proc",
-    "reconstruction_process_of_nepa":"reconstruction",
+    # "homeowner_training":"homeowner_trai",
+    # "project_introduction":"project_introd",
+    # "introduction_about_tsc":"introduction_a",
+    # "municipal_process_of_drawing":"municipal_proc",
+    # "reconstruction_process_of_nepa":"reconstruction",
+    "stakeholder_me ":"stakeholder_me",
 
 }
 
 STFC_SERVICES = {
-    "municipal_procedure":"municipal_proc",
-    "grievance_consultation":"grievance_cons",
-    "banking_consultation":"banking_consul",
-    "drawing_registration":"drawing_regist",
-    "drawing_receive":"drawing_receiv",
-    "pa_agreement_sa":"pa_agreement_s",
+    # "municipal_procedure":"municipal_proc",
+    # "grievance_consultation":"grievance_cons",
+    # "banking_consultation":"banking_consul",
+    # "drawing_registration":"drawing_regist",
+    # "drawing_receive":"drawing_receiv",
+    # "pa_agreement_sa":"pa_agreement_s",
+    "construction_site":"construction_s",
 
 }
 
