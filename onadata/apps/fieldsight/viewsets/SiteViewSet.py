@@ -69,11 +69,14 @@ class SiteViewPermission(BasePermission):
 
 class ProjectViewPermission(BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return obj.project.organization == request.organization
-        return request.project == obj.project
+        if request.roles.filter(group__name="Organization Admin",
+                                organization=obj.project.organization).exists():
+            return True
+        return request.roles.filter(group__name__in=["Project Manager",
+                                                    "Project Donor"],
+                                project=obj.project).exists()
 
 class ReviewerViewPermission(BasePermission):
     def has_permission(self, request, view):
