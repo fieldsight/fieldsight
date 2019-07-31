@@ -157,7 +157,8 @@ class MyRolesSerializer(serializers.ModelSerializer):
         return obj.organization.logo.url
 
     def get_has_organization_access(self, obj):
-        if obj.group.name == "Organization Admin":
+        user = self.context['user']
+        if obj.organization_id in user.user_roles.filter(group__name="Organization Admin").values_list('organization_id', flat=True):
             has_access = True
 
         else:

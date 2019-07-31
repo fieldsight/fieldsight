@@ -86,7 +86,7 @@ def my_roles(request):
                                                                    Q(group__name="Staff Project Manager", staff_project__is_deleted=False)
 
                                                                    ).distinct('organization')
-    teams = MyRolesSerializer(teams, many=True)
+    teams = MyRolesSerializer(teams, many=True, context={'user': request.user})
 
     invitations = UserInvite.objects.select_related('by_user').filter(email=request.user.email, is_used=False, is_declied=False)
 
