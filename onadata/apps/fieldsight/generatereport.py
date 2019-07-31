@@ -206,8 +206,7 @@ class PDFReport:
 
                 size = "small"
                 try:
-                    result = Attachment.objects.filter(instance_id=self.instance_id, media_file_basename=answer_dict[question_name])[0:1]
-                    attachment = result[0]
+                    attachment = Attachment.objects.filter(instance_id=self.instance_id, media_file_basename=answer_dict[question_name]).first() or Attachment.objects.filter(instance_id=self.instance_id, media_file_basename=answer_dict[question_name]).first()
 
                     if not attachment.mimetype.startswith('image'):
                         media_url = 'http://' + self.base_url +'/static/images/img-404.jpg'
