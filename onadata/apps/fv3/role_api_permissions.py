@@ -113,7 +113,8 @@ class SiteDashboardPermissions(permissions.BasePermission):
                 return True
 
             project = site.project
-            user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                "Project Donor"])
 
             if user_role_as_manager:
                 return True
@@ -162,7 +163,8 @@ class SiteSubmissionPermission(permissions.BasePermission):
                     return True
 
                 project = site.project
-                user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+                user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                    "Project Donor"])
 
                 if user_role_as_manager:
                     return True
@@ -211,7 +213,8 @@ def check_site_permission(request, pk):
             return True
 
         project = site.project
-        user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+        user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                            "Project Donor"])
 
         if user_role_as_manager:
             return True

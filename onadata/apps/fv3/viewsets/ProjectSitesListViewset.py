@@ -22,6 +22,14 @@ class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
 
         project_id = self.request.query_params.get('project', None)
         search_param = self.request.query_params.get('q', None)
+        unassigned = self.request.query_params.get('region', None)
+
+        if search_param and project_id and unassigned:
+            return self.queryset.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
+                                        project_id=project_id, is_survey=False, is_active=True, region=None)
+
+        if project_id and unassigned == "0":
+            return self.queryset.filter(project_id=project_id, is_survey=False, is_active=True, region=None)
 
         if search_param and project_id:
             return self.queryset.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),

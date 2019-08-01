@@ -102,10 +102,10 @@ function loadMap(data)
         onEachFeature: function(feature, layer) {
             var address = feature.properties.address || "";
             if('is_lite' in configure_settings && configure_settings.is_lite){
-                var url = "<a href=/fieldsight/site-dashboard/lite/"+feature.id+">"+feature.properties.name+"</a>";
+                var url = "<a href=/fieldsight/application/#/site-dashboard/"+feature.id+">"+feature.properties.name+"</a>";
             }
             else{
-                var url = "<a href=/fieldsight/site-dashboard/"+feature.id+">"+feature.properties.name+"</a>";    
+                var url = "<a href=/fieldsight/application/#/site-dashboard/"+feature.id+">"+feature.properties.name+"</a>";
             }
             layer.bindPopup(url+'<br/>'+address);
 
@@ -205,12 +205,12 @@ function loadMap(data)
                 onEachFeature: function(feature, layer) {
             var address = feature.properties.address || "";
             if('is_lite' in configure_settings && configure_settings.is_lite){
-                var url = "<a href=/fieldsight/site-dashboard/lite/"+feature.id+">"+feature.properties.name+"</a>";
+                var url = "<a href=/fieldsight/application/#/site-dashboard/"+feature.id+">"+feature.properties.name+"</a>";
             }
             else{
-                var url = "<a href=/fieldsight/site-dashboard/"+feature.id+">"+feature.properties.name+"</a>";
+                var url = "<a href=/fieldsight/application/#/site-dashboard/"+feature.id+">"+feature.properties.name+"</a>";
             }
-            var url = "<a href=/fieldsight/site-dashboard/"+feature.id+">"+feature.properties.name+"</a>";
+            var url = "<a href=/fieldsight/application/#/site-dashboard/"+feature.id+">"+feature.properties.name+"</a>";
             layer.bindPopup(url+'<br/>'+address);
 
         }

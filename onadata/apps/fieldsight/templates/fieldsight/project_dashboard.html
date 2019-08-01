@@ -287,7 +287,7 @@ assigntoken(csrf_token);
 								{% endif %}
 								{% if obj.cluster_sites %}
 <!--									<a class="dropdown-item" href="{% url 'fieldsight:multi_site_region_assign' obj.id%}"><i class="la la-map-marker"></i>{% trans 'Assign' %} {% trans 'sites' %} {% trans 'to' %} {% trans 'regions' %}</a>-->
-									<a class="dropdown-item" href="{% url 'fieldsight:application' %}#/regional-site/{{obj.pk}}"><i class="la la-map-marker"></i>
+									<a class="dropdown-item" href="{% url 'fieldsight:application' %}?project={{obj.pk}}#/project-sitelist"><i class="la la-map-marker"></i>
 										{% if terms_and_labels %}
 											{{obj.terms_and_labels.site}}
 										{% else %}
@@ -451,7 +451,7 @@ assigntoken(csrf_token);
 												</div>
 											</a>
 											<!-- /ko-->
-											<a href="{% url 'fieldsight:regional-sites' obj.pk 0 %}" class="project-item-wrap margin-top clearfix " style="width: 100%;">
+											<a href="{% url 'fieldsight:application' %}?project={{obj.pk}}#/project-sitelist" class="project-item-wrap margin-top clearfix " style="width: 100%;">
 												<div class="project-logo">
 													<!-- <img data-bind="attr:{src: logo}" width="50" height="50"/> -->
 												</div>

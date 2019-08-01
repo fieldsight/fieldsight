@@ -231,7 +231,7 @@ class DonorRoleMixin(LoginRequiredMixin):
         
         project_id = self.kwargs.get('pk')
         user_id = request.user.id
-        user_role = request.roles.filter(user_id = user_id, project_id = project_id, group_id=7)
+        user_role = request.roles.filter(user_id = user_id, project_id = project_id, group__name="Project Donor")
         
         if user_role:
             return super(DonorRoleMixin, self).dispatch(request, *args, **kwargs)
