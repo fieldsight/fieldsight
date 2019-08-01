@@ -1,7 +1,8 @@
 import json
 import re
 from django.core.urlresolvers import reverse_lazy
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.response import Response
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged, InstanceImages, \
@@ -68,11 +69,13 @@ class SubmissionSerializer(serializers.ModelSerializer):
     form_name = serializers.SerializerMethodField()
     edit_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
+    has_review_permission = serializers.SerializerMethodField()
 
     class Meta:
         model = Instance
         fields = ('submission_data', 'date_created',  'submitted_by', 'site', 'submission_history',
-                  'status_data', 'form_type','form_name','fieldsight_instance', 'edit_url', 'download_url')
+                  'status_data', 'form_type', 'form_name', 'fieldsight_instance', 'edit_url', 'download_url',
+                  'has_review_permission')
 
     def get_submitted_by(self, obj):
         return obj.user.first_name + ' ' + obj.user.last_name
@@ -350,6 +353,26 @@ class SubmissionSerializer(serializers.ModelSerializer):
                 d[k] = v
             calculated_data.append(d)
         return calculated_data
+
+    def get_has_review_permission(self, obj):
+
+        # request = self.context['request']
+        # site = self.context['kwargs']
+        #
+        # has_acess = False
+        # if request.roles.filter(site=site, group__name="Reviewer") or request.roles.filter(region=site.region,
+        #                                                                                    group__name="Region Reviewer"):
+        #     has_acess = True
+        # elif request.roles.filter(project=site.project, group__name="Project Manager") or \
+        #         request.roles.filter(organization=site.project.organization,
+        #                              group__name="Organization Admin") or request.roles.filter(
+        #     group__name="Super Admin"):
+        #     has_acess = True
+        # if not has_acess:
+        #     return Response({'error': "You are not permitted to change Status of this Submission"},
+        #                     status=status.HTTP_400_BAD_REQUEST)
+
+        return False
 
 
 class EditSubmissionAnswerSerializer(serializers.ModelSerializer):

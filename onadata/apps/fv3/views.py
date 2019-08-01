@@ -521,28 +521,6 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
 
         try:
             region = Region.objects.get(id=int(self.request.query_params.get('region')))
-            project = region.project
-
-            if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=project).exists():
-
-                terms_and_labels = {'site': project.terms_and_labels.site,
-                        'donor': project.terms_and_labels.donor,
-                        'site_supervisor': project.terms_and_labels.site_supervisor,
-                        'site_reviewer': project.terms_and_labels.site_reviewer,
-                        'region': project.terms_and_labels.region,
-                        'region_supervisor': project.terms_and_labels.region_supervisor,
-                        'region_reviewer': project.terms_and_labels.region_reviewer,
-                        }
-
-            else:
-                terms_and_labels = {'site': 'Site',
-                        'donor': 'Donor',
-                        'site_supervisor': 'Site Supervisor',
-                        'site_reviewer': 'Site Reviewer',
-                        'region': 'Region',
-                        'region_supervisor': 'Region Supervisor',
-                        'region_reviewer': 'Region Reviewer',
-                        }
 
         except ObjectDoesNotExist:
             return Response({"message": "Region Id is required."}, status=status.HTTP_204_NO_CONTENT)
@@ -552,7 +530,7 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response({'data': serializer.data, 'query': search_param,
-                                                'terms_and_labels': terms_and_labels})
+                                                })
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -566,8 +544,30 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
 def sub_regions(request):
     query_params = request.query_params
     region_id = query_params.get('region')
+
     try:
         region = Region.objects.get(id=region_id)
+        project = region.project
+        if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=project).exists():
+
+            terms_and_labels = {'site': project.terms_and_labels.site,
+                                'donor': project.terms_and_labels.donor,
+                                'site_supervisor': project.terms_and_labels.site_supervisor,
+                                'site_reviewer': project.terms_and_labels.site_reviewer,
+                                'region': project.terms_and_labels.region,
+                                'region_supervisor': project.terms_and_labels.region_supervisor,
+                                'region_reviewer': project.terms_and_labels.region_reviewer,
+                                }
+
+        else:
+            terms_and_labels = {'site': 'Site',
+                                'donor': 'Donor',
+                                'site_supervisor': 'Site Supervisor',
+                                'site_reviewer': 'Site Reviewer',
+                                'region': 'Region',
+                                'region_supervisor': 'Region Supervisor',
+                                'region_reviewer': 'Region Reviewer',
+                                }
 
     except ObjectDoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND, data="Region Id does not exist.")
@@ -575,4 +575,4 @@ def sub_regions(request):
     region_queryset = Region.objects.select_related('parent', 'project').filter(parent=region_id, is_active=True)
     region_data = [{'identifier': r.identifier, 'name': r.name, 'total_sites': r.get_sites_count()} for r in
                    region_queryset]
-    return Response({'data': region_data, 'project': region.project.id})
+    return Response({'data': region_data, 'project': region.project.id, 'terms_and_labels': terms_and_labels})
