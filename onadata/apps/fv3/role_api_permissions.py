@@ -1,8 +1,10 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.response import Response
 from rest_framework import status, permissions
 
-from onadata.apps.fieldsight.models import Project
+from onadata.apps.fieldsight.models import Project, Site
+from onadata.apps.fsforms.models import FInstance
 
 
 class ProjectRoleApiPermissions(DjangoObjectPermissions):
@@ -91,59 +93,145 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
             return False
 
 
-class SubmissionDetailPermission(permissions.BasePermission):
+class SiteDashboardPermissions(permissions.BasePermission):
     """
     Object-level permission to only allow owners of an object to View it.
     """
 
     def has_object_permission(self, request, view, obj):
-        user = request.user
-        finstance = obj.fieldsight_instance
-        form = finstance.fsxf
-        is_doner = False
+
         if request.is_super_admin:
             return True
 
-        if form.site is not None:
-            project_id = form.site.project_id
-        else:
-            project_id = form.project_id
+        site = obj
 
-        organization_id = Project.objects.get(pk=project_id).organization.id
-        user_role_asorgadmin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
-        if user_role_asorgadmin:
-            return True
+        if site is not None:
+            organization_id = site.project.organization_id
+            user_role_org_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
 
-        if form.site is not None:
-            site_id = form.site_id
-            user_role = request.roles.filter(site_id=site_id, group__name="Reviewer")
+            if user_role_org_admin:
+                return True
+
+            project = site.project
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+
+            if user_role_as_manager:
+                return True
+
+            user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
+
+            if user_role_reviewer:
+                return True
+
+            region = site.region
+            if region is not None:
+                user_role_as_region_reviewer_supervisor = request.roles.filter(region_id=region.id, group__name__in=["Region Reviewer",
+                                                                                                                     "Region Supervisor"])
+                if user_role_as_region_reviewer_supervisor:
+                    return True
+
+            user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
             if user_role:
                 return True
-        else:
-            project_id = form.project.id
 
-        user_role = request.roles.filter(project_id=project_id, group__name="Project Manager")
+            return False
+        return False
+
+
+class SiteSubmissionPermission(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+
+        if request.is_super_admin:
+            return True
+
+        site_id = request.query_params.get('site', None)
+
+        try:
+            if site_id:
+                try:
+                    site = Site.objects.get(id=site_id)
+                except ObjectDoesNotExist:
+                    return Response({"message": "Site Id does not exist."}, status=status.HTTP_204_NO_CONTENT)
+
+                organization_id = site.project.organization_id
+                user_role_org_admin = request.roles.filter(organization_id=organization_id,
+                                                           group__name="Organization Admin")
+
+                if user_role_org_admin:
+                    return True
+
+                project = site.project
+                user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+
+                if user_role_as_manager:
+                    return True
+
+                user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
+
+                if user_role_reviewer:
+                    return True
+
+                region = site.region
+                if region is not None:
+                    user_role_as_region_reviewer_supervisor = request.roles.filter(region_id=region.id,
+                                                                                   group__name__in=["Region Reviewer",
+                                                                                                    "Region Supervisor"])
+                    if user_role_as_region_reviewer_supervisor:
+                        return True
+
+                user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
+                if user_role:
+                    return True
+
+                return False
+            return False
+
+        except AssertionError:
+            return Response({"message": "Site Id is required."}, status=status.HTTP_204_NO_CONTENT)
+
+
+def check_site_permission(request, pk):
+
+    if request.is_super_admin:
+        return True
+
+    site_id = pk
+    if site_id:
+        try:
+            site = Site.objects.get(id=site_id)
+        except ObjectDoesNotExist:
+            return Response({"message": "Site Id does not exist."}, status=status.HTTP_204_NO_CONTENT)
+
+        organization_id = site.project.organization_id
+        user_role_org_admin = request.roles.filter(organization_id=organization_id,
+                                                   group__name="Organization Admin")
+
+        if user_role_org_admin:
+            return True
+
+        project = site.project
+        user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+
+        if user_role_as_manager:
+            return True
+
+        user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
+
+        if user_role_reviewer:
+            return True
+
+        region = site.region
+        if region is not None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(region_id=region.id,
+                                                                           group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"])
+            if user_role_as_region_reviewer_supervisor:
+                return True
+
+        user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
         if user_role:
-            return True
-
-        if form.site is not None:
-            user_role = request.roles.filter(Q(site_id=form.site_id, group__name="Site Supervisor") |
-                                             Q(project_id=form.site.project_id, group__name="Project Donor"))
-            if user_role and request.roles.filter(project_id=form.site.project_id, group__name="Project Donor"):
-                is_doner = True
-        else:
-            user_role = request.roles.filter(project_id=form.project_id, group__name="Project Donor")
-            if user_role:
-                is_doner = True
-
-        if request.roles.filter(project_id=project_id, group__name__in=["Reviewer", "Region Reviewer"]).exists():
-            return True
-
-        if user_role:
-            return True
-
-        if request.roles.filter(project_id=project_id,
-                                group__name__in=["Site Supervisor", "Region Supervisor"]).exists():
             return True
 
         return False
+
