@@ -555,7 +555,7 @@
                             },
                             onEachFeature: function onEachFeature(feature, layer){ //console.log(feature);
                                 //markers.addLayer(layer);
-                                layer.bindPopup('<a href="/fieldsight/site-dashboard/lite/' + feature.id + '/"> '+ feature.properties.name +' </a>');
+                                layer.bindPopup('<a href="/fieldsight/application/#/site-dashboard/' + feature.id + '/"> '+ feature.properties.name +' </a>');
                             }
                         });
                         markers.addLayer(total_sites);
@@ -882,7 +882,7 @@
                         },
                         onEachFeature: function onEachFeature(feature, layer){
                             markers1.addLayer(layer);
-                            layer.bindPopup('<a href="/fieldsight/site-dashboard/lite/' + feature.id + '/"> '+ feature.properties.name +' </a>');
+                            layer.bindPopup('<a href="/fieldsight/application/#/site-dashboard/' + feature.id + '/"> '+ feature.properties.name +' </a>');
                         }
                     });
                     
@@ -957,7 +957,7 @@
                             },
                             onEachFeature: function onEachFeature(feature, layer){
                                 markers1.addLayer(layer);
-                                layer.bindPopup('<a href="/fieldsight/site-dashboard/lite/' + feature.id + '/"> '+ feature.properties.name +' </a>');
+                                layer.bindPopup('<a href="/fieldsight/application/#/site-dashboard/' + feature.id + '/"> '+ feature.properties.name +' </a>');
                             }
                         });
                         
