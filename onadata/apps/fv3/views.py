@@ -522,6 +522,27 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
         try:
             region = Region.objects.get(id=int(self.request.query_params.get('region')))
             project = region.project
+
+            if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=project).exists():
+
+                terms_and_labels = {'site': project.terms_and_labels.site,
+                        'donor': project.terms_and_labels.donor,
+                        'site_supervisor': project.terms_and_labels.site_supervisor,
+                        'site_reviewer': project.terms_and_labels.site_reviewer,
+                        'region': project.terms_and_labels.region,
+                        'region_supervisor': project.terms_and_labels.region_supervisor,
+                        'region_reviewer': project.terms_and_labels.region_reviewer,
+                        }
+
+            else:
+                terms_and_labels = {'site': 'Site',
+                        'donor': 'Donor',
+                        'site_supervisor': 'Site Supervisor',
+                        'site_reviewer': 'Site Reviewer',
+                        'region': 'Region',
+                        'region_supervisor': 'Region Supervisor',
+                        'region_reviewer': 'Region Reviewer',
+                        }
             has_access_meta = False
 
             if request.is_super_admin:
@@ -545,7 +566,7 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response({'data': serializer.data, 'query': search_param, 'project': project.id,
-                                                'has_access_meta': has_access_meta})
+                                                'has_access_meta': has_access_meta, 'terms_and_labels': terms_and_labels})
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
