@@ -543,20 +543,6 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
                         'region_supervisor': 'Region Supervisor',
                         'region_reviewer': 'Region Reviewer',
                         }
-            has_access_meta = False
-
-            if request.is_super_admin:
-                has_access_meta = True
-
-            roles_project = request.user.user_roles.select_related('group', 'project', 'organization').filter(group__name='Project Manager',
-                                                                                                       project=project, ended_at=None).exists()
-            if roles_project:
-                has_access_meta = True
-            organization = project.organization
-            roles_org = request.user.user_roles.select_related('group', 'project', 'organization').filter(group__name='Organization Admin',
-                                                                                                   organization=organization, ended_at=None).exists()
-            if roles_org:
-                has_access_meta = True
 
         except ObjectDoesNotExist:
             return Response({"message": "Region Id is required."}, status=status.HTTP_204_NO_CONTENT)
@@ -565,8 +551,8 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response({'data': serializer.data, 'query': search_param, 'project': project.id,
-                                                'has_access_meta': has_access_meta, 'terms_and_labels': terms_and_labels})
+            return self.get_paginated_response({'data': serializer.data, 'query': search_param,
+                                                'terms_and_labels': terms_and_labels})
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -580,7 +566,13 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
 def sub_regions(request):
     query_params = request.query_params
     region_id = query_params.get('region')
+    try:
+        region = Region.objects.get(id=region_id)
+
+    except ObjectDoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND, data="Region Id does not exist.")
+
     region_queryset = Region.objects.select_related('parent', 'project').filter(parent=region_id, is_active=True)
     region_data = [{'identifier': r.identifier, 'name': r.name, 'total_sites': r.get_sites_count()} for r in
                    region_queryset]
-    return Response(region_data)
+    return Response({'data': region_data, 'project': region.project.id})
