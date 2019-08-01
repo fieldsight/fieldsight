@@ -151,7 +151,7 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Project.objects.all()
     serializer_class = ProjectUpdateSerializer
-    authentication_classes = (CsrfExemptSessionAuthentication, SessionAuthentication, BasicAuthentication)
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
     def update(self, request, *args, **kwargs):
@@ -201,7 +201,7 @@ class sectors_subsectors(viewsets.ModelViewSet):
     """
     queryset = Sector.objects.filter(sector=None)
     serializer_class = SectorSerializer
-    authentication_classes = (SessionAuthentication,)
+    # authentication_classes = (SessionAuthentication,)
 
     def filter_queryset(self, queryset):
         sector_id = self.request.query_params.get('sector', None)
