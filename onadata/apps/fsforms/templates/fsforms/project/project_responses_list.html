@@ -78,7 +78,7 @@
                           {{ obj.xf.title }}
                       </td>
                       <td>
-                          {{ obj.getlatestsubmittiondate.first.date }}
+                          {{ obj.last_submission|default:"" }}
                       </td>
                       <td>
                           {{ obj.date_created }}
@@ -143,7 +143,7 @@
                               {{obj.xf.title}}
                             </td>
                             <td>
-                              {{ obj.getlatestsubmittiondate.first.date }}
+                              {{ obj.last_submission|default:"" }}
                             </td>
 
                             <td>
@@ -211,7 +211,7 @@
                           {{ obj.xf.title }}
                       </td>
                       <td>
-                          {{ obj.getlatestsubmittiondate.first.date }}
+                          {{ obj.last_submission|default:"" }}
                       </td>
 
                       <td>
@@ -284,7 +284,7 @@
                               {{obj.xf.title}}
                             </td>
                             <td>
-                              {{ obj.getlatestsubmittiondate.first.date }}
+                              {{ obj.last_submission|default:"" }}
                             </td>
 
                             <td>
@@ -349,7 +349,7 @@
                           {{ obj.name}}
                       </td>
                       <td>
-                          {{ obj.getlatestsubmittiondate.first.date }}
+                          {{ obj.last_submission|default:"" }}
                       </td>
                       <td>
                           {{ obj.schedule_forms.xf.title }}
@@ -417,7 +417,7 @@
                               {{obj.xf.title}}
                             </td>
                             <td>
-                              {{ obj.getlatestsubmittiondate.first.date }}
+                              {{ obj.last_submission|default:"" }}
                             </td>
 
                             <td>
@@ -573,7 +573,7 @@
                           {{obj.xf.title}}
                         </td>
                         <td>
-                          {{ obj.getlatestsubmittiondate.first.date }}
+                          {{ obj.last_submission|default:"" }}
                         </td>
 
                         <td>
@@ -620,15 +620,3 @@
     </div>
 </div>
 {% endblock %}
-© 2019 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
-Help
-Contact GitHub
-Pricing
-API
-Training
-Blog
-About
