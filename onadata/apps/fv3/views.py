@@ -573,6 +573,6 @@ def sub_regions(request):
         return Response(status=status.HTTP_404_NOT_FOUND, data="Region Id does not exist.")
 
     region_queryset = Region.objects.select_related('parent', 'project').filter(parent=region_id, is_active=True)
-    region_data = [{'identifier': r.identifier, 'name': r.name, 'total_sites': r.get_sites_count()} for r in
+    region_data = [{'id': r.id, 'identifier': r.identifier, 'name': r.name, 'total_sites': r.get_sites_count()} for r in
                    region_queryset]
     return Response({'data': region_data, 'project': region.project.id, 'terms_and_labels': terms_and_labels})

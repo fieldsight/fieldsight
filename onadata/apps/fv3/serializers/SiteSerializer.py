@@ -59,10 +59,11 @@ class SiteSerializer(serializers.ModelSerializer):
     location = serializers.SerializerMethodField()
     terms_and_labels = serializers.SerializerMethodField()
     has_write_permission = serializers.SerializerMethodField()
+    project_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
-        fields = ('id', 'name', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
+        fields = ('id', 'name', 'project_id', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
                   'total_users', 'users', 'submissions',
                   'form_submissions_chart_data', 'site_progress_chart_data',
                   'total_subsites', 'terms_and_labels', 'has_write_permission')
@@ -171,6 +172,12 @@ class SiteSerializer(serializers.ModelSerializer):
             return True
         else:
             return False
+
+    def get_project_id(self, obj):
+        return obj.project.id
+
+    # def get_breadcumbs(self, obj):
+    #    pass
 
 
 class FInstanceSerializer(serializers.ModelSerializer):
