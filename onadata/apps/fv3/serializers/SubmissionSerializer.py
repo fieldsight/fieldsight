@@ -1,12 +1,14 @@
 import json
 import re
+
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse_lazy
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged, InstanceImages, \
-    EditedSubmission
+    EditedSubmission, FInstance
 from onadata.apps.fsforms.utils import get_version
 from onadata.apps.logger.models import Instance
 
@@ -355,24 +357,31 @@ class SubmissionSerializer(serializers.ModelSerializer):
         return calculated_data
 
     def get_has_review_permission(self, obj):
+        instance_id = self.context['kwargs'].get('pk', None)
+        try:
+            site = FInstance.objects.get(instance__id=instance_id).site
+        except ObjectDoesNotExist:
+            return Response({'error': "Submission Id does not exist."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        request = self.context['request']
+        has_acess = False
 
-        # request = self.context['request']
-        # site = self.context['kwargs']
-        #
-        # has_acess = False
-        # if request.roles.filter(site=site, group__name="Reviewer") or request.roles.filter(region=site.region,
-        #                                                                                    group__name="Region Reviewer"):
-        #     has_acess = True
-        # elif request.roles.filter(project=site.project, group__name="Project Manager") or \
-        #         request.roles.filter(organization=site.project.organization,
-        #                              group__name="Organization Admin") or request.roles.filter(
-        #     group__name="Super Admin"):
-        #     has_acess = True
-        # if not has_acess:
-        #     return Response({'error': "You are not permitted to change Status of this Submission"},
-        #                     status=status.HTTP_400_BAD_REQUEST)
+        if site:
+            if request.roles.filter(site=site, group__name="Reviewer") or request.roles.filter(region=site.region,
+                                                                                               group__name="Region Reviewer"):
+                has_acess = True
+            elif request.roles.filter(project=site.project, group__name="Project Manager") or \
+                    request.roles.filter(organization=site.project.organization,
+                                         group__name="Organization Admin") or request.roles.filter(
+                group__name="Super Admin"):
+                has_acess = True
+            if not has_acess:
+                return Response({'error': "You are not permitted to change Status of this Submission"},
+                                status=status.HTTP_400_BAD_REQUEST)
 
-        return False
+            return has_acess
+        else:
+            return has_acess
 
 
 class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
