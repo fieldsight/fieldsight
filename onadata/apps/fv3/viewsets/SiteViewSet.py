@@ -37,6 +37,9 @@ class SiteViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return self.queryset
 
+    def get_serializer_context(self):
+        return {'request': self.request}
+
 
 @permission_classes([SiteSubmissionPermission,])
 @api_view(['GET'])

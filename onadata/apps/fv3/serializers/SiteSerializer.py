@@ -14,6 +14,7 @@ from onadata.apps.users.models import UserProfile
 from django.core.exceptions import ObjectDoesNotExist
 from onadata.apps.fsforms.line_data_project import ProgressGeneratorSite
 from onadata.apps.fsforms.models import FInstance, Stage
+from onadata.apps.fv3.role_api_permissions import has_write_permission_in_site
 
 from onadata.apps.fsforms.line_data_project import date_range
 
@@ -79,10 +80,11 @@ class SiteSerializer(serializers.ModelSerializer):
         return submissions
 
     def get_location(self, obj):
+        if obj.location:
 
-        data = {'coordinates': [obj.location.x, obj.location.y]}
+            data = {'coordinates': [obj.location.x, obj.location.y]}
 
-        return data
+            return data
 
     def get_total_users(self, obj):
 
@@ -163,7 +165,12 @@ class SiteSerializer(serializers.ModelSerializer):
                     }
 
     def get_has_write_permission(self, obj):
-        return False
+
+        request = self.context['request']
+        if has_write_permission_in_site(request, obj.id):
+            return True
+        else:
+            return False
 
 
 class FInstanceSerializer(serializers.ModelSerializer):

@@ -235,3 +235,41 @@ def check_site_permission(request, pk):
 
         return False
 
+
+def has_write_permission_in_site(request, pk):
+
+    if request.is_super_admin:
+        return True
+
+    site_id = pk
+    if site_id:
+        try:
+            site = Site.objects.get(id=site_id)
+        except ObjectDoesNotExist:
+            return Response({"message": "Site Id does not exist."}, status=status.HTTP_204_NO_CONTENT)
+
+        organization_id = site.project.organization_id
+        user_role_org_admin = request.roles.filter(organization_id=organization_id,
+                                                   group__name="Organization Admin")
+
+        if user_role_org_admin:
+            return True
+
+        project = site.project
+        user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+
+        if user_role_as_manager:
+            return True
+
+        region = site.region
+        if region is not None:
+            user_role_as_region_supervisor = request.roles.filter(region_id=region.id, group__name=["Region Supervisor"])
+            if user_role_as_region_supervisor:
+                return True
+
+        user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
+        if user_role:
+            return True
+
+        return False
+
