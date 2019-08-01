@@ -87,10 +87,6 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                         flagged_instance and delta > 100):
                     fi.form_status = None
                     fi.save()
-                    if fxf.is_staged:
-                        instance.fieldsight_instance.site.update_current_progress()
-                    else:
-                        instance.fieldsight_instance.site.update_status()
                     if fs_proj_xf.is_survey:
                         instance.fieldsight_instance.logs.create(source=self.request.user, type=16,
                                                                  title="new Project level Submission",
@@ -170,11 +166,6 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                                                             content_object=instance.fieldsight_instance)
             fi.form_status = None
             fi.save()
-            if fxf.is_staged:
-                instance.fieldsight_instance.site.update_current_progress()
-            else:
-                instance.fieldsight_instance.site.update_status()
-
         context = self.get_serializer_context()
         serializer = FieldSightSubmissionSerializer(instance, context=context)
         return Response(serializer.data,
@@ -230,12 +221,6 @@ class ProjectFSXFormSubmissionApi(XFormSubmissionApi):
 
             fi.form_status = None
             fi.save()
-            if fs_proj_xf.is_staged and siteid:
-                site.update_current_progress()
-            elif siteid:
-                site.update_status()
-
-
             if fs_proj_xf.is_survey:
                 instance.fieldsight_instance.logs.create(source=self.request.user, type=16, title="new Project level Submission",
                                            organization=fs_proj_xf.project.organization,

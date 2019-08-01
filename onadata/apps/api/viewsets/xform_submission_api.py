@@ -334,10 +334,6 @@ Here is some example JSON, it would replace `[the JSON]` above:
                         update_meta_details.apply_async(
                             (fs_xf.id, instance.id, task_obj.id, site_id),
                             countdown=1)
-                    if fs_xf.is_staged:
-                        instance.fieldsight_instance.site.update_current_progress()
-                    else:
-                        instance.fieldsight_instance.site.update_status()
 
             noti_type = 16
             title = "new submission"

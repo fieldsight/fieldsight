@@ -1670,7 +1670,6 @@ def instance_status(request, instance):
                 comment_url = reverse("forms:instance_status_change_detail",
                                                 kwargs={'pk': status_changed.id})
                 if fi.site:
-                    fi.site.update_current_progress()
                     extra_object=fi.site
                     extra_message=""
                 else:
