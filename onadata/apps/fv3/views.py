@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -518,11 +519,33 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
         except:
             return Response({"message": "Region Id is required."}, status=status.HTTP_204_NO_CONTENT)
 
+        try:
+            region = Region.objects.get(id=int(self.request.query_params.get('region')))
+            project = region.project
+            has_access_meta = False
+
+            if request.is_super_admin:
+                has_access_meta = True
+
+            roles_project = request.user.user_roles.select_related('group', 'project', 'organization').filter(group__name='Project Manager',
+                                                                                                       project=project, ended_at=None).exists()
+            if roles_project:
+                has_access_meta = True
+            organization = project.organization
+            roles_org = request.user.user_roles.select_related('group', 'project', 'organization').filter(group__name='Organization Admin',
+                                                                                                   organization=organization, ended_at=None).exists()
+            if roles_org:
+                has_access_meta = True
+
+        except ObjectDoesNotExist:
+            return Response({"message": "Region Id is required."}, status=status.HTTP_204_NO_CONTENT)
+
         search_param = request.query_params.get('q', None)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response({'data': serializer.data, 'query': search_param})
+            return self.get_paginated_response({'data': serializer.data, 'query': search_param, 'project': project.id,
+                                                'has_access_meta': has_access_meta})
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

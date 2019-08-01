@@ -12,9 +12,8 @@ from onadata.apps.users.models import UserProfile
 
 from onadata.apps.fieldsight.mixins import OrganizationMixin
 
-from rest_framework import routers, serializers, viewsets
-from django.contrib.gis.geos import Point
-from rest_framework import serializers
+from rest_framework import routers, serializers, viewsets, status
+from rest_framework.response import Response
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
 from rest_framework.pagination import PageNumberPagination
 from onadata.apps.fieldsight.rolemixins import LoginRequiredMixin
@@ -23,10 +22,12 @@ from django.contrib.contenttypes.models import ContentType
 
 from django.http import JsonResponse
 from celery.result import AsyncResult
+from onadata.apps.fv3.role_api_permissions import check_site_permission
 from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer, LogSerializer, TaskSerializer
 from onadata.apps.fieldsight.rolemixins import ProjectRoleMixin, SiteRoleMixin, ReadonlySiteLevelRoleMixin, ReadonlyProjectLevelRoleMixin
 from onadata.apps.fieldsight.models import Project, Site
 from onadata.apps.userrole.models import UserRole
+
 
 class NotificationListView(LoginRequiredMixin, ListView):
     model = FieldSightLog
@@ -38,6 +39,7 @@ class NotificationListView(LoginRequiredMixin, ListView):
 
 class LargeResultsSetPagination(PageNumberPagination):
     page_size = 20
+
 
 class SmallResultsSetPagination(PageNumberPagination):
     page_size = 8
@@ -59,6 +61,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         project_ids = self.request.roles.filter(group__name='Project Manager').values('project_id')
         site_ids = self.request.roles.filter(Q(group__name='Site Supervisor') | Q(group__name='Reviewer')).values('site_id')
         return queryset.filter(Q(organization_id__in=org_ids) | Q(project_id__in=project_ids) | Q(site_id__in=site_ids) | Q(recipient_id=self.request.user.id))
+
 
 class MyTaskListViewSet(viewsets.ModelViewSet):
     """
@@ -82,6 +85,7 @@ class MyTaskListViewSet(viewsets.ModelViewSet):
             return queryset.order_by('-date_updateded')
 
         return queryset.filter(~Q(task_type__in=exclude_task_type), user_id=self.request.user.id).order_by('-date_updateded')
+
 
 class OtherTaskListViewSet(viewsets.ModelViewSet):
     """
@@ -128,22 +132,27 @@ class SiteLog(viewsets.ModelViewSet):
 
     def filter_queryset(self, queryset):
         site = Site.objects.get(pk=self.kwargs.get('pk'))
+
         content_site = ContentType.objects.get(app_label="fieldsight", model="site")
-        project = site.project
-        query = Q(site_id=self.kwargs.get('pk')) | (Q(content_type=content_site) & Q(object_id=self.kwargs.get('pk'))) | (Q(extra_content_type=content_site) & Q(extra_object_id=self.kwargs.get('pk')))
-        meta_dict = {}
-        for meta in project.site_meta_attributes:
-            if meta['question_type'] == "Link" and meta['question_name'] in site.site_meta_attributes_ans:
-                meta_site_id = Site.objects.filter(identifier=site.site_meta_attributes_ans[meta['question_name']], project_id=meta['project_id'])
-                if meta_site_id:
-                    selected_metas = [sub_meta['question_name'] for sub_meta in meta['metas'][str(meta['project_id'])]]
-                    meta_dict[meta_site_id[0].id] = selected_metas
+        if check_site_permission(self.request, site.id):
+            project = site.project
+            query = Q(site_id=self.kwargs.get('pk')) | (Q(content_type=content_site) & Q(object_id=self.kwargs.get('pk'))) | (Q(extra_content_type=content_site) & Q(extra_object_id=self.kwargs.get('pk')))
+            meta_dict = {}
+            for meta in project.site_meta_attributes:
+                if meta['question_type'] == "Link" and meta['question_name'] in site.site_meta_attributes_ans:
+                    meta_site_id = Site.objects.filter(identifier=site.site_meta_attributes_ans[meta['question_name']], project_id=meta['project_id'])
+                    if meta_site_id:
+                        selected_metas = [sub_meta['question_name'] for sub_meta in meta['metas'][str(meta['project_id'])]]
+                        meta_dict[meta_site_id[0].id] = selected_metas
 
-        for key, value in meta_dict.items():
-            for item in value:
-                query |= (Q(type=15) & Q(content_type=content_site) & Q(object_id=key) & Q(extra_json__contains='"'+item +'":'))
+            for key, value in meta_dict.items():
+                for item in value:
+                    query |= (Q(type=15) & Q(content_type=content_site) & Q(object_id=key) & Q(extra_json__contains='"'+item +'":'))
 
-        return queryset.filter(query)
+            return queryset.filter(query)
+        else:
+            return Site.objects.all().none()
+
 
 class NotificationCountnSeen(View):
     def get(self, request):

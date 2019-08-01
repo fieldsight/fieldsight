@@ -57,13 +57,14 @@ class SiteSerializer(serializers.ModelSerializer):
     form_submissions_chart_data = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     terms_and_labels = serializers.SerializerMethodField()
+    has_write_permission = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
         fields = ('id', 'name', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
                   'total_users', 'users', 'submissions',
                   'form_submissions_chart_data', 'site_progress_chart_data',
-                  'total_subsites', 'terms_and_labels')
+                  'total_subsites', 'terms_and_labels', 'has_write_permission')
 
     def get_submissions(self, obj):
         response = obj.get_site_submission_count()
@@ -160,6 +161,9 @@ class SiteSerializer(serializers.ModelSerializer):
                     'region_supervisor': 'Region Supervisor',
                     'region_reviewer': 'Region Reviewer',
                     }
+
+    def get_has_write_permission(self, obj):
+        return False
 
 
 class FInstanceSerializer(serializers.ModelSerializer):
