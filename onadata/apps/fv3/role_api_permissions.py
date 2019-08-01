@@ -3,7 +3,7 @@ from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.response import Response
 from rest_framework import status, permissions
 
-from onadata.apps.fieldsight.models import Project, Site
+from onadata.apps.fieldsight.models import Project, Site, Region
 from onadata.apps.fsforms.models import FInstance
 
 
@@ -272,4 +272,54 @@ def has_write_permission_in_site(request, pk):
             return True
 
         return False
+
+
+def check_regional_perm(request, region):
+
+    if request.is_super_admin:
+        return True
+
+    region_id = region
+
+    try:
+        if region_id:
+            try:
+                region = Region.objects.get(id=region_id)
+            except ObjectDoesNotExist:
+                return Response({"message": "Region Id does not exist."}, status=status.HTTP_204_NO_CONTENT)
+
+            organization_id = region.project.organization_id
+            user_role_org_admin = request.roles.filter(organization_id=organization_id,
+                                                       group__name="Organization Admin")
+
+            if user_role_org_admin:
+                return True
+
+            project = region.project
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+
+            if user_role_as_manager:
+                return True
+
+            user_role_as_region_reviewer_supervisor = request.roles.filter(region_id=region.id,
+                                                                           group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"])
+            if user_role_as_region_reviewer_supervisor:
+                return True
+
+            return False
+        return False
+
+    except AssertionError:
+        return Response({"message": "Region Id is required."}, status=status.HTTP_204_NO_CONTENT)
+
+
+class RegionalPermission(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        region_id = request.query_params.get('region', None)
+        if check_regional_perm(request, region_id):
+            return True
+        else:
+            return False
 

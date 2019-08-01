@@ -32,7 +32,7 @@ from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, Unass
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
-from .role_api_permissions import ProjectRoleApiPermissions
+from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm
 
 
 class ProjectSitesPagination(PageNumberPagination):
@@ -496,7 +496,7 @@ class ProjectDefineSiteMeta(APIView):
 class RegionalSites(viewsets.ReadOnlyModelViewSet):
     queryset = Site.objects.select_related('project', 'region', 'type')
     serializer_class = ProjectSitesListSerializer
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, RegionalPermission]
     pagination_class = ProjectsitesPagination
 
     def get_queryset(self):
@@ -547,27 +547,31 @@ def sub_regions(request):
 
     try:
         region = Region.objects.get(id=region_id)
-        project = region.project
-        if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=project).exists():
+        if check_regional_perm(request, region.id):
+            project = region.project
+            if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=project).exists():
 
-            terms_and_labels = {'site': project.terms_and_labels.site,
-                                'donor': project.terms_and_labels.donor,
-                                'site_supervisor': project.terms_and_labels.site_supervisor,
-                                'site_reviewer': project.terms_and_labels.site_reviewer,
-                                'region': project.terms_and_labels.region,
-                                'region_supervisor': project.terms_and_labels.region_supervisor,
-                                'region_reviewer': project.terms_and_labels.region_reviewer,
-                                }
+                terms_and_labels = {'site': project.terms_and_labels.site,
+                                    'donor': project.terms_and_labels.donor,
+                                    'site_supervisor': project.terms_and_labels.site_supervisor,
+                                    'site_reviewer': project.terms_and_labels.site_reviewer,
+                                    'region': project.terms_and_labels.region,
+                                    'region_supervisor': project.terms_and_labels.region_supervisor,
+                                    'region_reviewer': project.terms_and_labels.region_reviewer,
+                                    }
 
+            else:
+                terms_and_labels = {'site': 'Site',
+                                    'donor': 'Donor',
+                                    'site_supervisor': 'Site Supervisor',
+                                    'site_reviewer': 'Site Reviewer',
+                                    'region': 'Region',
+                                    'region_supervisor': 'Region Supervisor',
+                                    'region_reviewer': 'Region Reviewer',
+                                    }
         else:
-            terms_and_labels = {'site': 'Site',
-                                'donor': 'Donor',
-                                'site_supervisor': 'Site Supervisor',
-                                'site_reviewer': 'Site Reviewer',
-                                'region': 'Region',
-                                'region_supervisor': 'Region Supervisor',
-                                'region_reviewer': 'Region Reviewer',
-                                }
+            return Response(status=status.HTTP_403_FORBIDDEN,
+                            data={"detail": "You do not have permission to perform this action."})
 
     except ObjectDoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND, data="Region Id does not exist.")
