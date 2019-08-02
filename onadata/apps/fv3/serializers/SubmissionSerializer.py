@@ -314,8 +314,6 @@ class SubmissionSerializer(serializers.ModelSerializer):
                 elif first_children['type'] == 'group':
                     group = parse_group("", first_children)
                     data.append(group)
-                elif first_children['type'] == 'calculate':
-
                 else:
                     question = first_children['name']
                     question_type = first_children['type']
