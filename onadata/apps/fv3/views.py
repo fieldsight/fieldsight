@@ -585,5 +585,5 @@ def sub_regions(request):
                             Q(group__name="Organization Admin", organization_id=region.project.organization.id)) or request.is_super_admin:
         project_name = region.project.name
         project_url = region.project.get_absolute_url()
-    breadcumbs = {'region': region.name, 'project_name': project_name, 'project_url': project_url}
-    return Response({'data': region_data, 'project': region.project.id, 'breadcumbs': breadcumbs, 'terms_and_labels': terms_and_labels})
+    breadcrumbs = {'region': region.name, 'project_name': project_name, 'project_url': project_url}
+    return Response({'data': region_data, 'project': region.project.id, 'breadcrumbs': breadcrumbs, 'terms_and_labels': terms_and_labels})
