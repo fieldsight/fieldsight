@@ -38,12 +38,12 @@
 		  if(element["fs_project_uuid"]){
            	var new_image = '<div class="col-md-2" id="'+ element["_id"] +'">'+
 							'<div class="photo-holder photo-item margin-top">'+
-							'<img submission_by="'+element["_submitted_by"]+'" submission_url="/forms/forms/'+element["fs_project_uuid"]+'#/'+element["_id"]+'" src="/attachment/medium?media_file='+ element["_attachments"].filename +'" img-title="" alt="">'+
+							'<img submission_by="'+element["_submitted_by"]+'" submission_url="/fieldsight/application/?submission='+element["_id"]+'#/submission-details'+'" src="/attachment/medium?media_file='+ element["_attachments"].filename +'" img-title="" alt="">'+
 							'</div></div>';}
 			else{
 				var new_image = '<div class="col-md-2" id="'+ element["_id"] +'">'+
 							'<div class="photo-holder photo-item margin-top">'+
-							'<img submission_by="'+element["_submitted_by"]+'" submission_url="/forms/forms/'+ element["fs_uuid"] +'#/'+element["_id"]+'" src="/attachment/medium?media_file='+ element["_attachments"].filename +'" img-title="" alt="">'+
+							'<img submission_by="'+element["_submitted_by"]+'" submission_url="/fieldsight/application/?submission='+element["_id"]+'#/submission-details'+'" src="/attachment/medium?media_file='+ element["_attachments"].filename +'" img-title="" alt="">'+
 							'</div></div>';
 			}
                             	
@@ -63,7 +63,7 @@
 				var src = $(this).attr('src');
 				var img = '<img src="' + src + '" class="img-responsive"/>';
 				var html = '';
-				html += img;  	
+				html += img;
 				$('#myModalLabel').modal();
 				$('#myModalLabel').on('shown.bs.modal', function(){
 					$('#myModalLabel .modal-header .modal-title').html('By: '+submitted_by +'<a href="'+ submission_url +'"> (View Submission) </a>');
