@@ -299,7 +299,8 @@ def check_regional_perm(request, region):
                 return True
 
             project = region.project
-            user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                "Project Donor"])
 
             if user_role_as_manager:
                 return True
