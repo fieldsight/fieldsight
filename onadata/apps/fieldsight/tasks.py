@@ -2655,7 +2655,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 if item['question']['type'] == "repeat":
                     answer = ""
                 else:
-                    answer = instance.get(item.get('question').get('name'), '')
+                    answer = instance.json.get(item.get('question').get('name'), '')
                 if item['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
                     answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fs_proj_xf.xf.user.username + '/attachments/' + answer
                 meta_ans[item['question_name']] = answer
