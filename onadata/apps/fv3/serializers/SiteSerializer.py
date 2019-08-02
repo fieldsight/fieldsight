@@ -60,13 +60,14 @@ class SiteSerializer(serializers.ModelSerializer):
     terms_and_labels = serializers.SerializerMethodField()
     has_write_permission = serializers.SerializerMethodField()
     project_id = serializers.SerializerMethodField()
+    breadcumbs = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
         fields = ('id', 'name', 'project_id', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
                   'total_users', 'users', 'submissions',
                   'form_submissions_chart_data', 'site_progress_chart_data',
-                  'total_subsites', 'terms_and_labels', 'has_write_permission')
+                  'total_subsites', 'terms_and_labels', 'has_write_permission', 'breadcumbs')
 
     def get_submissions(self, obj):
         response = obj.get_site_submission_count()
@@ -176,8 +177,36 @@ class SiteSerializer(serializers.ModelSerializer):
     def get_project_id(self, obj):
         return obj.project.id
 
-    # def get_breadcumbs(self, obj):
-    #    pass
+    def get_breadcumbs(self, obj):
+        name = obj.name
+        project = obj.project
+        project_url = ''
+        organization = obj.project.organization
+        organization_url = ''
+        request = self.context['request']
+        if request.roles.filter(group__name="Project Manager", project=project):
+            project_url = project.get_absolute_url()
+        if request.roles.filter(group__name="Organization Admin", organization=organization):
+            organization_url = organization.get_absolute_url()
+
+        if obj.site:
+            return {
+                'root_site': obj.site.name,
+                'root_site_url': obj.site.get_absolute_url(),
+                'site': name,
+                'project': project.name,
+                'project_url': project_url,
+                'organization': organization.name,
+                'organization_url': organization_url
+            }
+
+        return {
+            'site': name,
+            'project': project.name,
+            'project_url': project_url,
+            'organization': organization.name,
+            'organization_url': organization_url
+        }
 
 
 class FInstanceSerializer(serializers.ModelSerializer):
