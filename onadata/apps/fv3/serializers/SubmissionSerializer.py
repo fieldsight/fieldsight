@@ -162,6 +162,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
     def get_submission_data(self, instance):
         data = []
         finstance = instance.fieldsight_instance
+        pattern = re.compile('\$\{(.*)\}')
 
         def get_answer(instance):
             return instance.json
@@ -313,6 +314,8 @@ class SubmissionSerializer(serializers.ModelSerializer):
                 elif first_children['type'] == 'group':
                     group = parse_group("", first_children)
                     data.append(group)
+                elif first_children['type'] == 'calculate':
+
                 else:
                     question = first_children['name']
                     question_type = first_children['type']
@@ -328,6 +331,23 @@ class SubmissionSerializer(serializers.ModelSerializer):
                             answer = json_answer[question]
                     if 'label' in first_children:
                         question = first_children['label']
+                    if isinstance(question, dict): # for multi language defined form field
+                        for label in question.values():
+                            m = pattern.search(label) # check if the question field requires the value of the calculated field
+                            if m:
+                                field = m.group(1) # gives the name of the calculation field
+                                if field in json_answer:
+                                    replace_text = json_answer[field]
+                                    label.replace(m.group(0), replace_text) # replace variable fields in form of ${''} by the value submitted
+
+                    else: # for string label with value of a calculation field
+                        m = pattern.search(question)
+                        if m:
+                            field = m.group(1)
+                            if field in json_answer:
+                                replace_text = json_answer[field]
+                                question.replace(m.group(0), replace_text)
+
                     row = {"type": question_type, "question": question, "answer": answer}
                     data.append(row)
 
