@@ -60,14 +60,14 @@ class SiteSerializer(serializers.ModelSerializer):
     terms_and_labels = serializers.SerializerMethodField()
     has_write_permission = serializers.SerializerMethodField()
     project_id = serializers.SerializerMethodField()
-    breadcumbs = serializers.SerializerMethodField()
+    breadcrumbs = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
         fields = ('id', 'name', 'project_id', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
                   'total_users', 'users', 'submissions',
                   'form_submissions_chart_data', 'site_progress_chart_data',
-                  'total_subsites', 'terms_and_labels', 'has_write_permission', 'breadcumbs')
+                  'total_subsites', 'terms_and_labels', 'has_write_permission', 'breadcrumbs')
 
     def get_submissions(self, obj):
         response = obj.get_site_submission_count()
@@ -177,7 +177,7 @@ class SiteSerializer(serializers.ModelSerializer):
     def get_project_id(self, obj):
         return obj.project.id
 
-    def get_breadcumbs(self, obj):
+    def get_breadcrumbs(self, obj):
         name = obj.name
         project = obj.project
         project_url = ''
