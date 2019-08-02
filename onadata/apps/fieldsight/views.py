@@ -490,7 +490,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
         # ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
         if self.request.roles.filter(group__name="Unassigned").exists():
-            previous_group = UserRole.objects.get(user=self.request.user, group__name=self.request.group.name)
+            previous_group = UserRole.objects.get(user=self.request.user, group__name="Unassigned")
             previous_group.delete()
 
             new_group = Group.objects.get(name="Organization Admin")
@@ -501,6 +501,9 @@ class OrganizationCreateView(OrganizationView, CreateView):
                 UserRole.objects.get_or_create(user=user, group=group, organization=self.object, project_id=project.id,
                                            site_id=site.id)
 
+            return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': self.object.pk}))
+
+        if not user.is_superuser:
             return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': self.object.pk}))
 
         return HttpResponseRedirect(self.get_success_url())

@@ -81,7 +81,7 @@ site_response = new L.geoJson(coordinates, {
                 layer.bindPopup("Site Location");
         }
         else{
-            layer.bindPopup("Submitted By:"+feature.properties.submitted_by+"<br><a href="+'/fieldsight/application/?submission='+feature.properties.id '#/submission-details'+" target='_blank'>View Submission</a>");
+            layer.bindPopup("Submitted By:"+feature.properties.submitted_by+"<br><a href="+'/fieldsight/application/?submission='+feature.properties.fs_uuid+'#/submission-details'+" target='_blank'>View Submission</a>");
         }
         console.log(layer);
     }

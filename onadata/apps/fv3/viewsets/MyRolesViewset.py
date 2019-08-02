@@ -70,7 +70,7 @@ def my_roles(request):
     can_create_team = True
     if request.user.organizations.all():
         can_create_team = False
-    profile = {'id': profile_obj.user.id, 'fullname': profile_obj.getname(), 'username': profile_obj.user.username, 'email': profile_obj.user.email,
+    profile = {'id': profile_obj.id, 'fullname': profile_obj.getname(), 'username': profile_obj.user.username, 'email': profile_obj.user.email,
                'address': profile_obj.address, 'phone': profile_obj.phone, 'profile_picture': profile_obj.profile_picture.url,
                'twitter': profile_obj.twitter, 'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype,
                'google_talk': profile_obj.google_talk, 'can_create_team': can_create_team}
