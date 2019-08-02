@@ -579,4 +579,11 @@ def sub_regions(request):
     region_queryset = Region.objects.select_related('parent', 'project').filter(parent=region_id, is_active=True)
     region_data = [{'id': r.id, 'identifier': r.identifier, 'name': r.name, 'total_sites': r.get_sites_count()} for r in
                    region_queryset]
-    return Response({'data': region_data, 'project': region.project.id, 'project_name': region.project.name, 'terms_and_labels': terms_and_labels})
+    project_name = ''
+    project_url = ''
+    if request.roles.filter(Q(group__name="Project Manager", project_id=region.project.id)|
+                            Q(group__name="Organization Admin", organization_id=region.project.organization.id)) or request.is_super_admin:
+        project_name = region.project.name
+        project_url = region.project.get_absolute_url()
+    breadcumbs = {'region': region.name, 'project_name': project_name, 'project_url': project_url}
+    return Response({'data': region_data, 'project': region.project.id, 'breadcumbs': breadcumbs, 'terms_and_labels': terms_and_labels})
