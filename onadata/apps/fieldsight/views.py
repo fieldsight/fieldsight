@@ -1519,31 +1519,46 @@ class RolesView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(RolesView, self).get_context_data(**kwargs)
-        context['org_admin'] = self.request.roles.filter(group__name="Organization Admin", organization__is_active = True)
-        context['proj_manager'] = self.request.roles.filter(group__name="Project Manager", project__is_active = True)
-        context['proj_donor'] = self.request.roles.filter(group__name="Project Donor", project__is_active = True)
-        context['site_reviewer'] = self.request.roles.filter(group__name="Reviewer", site__is_active = True)
-        context['site_supervisor'] = self.request.roles.filter(group__name="Site Supervisor",
-                                                                                      site__is_active=True)
+        context['org_admin'] = self.request.roles.filter(
+            group__name="Organization Admin", organization__is_active=True,
+            ended_at__isnull=True)
+        context['proj_manager'] = self.request.roles.filter(
+            group__name="Project Manager", project__is_active=True,
+            ended_at__isnull=True)
+        context['proj_donor'] = self.request.roles.filter(
+            group__name="Project Donor", project__is_active=True)
+        context['site_reviewer'] = self.request.roles.filter(
+            group__name="Reviewer", site__is_active=True, ended_at__isnull=True)
+        context['site_supervisor'] = self.request.roles.filter(
+            group__name="Site Supervisor",
+            site__is_active=True, ended_at__isnull=True)
 
-        context['region_supervisor'] = self.request.roles.filter(group__name="Region Supervisor",
-                                                                                          region__is_active=True)
-        context['region_reviewer'] = self.request.roles.filter(group__name="Region Reviewer",
-                                                                                          region__is_active=True)
+        context['region_supervisor'] = self.request.roles.filter(
+            group__name="Region Supervisor",
+            region__is_active=True, ended_at__isnull=True)
+        context['region_reviewer'] = self.request.roles.filter(
+            group__name="Region Reviewer",
+            region__is_active=True, ended_at__isnull=True)
 
-        context['staff_project_manager'] = self.request.roles.filter(group__name="Staff Project Manager", staff_project__is_deleted = False)
-        context['unassigned'] = self.request.roles.filter(group__name="Unassigned")
-        has_user_profile = UserProfile.objects.filter(user=self.request.user).exists()
+        context['staff_project_manager'] = self.request.roles.filter(
+            group__name="Staff Project Manager",
+            staff_project__is_deleted = False, ended_at__isnull=True)
+        context['unassigned'] = self.request.roles.filter(
+            group__name="Unassigned")
+        has_user_profile = UserProfile.objects.filter(
+            user=self.request.user).exists()
 
         context['has_user_profile'] = has_user_profile
         if has_user_profile:
             context['base_template'] = "fieldsight/fieldsight_base.html"
 
         else:
-            context['base_template'] = "fieldsight/fieldsight_not_user_base.html"
+            context['base_template'] = \
+                "fieldsight/fieldsight_not_user_base.html"
 
         if Team.objects.filter(leader_id=self.request.user.id).exists():
-            context['staff_teams'] = Team.objects.filter(leader_id=self.request.user.id, is_deleted=False)
+            context['staff_teams'] = Team.objects.filter(
+                leader_id=self.request.user.id, is_deleted=False)
         else:
             context['staff_teams'] = []
         return context
@@ -3347,17 +3362,21 @@ class SiteSearchView(ListView):
         region_id = self.kwargs.get('region_id', None)
         # import pdb; pdb.set_trace()
         query = self.request.GET.get('q')
+        if query:
 
-        if region_id:
-            if region_id == "0":
-                filtered_objects = self.model.objects.filter(region=None, project_id=self.kwargs.get('pk'))
+            if region_id:
+                if region_id == "0":
+                    filtered_objects = self.model.objects.filter(region=None, project_id=self.kwargs.get('pk'))
 
+                else:
+                    filtered_objects = self.model.objects.filter(region_id=region_id, project_id=self.kwargs.get('pk'))
             else:
-                filtered_objects = self.model.objects.filter(region_id=region_id, project_id=self.kwargs.get('pk'))    
+                filtered_objects = self.model.objects.filter(project_id=self.kwargs.get('pk'))
+            # import pdb; pdb.set_trace()
+            return filtered_objects.filter(Q(name__icontains=query) | Q(identifier__icontains=query))
         else:
-            filtered_objects = self.model.objects.filter(project_id=self.kwargs.get('pk'))
-        # import pdb; pdb.set_trace()
-        return filtered_objects.filter(Q(name__icontains=query) | Q(identifier__icontains=query))
+            return Site.objects.none()
+
 
 class SiteSearchLiteView(ListView):
     model = Site
@@ -3372,19 +3391,20 @@ class SiteSearchLiteView(ListView):
 
     def get_queryset(self, **kwargs):
         region_id = self.kwargs.get('region_id', None)
-        # import pdb; pdb.set_trace()
         query = self.request.GET.get('q')
 
-        if region_id:
-            if region_id == "0":
-                filtered_objects = self.model.objects.filter(region=None, project_id=self.kwargs.get('pk'))
+        if query:
+            if region_id:
+                if region_id == "0":
+                    filtered_objects = self.model.objects.filter(region=None, project_id=self.kwargs.get('pk'))
 
+                else:
+                    filtered_objects = self.model.objects.filter(region_id=region_id, project_id=self.kwargs.get('pk'))
             else:
-                filtered_objects = self.model.objects.filter(region_id=region_id, project_id=self.kwargs.get('pk'))    
+                filtered_objects = self.model.objects.filter(project_id=self.kwargs.get('pk'))
+            return filtered_objects.filter(Q(name__icontains=query) | Q(identifier__icontains=query))
         else:
-            filtered_objects = self.model.objects.filter(project_id=self.kwargs.get('pk'))
-        # import pdb; pdb.set_trace()
-        return filtered_objects.filter(Q(name__icontains=query) | Q(identifier__icontains=query))
+            return Site.objects.none()
 
 # def get_project_stage_status(request, pk, q_keyword,page_list):
 #     data = []

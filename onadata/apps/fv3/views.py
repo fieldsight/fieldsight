@@ -3,6 +3,7 @@ from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch, Q
+from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -52,7 +53,8 @@ def supervisor_projects(request):
     project_ids = UserRole.objects.filter(user=request.user,
                                       ended_at=None,
                                       group__name__in=["Region Supervisor", "Site Supervisor"]
-                                      ).values_list('project', flat=True)
+                                      ).values_list('project',
+                                                    flat=True).distinct()
     "Projects where a user is assigned as Region Supervisor or Site Supervisor"
 
     projects = Project.objects.filter(pk__in=project_ids).select_related('organization').prefetch_related(
@@ -90,11 +92,17 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
         last_updated = query_params.get('last_updated')
 
         if region_id:  # Region Reviewer Roles
-            sites = Site.all_objects.filter(region=region_id)
+            sites = Site.objects.filter(Q(region=region_id) | Q(
+                site__region=region_id))
         elif project_id:  # Site Supervisor Roles
-            sites = Site.all_objects.filter(project=project_id, site_roles__region__isnull=True,
-                                            site_roles__group__name="Site Supervisor",
-                                            site_roles__user=self.request.user).order_by('id').distinct('id')
+            sites = Site.objects.filter(project=project_id).filter(Q(
+                site_roles__region__isnull=True,
+                site_roles__group__name="Site Supervisor",
+                site_roles__user=self.request.user) | Q(
+                site__site_roles__region__isnull=True,
+                site__site_roles__group__name="Site Supervisor",
+                site__site_roles__user=self.request.user)).order_by(
+                'id').distinct('id')
 
         else:
             sites = []
@@ -142,7 +150,7 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Project.objects.all()
     serializer_class = ProjectUpdateSerializer
-    authentication_classes = (CsrfExemptSessionAuthentication, SessionAuthentication, BasicAuthentication)
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
     def update(self, request, *args, **kwargs):
@@ -160,11 +168,12 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
             p = Point(round(float(long), 6), round(float(lat), 6), srid=4326)
             instance.location = p
             instance.save()
-        noti = instance.logs.create(source=self.request.user, type=14, title="Edit Project",
+        instance.logs.create(source=self.request.user, type=14, title="Edit Project",
                                        organization=instance.organization,
                                        project=instance, content_object=instance,
-                                       description='{0} changed the details of project named {1}'.format(
-                                           self.request.user.get_full_name(), instance.name))
+                                       description=u"{0} changed the details of project named {1}".format(
+                                           self.request.user.get_full_name(),
+                                           instance.name))
         return Response(serializer.data)
 
     def perform_destroy(self, instance):
@@ -191,7 +200,7 @@ class sectors_subsectors(viewsets.ModelViewSet):
     """
     queryset = Sector.objects.filter(sector=None)
     serializer_class = SectorSerializer
-    authentication_classes = (SessionAuthentication,)
+    # authentication_classes = (SessionAuthentication,)
 
     def filter_queryset(self, queryset):
         sector_id = self.request.query_params.get('sector', None)

@@ -38,7 +38,7 @@ from rest_framework import viewsets, serializers, status
 from onadata.apps.fsforms.models import FInstance
 from django.db.models import Q
 from onadata.apps.fieldsight.rolemixins import LoginRequiredMixin, EndRoleMixin, SameOrganizationProfileRoleMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, MultipleObjectsReturned
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.template.loader import render_to_string
 from .signup_tokens import account_activation_token
@@ -348,39 +348,97 @@ class MyProfile(SameOrganizationProfileRoleMixin, View):
 
     def get(self, request, pk=None):
         if not pk or pk =='0':
-            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile, created = UserProfile.objects.get_or_create(
+                user=request.user)
             # roles = request.user.user_roles.all()
-            responses = FInstance.objects.filter(submitted_by = request.user).order_by('-date')[:10]
-            return render(request, 'users/profile.html', {'obj': profile, 'responses': responses })
-            # return render(request, 'users/profile.html', {'obj': profile, 'roles': "Super Admin", 'responses': responses })
+            responses = FInstance.objects.filter(
+                submitted_by=request.user).order_by('-date')[:10]
+            return render(request, 'users/profile.html',
+                          {'obj': profile, 'responses': responses})
         else:
             user = get_object_or_404(User.objects.filter(pk=pk))
             profile, created = UserProfile.objects.get_or_create(user_id=pk)
 
-            roles_org = user.user_roles.select_related('organization').filter(organization__isnull = False, project__isnull = True, site__isnull = True, ended_at__isnull=True, group__name="Organization Admin")
-            roles_project = user.user_roles.select_related('project').filter(organization__isnull = False, project__isnull = False, site__isnull = True, ended_at__isnull=True, group__name="Project Manager")
-            roles_doner = user.user_roles.select_related('project').filter(organization__isnull = False, project__isnull = False, site__isnull = True, ended_at__isnull=True, group__name="Project Donor")
-            roles_reviewer = user.user_roles.select_related('site').filter(organization__isnull = False, project__isnull = False, site__isnull = False, group__name="Reviewer", ended_at__isnull=True)
-            roles_SA = user.user_roles.select_related('site').filter(organization__isnull = False, project__isnull = False, site__isnull = False, group__name="Site Supervisor", ended_at__isnull=True)
-            roles_region_supervisor = user.user_roles.select_related('region').filter(organization__isnull=False, project__isnull=False, region__isnull=False, group__name="Region Supervisor", ended_at__isnull=True)
-            roles_region_reviewer = user.user_roles.select_related('region').filter(organization__isnull=False, project__isnull=False, region__isnull=False, group__name="Region Reviewer", ended_at__isnull=True)
+            roles_org = user.user_roles.select_related('organization').filter(
+                organization__isnull=False,
+                project__isnull=True,
+                site__isnull=True,
+                ended_at__isnull=True,
+                organization__is_active=True,
+                group__name="Organization Admin")
+            roles_project = user.user_roles.select_related('project').filter(
+                organization__isnull=False,
+                project__isnull=False,
+                site__isnull=True,
+                ended_at__isnull=True,
+                project__is_active=True,
+                group__name="Project Manager")
+            roles_doner = user.user_roles.select_related('project').filter(
+                organization__isnull=False,
+                project__isnull=False,
+                site__isnull=True,
+                ended_at__isnull=True,
+                project__is_active=True,
+                group__name="Project Donor")
+            roles_reviewer = user.user_roles.select_related('site').filter(
+                organization__isnull=False,
+                project__isnull=False,
+                site__isnull=False,
+                group__name="Reviewer",
+                site__is_active=True,
+                ended_at__isnull=True)
+            roles_SA = user.user_roles.select_related('site').filter(
+                organization__isnull=False,
+                project__isnull=False,
+                site__isnull=False,
+                group__name="Site Supervisor",
+                site__is_active=True,
+                ended_at__isnull=True)
+            roles_region_supervisor = user.user_roles.select_related(
+                'region').filter(
+                organization__isnull=False,
+                project__isnull=False,
+                region__isnull=False,
+                group__name="Region Supervisor",
+                region__is_active=True,
+                ended_at__isnull=True)
+            roles_region_reviewer = user.user_roles.select_related(
+                'region').filter(organization__isnull=False,
+                                 project__isnull=False,
+                                 region__isnull=False,
+                                 group__name="Region Reviewer",
+                                 region__is_active=True,
+                                 ended_at__isnull=True)
 
-            responses = FInstance.objects.filter(submitted_by = user).order_by('-date')[:10]
+            responses = FInstance.objects.filter(
+                submitted_by=user).order_by('-date')[:10]
             
             if not request.is_super_admin:
-                org_ids = request.user.user_roles.select_related('organization').filter(ended_at__isnull=True).distinct('organization_id').values('organization_id')
+                org_ids = request.user.user_roles.select_related(
+                    'organization').filter(ended_at__isnull=True).distinct(
+                    'organization_id').values('organization_id')
                 roles_org = roles_org.filter(organization_id__in=org_ids)
-                roles_project = roles_project.filter(organization_id__in=org_ids)
-                roles_reviewer = roles_reviewer.filter(organization_id__in=org_ids)
+                roles_project = roles_project.filter(
+                    organization_id__in=org_ids)
+                roles_reviewer = roles_reviewer.filter(
+                    organization_id__in=org_ids)
                 roles_SA = roles_SA.filter(organization_id__in=org_ids)
-                responses = FInstance.objects.filter(Q(submitted_by = user) & (Q(site__project__organization_id__in=org_ids) | Q(project__organization_id__in=org_ids))).order_by('-date')[:10]
+                responses = FInstance.objects.filter(
+                    Q(submitted_by=user) & (Q(
+                        site__project__organization_id__in=org_ids) | Q(
+                        project__organization_id__in=org_ids))).order_by(
+                    '-date')[:10]
             
-                own_manager_roles=request.user.user_roles.filter(group_id=2, ended_at__isnull=True).values_list('project_id', flat=True)
-                own_org_admin=request.user.user_roles.filter(group_id=1, ended_at__isnull=True).values_list('organization_id', flat=True)
+                own_manager_roles = request.user.user_roles.filter(
+                    group_id=2, ended_at__isnull=True).values_list(
+                    'project_id', flat=True)
+                own_org_admin = request.user.user_roles.filter(
+                    group_id=1, ended_at__isnull=True).values_list(
+                    'organization_id', flat=True)
                 is_super_admin = False
             else:
                 own_manager_roles =[]
-                own_org_admin=[]
+                own_org_admin = []
                 
                 if request.is_super_admin:
                     is_super_admin = True
@@ -429,7 +487,7 @@ class ViewInvitations(LoginRequiredMixin, TemplateView):
 
         email = User.objects.values('email').get(pk=kwargs.get('pk'))
         context['has_org'] = Organization.objects.filter(owner=self.request.user).exists()
-        context['invitations'] = UserInvite.objects.filter(email=email['email'], is_used=False, is_declied=False)
+        context['invitations'] = UserInvite.objects.filter(email__iexact=email['email'], is_used=False, is_declied=False)
         return context
 
 
@@ -439,6 +497,7 @@ def all_notification(user, message):
             "msg": message
         })
     })
+
 
 def web_authenticate(username=None, password=None):
         try:
@@ -452,6 +511,9 @@ def web_authenticate(username=None, password=None):
                 return None, True  # Email is correct
         except User.DoesNotExist:
             return None, False   # false Email incorrect
+        except MultipleObjectsReturned:
+            print("username multiple", username)
+            return None, False
 
 
 def web_login(request):

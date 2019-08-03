@@ -72,7 +72,6 @@ class AlterSubmissionStatusViewSet(viewsets.ModelViewSet):
             fi.date = datetime.date.today()
             fi.save()
             if fi.site:
-                fi.site.update_current_progress()
                 extra_object = fi.site
                 extra_message = ""
             else:

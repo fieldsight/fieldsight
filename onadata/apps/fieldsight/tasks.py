@@ -2682,3 +2682,14 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
     except Exception as e:
         print('Exception occured', e)
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+@shared_task()
+def update_current_progress_site(site_id):
+    site = Site.objects.get(pk=site_id)
+    set_site_progress(site, site.project)
+    try:
+        status = site.site_instances.order_by('-date').first().form_status
+    except:
+        status = 0
+    site.current_status = status
+    site.save()

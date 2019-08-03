@@ -152,10 +152,11 @@ def set_site_progress(site, project, project_settings=None):
     site.save()
     if project_settings:
         from onadata.apps.fieldsight.models import SiteProgressHistory
+        if not SiteProgressHistory.objects.filter(site=site, progress=progress,
+                                             setting=project_settings).exists():
 
-        history, _created = SiteProgressHistory.objects.get_or_create(site=site, progress=progress, setting=project_settings)
-
-        if not _created:
+            history = SiteProgressHistory(site=site, progress=progress,
+                                          setting=project_settings)
             history.save()
 
 

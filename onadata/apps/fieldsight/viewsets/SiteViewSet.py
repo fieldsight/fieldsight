@@ -69,11 +69,14 @@ class SiteViewPermission(BasePermission):
 
 class ProjectViewPermission(BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.group.name == "Super Admin":
+        if request.is_super_admin:
             return True
-        if request.group.name == "Organization Admin":
-            return obj.project.organization == request.organization
-        return request.project == obj.project
+        if request.roles.filter(group__name="Organization Admin",
+                                organization=obj.project.organization).exists():
+            return True
+        return request.roles.filter(group__name__in=["Project Manager",
+                                                    "Project Donor"],
+                                project=obj.project).exists()
 
 class ReviewerViewPermission(BasePermission):
     def has_permission(self, request, view):
@@ -321,7 +324,9 @@ class SiteTypeViewset(viewsets.ModelViewSet):
             return self.queryset.filter(project__id=project)
         else:
             user = self.request.user
-            projects = UserRole.objects.filter(project__isnull=False,user=user, ended_at=None, group__name__in=["Site Supervisor", "Region Supervisor"]).\
+            projects = self.request.roles.filter(
+                project__isnull=False, ended_at=None,
+                group__name__in=["Site Supervisor", "Region Supervisor"]).\
                 values_list('project', flat=True)
             return self.queryset.filter(project__id__in=projects)
 
