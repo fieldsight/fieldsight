@@ -1,5 +1,6 @@
 import json
 import re
+
 from django.core.urlresolvers import reverse_lazy
 from rest_framework import serializers
 
@@ -68,14 +69,16 @@ class SubmissionSerializer(serializers.ModelSerializer):
     form_name = serializers.SerializerMethodField()
     edit_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
+    has_review_permission = serializers.SerializerMethodField()
 
     class Meta:
         model = Instance
         fields = ('submission_data', 'date_created',  'submitted_by', 'site', 'submission_history',
-                  'status_data', 'form_type','form_name','fieldsight_instance', 'edit_url', 'download_url')
+                  'status_data', 'form_type', 'form_name', 'fieldsight_instance', 'edit_url', 'download_url',
+                  'has_review_permission')
 
     def get_submitted_by(self, obj):
-        return obj.user.username
+        return obj.user.first_name + ' ' + obj.user.last_name
 
     def get_status_data(self, obj):
         finstance = obj.fieldsight_instance
@@ -157,6 +160,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
     def get_submission_data(self, instance):
         data = []
         finstance = instance.fieldsight_instance
+        pattern = re.compile('\$\{(.*)\}')
 
         def get_answer(instance):
             return instance.json
@@ -323,6 +327,23 @@ class SubmissionSerializer(serializers.ModelSerializer):
                             answer = json_answer[question]
                     if 'label' in first_children:
                         question = first_children['label']
+                    if isinstance(question, dict):  # for multi language defined form field
+                        for label, value in question.items():
+                            m = pattern.search(value)  # check if the question field requires the value of the calculated field
+                            if m:
+                                field = m.group(1)  # gives the name of the calculation field
+                                if field in json_answer:
+                                    replace_text = json_answer[field]
+                                    question[label] = value.replace(m.group(0), replace_text)  # replace variable fields in form of ${''} by the value submitted
+
+                    else:  # for string label with value of a calculation field
+                        m = pattern.search(question)
+                        if m:
+                            field = m.group(1)
+                            if field in json_answer:
+                                replace_text = json_answer[field]
+                                question = question.replace(m.group(0), replace_text)
+
                     row = {"type": question_type, "question": question, "answer": answer}
                     data.append(row)
 
@@ -351,19 +372,45 @@ class SubmissionSerializer(serializers.ModelSerializer):
             calculated_data.append(d)
         return calculated_data
 
+    def get_has_review_permission(self, obj):
+        finstance = obj.fieldsight_instance
+        request = self.context['request']
+        has_access = False
+
+        if finstance.site:
+            site = finstance.site
+            if request.roles.filter(site=site, group__name="Reviewer") or request.roles.filter(region=site.region,
+                                                                                               group__name="Region Reviewer"):
+                has_access = True
+            elif request.roles.filter(project=site.project, group__name="Project Manager") or \
+                    request.roles.filter(organization=site.project.organization,
+                                         group__name="Organization Admin") or request.roles.filter(
+                group__name="Super Admin"):
+                has_access = True
+            return has_access
+
+        return has_access
+
 
 class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
     submission_data = serializers.SerializerMethodField()
     submitted_by = serializers.SerializerMethodField()
     edit_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
+    form_name = serializers.SerializerMethodField()
 
     class Meta:
         model = EditedSubmission
-        fields = ('submission_data', 'date', 'submitted_by', 'download_url', 'edit_url')
+        fields = ('submission_data', 'date', 'submitted_by', 'download_url', 'edit_url', 'form_name')
 
     def get_submitted_by(self, obj):
-        return obj.user.username
+        return obj.user.first_name + ' ' + obj.user.last_name
+
+    def get_form_name(self, obj):
+        if obj.old.project_fxf:
+            return obj.old.project_fxf.xf.title
+        else:
+            return obj.old.site_fxf.xf.title
 
     def get_submission_data(self, edit):
         data = []
@@ -531,6 +578,15 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                             'type'] == 'video':
                             answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[question]
+                        elif first_children['type'] == 'select one':
+                            for select_children in first_children['children']:
+                                if json_answer[question] == select_children['name']:
+                                    answer = select_children['label']
+                        elif first_children['type'] == 'select all that apply':
+                            answer = ''
+                            for select_children in first_children['children']:
+                                if select_children['name'] in json_answer[question]:
+                                    answer = answer + select_children['label'] + ' '
                         else:
                             answer = json_answer[question]
                     if 'label' in first_children:

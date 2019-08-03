@@ -621,7 +621,7 @@ class FInstance(models.Model):
         else:
             fxf_id = self.project_fxf_id
             
-        return "/forms/forms/" + str(fxf_id) + "#/" + str(self.instance.id)
+        return "/fieldsight/application/?submission=" + str(self.instance.id) + "#/submission-details"
 
  
     def get_abr_form_status(self):

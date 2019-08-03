@@ -89,32 +89,32 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 @login_required
 def dashboard(request):
-    current_role_count = request.roles.count()
-    if current_role_count == 1:
-        current_role = request.roles[0]
-        role_type = request.roles[0].group.name
-
-        if role_type == "Staff Project Manager":
-            return HttpResponseRedirect(reverse("staff:staff-project-detail"))
-        if role_type == "Unassigned":
-            return HttpResponseRedirect(reverse("fieldsight:roles-dashboard"))
-        if role_type == "Site Supervisor":
-            return HttpResponseRedirect(reverse("fieldsight:site-dashboard",  kwargs={'pk': current_role.site.pk}))
-        if role_type == "Reviewer":
-            return HttpResponseRedirect(reverse("fieldsight:site-dashboard", kwargs={'pk': current_role.site.pk}))
-        if role_type == "Region Supervisor":
-            return HttpResponseRedirect(reverse("fieldsight:regional-sites",  kwargs={'pk': current_role.project.pk, 'region_id': current_role.region.pk}))
-        if role_type == "Region Reviewer":
-            return HttpResponseRedirect(reverse("fieldsight:regional-sites", kwargs={'pk': current_role.project.pk, 'region_id': current_role.region.pk}))
-        if role_type == "Project Donor":
-            return HttpResponseRedirect(reverse("fieldsight:donor_project_dashboard_lite", kwargs={'pk': current_role.project.pk}))
-        if role_type == "Project Manager":
-            return HttpResponseRedirect(reverse("fieldsight:project-dashboard", kwargs={'pk': current_role.project.pk}))
-        if role_type == "Organization Admin":
-            return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard",
-                                                kwargs={'pk': current_role.organization.pk}))
-    if current_role_count > 1:
-        return HttpResponseRedirect(reverse("fieldsight:roles-dashboard"))
+    # current_role_count = request.roles.count()
+    # if current_role_count == 1:
+    #     current_role = request.roles[0]
+    #     role_type = request.roles[0].group.name
+    #
+    #     if role_type == "Staff Project Manager":
+    #         return HttpResponseRedirect(reverse("staff:staff-project-detail"))
+    #     if role_type == "Unassigned":
+    #         HttpResponseRedirect("/fieldsight/application/#/my-roles")
+    #     if role_type == "Site Supervisor":
+    #         return HttpResponseRedirect(reverse("fieldsight:site-dashboard",  kwargs={'pk': current_role.site.pk}))
+    #     if role_type == "Reviewer":
+    #         return HttpResponseRedirect(reverse("fieldsight:site-dashboard", kwargs={'pk': current_role.site.pk}))
+    #     if role_type == "Region Supervisor":
+    #         return HttpResponseRedirect(reverse("fieldsight:regional-sites",  kwargs={'pk': current_role.project.pk, 'region_id': current_role.region.pk}))
+    #     if role_type == "Region Reviewer":
+    #         return HttpResponseRedirect(reverse("fieldsight:regional-sites", kwargs={'pk': current_role.project.pk, 'region_id': current_role.region.pk}))
+    #     if role_type == "Project Donor":
+    #         return HttpResponseRedirect(reverse("fieldsight:donor_project_dashboard_lite", kwargs={'pk': current_role.project.pk}))
+    #     if role_type == "Project Manager":
+    #         return HttpResponseRedirect(reverse("fieldsight:project-dashboard", kwargs={'pk': current_role.project.pk}))
+    #     if role_type == "Organization Admin":
+    #         return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard",
+    #                                             kwargs={'pk': current_role.organization.pk}))
+    if not request.is_super_admin:
+        return HttpResponseRedirect("/fieldsight/application/#/my-roles")
 
     # total_users = User.objects.all().count()
     # total_organizations = Organization.objects.all().count()
@@ -227,13 +227,15 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         return dashboard_data
 
 
-class Project_dashboard(ProjectRoleMixin, TemplateView):
+class ProjectDashboard(ProjectRoleMixin, TemplateView):
     template_name = "fieldsight/project_dashboard.html"
     
     def get_context_data(self, **kwargs):
         obj = get_object_or_404(Project, pk=self.kwargs.get('pk'), is_active=True)
         peoples_involved = obj.project_roles.filter(ended_at__isnull=True).distinct('user').count()
-        total_sites = obj.sites.filter(is_active=True, is_survey=False).count()
+        total_sites = obj.sites.filter(is_active=True, is_survey=False,
+                                       site__isnull=True
+                                       ).count()
         total_survey_sites = obj.sites.filter(is_survey=True)
         outstanding, flagged, approved, rejected = obj.get_submissions_count()
         one_week_ago = datetime.datetime.today() - datetime.timedelta(days=7)
@@ -436,7 +438,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
     @method_decorator(login_required(login_url='/users/accounts/login/?next=/'))
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if request.roles.filter(group__name__in=["Unassigned", "Super Admin"]).exists():
+            if request.roles.filter(group__name="Super Admin").exists() or not request.user.organizations.all():
                 return super(OrganizationCreateView, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
 
@@ -488,7 +490,7 @@ class OrganizationCreateView(OrganizationView, CreateView):
         # ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
         if self.request.roles.filter(group__name="Unassigned").exists():
-            previous_group = UserRole.objects.get(user=self.request.user, group__name=self.request.group.name)
+            previous_group = UserRole.objects.get(user=self.request.user, group__name="Unassigned")
             previous_group.delete()
 
             new_group = Group.objects.get(name="Organization Admin")
@@ -499,6 +501,9 @@ class OrganizationCreateView(OrganizationView, CreateView):
                 UserRole.objects.get_or_create(user=user, group=group, organization=self.object, project_id=project.id,
                                            site_id=site.id)
 
+            return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': self.object.pk}))
+
+        if not user.is_superuser:
             return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': self.object.pk}))
 
         return HttpResponseRedirect(self.get_success_url())
@@ -964,7 +969,7 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         return context
         
     def get_success_url(self):
-        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.object.id})
+        return self.object.get_absolute_url()
 
     def form_valid(self, form):
 
@@ -1030,7 +1035,7 @@ class SubSiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         return context
 
     def get_success_url(self):
-        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.object.id})
+        return self.object.get_absolute_url()
 
     def form_valid(self, form):
 
@@ -1089,7 +1094,7 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
         return context
 
     def get_success_url(self):
-        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.kwargs['pk']})
+        return self.object.get_absolute_url()
 
     def form_valid(self, form):
         site = Site.objects.get(pk=self.kwargs.get('pk'))
@@ -2933,7 +2938,7 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
         return context
 
     def get_success_url(self):
-        return reverse('fieldsight:site-dashboard', kwargs={'pk': self.object.id})
+        return self.object.get_absolute_url()
 
     def form_valid(self, form):
         self.object = form.save(project_id=self.kwargs.get('pk'), region_id=self.kwargs.get('region_pk'), new=True)
@@ -3794,7 +3799,8 @@ class DonorProjectDashboard(DonorRoleMixin, TemplateView):
 
         peoples_involved = obj.project_roles.filter(ended_at__isnull=True).distinct('user')
         total_sites = obj.sites.filter(is_active=True, is_survey=False).count()
-        sites = obj.sites.filter(is_active=True, is_survey=False)[:200]
+        sites = obj.sites.filter(is_active=True, is_survey=False,
+                                 site__isnull=True)[:200]
         data = serialize('custom_geojson', sites, geometry_field='location',
                          fields=('location', 'id',))
 
@@ -4493,6 +4499,7 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
         context = super(ApplicationView, self).get_context_data(**kwargs)
         project = self.request.GET.get("project", None)
         site = self.request.GET.get("site", None)
+        submission = self.request.GET.get("submission", None)
         base_url = settings.SITE_URL
         context['base_url'] = base_url
         context['kpi_base_url'] = settings.KPI_URL
@@ -4507,11 +4514,19 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
 
         elif site:
             site_obj = get_object_or_404(Site, id=int(site))
-            context['site_id'] = site_obj.name
-            context['project'] = site_obj.project.name
+            context['site_id'] = site_obj.id
+            context['project'] = site_obj.project
 
             if site_obj.enable_subsites is False:
                 context['root_site'] = site_obj.site
+            return context
+
+        elif submission:
+            submission = get_object_or_404(Instance, id=int(submission.replace(',','')))
+
+            context['submission_id'] = submission.id
+
+            return context
 
         else:
             return context

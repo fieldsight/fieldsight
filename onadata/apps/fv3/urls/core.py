@@ -3,13 +3,10 @@ from rest_framework import routers
 
 from onadata.apps.fv3.urls.project_settings import progress_urlpatterns
 from onadata.apps.fv3.urls.myroles import my_roles_urlpatterns
+from onadata.apps.fv3.urls.site_dashboard import site_dashboard_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
-    ProjectUpdateViewset, sectors_subsectors, ProjectSiteTypesViewset, ProjectTermsLabelsViewset, \
-    ProjectRegionsViewset, GeoLayerView, ProjectDefineSiteMeta, ProjectSitesViewset, organization_geolayer, check_region, \
-    site_recent_pictures, site_documents
-
+    ProjectDefineSiteMeta, ProjectSitesViewset, check_region
 from onadata.apps.fv3.viewsets.OrganizationViewSet import OrganizationViewSet
-from onadata.apps.fv3.viewsets.SiteViewSet import SiteViewSet, site_map, SiteSubmissionsViewSet, SiteForms
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, MyProjectFormsViewSet, ShareFormViewSet, \
     ShareProjectFormViewSet, ShareTeamFormViewSet, ShareGlobalFormViewSet, FormAddLanguageViewSet, CloneFormViewSet, \
     MyFormDeleteViewSet, ShareUserListViewSet, ShareTeamListViewSet, ShareProjectListViewSet, MySharedFormViewSet
@@ -18,15 +15,14 @@ from onadata.apps.fv3.viewsets.ReportViewsets import ReportVs
 
 from onadata.apps.fv3.viewsets.SubmissionViewSet import AlterSubmissionStatusViewSet, SubmissionAnswerViewSet, \
     SubmissionViewSet
-from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectSitesListViewSet
+from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
+    ProjectSitesListViewSet, SubSitesListViewSet
 
+from onadata.apps.fv3.views import RegionalSites, sub_regions
 
 router = routers.DefaultRouter()
 
-router.register(r'project-terms-labels', ProjectTermsLabelsViewset, base_name='project-terms-labels')
-router.register(r'project-regions', ProjectRegionsViewset, base_name='project-regions')
 router.register(r'project-sites', ProjectSitesViewset, base_name='project-sites')
-router.register(r'project-site-types', ProjectSiteTypesViewset, base_name='project-site-types')
 
 
 urlpatterns = [
@@ -36,15 +32,8 @@ urlpatterns = [
     url(r'^api/sites/', MySuperviseSitesViewset.as_view({'get': 'list'}),  name='supervisor_sites'),
     url(r'^api/site/blueprint/', site_blueprints, name='site_blueprints'),
     url(r'^api/user/logs/', supervisor_logs, name='supervisor_logs'),
-
-
-    url(r'^api/update-project/(?P<pk>\d+)/$', ProjectUpdateViewset.as_view(),
-        name='update_project_api'),
-    url(r'^api/organization-geolayer/$', organization_geolayer, name='organization_geolayer'),
     url(r'^api/check-region/(?P<project_id>\d+)/$', check_region, name='check_region'),
 
-    url(r'^api/sectors-subsectors/$', sectors_subsectors.as_view({'get':'list'}), name='sectors_subsectors'),
-    url(r'^api/geolayer/$', GeoLayerView.as_view(), name='geolayer'),
     url(r'^api/project-define-site-meta/(?P<pk>\d+)/$', ProjectDefineSiteMeta.as_view(), name='project_define_site_meta'),
 
     url(r'^api/myforms/', MyFormsViewSet.as_view({'get':'list'}), name='my_forms'),
@@ -54,11 +43,7 @@ urlpatterns = [
 
     url(r'^api/submission/(?P<pk>\d+)/$', SubmissionViewSet.as_view({'get':'retrieve'}), name='submission'),
     url(r'^api/organization/(?P<pk>\d+)/$', OrganizationViewSet.as_view({'get': 'retrieve'}), name='organization'),
-    url(r'^api/site/(?P<pk>\d+)/$', SiteViewSet.as_view({'get': 'retrieve'}), name='site'),
-    url(r'^api/site-forms/(?P<site_id>\d+)/$', SiteForms.as_view(), name='site_forms'),
 
-    url(r'^api/site-map/(?P<pk>\d+)/$', site_map, name='site_map'),
-    url(r'^api/site-submissions/$', SiteSubmissionsViewSet.as_view({'get': 'list'}), name='site_submissions'),
     url(r'^api/submission-answers/(?P<pk>\d+)/$', SubmissionAnswerViewSet.as_view({'get':'retrieve'}), name='submission-data'),
     url(r'^api/change/submission/status/$', AlterSubmissionStatusViewSet.as_view({'post':'create'}), name='submission-flag'),
 
@@ -78,10 +63,13 @@ urlpatterns = [
     url(r'api/form/projects/$', ShareProjectListViewSet.as_view({'get': 'list'}), name='shareable-project'),
 
     url(r'^api/project-site-list/$', ProjectSitesListViewSet.as_view({'get': 'list'}), name='project_sites_list'),
-    url(r'^api/site-recent-pictures/$', site_recent_pictures, name='site_recent_pictures'),
-    url(r'^api/site/documents/$', site_documents, name='site_documents'),
+    url(r'^api/sub-site-list/$', SubSitesListViewSet.as_view(
+        {'get': 'list'}), name='sub_sites_list'),
+    url(r'^api/regional-sites/$', RegionalSites.as_view({'get' : 'list'}), name='regional_sites'),
+    url(r'^api/sub-regions/$', sub_regions, name='sub_regions'),
 
 ]
 
 urlpatterns += progress_urlpatterns
 urlpatterns += my_roles_urlpatterns
+urlpatterns += site_dashboard_urlpatterns

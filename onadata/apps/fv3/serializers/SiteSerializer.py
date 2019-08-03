@@ -4,14 +4,17 @@ from collections import OrderedDict
 from django.db.models import Q
 from django.conf import settings
 from rest_framework import serializers
+from rest_framework.reverse import reverse_lazy
 
 from onadata.apps.eventlog.models import FieldSightLog
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.fieldsight.models import Site, ProjectLevelTermsAndLabels
+from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.models import UserProfile
 from django.core.exceptions import ObjectDoesNotExist
 from onadata.apps.fsforms.line_data_project import ProgressGeneratorSite
 from onadata.apps.fsforms.models import FInstance, Stage
+from onadata.apps.fv3.role_api_permissions import has_write_permission_in_site
 
 from onadata.apps.fsforms.line_data_project import date_range
 
@@ -49,15 +52,22 @@ class SiteSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='region.name')
     submissions = serializers.SerializerMethodField()
     total_users = serializers.SerializerMethodField()
+    total_subsites = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
     site_progress_chart_data = serializers.SerializerMethodField()
     form_submissions_chart_data = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
+    terms_and_labels = serializers.SerializerMethodField()
+    has_write_permission = serializers.SerializerMethodField()
+    project_id = serializers.SerializerMethodField()
+    breadcrumbs = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
-        fields = ('id', 'name', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
-                  'total_users', 'users', 'submissions', 'form_submissions_chart_data', 'site_progress_chart_data')
+        fields = ('id', 'name', 'project_id', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
+                  'total_users', 'users', 'submissions',
+                  'form_submissions_chart_data', 'site_progress_chart_data',
+                  'total_subsites', 'terms_and_labels', 'has_write_permission', 'breadcrumbs')
 
     def get_submissions(self, obj):
         response = obj.get_site_submission_count()
@@ -72,10 +82,11 @@ class SiteSerializer(serializers.ModelSerializer):
         return submissions
 
     def get_location(self, obj):
+        if obj.location:
 
-        data = {'coordinates': [obj.location.x, obj.location.y]}
+            data = {'coordinates': [obj.location.x, obj.location.y]}
 
-        return data
+            return data
 
     def get_total_users(self, obj):
 
@@ -83,17 +94,22 @@ class SiteSerializer(serializers.ModelSerializer):
             Q(site=obj) | Q(region__project=obj.project)).select_related('user').distinct('user_id').count()
         return peoples_involved
 
+    def get_total_subsites(self, obj):
+        if obj.enable_subsites:
+            return obj.sub_sites.count()
+        return 0
+
     def get_users(self, obj):
 
-        project = Site.objects.get(pk=obj.pk).project
+        project = obj.project
 
         users_role = UserRole.objects.filter(ended_at__isnull=True).filter(Q(site_id=obj.pk) | Q(region__project=project)).\
             select_related('user', 'user__user_profile').distinct('user_id')
         users_list = []
         for role in users_role:
             try:
-                users_list.append({'user': role.user.id, 'username': role.user.username, 'email': role.user.email,
-                               'profile_picture': role.user.user_profile.profile_picture.url})
+                users_list.append({'user': role.user.id, 'username': role.user.username, 'full_name': role.user.first_name + ' ' + role.user.last_name,
+                                   'email': role.user.email, 'profile_picture': role.user.user_profile.profile_picture.url})
             except ObjectDoesNotExist:
                 UserProfile.objects.get_or_create(user=role.user)
 
@@ -127,6 +143,72 @@ class SiteSerializer(serializers.ModelSerializer):
 
         return data
 
+    def get_terms_and_labels(self, obj):
+        project = obj.project
+        if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=project).exists():
+
+            return {'site': project.terms_and_labels.site,
+                    'donor': project.terms_and_labels.donor,
+                    'site_supervisor': project.terms_and_labels.site_supervisor,
+                    'site_reviewer': project.terms_and_labels.site_reviewer,
+                    'region': project.terms_and_labels.region,
+                    'region_supervisor': project.terms_and_labels.region_supervisor,
+                    'region_reviewer': project.terms_and_labels.region_reviewer,
+                    }
+
+        else:
+            return {'site': 'Site',
+                    'donor': 'Donor',
+                    'site_supervisor': 'Site Supervisor',
+                    'site_reviewer': 'Site Reviewer',
+                    'region': 'Region',
+                    'region_supervisor': 'Region Supervisor',
+                    'region_reviewer': 'Region Reviewer',
+                    }
+
+    def get_has_write_permission(self, obj):
+
+        request = self.context['request']
+        if has_write_permission_in_site(request, obj.id):
+            return True
+        else:
+            return False
+
+    def get_project_id(self, obj):
+        return obj.project.id
+
+    def get_breadcrumbs(self, obj):
+        name = obj.name
+        project = obj.project
+        project_url = '#'
+        organization = obj.project.organization
+        organization_url = ''
+        request = self.context['request']
+        if request.roles.filter(Q(group__name="Project Manager", project=project) | Q(group__name="Organization Admin",
+                                                                                      organization=organization)) or request.is_super_admin:
+            project_url = project.get_absolute_url()
+        if request.roles.filter(group__name="Organization Admin", organization=organization) or request.is_super_admin:
+            organization_url = organization.get_absolute_url()
+
+        if obj.site:
+            return {
+                'root_site': obj.site.name,
+                'root_site_url': obj.site.get_absolute_url(),
+                'site': name,
+                'project': project.name,
+                'project_url': project_url,
+                'organization': organization.name,
+                'organization_url': organization_url
+            }
+
+        return {
+            'site': name,
+            'project': project.name,
+            'project_url': project_url,
+            'organization': organization.name,
+            'organization_url': organization_url
+        }
+
 
 class FInstanceSerializer(serializers.ModelSerializer):
     form = serializers.SerializerMethodField()
@@ -134,10 +216,11 @@ class FInstanceSerializer(serializers.ModelSerializer):
     submitted_by = serializers.CharField(source='submitted_by.username')
     reviewed_by = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
+    instance_id = serializers.IntegerField(source="instance.id")
 
     class Meta:
         model = FInstance
-        fields = ('id', 'date', 'form', 'status', 'submitted_by', 'reviewed_by')
+        fields = ('id', 'instance_id', 'date', 'form', 'status', 'submitted_by', 'reviewed_by')
 
     def get_form(self, obj):
         if obj.site_fxf:
@@ -176,3 +259,13 @@ class StageFormSerializer(serializers.ModelSerializer):
                                                                      str(form.stage_forms.id) + '/' + str(self.context['site_id']) + '/'}
                 for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')]
         return data
+
+
+class SiteCropImageSerializer(serializers.ModelSerializer):
+    logo = Base64ImageField(
+        max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
+    )
+
+    class Meta:
+        model = Site
+        fields = ('id', 'logo',)

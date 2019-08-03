@@ -141,10 +141,11 @@ class MyRolesSerializer(serializers.ModelSerializer):
     has_organization_access = serializers.SerializerMethodField()
     team_url = serializers.SerializerMethodField()
     projects = serializers.SerializerMethodField()
+    id = serializers.IntegerField(source='organization.id')
 
     class Meta:
         model = UserRole
-        fields = ('name', 'address', 'logo', 'has_organization_access', 'team_url', 'projects')
+        fields = ('id', 'name', 'address', 'logo', 'has_organization_access', 'team_url', 'projects')
 
     def get_name(self, obj):
         return obj.organization.name
@@ -156,7 +157,8 @@ class MyRolesSerializer(serializers.ModelSerializer):
         return obj.organization.logo.url
 
     def get_has_organization_access(self, obj):
-        if obj.group.name == "Organization Admin":
+        user = self.context['user']
+        if obj.organization_id in user.user_roles.filter(group__name="Organization Admin", ended_at=None).values_list('organization_id', flat=True):
             has_access = True
 
         else:
@@ -168,7 +170,8 @@ class MyRolesSerializer(serializers.ModelSerializer):
         org_admin = self.get_has_organization_access(obj)
 
         if org_admin:
-            roles = Project.objects.filter(organization=obj.organization, is_active=True).values('id', 'name')
+            data = Project.objects.filter(organization=obj.organization, is_active=True)
+            roles = [{'id': r.id, 'name': r.name, 'has_project_access': True} for r in data]
             # roles = [{'id': proj.id, 'name': proj.name, 'project_url': settings.SITE_URL + proj.get_absolute_url()} for proj in data]
 
         else:
@@ -188,8 +191,10 @@ class MyRolesSerializer(serializers.ModelSerializer):
 
     def to_representation(self, obj):
         data = super(MyRolesSerializer, self).to_representation(obj)
+        user = self.context['user']
 
-        if obj.group.name != "Organization Admin":
+        if obj.organization_id not in user.user_roles.filter(group__name="Organization Admin", ended_at=None).values_list('organization_id', flat=True):
+
             data.pop('team_url')
 
         return data

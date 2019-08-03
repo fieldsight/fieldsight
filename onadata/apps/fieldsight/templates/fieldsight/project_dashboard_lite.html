@@ -292,7 +292,7 @@ assigntoken(csrf_token);
 										</a>
 									</li>
 									<li>
-										<a href="{% url 'fieldsight:donor-proj-site-list' obj.id%}" title="" class="org-profile-stat-item">
+										<a href="/fieldsight/application/?project={{obj.id}}#/project-sitelist" title="" class="org-profile-stat-item">
 											<i class="la la-map-marker"></i>
 											<div class="org-mini-stat-info">
 												<span>{{total_sites}}</span>
@@ -351,7 +351,7 @@ assigntoken(csrf_token);
 											</div>
 
 											<!-- ko foreach: regions  -->
-											<a data-bind="attr:{ href: '/fieldsight/project/{{obj.pk}}/donor-regional-sites/'+id() }" class="project-item-wrap margin-top clearfix " style="width: 100%;">
+											<a data-bind="attr:{ href: '/fieldsight/application/#/regional-site/'+id() }" class="project-item-wrap margin-top clearfix " style="width: 100%;">
 												<div class="project-logo">
 													<!-- <img data-bind="attr:{src: logo}" width="50" height="50"/> -->
 												</div>
@@ -362,7 +362,7 @@ assigntoken(csrf_token);
 												</div>
 											</a>
 											<!-- /ko-->
-											<a href="{% url 'fieldsight:donor-regional-sites' obj.pk 0 %}" class="project-item-wrap margin-top clearfix " style="width: 100%;">
+											<a href="/fieldsight/application/?project={{obj.pk}}#/project-sitelist" class="project-item-wrap margin-top clearfix " style="width: 100%;">
 												<div class="project-logo">
 													<!-- <img data-bind="attr:{src: logo}" width="50" height="50"/> -->
 												</div>
@@ -399,7 +399,7 @@ assigntoken(csrf_token);
 											</div>
 											<!-- ko foreach: sites  -->
 
-											<a data-bind="attr:{ href: '/fieldsight/site-dashboard/lite/'+id() }" class="project-item-wrap margin-top clearfix " style="width: 100%;">
+											<a data-bind="attr:{ href: '/fieldsight/application/#/site-dashboard/'+id() }" class="project-item-wrap margin-top clearfix " style="width: 100%;">
 												<div class="project-logo">
 													<img data-bind="attr:{src: logo}" width="50" height="50"/>
 												</div>
