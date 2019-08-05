@@ -75,11 +75,11 @@
 					
 					<td style="width:60%;">
 						  {% if instance.project_fxf %}
-						    <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id}}#/submission-details">
+						    <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id|stringformat:'d'}}#/submission-details">
 							  <h7 class="address">{{ instance.project_fxf.xf.title}}</h7>
 						  </a>
 						  {% else %}
-						  <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id}}#/submission-details">
+						  <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id|stringformat:'d'}}#/submission-details">
 							    <h7 class="address">{{ instance.site_fxf.xf.title}}</h7>
 						  </a>
 						  {% endif %}
@@ -118,11 +118,11 @@
 				  <tr>
 					  <td style="width:60%;">
 						   {% if instance.project_fxf %}
-						    <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id}}#/submission-details">
+						    <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id|stringformat:'d'}}#/submission-details">
 							  <h7 class="address">{{ instance.project_fxf.xf.title}}</h7>
 						  </a>
 						  {% else %}
-						  <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id}}#/submission-details">
+						  <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id|stringformat:'d'}}#/submission-details">
 							    <h7 class="address">{{ instance.site_fxf.xf.title}}</h7>
 						  </a>
 						  {% endif %}
@@ -163,11 +163,11 @@
 				  	
 					  <td style="width:60%;">
 						   {% if instance.project_fxf %}
-						    <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id}}#/submission-details">
+						    <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id|stringformat:'d'}}#/submission-details">
 							  <h7 class="address">{{ instance.project_fxf.xf.title}}</h7>
 						  </a>
 						  {% else %}
-						  <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id}}#/submission-details">
+						  <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id|stringformat:'d'}}#/submission-details">
 							    <h7 class="address">{{ instance.site_fxf.xf.title}}</h7>
 						  </a>
 						  {% endif %}
@@ -206,11 +206,11 @@
 				    
 					  <td style="width:60%;">
 						  {% if instance.project_fxf %}
-						    <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id}}#/submission-details">
+						    <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id|stringformat:'d'}}#/submission-details">
 							  <h7 class="address">{{ instance.project_fxf.xf.title}}</h7>
 						  </a>
 						  {% else %}
-						  <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id}}#/submission-details">
+						  <a title="view submission detail" href="{% url 'fieldsight:application' %}?submission={{instance.instance.id|stringformat:'d'}}#/submission-details">
 							    <h7 class="address">{{ instance.site_fxf.xf.title}}</h7>
 						  </a>
 						  {% endif %}
