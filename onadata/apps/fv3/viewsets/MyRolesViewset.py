@@ -524,7 +524,7 @@ class AcceptAllInvites(APIView):
                                           organization=invitation.organization,
                                           extra_message=extra_msg, project=project, site=site, content_object=content,
                                           extra_object=invitation.by_user,
-                                          description="{0} was added as the {1} of {2} by {3}.".
+                                          description=u"{0} was added as the {1} of {2} by {3}.".
                                           format(user.username, invitation.group.name, content.name, invitation.by_user))
 
         return Response(data='Accept all invitations Successfully.', status=status.HTTP_200_OK)
