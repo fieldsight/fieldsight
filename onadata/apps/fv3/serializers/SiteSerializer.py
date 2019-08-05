@@ -64,7 +64,7 @@ class SiteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Site
-        fields = ('id', 'name', 'project_id', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
+        fields = ('id', 'name', 'identifier', 'project_id', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
                   'total_users', 'users', 'submissions',
                   'form_submissions_chart_data', 'site_progress_chart_data',
                   'total_subsites', 'terms_and_labels', 'has_write_permission', 'breadcrumbs')
