@@ -21,7 +21,11 @@ class MyProjectSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'has_project_access')
 
     def get_has_project_access(self, obj):
-        if obj.group.name == "Project Manager" or obj.group.name == "Project Donor":
+        user = self.context['user']
+        # if obj.group.name == "Project Manager" or obj.group.name == "Project Donor":
+        if obj.project_id in user.user_roles.filter(group__name__in=["Project Manager", "Project Donor"],
+                                                         ended_at=None).values_list('project_id', flat=True):
+
             has_access = True
 
         else:
@@ -167,6 +171,7 @@ class MyRolesSerializer(serializers.ModelSerializer):
         return has_access
 
     def get_projects(self, obj):
+        user = self.context['user']
         org_admin = self.get_has_organization_access(obj)
 
         if org_admin:
@@ -183,7 +188,7 @@ class MyRolesSerializer(serializers.ModelSerializer):
                                                                     Q(group__name="Region Supervisor", region__is_active=True)|
                                                                     Q(group__name="Project Donor", project__is_active=True)
                                                                                                         ).distinct('project')
-            roles = MyProjectSerializer(data, many=True).data
+            roles = MyProjectSerializer(data, many=True, context={'user': user}).data
         return roles
 
     def get_team_url(self, obj):
