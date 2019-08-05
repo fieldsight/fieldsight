@@ -131,7 +131,7 @@ class SiteLog(viewsets.ModelViewSet):
     pagination_class = LargeResultsSetPagination
 
     def filter_queryset(self, queryset):
-        site = Site.objects.get(pk=self.kwargs.get('pk'))
+        site = Site.objects.get(pk=int(self.kwargs.get('pk')))
 
         content_site = ContentType.objects.get(app_label="fieldsight", model="site")
         if check_site_permission(self.request, site.id):
