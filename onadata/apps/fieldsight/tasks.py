@@ -1097,9 +1097,11 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
                 if formresponse.site_id:
                     answers['identifier'] = formresponse.site.identifier
                     answers['name'] = formresponse.site.name
+                    answers['submitted_by'] = formresponse.submitted_by.email or formresponse.submitted_by.username 
                 else:
                     answers['identifier'] = 'Na'
                     answers['name'] = 'Na'
+                    answers['submitted_by'] = ''
 
                 answers['status'] = form_status_map[formresponse.form_status]
                 
@@ -1107,7 +1109,7 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
                     repeat_answers.append({'uid':formresponse.instance_id, 'name': answers['name'], 'identifier': answers['identifier'], 'repeated': r_question_answers })
 
                 if len(questions) + 3 > len(head_columns):
-                    head_columns = [{'question_name':'uid','question_label':'uid'}, {'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}, {'question_name':'status','question_label':'status'}] + questions  
+                    head_columns = [{'question_name':'uid','question_label':'uid'}, {'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}, {'question_name':'submitted_by','question_label':'submitted_by'}, {'question_name':'status','question_label':'status'}] + questions  
                 row=[]
 
                 for col_num in range(len(head_columns)):
@@ -1140,6 +1142,7 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
                     wr.cell(row=1, column=1).value = 'uid'
                     wr.cell(row=1, column=2).value = 'Identifier'
                     wr.cell(row=1, column=3).value = 'Name'
+                    wr.cell(row=1, column=3).value = 'Submitted by'
 
                     #for loop needed.
                     for col_num in range(len(group['questions'])):

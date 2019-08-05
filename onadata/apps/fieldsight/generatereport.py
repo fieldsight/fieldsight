@@ -206,7 +206,7 @@ class PDFReport:
 
                 size = "small"
                 try:
-                    attachment = Attachment.objects.filter(instance_id=self.instance_id, media_file_basename=answer_dict[question_name]).first() or Attachment.objects.filter(instance_id=self.instance_id, media_file__contains=answer_dict[question_name]).first()
+                    attachment = Attachment.objects.filter(instance_id=self.instance_id, media_file_basename=answer_dict[question_name]).first() or Attachment.objects.filter(instance_id=self.instance_id, media_file__contains=answer_dict[question_name]).first() or Attachment.objects.filter(media_file__contains=answer_dict[question_name]).filter(media_file__contains=self.media_folder).first()
 
                     if not attachment.mimetype.startswith('image'):
                         media_url = 'http://' + self.base_url +'/static/images/img-404.jpg'
@@ -225,6 +225,8 @@ class PDFReport:
                 isNull = False
             else:
                 answer_text=answer_dict[question_name]
+                answer_text = answer_text.replace('<br>','<br />')
+
                 if len(answer_text) > 1200:
                     new_answer_text = answer_text[0:360]
                     answer_text = new_answer_text + ".... ( full answer followed after this table. )"
@@ -243,6 +245,9 @@ class PDFReport:
         else:
             if isinstance(question_label, dict):
                 question_label = self.get_multi_label(question_label)
+
+            question_label = question_label.replace('<br>','<br />')
+
             row=[Paragraph(question_label, styBackground), answer]
             self.data.append(row)
 
