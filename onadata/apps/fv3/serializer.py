@@ -58,10 +58,12 @@ class RegionSerializer(serializers.ModelSerializer):
 
 
 class SiteSerializer(serializers.ModelSerializer):
+    type_label = serializers.CharField(source='type.name')
+
     class Meta:
         model = Site
         fields = ('id', 'name', 'latitude', 'longitude', 'address', 'phone',
-                  'current_progress', 'identifier', 'type', 'region', 'project',
+                  'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
                   'date_modified', 'is_active', 'site_meta_attributes_ans',
                   'enable_subsites', 'site')
 
