@@ -150,6 +150,7 @@ class SiteSubmissionPermission(permissions.BasePermission):
 
         try:
             if site_id:
+                site_id = int(site_id)
                 try:
                     site = Site.objects.get(id=site_id)
                 except ObjectDoesNotExist:
@@ -198,7 +199,7 @@ def check_site_permission(request, pk):
     if request.is_super_admin:
         return True
 
-    site_id = pk
+    site_id = int(pk)
     if site_id:
         try:
             site = Site.objects.get(id=site_id)
@@ -244,7 +245,7 @@ def has_write_permission_in_site(request, pk):
     if request.is_super_admin:
         return True
 
-    site_id = pk
+    site_id = int(pk)
     if site_id:
         try:
             site = Site.objects.get(id=site_id)
@@ -286,6 +287,7 @@ def check_regional_perm(request, region):
 
     try:
         if region_id:
+            region_id = int(region_id)
             try:
                 region = Region.objects.get(id=region_id)
             except ObjectDoesNotExist:

@@ -4171,7 +4171,7 @@ def project_dashboard_graphs(request, pk):
 
 
 def site_refrenced_metas(request, pk):
-    metas = generateSiteMetaAttribs(pk)
+    metas = generateSiteMetaAttribs(int(pk))
     return JsonResponse(metas, safe=False)
 
 

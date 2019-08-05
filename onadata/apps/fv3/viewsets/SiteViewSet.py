@@ -44,7 +44,8 @@ class SiteViewSet(viewsets.ReadOnlyModelViewSet):
 @permission_classes([SiteSubmissionPermission,])
 @api_view(['GET'])
 def site_map(request, pk):
-    if check_site_permission(request, pk):
+    if check_site_permission(request, int(pk)):
+        pk = int(pk)
         obj = get_object_or_404(Site, pk=pk, is_active=True)
         data = serialize('custom_geojson', [obj], geometry_field='location',
                          fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone', 'id'))
@@ -74,11 +75,12 @@ class SiteForms(APIView):
         site_id = self.kwargs.get('site_id', None)
         query_params = self.request.query_params.get('type')
 
-        if check_site_permission(request, site_id):
+        if check_site_permission(request, int(site_id)):
 
             if site_id and query_params:
+                site_id = int(site_id)
                 try:
-                    project_id = get_object_or_404(Site, pk=site_id).project.id
+                    project_id = get_object_or_404(Site, pk=int(site_id)).project.id
 
                     if query_params == 'general':
                         generals = FieldSightXF.objects.select_related('xf').filter(is_staged=False, is_deleted=False, is_scheduled=False,
@@ -135,7 +137,7 @@ class SiteCropImage(APIView):
 
     def get_object(self, pk):
         try:
-            return Site.objects.get(pk=pk)
+            return Site.objects.get(pk=int(pk))
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
     #
@@ -145,7 +147,7 @@ class SiteCropImage(APIView):
     #     return Response(serializer.data)
 
     def put(self, request, pk, format=None):
-        snippet = self.get_object(pk)
+        snippet = self.get_object(int(pk))
         serializer = SiteCropImageSerializer(snippet, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -158,9 +160,13 @@ class SiteCropImage(APIView):
 def site_recent_pictures(request):
     query_params = request.query_params
     site_id = query_params.get('site')
-    if check_site_permission(request, site_id):
-        site_featured_images = Site.objects.get(pk=site_id).site_featured_images
-        recent_pictures = get_recent_images(site_id)
+    if check_site_permission(request, int(site_id)):
+        try:
+            site_featured_images = Site.objects.get(pk=int(site_id)).site_featured_images
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        recent_pictures = get_recent_images(int(site_id))
         recent_pictures = list(recent_pictures["result"])
         return Response({'site_featured_images': site_featured_images,
                          'recent_pictures': recent_pictures})
@@ -192,8 +198,14 @@ def check_file_extension(file_url):
 def site_documents(request):
     query_params = request.query_params
     site_id = query_params.get('site_id')
+    site_id = int(site_id)
+    print('site idddd', site_id)
     if check_site_permission(request, site_id):
-        blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
+        try:
+            blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
         data = [{'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
                 for blueprint in blueprints_obj]
         return Response(data)
