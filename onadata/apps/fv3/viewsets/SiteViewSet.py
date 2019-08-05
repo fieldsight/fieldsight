@@ -64,7 +64,6 @@ class SiteSubmissionsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         site_id = self.request.query_params.get('site', None)
         site = get_object_or_404(Site, id=int(site_id))
-        import ipdb;ipdb.set_trace()
         return self.queryset.filter(site=site, is_deleted=False)
 
 
@@ -162,7 +161,11 @@ def site_recent_pictures(request):
     query_params = request.query_params
     site_id = query_params.get('site')
     if check_site_permission(request, int(site_id)):
-        site_featured_images = Site.objects.get(pk=int(site_id)).site_featured_images
+        try:
+            site_featured_images = Site.objects.get(pk=int(site_id)).site_featured_images
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
         recent_pictures = get_recent_images(int(site_id))
         recent_pictures = list(recent_pictures["result"])
         return Response({'site_featured_images': site_featured_images,
@@ -196,8 +199,13 @@ def site_documents(request):
     query_params = request.query_params
     site_id = query_params.get('site_id')
     site_id = int(site_id)
+    print('site idddd', site_id)
     if check_site_permission(request, site_id):
-        blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
+        try:
+            blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
         data = [{'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
                 for blueprint in blueprints_obj]
         return Response(data)
