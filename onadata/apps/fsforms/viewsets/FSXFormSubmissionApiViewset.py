@@ -103,7 +103,7 @@ class FSXFormSubmissionApi(XFormSubmissionApi):
                                                                      content_object=instance.fieldsight_instance)
                         if task_obj:
                             from onadata.apps.fieldsight.tasks import update_meta_details
-                            update_meta_details.apply_async((fs_proj_xf.id, instance.id, task_obj.id, siteid), countdown=1)
+                            update_meta_details.delay(fs_proj_xf.id, instance.id, task_obj.id, siteid)
                         site = Site.objects.get(pk=siteid)
                         instance.fieldsight_instance.logs.create(source=self.request.user, type=16,
                                                                  title="new Site level Submission",

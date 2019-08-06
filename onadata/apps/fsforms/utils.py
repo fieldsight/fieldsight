@@ -162,7 +162,7 @@ def send_bulk_message_stages_deployed_project(project):
     message = {'notify_type': 'deploy_all',
                'is_delete':True,
                'is_project':1,
-               'description':"Stages Ready in Project {}".format(project.name),
+               'description':u"Stages Ready in Project {}".format(project.name),
                'project':{'name': project.name, 'id': project.id}}
     save_notification(message, emails)
     Device.objects.filter(name__in=emails,is_active=True).send_message(message)
@@ -189,7 +189,8 @@ def send_bulk_message_stage_deployed_project(project, main_stage, deploy_id):
                'is_delete':True,
                'is_project':1,
                'deploy_id':deploy_id,
-               'description':"Main Stage Ready in Project {}".format(project.name),
+               'description':u"Main Stage Ready in Project {}".format(
+                   project.name),
                'project':{'name': project.name, 'id': project.id}}
     save_notification(message, emails)
     Device.objects.filter(name__in=emails,is_active=True).send_message(message)
@@ -217,7 +218,8 @@ def send_sub_stage_deployed_project(project, sub_stage, deploy_id):
                'is_delete':True,
                'is_project':1,
                'deploy_id':deploy_id,
-               'description':"Sub Stage Ready in Project {}".format(project.name),
+               'description':u"Sub Stage Ready in Project {}".format(
+                   project.name),
                'project':{'name': project.name, 'id': project.id}}
     save_notification(message, emails)
     Device.objects.filter(name__in=emails, is_active=True).send_message(message)
