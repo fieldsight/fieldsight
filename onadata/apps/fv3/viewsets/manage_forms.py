@@ -5,7 +5,8 @@ from rest_framework import viewsets
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission
-from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer
+from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
+    GeneralProjectFormSerializer
 
 
 class GeneralFormsVS(viewsets.ModelViewSet):
@@ -40,6 +41,28 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                 ), distinct=True)
 
             ).select_related('xf', 'em')
+
+    def get_serializer_context(self):
+        return self.request.query_params
+
+
+class GeneralProjectFormsVS(viewsets.ModelViewSet):
+    queryset = FieldSightXF.objects.filter(is_staged=False,
+                                           is_scheduled=False,
+                                           is_deleted=False,
+                                           is_survey=True)
+    serializer_class = GeneralProjectFormSerializer
+    permission_classes = [ManageFormsPermission]
+
+    def filter_queryset(self, queryset):
+        query_params = self.request.query_params
+        project_id = query_params.get('project_id')
+
+        if project_id:
+            queryset = self.queryset.filter(project__id=project_id)
+            return queryset.annotate(
+                response_count=Count(
+                    'project_form_instances')).select_related('xf', 'em')
 
     def get_serializer_context(self):
         return self.request.query_params

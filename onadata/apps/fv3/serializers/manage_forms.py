@@ -38,3 +38,22 @@ class GeneralFormSerializer(serializers.ModelSerializer):
             return obj.site_response_count\
                 if hasattr(obj, "site_response_count") else 0
 
+
+class GeneralProjectFormSerializer(serializers.ModelSerializer):
+    em = EMSerializer(read_only=True)
+    xf = XFormSerializer()
+    responses_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FieldSightXF
+        fields = ('xf', 'date_created', 'default_submission_status',
+                  'responses_count', 'em')
+
+    def get_responses_count(self, obj):
+        is_project = self.context.get('project_id', False)
+        if is_project:
+            # return obj.project_form_instances.count()
+            return obj.responses_count\
+                if hasattr(obj, "responses_count") else 0
+        return 0
+
