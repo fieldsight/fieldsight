@@ -32,7 +32,8 @@ class UserRole(models.Model):
     logs = GenericRelation('eventlog.FieldSightLog')
 
     def __unicode__(self):
-        return 'user: {}\'s role : {}'.format(self.user.__unicode__(), self.group.__unicode__())
+        return u'user: {}\'s role : {}'.format(self.user.__unicode__(),
+                                               self.group.__unicode__())
 
     def as_json(self):
         return dict(

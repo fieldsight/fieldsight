@@ -2621,7 +2621,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
     try:
         instance = Instance.objects.get(id=instance_id)
         fs_proj_xf = FieldSightXF.objects.get(id=fs_proj_xf_id)
-        site = Site.objects.get(id=site_id)
+        site = Site.objects.get(id=int(site_id))
         site_picture = site.project.site_basic_info.get('site_picture', None)
         if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
                                                                                                  0) == fs_proj_xf.id and site_picture.get(
@@ -2637,7 +2637,8 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
             question_name = site_loc['question'].get('name', '')
             location = instance.json.get(question_name)
             if location:
-                site.location = location
+                location_float = list(map(lambda x: float(x), str(location).split(' ')))
+                site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6), srid=4326)
 
         for featured_img in fs_proj_xf.project.site_featured_images:
             if featured_img.get('question_type', '') == 'Form' and featured_img.get('form_id', '') == str(fs_proj_xf.id) and featured_img.get('question', {}):

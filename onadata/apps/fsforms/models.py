@@ -631,9 +631,10 @@ class FInstance(models.Model):
     def getname(self):
         if self.site_fxf is None:
         
-            return '{0} form {1}'.format(self.project_fxf.form_type(), self.project_fxf.xf.title,)
+            return u'{0} form {1}'.format(self.project_fxf.form_type(),
+                                          self.project_fxf.xf.title,)
         
-        return '{0} form {1}'.format(self.site_fxf.form_type(),
+        return u'{0} form {1}'.format(self.site_fxf.form_type(),
                                            self.site_fxf.xf.title,)
     def __unicode__(self):
         if self.site_fxf is None:
@@ -759,7 +760,8 @@ class InstanceStatusChanged(models.Model):
         return reverse('forms:alter-status-detail', kwargs={'pk': self.pk})
 
     def getname(self):
-        return '{0} form {1}'.format(self.finstance.site_fxf.form_type(), self.finstance.site_fxf.xf.title)
+        return u'{0} form {1}'.format(self.finstance.site_fxf.form_type(),
+                                      self.finstance.site_fxf.xf.title)
 
     def new_status_display(self):
         return dict(FORM_STATUS)[self.new_status]
