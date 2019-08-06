@@ -35,7 +35,7 @@ def is_project_manager_or_team_admin(project_obj, user):
                                                                     'organization',
                                                                     'staff_project',
                                                                     'region').filter(
-        Q(group__name="Project Manager",
+        Q(group__name__in=["Project Manager", "Project Donor"],
           project=project_obj, project__is_active=True) | Q(group__name="Organization Admin",
                                                             organization=project_obj.organization,
                                                             organization__is_active=True)).exists()
@@ -65,17 +65,28 @@ def my_site_ids(project_obj, user):
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def my_roles(request):
+    user_id = request.GET.get('profile', None)
+    if user_id is not None:
+        profile_obj = UserProfile.objects.select_related('user').get(user_id=int(user_id))
+    else:
+        profile_obj = UserProfile.objects.select_related('user').get(user=request.user)
 
-    profile_obj = UserProfile.objects.select_related('user').get(user=request.user)
     can_create_team = True
     if request.user.organizations.all():
         can_create_team = False
+
+    if user_id is not None:
+        can_create_team = False
+
+    else:
+        user = request.user
+
     profile = {'id': profile_obj.id, 'fullname': profile_obj.getname(), 'username': profile_obj.user.username, 'email': profile_obj.user.email,
                'address': profile_obj.address, 'phone': profile_obj.phone, 'profile_picture': profile_obj.profile_picture.url,
                'twitter': profile_obj.twitter, 'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype,
                'google_talk': profile_obj.google_talk, 'can_create_team': can_create_team}
 
-    teams = UserRole.objects.filter(user=request.user).select_related('user', 'group', 'site', 'organization',
+    teams = UserRole.objects.filter(user=user).select_related('user', 'group', 'site', 'organization',
                                                                       'staff_project', 'region').filter(Q(group__name="Organization Admin", organization__is_active=True)|
                                                                    Q(group__name="Project Manager", project__is_active=True)|
                                                                    Q(group__name="Project Donor", project__is_active=True)|
@@ -88,9 +99,14 @@ def my_roles(request):
                                                                    ).distinct('organization')
     teams = MyRolesSerializer(teams, many=True, context={'user': request.user})
 
-    invitations = UserInvite.objects.select_related('by_user').filter(email=request.user.email, is_used=False, is_declied=False)
+    if user_id is not None:
+        invitations = []
+        invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
-    invitations_serializer = UserInvitationSerializer(invitations, many=True)
+    else:
+        invitations = UserInvite.objects.select_related('by_user').filter(email=request.user.email, is_used=False, is_declied=False)
+
+        invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
     return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data})
 
@@ -147,11 +163,17 @@ class MySitesView(APIView):
                     return paginator.get_paginated_response({'data': sites.data})
 
                 else:
+                    region_ids = request.roles.filter(group__name__in=["Region Supervisor", "Region Reviewer"],
+                                                      region__is_active=True).values_list('region_id', flat=True)
+
+                    region_site_ids = Site.objects.filter(region__id__in=region_ids).values_list('id', flat=True)
+
                     sites_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
                                                                           'staff_project', 'region').filter(
                                                                        Q(group__name="Site Supervisor", site__is_active=True)|
                                                                        Q(group__name="Site Reviewer", site__is_active=True)).values_list('site_id', flat=True)
-                    data = Site.objects.filter(id__in=sites_id)
+                    total_sites = list(chain(region_site_ids, sites_id))
+                    data = Site.objects.filter(id__in=total_sites)
                     result_page = paginator.paginate_queryset(data, request)
                     sites = MySiteSerializer(result_page, many=True, context={'request': request})
                     return paginator.get_paginated_response({'data': sites.data})
