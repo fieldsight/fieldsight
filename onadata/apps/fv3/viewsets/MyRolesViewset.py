@@ -76,6 +76,7 @@ def my_roles(request):
         can_create_team = False
 
     if user_id is not None:
+        user = User.objects.get(id=user_id)
         can_create_team = False
 
     else:
