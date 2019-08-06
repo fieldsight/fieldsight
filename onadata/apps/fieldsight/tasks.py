@@ -2650,6 +2650,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                     attachments['_attachments'] = attachment.media_file.url
                     attachments['_id'] = instance.id
                     site.site_featured_images[question_name] = attachments
+        site.save()
 
         # change site meta attributes answer
         meta_ans = site.site_meta_attributes_ans
