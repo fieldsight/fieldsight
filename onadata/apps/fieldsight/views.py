@@ -454,7 +454,8 @@ class OrganizationCreateView(OrganizationView, CreateView):
         self.object.save()
         noti = self.object.logs.create(source=self.request.user, type=9, title="new Organization",
                                        organization=self.object, content_object=self.object,
-                                       description="{0} created a new Team named {1}".
+                                       description=u"{0} created a new Team "
+                                                   u"named {1}".
                                        format(self.request.user, self.object.name))
 
         user = self.request.user
@@ -524,8 +525,10 @@ class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView
         self.object = form.save()
         noti = self.object.logs.create(source=self.request.user, type=13, title="edit Team",
                                        organization=self.object, content_object=self.object,
-                                       description="{0} changed the details of Team named {1}".
-                                       format(self.request.user.get_full_name(), self.object.name))
+                                       description=u"{0} changed the details "
+                                                   u"of Team named {1}".
+                                       format(self.request.user.get_full_name(),
+                                              self.object.name))
         # result = {}
         # result['description'] = noti.description
         # result['url'] = noti.get_absolute_url()
@@ -547,13 +550,15 @@ def alter_org_status(request, pk):
             # alter status method on custom user
         if obj.is_active:
             obj.is_active = False
-            messages.info(request, 'Organization {0} Deactivated.'.format(obj.name))
+            messages.info(request, u'Organization {0} Deactivated.'.format(
+                obj.name))
         else:
             obj.is_active = True
-            messages.info(request, 'Organization {0} Activated.'.format(obj.name))
+            messages.info(request, u'Organization {0} Activated.'.format(
+                obj.name))
         obj.save()
     except:
-        messages.info(request, 'Organization {0} not found.'.format(obj.name))
+        messages.info(request, u'Organization {0} not found.'.format(obj.name))
     return HttpResponseRedirect(reverse('fieldsight:organizations-list'))
 
 #
@@ -605,13 +610,13 @@ def alter_proj_status(request, pk):
             # alter status method on custom user
         if obj.is_active:
             obj.is_active = False
-            messages.info(request, 'Project {0} Deactivated.'.format(obj.name))
+            messages.info(request, u'Project {0} Deactivated.'.format(obj.name))
         else:
             obj.is_active = True
-            messages.info(request, 'Project {0} Activated.'.format(obj.name))
+            messages.info(request, u'Project {0} Activated.'.format(obj.name))
         obj.save()
     except:
-        messages.info(request, 'Project {0} not found.'.format(obj.name))
+        messages.info(request, u'Project {0} not found.'.format(obj.name))
     return HttpResponseRedirect(reverse('fieldsight:projects-list'))
     
 
@@ -644,13 +649,13 @@ def alter_site_status(request, pk):
         obj = Site.objects.get(pk=int(pk))
         if obj.is_active:
             obj.is_active = False
-            messages.info(request, 'Site {0} Deactivated.'.format(obj.name))
+            messages.info(request, u'Site {0} Deactivated.'.format(obj.name))
         else:
             obj.is_active = True
-            messages.info(request, 'Site {0} Activated.'.format(obj.name))
+            messages.info(request, u'Site {0} Activated.'.format(obj.name))
         obj.save()
     except:
-        messages.info(request, 'Site {0} not found.'.format(obj.name))
+        messages.info(request, u'Site {0} not found.'.format(obj.name))
     return HttpResponseRedirect(reverse('fieldsight:sites-list'))
 
 
@@ -712,7 +717,8 @@ def add_project_role(request, pk):
             user_id = request.POST.get('user')
             role_obj.user_id = int(user_id)
             role_obj.save()
-            messages.add_message(request, messages.INFO, '{} Added'.format(role_obj.group.name))
+            messages.add_message(request, messages.INFO, u'{} Added'.format(
+                role_obj.group.name))
             return HttpResponseRedirect(reverse("fieldsight:project-dashboard", kwargs={'pk': obj.pk}))
     existing_staffs = obj.get_staffs
     return render(request, "fieldsight/add_central_engineer.html", {'obj':obj,'form':form, 'scenario':scenario,
@@ -770,7 +776,8 @@ class ProjectCreateView(ProjectView, OrganizationRoleMixin, CreateView):
         
         noti = self.object.logs.create(source=self.request.user, type=10, title="new Project",
                                        organization=self.object.organization, content_object=self.object,
-                                       description='{0} created new project named {1}'.format(
+                                       description=u'{0} created new project '
+                                                   u'named {1}'.format(
                                            self.request.user.get_full_name(), self.object.name))
         # result = {}
         # result['description'] = noti.description
@@ -815,7 +822,8 @@ class ProjectUpdateView(ProjectView, ProjectRoleMixin, UpdateView):
         noti = self.object.logs.create(source=self.request.user, type=14, title="Edit Project",
                                        organization=self.object.organization,
                                        project=self.object, content_object=self.object,
-                                       description='{0} changed the details of project named {1}'.format(
+                                       description=u'{0} changed the details '
+                                                   u'of project named {1}'.format(
                                            self.request.user.get_full_name(), self.object.name))
         # result = {}
         # result['description'] = noti.description
@@ -840,7 +848,8 @@ class ProjectDeleteView(ProjectRoleMixinDeleteView, View):
         noti = task_obj.logs.create(source=self.request.user, type=36, title="Delete Project",
                                organization=project.organization, extra_message="project",
                                project=project, content_object=project, extra_object=project.organization,
-                               description='{0} deleted of project named {1}'.format(
+                               description=u'{0} deleted of project named {'
+                                           u'1}'.format(
                                    self.request.user.get_full_name(), project.name))
 
         return HttpResponseRedirect(reverse('fieldsight:org-project-list', kwargs={'pk': project.organization_id }))
@@ -991,7 +1000,8 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
                                        organization=self.object.project.organization,
                                        project=self.object.project, content_object=self.object, extra_object=self.object.project,
-                                       description='{0} created a new site named {1} in {2}'.format(self.request.user.get_full_name(),
+                                       description=u'{0} created a new site '
+                                                   u'named {1} in {2}'.format(self.request.user.get_full_name(),
                                                                                  self.object.name, self.object.project.name))
         # result = {}
         # result['description'] = '{0} created a new site named {1} in {2}'.format(self.request.user.get_full_name(),
@@ -1058,7 +1068,8 @@ class SubSiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
                                        organization=self.object.project.organization,
                                        project=self.object.project, content_object=self.object, extra_object=self.object.project,
-                                       description='{0} created a new Sub site named {1} in {2}'.format(self.request.user.get_full_name(),
+                                       description=u'{0} created a new Sub '
+                                                   u'site named {1} in {2}'.format(self.request.user.get_full_name(),
                                                                                  self.object.name, self.object.project.name))
 
 
@@ -1129,7 +1140,7 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
                     updated[key] = {'label': label, 'data':[old_meta.get(key, 'null'), new_meta.get(key, 'null')]}
             extra_json = updated
 
-        description = '{0} changed the details of site named {1}'.format(
+        description = u'{0} changed the details of site named {1}'.format(
             self.request.user.get_full_name(), self.object.name
         )
 
@@ -1188,7 +1199,8 @@ class SiteDeleteView(SiteDeleteRoleMixin, View):
         noti = task_obj.logs.create(source=self.request.user, type=36, title="Delete Site",
                                organization=site.project.organization, extra_object=site.project,
                                project=site.project, extra_message="site", site=site, content_object=site,
-                               description='{0} deleted of site named {1}'.format(
+                               description=u'{0} deleted of site named {'
+                                           u'1}'.format(
                                    self.request.user.get_full_name(), site.name))
         return HttpResponseRedirect(reverse('fieldsight:proj-site-list', kwargs={'pk': site.project_id}))
 
@@ -1242,10 +1254,10 @@ def ajax_upload_sites(request, pk):
                                        extra_message=count + "Sites",
                                        description='{0} created a {1} sites in {2}'.
                                            format(request.user.get_full_name(), count, project.name))
-                result = {}
-                result['description'] = noti.description
-                result['url'] = noti.get_absolute_url()
-                ChannelGroup("project-{}".format(project.id)).send({"text": json.dumps(result)})
+                # result = {}
+                # result['description'] = noti.description
+                # result['url'] = noti.get_absolute_url()
+                # ChannelGroup("project-{}".format(project.id)).send({"text": json.dumps(result)})
             return Response({'msg': 'ok'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'file':e.message}, status=status.HTTP_400_BAD_REQUEST)
@@ -2105,7 +2117,7 @@ class ActivateRole(TemplateView):
             content = invite.project.all()[0]
 
         noti = invite.logs.create(source=user, type=noti_type, title="new Role", organization=invite.organization, extra_message=extra_msg, project=project, site=site, content_object=content, extra_object=invite.by_user,
-                                       description="{0} was added as the {1} of {2} by {3}.".
+                                       description=u"{0} was added as the {1} of {2} by {3}.".
                                        format(user.username, invite.group.name, content.name, invite.by_user))
         # result = {}
         # result['description'] = 'new site {0} deleted by {1}'.format(self.object.name, self.request.user.username)
@@ -2945,14 +2957,9 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
         noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
                                        organization=self.object.project.organization,
                                        project=self.object.project, content_object=self.object, extra_object=self.object.project,
-                                       description='{0} created a new site named {1} in {2}'.format(self.request.user.get_full_name(),
+                                       description=u'{0} created a new site '
+                                                   u'named {1} in {2}'.format(self.request.user.get_full_name(),
                                                                                  self.object.name, self.object.project.name))
-        result = {}
-        result['description'] = '{0} created a new site named {1} in {2}'.format(self.request.user.get_full_name(),
-                                                                                 self.object.name, self.object.project.name)
-        result['url'] = noti.get_absolute_url()
-        ChannelGroup("project-{}".format(self.object.project.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -4197,7 +4204,7 @@ class SiteBulkEditView(View):
         result = default + [
             {
                 'id': region.pk,
-                'name': '{}{} ({})'.format(
+                u'name': '{}{} ({})'.format(
                     prefix,
                     region.name,
                     region.identifier,
@@ -4226,7 +4233,7 @@ class SiteBulkEditView(View):
         result = default + [
             {
                 'id': region.pk,
-                'name': '{}{} ({})'.format(
+                u'name': '{}{} ({})'.format(
                     prefix,
                     region.name,
                     region.identifier,
@@ -4242,7 +4249,7 @@ class SiteBulkEditView(View):
                 project,
                 region,
                 result,
-                '{}{} / '.format(prefix, region.name),
+                u'{}{} / '.format(prefix, region.name),
             )
 
         return result

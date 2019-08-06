@@ -155,28 +155,32 @@ def share_level(request, id, counter):
     if not sl:
         if form.pk:
             form.delete()
-            messages.add_message(request, messages.WARNING, '{0} Form Shared Removed'.format(xf.title))
+            messages.add_message(request, messages.WARNING, u'{0} Form Shared Removed'.format(xf.title))
     else:
         if sl == '0':
             form.is_global = True
             form.organization = None
             form.project = None
             form.save()
-            messages.add_message(request, messages.INFO, '{0} Shared Globally '.format(xf.title))
+            messages.add_message(request, messages.INFO, u'{0} Shared '
+                                                         u'Globally '.format(xf.title))
         elif sl == '1':
             form.is_global = False
             if hasattr(request,"project") and request.project:
                 form.organization = request.project.organization
                 form.project = None
                 form.save()
-                messages.add_message(request, messages.INFO, '{0} Shared To Organization Level'.format(xf.title))
+                messages.add_message(request, messages.INFO, u'{0} Shared To '
+                                                             u'Organization Level'.format(xf.title))
             elif hasattr(request,"organization") and request.organization:
                 form.organization = request.organization
                 form.project = None
                 form.save()
-                messages.add_message(request, messages.INFO, '{0} Shared To Organization Level'.format(xf.title))
+                messages.add_message(request, messages.INFO, u'{0} Shared To '
+                                                             u'Organization Level'.format(xf.title))
             else:
-                messages.add_message(request, messages.WARNING, '{0} Not Shared. You Cannot Share to Organization Level'.
+                messages.add_message(request, messages.WARNING, u'{0} Not '
+                                                                u'Shared. You Cannot Share to Organization Level'.
                                      format(xf.title))
         elif sl == '2':
             if hasattr(request,"project") and request.project:
@@ -184,9 +188,11 @@ def share_level(request, id, counter):
                 form.organization = None
                 form.project = request.project
                 form.save()
-                messages.add_message(request, messages.INFO, '{0} Shared to Project Level '.format(xf.title))
+                messages.add_message(request, messages.INFO, u'{0} Shared to '
+                                                             u'Project Level '.format(xf.title))
             else:
-                messages.add_message(request, messages.WARNING, '{0} Form Not Shared. You Cannot Share to Project Level'
+                messages.add_message(request, messages.WARNING, u'{0} Form '
+                                                                u'Not Shared. You Cannot Share to Project Level'
                                      .format(xf.title))
 
     return HttpResponseRedirect(reverse('forms:forms-list'))
@@ -268,7 +274,8 @@ def add_sub_stage(request, pk=None):
                     FieldSightXF.objects.create(xf_id=form, is_staged=True, stage=child_stage,site=stage.site)
                 else:
                     FieldSightXF.objects.create(xf_id=form, is_staged=True, stage=child_stage,project=stage.project)
-            messages.info(request, 'Sub Stage {} Saved.'.format(child_stage.name))
+            messages.info(request, u'Sub Stage {} Saved.'.format(
+                child_stage.name))
             return HttpResponseRedirect(reverse("forms:stages-detail", kwargs={'pk': stage.id}))
     order = Stage.objects.filter(stage=stage).count() + 1
     instance = Stage(name="Sub Stage"+str(order), order=order)
@@ -286,7 +293,7 @@ def stage_add(request, site_id=None):
             stage = form.save()
             stage.site = site
             stage.save()
-            messages.info(request, 'Stage {} Saved.'.format(stage.name))
+            messages.info(request, u'Stage {} Saved.'.format(stage.name))
             return HttpResponseRedirect(reverse("forms:setup-site-stages", kwargs={'site_id': site.id}))
     order = Stage.objects.filter(site=site,stage__isnull=True).count() + 1
     instance = Stage(name="Stage"+str(order), order=order)
@@ -358,7 +365,7 @@ def project_stage_add(request, id=None):
             stage = form.save()
             stage.project = project
             stage.save()
-            messages.info(request, 'Stage {} Saved.'.format(stage.name))
+            messages.info(request, u'Stage {} Saved.'.format(stage.name))
             return HttpResponseRedirect(reverse("forms:setup-project-stages", kwargs={'id': project.id}))
     order = Stage.objects.filter(project=project,stage__isnull=True).count() + 1
     instance = Stage(name="Stage"+str(order), order=order)
@@ -447,7 +454,7 @@ def edit_sub_stage(request, stage, id, is_project):
 
                     else:
                         FieldSightXF.objects.create(xf_id=form, is_staged=True,stage=stage,site=stage.site)
-            messages.info(request, 'Stage {} Updated.'.format(stage.name))
+            messages.info(request, u'Stage {} Updated.'.format(stage.name))
             return HttpResponseRedirect(reverse("forms:stages-detail", kwargs={'pk': stage.stage.id}))
     form = SubStageEditForm(instance=stage, request=request)
     if FieldSightXF.objects.filter(stage=stage).exists():
@@ -480,7 +487,7 @@ def create_schedule(request, site_id):
             schedule.save()
             if xf:
                 FieldSightXF.objects.create(xf_id=xf, is_scheduled=True,schedule=schedule,site=site, is_deployed=True)
-            messages.info(request, 'Schedule {} Saved.'.format(schedule.name))
+            messages.info(request, u'Schedule {} Saved.'.format(schedule.name))
             return HttpResponseRedirect(reverse("forms:site-survey", kwargs={'site_id': site.id}))
     return render(request, "fsforms/schedule_form.html", {'form': form, 'obj': site, 'is_general':True})
 
@@ -532,7 +539,7 @@ def project_create_schedule(request, id):
             if xf:
                 FieldSightXF.objects.create(
                     xf_id=xf, is_scheduled=True,schedule=schedule,project=project, is_deployed=True)
-            messages.info(request, 'Schedule {} Saved.'.format(schedule.name))
+            messages.info(request, u'Schedule {} Saved.'.format(schedule.name))
             return HttpResponseRedirect(reverse("forms:project-survey", kwargs={'project_id': project.id}))
     form = ScheduleForm(request=request)
     return render(request, "fsforms/schedule_form.html",
@@ -557,7 +564,7 @@ def project_edit_schedule(request, id):
                 else:
                     FieldSightXF.objects.create(
                         xf_id=xf, is_scheduled=True,schedule=schedule,project=schedule.project, is_deployed=True)
-            messages.info(request, 'Schedule {} Saved.'.format(schedule.name))
+            messages.info(request, u'Schedule {} Saved.'.format(schedule.name))
             return HttpResponseRedirect(reverse("forms:project-survey", kwargs={'project_id': schedule.project.id}))
     form = ScheduleForm(instance=schedule, request=request)
     if FieldSightXF.objects.filter(schedule=schedule).exists():
@@ -586,7 +593,7 @@ def edit_schedule(request, id):
                 else:
                     FieldSightXF.objects.create(
                         xf_id=xf, is_scheduled=True,schedule=schedule,site=schedule.site, is_deployed=True)
-            messages.info(request, 'Schedule {} Saved.'.format(schedule.name))
+            messages.info(request, u'Schedule {} Saved.'.format(schedule.name))
             return HttpResponseRedirect(reverse("forms:site-survey", kwargs={'site_id': schedule.site.id}))
     form = ScheduleForm(instance=schedule, request=request)
     if FieldSightXF.objects.filter(schedule=schedule, site=schedule.site, is_scheduled=True).exists():
@@ -693,14 +700,14 @@ def edit_share_stages(request, id):
                     group.organization = request.project.organization
                     group.project = None
                     group.save()
-                    messages.add_message(request, messages.INFO, '{0} Shared To Organization Level'.format(group.name))
+                    messages.add_message(request, messages.INFO, u'{0} Shared To Organization Level'.format(group.name))
                 elif hasattr(request,"organization") and request.organization:
                     group.organization = request.organization
                     group.project = None
                     group.save()
-                    messages.add_message(request, messages.INFO, '{0} Shared To Organization Level'.format(group.name))
+                    messages.add_message(request, messages.INFO, u'{0} Shared To Organization Level'.format(group.name))
                 else:
-                    messages.add_message(request, messages.WARNING, '{0} Not Shared. You Cannot Share to Organization Level'.
+                    messages.add_message(request, messages.WARNING, u'{0} Not Shared. You Cannot Share to Organization Level'.
                                        format(group.name))
             elif sl == '2':
                 if hasattr(request,"project") and request.project:
@@ -708,9 +715,10 @@ def edit_share_stages(request, id):
                     group.organization = None
                     group.project = request.project
                     group.save()
-                    messages.add_message(request, messages.INFO, '{0} Shared to Project Level '.format(group.name))
+                    messages.add_message(request, messages.INFO, u'{0} Shared to Project Level '.format(group.name))
                 else:
-                    messages.add_message(request, messages.WARNING, '{0} Form Not Shared. You Cannot Share to Project Level'
+                    messages.add_message(request, messages.WARNING,
+                                         u'{0} Form Not Shared. You Cannot Share to Project Level'
                                          .format(group.name))
 
             return HttpResponseRedirect(reverse("forms:group-list"))
@@ -891,7 +899,8 @@ def deploy_general_part(request, fxf_id):
                                 site=site, fsform_id=fxf_id)
             child.is_deployed = True
             child.save()
-    messages.info(request, 'General Form {} Deployed to Sites'.format(fxf.xf.title))
+    messages.info(request, u'General Form {} Deployed to Sites'.format(
+        fxf.xf.title))
     return HttpResponseRedirect(reverse("forms:project-general", kwargs={'project_id': fxf.project.pk}))
 
 
@@ -902,7 +911,8 @@ def un_deploy_general(request, fxf_id):
     label = "Deployed" if fxf.is_deployed else "Undeployed"
     fxf.save()
     send_message_un_deploy(fxf)
-    messages.info(request, 'General Form {} has been {}'.format(fxf.xf.title, label))
+    messages.info(request, u'General Form {} has been {}'.format(
+        fxf.xf.title, label))
     return HttpResponseRedirect(reverse("forms:site-general", kwargs={'site_id': fxf.site.pk}))
 
 
@@ -937,7 +947,8 @@ def un_deploy_survey(request, id):
     fxf.save()
     send_message_un_deploy(fxf)
     label = "Deployed" if fxf.is_deployed else "Undeployed"
-    messages.info(request, 'Schedule {} with  Form Named {} Form {}'.format(schedule.name,fxf.xf.title, label))
+    messages.info(request, u'Schedule {} with  Form Named {} Form {}'.format(
+        schedule.name,fxf.xf.title, label))
     return HttpResponseRedirect(reverse("forms:site-survey", kwargs={'site_id': fxf.site.id}))
 
 
