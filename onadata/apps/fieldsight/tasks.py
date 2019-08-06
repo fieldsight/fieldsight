@@ -2621,7 +2621,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
     try:
         instance = Instance.objects.get(id=instance_id)
         fs_proj_xf = FieldSightXF.objects.get(id=fs_proj_xf_id)
-        site = Site.objects.get(id=site_id)
+        site = Site.objects.get(id=int(site_id))
         site_picture = site.project.site_basic_info.get('site_picture', None)
         if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
                                                                                                  0) == fs_proj_xf.id and site_picture.get(
