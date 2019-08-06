@@ -102,6 +102,9 @@ class MySiteSerializer(serializers.ModelSerializer):
 
             if len(obj) > 1:
                 group = "Site Supervisor"
+
+            elif len(obj) == 0:
+                group = None
             else:
                 group = obj.get().group.name
 

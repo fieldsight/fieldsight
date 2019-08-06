@@ -29,11 +29,11 @@ class MySitesPagination(PageNumberPagination):
 
 
 def is_project_manager_or_team_admin(project_obj, user):
-    is_pm_admin = UserRole.objects.filter(user=user).select_related('user',
-                                                                    'group',
+    is_pm_admin = user.user_roles.select_related('user', 'group',
                                                                     'site',
                                                                     'organization',
                                                                     'staff_project',
+                                                                    'project',
                                                                     'region').filter(
         Q(group__name__in=["Project Manager", "Project Donor"],
           project=project_obj, project__is_active=True) | Q(group__name="Organization Admin",
@@ -165,17 +165,18 @@ class MySitesView(APIView):
 
                 else:
                     region_ids = request.roles.filter(group__name__in=["Region Supervisor", "Region Reviewer"],
-                                                      region__is_active=True).values_list('region_id', flat=True)
+                                                      region__is_active=True, project=project_obj).distinct('region_id').values_list('region_id', flat=True)
 
                     region_site_ids = Site.objects.filter(region__id__in=region_ids).values_list('id', flat=True)
 
                     sites_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
                                                                           'staff_project', 'region').filter(
                                                                        Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                       Q(group__name="Site Reviewer", site__is_active=True)).values_list('site_id', flat=True)
+                                                                       Q(group__name="Site Reviewer", site__is_active=True)).distinct('region_id').values_list('site_id', flat=True)
                     total_sites = list(chain(region_site_ids, sites_id))
                     data = Site.objects.filter(id__in=total_sites)
                     result_page = paginator.paginate_queryset(data, request)
+
                     sites = MySiteSerializer(result_page, many=True, context={'request': request})
                     return paginator.get_paginated_response({'data': sites.data})
 
