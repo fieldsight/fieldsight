@@ -117,7 +117,7 @@ class ProjectSiteViewSet(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing sites.
     """
-    queryset = Site.objects.all()\
+    queryset = Site.objects.filter(site__isnull=True,is_active=True)\
         .select_related("region", "project", "type")
     serializer_class = ProjectSiteListSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)

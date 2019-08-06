@@ -34,7 +34,8 @@ class ProgressBarGenerator(object):
         self.data = OrderedDict()
         
         
-        data = Site.objects.filter(project_id = project.id).aggregate(
+        data = Site.objects.filter(project_id = project.id,
+                                   site__isnull=True).aggregate(
              unstarted = Sum(
                  Case(When(current_progress = 0, then= 1),
                       output_field = IntegerField())
