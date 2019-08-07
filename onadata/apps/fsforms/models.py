@@ -580,8 +580,12 @@ class FInstance(models.Model):
 
     @property
     def get_version(self):
-        from onadata.apps.fsforms.utils import get_version
-        return get_version(self.instance.xml)
+        if self.instance.json.get('_version__001'):
+            return self.instance.json.get('_version__001')
+        elif self.instance.json.get('_version_'):
+            return self.instance.json.get('_version_')
+        else:
+            return self.instance.json.get('__version__')
 
     def save(self, *args, **kwargs):
         self.version = self.get_version
