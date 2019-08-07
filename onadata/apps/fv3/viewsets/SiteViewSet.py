@@ -88,7 +88,7 @@ class SiteForms(APIView):
                             filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
 
                         data = [{'form_name': obj.xf.title, 'new_submission_url':
-                                 settings.SITE_URL + '/forms/new-submission/' + str(obj.id) + '/' + str(site_id) + '/'} for obj in generals]
+                                 settings.SITE_URL + '/forms/new/' + str(site_id) + '/' + str(obj.id)} for obj in generals]
 
                         return Response({'general_forms': data})
 
@@ -100,7 +100,7 @@ class SiteForms(APIView):
                             | Q(project__id=project_id))
 
                         data = [{'form_name': obj.schedule_forms.xf.title, 'new_submission_url':
-                                 settings.SITE_URL + '/forms/new-submission/' + str(obj.id) + '/' + str(site_id) + '/'} for obj in schedules]
+                                 settings.SITE_URL + '/forms/new-submission/' + str(site_id) + '/' + str(obj.id)} for obj in schedules]
 
                         return Response({'scheduled_forms': data})
 

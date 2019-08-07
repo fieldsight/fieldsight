@@ -36,7 +36,7 @@ def is_project_manager_or_team_admin(project_obj, user):
                                                                     'project',
                                                                     'region').filter(
         Q(group__name__in=["Project Manager", "Project Donor"],
-          project=project_obj, project__is_active=True) | Q(group__name="Organization Admin",
+          project=project_obj, project__is_active=True, ended_at=None) | Q(group__name="Organization Admin",
                                                             organization=project_obj.organization,
                                                             organization__is_active=True)).exists()
 

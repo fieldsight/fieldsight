@@ -39,7 +39,7 @@ class MyProjectSerializer(serializers.ModelSerializer):
         has_project_access = self.get_has_project_access(obj)
 
         if has_project_access:
-            if user.user_roles.filter(project=obj.project, group__name="Project Manager"):
+            if user.user_roles.filter(project=obj.project, group__name="Project Manager", ended_at=None):
 
                 project_url = obj.project.get_absolute_url()
             else:
@@ -138,6 +138,9 @@ class MySiteSerializer(serializers.ModelSerializer):
             return 0
 
     def get_site_url(self, obj):
+        user = self.context['request'].user
+
+
         return settings.SITE_URL + obj.get_absolute_url()
 
     def get_region_url(self, obj):
