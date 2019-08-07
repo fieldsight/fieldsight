@@ -330,15 +330,15 @@ def check_version(xml, n):
     for i in range(n, 0, -1):
         #for old version labels(containing only numbers)
         p = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/_version__00{0}" """.format(i))
-        m1 = p.search(xml)
-        if m1:
-            return m.group(1)
-
-        #for old version labels(containing both letters and alphabets)
-        p = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/_version__00{0}" """.format(i))
         m = p.search(xml)
         if m:
             return m.group(1)
+
+        #for old version labels(containing both letters and alphabets)
+        p1 = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/_version__00{0}" """.format(i))
+        m1 = p1.search(xml)
+        if m1:
+            return m1.group(1)
 
     return None
 
