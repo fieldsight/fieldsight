@@ -15,10 +15,11 @@ class MyProjectSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='project_id')
     name = serializers.CharField(source='project.name')
     has_project_access = serializers.SerializerMethodField()
+    project_url = serializers.SerializerMethodField()
 
     class Meta:
         model = UserRole
-        fields = ('id', 'name', 'has_project_access')
+        fields = ('id', 'name', 'has_project_access', 'project_url')
 
     def get_has_project_access(self, obj):
         user = self.context['user']
@@ -34,10 +35,15 @@ class MyProjectSerializer(serializers.ModelSerializer):
         return has_access
 
     def get_project_url(self, obj):
+        user = self.context['user']
         has_project_access = self.get_has_project_access(obj)
 
         if has_project_access:
-            project_url = settings.SITE_URL + obj.project.get_absolute_url()
+            if user.user_roles.filter(project=obj.project, group__name="Project Manager"):
+
+                project_url = obj.project.get_absolute_url()
+            else:
+                project_url = '/fieldsight/project-dashboard/lite/{}/'.format(obj.project_id)
 
             return project_url
 
