@@ -474,8 +474,9 @@ def update_site_progress(sender, instance, *args, **kwargs):
                             except IntegrityError as e:
                                 print(e)
             else:
-                from onadata.apps.fieldsight.utils.progress import set_site_progress
-                set_site_progress(instance.site,instance.site.project)
+                if not instance.site.enable_subsites:
+                    from onadata.apps.fieldsight.utils.progress import set_site_progress
+                    set_site_progress(instance.site,instance.site.project)
     except:
         pass
 

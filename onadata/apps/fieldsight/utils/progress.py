@@ -112,6 +112,19 @@ def pull_integer_answer(form, xform_question, site):
     return None
 
 
+def update_root_progress(site):
+    sub_sites = site.sub_sites.filter(weight__gt=0)
+    progress = 0
+    weight = 0
+    for sub in sub_sites:
+        if sub.progress:
+            progress += sub.weight * sub.progress
+        weight += sub.weight
+    current_progress = progress / weight
+    site.current_progress = current_progress
+    site.save()
+
+
 def set_site_progress(site, project, project_settings=None):
     print("set site progress")
     progress = 0
@@ -150,6 +163,8 @@ def set_site_progress(site, project, project_settings=None):
     site.current_progress = progress
     print(progress)
     site.save()
+    if site.site:
+        update_root_progress(site.site)
     if project_settings:
         from onadata.apps.fieldsight.models import SiteProgressHistory
         if not SiteProgressHistory.objects.filter(site=site, progress=progress,
