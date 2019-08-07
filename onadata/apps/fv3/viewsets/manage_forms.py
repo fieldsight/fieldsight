@@ -3,10 +3,10 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 
 from onadata.apps.fieldsight.models import Site
-from onadata.apps.fsforms.models import FieldSightXF
+from onadata.apps.fsforms.models import FieldSightXF, Schedule
 from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
-    GeneralProjectFormSerializer
+    GeneralProjectFormSerializer, ScheduleSerializer
 
 
 class GeneralFormsVS(viewsets.ModelViewSet):
@@ -27,7 +27,8 @@ class GeneralFormsVS(viewsets.ModelViewSet):
             return queryset.annotate(
                 response_count=Count(
                     'project_form_instances')).select_related('xf', 'em')
-        else:
+        elif site_id:
+            print(site_id)
             project_id = get_object_or_404(Site, pk=site_id).project.id
             queryset = queryset.filter(Q(site__id=site_id, from_project=False)
                                        | Q(project__id=project_id))
@@ -41,6 +42,7 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                 ), distinct=True)
 
             ).select_related('xf', 'em')
+        return []
 
     def get_serializer_context(self):
         return self.request.query_params
@@ -63,6 +65,50 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
             return queryset.annotate(
                 response_count=Count(
                     'project_form_instances')).select_related('xf', 'em')
+        return []
 
     def get_serializer_context(self):
         return self.request.query_params
+
+
+class ScheduleFormsVS(viewsets.ModelViewSet):
+    """
+    A simple ViewSet for viewing and editing schedules.
+    """
+    queryset = Schedule.objects.filter(schedule_forms__isnull=False,
+                                       schedule_forms__is_deleted=False)
+    serializer_class = ScheduleSerializer
+    permission_classes = [ManageFormsPermission]
+
+    def filter_queryset(self, queryset):
+        query_params = self.request.query_params
+        site_id = query_params.get('site_id')
+        project_id = query_params.get('project_id')
+        if project_id:
+            queryset = queryset.filter(project__id=project_id)
+            return queryset.annotate(response_count=Count(
+                "schedule_forms__project_form_instances")).select_related(
+                'schedule_forms', 'schedule_forms__xf', 'schedule_forms__em')
+        elif site_id:
+            project_id = get_object_or_404(Site, pk=site_id).project.id
+            queryset = queryset.filter(
+                Q(site__id=site_id, schedule_forms__from_project=False)
+                | Q(project__id=project_id))
+            return queryset.annotate(
+                site_response_count=Count(
+                    "schedule_forms__site_form_instances", ),
+                response_count=Count(Case(
+                    When(project__isnull=False,
+                         schedule_forms__project_form_instances__site__id=site_id,
+                         then=F('schedule_forms__project_form_instances')),
+                    output_field=IntegerField(),
+                ), distinct=True)
+
+            ).select_related('schedule_forms', 'schedule_forms__xf',
+                             'schedule_forms__em')
+        return []
+
+    def get_serializer_context(self):
+        return self.request.query_params
+
+
