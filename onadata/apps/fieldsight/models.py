@@ -452,6 +452,7 @@ class Site(models.Model):
     current_status = models.IntegerField(default=0)
     enable_subsites = models.BooleanField(default=False)
     site = models.ForeignKey('self', blank=True, null=True, related_name="sub_sites")
+    weight = models.IntegerField(default=0, blank=True)
     all_objects = SiteAllManager()
     objects = SiteManager()
     
