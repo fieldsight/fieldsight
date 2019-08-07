@@ -138,9 +138,6 @@ class MySiteSerializer(serializers.ModelSerializer):
             return 0
 
     def get_site_url(self, obj):
-        user = self.context['request'].user
-
-
         return settings.SITE_URL + obj.get_absolute_url()
 
     def get_region_url(self, obj):

@@ -38,7 +38,7 @@ def is_project_manager_or_team_admin(project_obj, user):
         Q(group__name__in=["Project Manager", "Project Donor"],
           project=project_obj, project__is_active=True, ended_at=None) | Q(group__name="Organization Admin",
                                                             organization=project_obj.organization,
-                                                            organization__is_active=True)).exists()
+                                                            organization__is_active=True, ended_at=None)).exists()
 
     return is_pm_admin
 
@@ -165,14 +165,16 @@ class MySitesView(APIView):
 
                 else:
                     region_ids = request.roles.filter(group__name__in=["Region Supervisor", "Region Reviewer"],
-                                                      region__is_active=True, project=project_obj).distinct('region_id').values_list('region_id', flat=True)
+                                                      region__is_active=True, project=project_obj, ended_at=None).\
+                        distinct('region_id').values_list('region_id', flat=True)
 
                     region_site_ids = Site.objects.filter(region__id__in=region_ids).values_list('id', flat=True)
 
                     sites_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
                                                                           'staff_project', 'region').filter(
-                                                                       Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                       Q(group__name="Site Reviewer", site__is_active=True)).distinct('site_id').values_list('site_id', flat=True)
+                        group__name__in=["Site Supervisor", "Site Reviewer"], ended_at=None).distinct('site_id').\
+                        values_list('site_id', flat=True)
+
                     total_sites = list(chain(region_site_ids, sites_id))
                     data = Site.objects.filter(id__in=total_sites)
                     result_page = paginator.paginate_queryset(data, request)
