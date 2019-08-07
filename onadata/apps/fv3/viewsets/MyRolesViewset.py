@@ -129,9 +129,9 @@ def my_regions(request):
 
             else:
                 regions_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
-                                                                      'staff_project', 'region').filter(
-                                                                   Q(group__name="Region Supervisor", region__is_active=True)|
-                                                                   Q(group__name="Region Reviewer", region__is_active=True)).values_list('region_id', flat=True)
+                                                                      'staff_project', 'region').\
+                    filter(group__name__in=["Region Supervisor", "Region Reviewer"], region__is_active=True, ended_at=None).\
+                    values_list('region_id', flat=True)
                 data = Region.objects.filter(parent=None, id__in=regions_id)
                 regions = MyRegionSerializer(data, many=True, context={'request': request})
             return Response({'regions': regions.data})

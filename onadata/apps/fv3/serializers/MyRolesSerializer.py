@@ -62,7 +62,7 @@ class MyRegionSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         user = self.context['request'].user
-        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name="Project Manager", project=obj.project)|
+        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name__in=["Project Manager", "Project Donor"], project=obj.project)|
                                                                          Q(group__name="Organization Admin",
                                                                            organization=obj.project.organization)).exists()
         if is_project_manager_or_team_admin:
