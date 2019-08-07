@@ -580,6 +580,11 @@ class FInstance(models.Model):
 
     @property
     def get_version(self):
+        n = XML_VERSION_MAX_ITER
+        for i in range(n, 0, -1):
+            tag = "_version__00{0}".format(i)
+            if self.instance.json.get(tag):
+                return self.instance.json.get(tag)
         if self.instance.json.get('_version_'):
             return self.instance.json.get('_version_')
         else:
