@@ -300,24 +300,24 @@ def get_version(xml):
         if m:
             return m.group(1)
 
-        #for new version labels
-        p1 = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/__version__" """)
+        # for new version labels
+        p1 = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/_version_" """)
         m1 = p1.search(xml)
         if m1:
             return m1.group(1)
-        
-        p2 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/__version__" """)
+
+        p2 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/_version_" """)
         m2 = p2.search(xml)
         if m2:
             return m2.group(1)
 
         #for old version labels
-        p3 = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/_version_" """)
+        p3 = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/__version__" """)
         m3 = p3.search(xml)
         if m3:
             return m3.group(1)
         
-        p4 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/_version_" """)
+        p4 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/__version__" """)
         m4 = p4.search(xml)
         if m4:
             return m4.group(1)
