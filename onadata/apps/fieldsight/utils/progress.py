@@ -1,8 +1,65 @@
-from django.db.models import Sum
-
+from django.db.models import Sum, Q
 
 from onadata.apps.fsforms.models import FieldSightXF, FInstance
 
+
+def default_progress(site, project):
+    from onadata.apps.fsforms.models import Stage
+    approved_site_forms_weight = site.site_instances.filter(form_status=3,
+                                                            site_fxf__is_staged=True).distinct(
+        'site_fxf').values_list('site_fxf__stage__weight', flat=True)
+    approved_site_weight_total = sum(
+        [w for w in approved_site_forms_weight if w is not None])
+    approved_project_forms_weight = site.site_instances.filter(form_status=3,
+                                                               project_fxf__is_staged=True).distinct(
+        'project_fxf').values_list('project_fxf__stage__weight', flat=True)
+    approved_projects_weight_total = sum(
+        [w for w in approved_project_forms_weight if w is not None])
+    approved_weight = approved_site_weight_total + approved_projects_weight_total
+    if approved_weight:
+        site_stages_weight = \
+        Stage.objects.filter(stage__site=site).aggregate(Sum('weight'))[
+            'weight__sum']
+        site_type = site.type_id
+        if not site_type:
+            project_stages_weight = \
+            Stage.objects.filter(stage__project=project).aggregate(
+                Sum('weight'))['weight__sum']
+        else:
+            project_stages_weight = \
+                Stage.objects.filter(stage__project=project).filter(
+                    Q(stage__tags__any=site_type) | Q(
+                        stage__tags=[])
+                ).aggregate(
+                    Sum('weight'))['weight__sum']
+        site_stages_weight = site_stages_weight if site_stages_weight else 0
+        project_stages_weight = project_stages_weight if project_stages_weight else 0
+        total_weight = site_stages_weight + project_stages_weight
+        p = ("%.0f" % (approved_weight / (total_weight * 0.01)))
+        p = int(p)
+        if p > 99:
+            return 100
+        return p
+    approved_forms_site = site.site_instances.filter(form_status=3,
+                                                     site_fxf__is_staged=True).values_list(
+        'site_fxf', flat=True)
+    approved_forms_project = site.site_instances.filter(form_status=3,
+                                                        project_fxf__is_staged=True).values_list(
+        'project_fxf', flat=True)
+    approved = len(set(approved_forms_site)) + len(set(approved_forms_project))
+    if not approved:
+        return 0
+
+    stages = Stage.objects.filter(
+        stage__project=site.project).count() + Stage.objects.filter(
+        stage__site=site).count()
+    if not stages:
+        return 0
+    p = ("%.0f" % (approved / (stages * 0.01)))
+    p = int(p)
+    if p > 99:
+        return 100
+    return p
 
 def advance_stage_approved(site, project):
     from onadata.apps.fsforms.models import Stage
