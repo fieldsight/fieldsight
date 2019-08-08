@@ -400,8 +400,17 @@ class Region(models.Model):
                                                                    'project__organization').values_list('id',
                                                                                                         flat=True)
 
-    def get_concat_identifier(self):       
-        return self.identifier + "_"
+    def get_parent_regions(self):
+        region = self
+        region_ids = Region.objects.select_related('parent').filter(id=region.id).values('id', 'parent',
+                                                                                         'parent__parent')
+        parent_regions = []
+        parent_regions.extend([region_ids[0]['id'], region_ids[0]['parent'], region_ids[0]['parent__parent']])
+
+        return parent_regions
+
+    def get_concat_identifier(self):
+            return self.identifier + "_"
 
 
 class SiteType(models.Model):

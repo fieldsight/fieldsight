@@ -100,7 +100,7 @@ class SiteForms(APIView):
                             | Q(project__id=project_id))
 
                         data = [{'form_name': obj.schedule_forms.xf.title, 'new_submission_url':
-                                 settings.SITE_URL + '/forms/new/' + str(site_id) + '/' + str(obj.id)} for obj in schedules]
+                                 settings.SITE_URL + '/forms/new/' + str(site_id) + '/' + str(obj.schedule_forms.id)} for obj in schedules]
 
                         return Response({'scheduled_forms': data})
 

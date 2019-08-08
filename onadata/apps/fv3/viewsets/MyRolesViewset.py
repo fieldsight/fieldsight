@@ -167,15 +167,18 @@ class MySitesView(APIView):
                     region_ids = request.roles.filter(group__name__in=["Region Supervisor", "Region Reviewer"],
                                                       region__is_active=True, project=project_obj, ended_at=None).\
                         distinct('region_id').values_list('region_id', flat=True)
+                    reg_sites = []
 
-                    region_site_ids = Site.objects.filter(region__id__in=region_ids).values_list('id', flat=True)
+                    for reg in region_ids:
+                        region = Region.objects.get(id=reg)
+                        reg_sites.extend(region.get_sites_id())
 
-                    sites_id = UserRole.objects.filter(user=request.user, project=project_obj).select_related('user', 'group', 'site', 'organization',
+                    sites_id = request.roles.select_related('user', 'group', 'site', 'organization',
                                                                           'staff_project', 'region').filter(
-                        group__name__in=["Site Supervisor", "Site Reviewer"], ended_at=None).distinct('site_id').\
-                        values_list('site_id', flat=True)
+                        group__name__in=["Site Supervisor", "Reviewer"], ended_at=None, project=project_obj).\
+                        distinct('site_id').values_list('site_id', flat=True)
 
-                    total_sites = list(chain(region_site_ids, sites_id))
+                    total_sites = list(chain(reg_sites, sites_id))
                     data = Site.objects.filter(id__in=total_sites)
                     result_page = paginator.paginate_queryset(data, request)
 
