@@ -28,8 +28,7 @@ def default_progress(site, project):
         else:
             project_stages_weight = \
                 Stage.objects.filter(project__id=project.id).filter(Q(
-                    tags__contains=[site.type_id]) | Q
-                                       (Q(project__id=project.id) & Q(tags=[]))
+                    tags__contains=[site.type_id]) | Q(tags=[])
                                        ).aggregate(
                     Sum('weight'))['weight__sum']
         site_stages_weight = site_stages_weight if site_stages_weight else 0
@@ -128,8 +127,16 @@ def advance_stage_approved(site, project):
     if approved_weight:
         from onadata.apps.fsforms.models import Stage
         site_stages_weight = Stage.objects.filter(stage__site=site).aggregate(Sum('weight'))['weight__sum']
-        project_stages_weight = Stage.objects.filter(stage__project=project).aggregate(Sum('weight'))[
-            'weight__sum']
+        site_type = site.type
+        if not site_type:
+            project_stages_weight = \
+                Stage.objects.filter(stage__project=project).aggregate(
+                    Sum('weight'))['weight__sum']
+        else:
+            project_stages_weight = \
+                Stage.objects.filter(project__id=project.id).filter(Q(
+                    tags__contains=[site.type_id]) | Q(tags=[])).aggregate(
+                    Sum('weight'))['weight__sum']
         site_stages_weight = site_stages_weight if site_stages_weight else 0
         project_stages_weight = project_stages_weight if project_stages_weight else 0
         total_weight = site_stages_weight + project_stages_weight
