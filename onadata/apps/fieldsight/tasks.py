@@ -2681,10 +2681,10 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
 
             elif item.get('question_type') == "FormSubCountQuestion":
                 meta_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
-
-        SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
-        site.site_meta_attributes_ans = meta_ans
-        site.save()
+        if meta_ans != site.site_meta_attributes_ans:
+            SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
+            site.site_meta_attributes_ans = meta_ans
+            site.save()
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception as e:
         print('Exception occured', e)
