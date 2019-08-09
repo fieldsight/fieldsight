@@ -14,7 +14,9 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Site
-        fields = ('id', 'identifier', 'name', 'address', 'logo', 'region', 'submissions', 'progress', 'type', 'status')
+        fields = ('id', 'identifier', 'name', 'address',
+                  'logo', 'region', 'submissions',
+                  'progress', 'type', 'status', 'weight')
 
     def get_submissions(self, obj):
         response = obj.get_site_submission_count()

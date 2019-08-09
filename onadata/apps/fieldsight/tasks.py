@@ -617,7 +617,7 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
 
                 meta_ques = project.site_meta_attributes
 
-                myanswers = {}
+                myanswers = _site.site_meta_attributes_ans
                 for question in meta_ques:
                     if question['question_type'] not in ['Form','FormSubStat','FormSubCountQuestion','FormQuestionAnswerStatus']:
                         myanswers[question['question_name']]=site.get(question['question_name'], "")
@@ -2567,11 +2567,13 @@ def update_sites_progress(pk, task_id):
         time.sleep(3)
         obj = ProgressSettings.objects.get(pk=pk)
         project = obj.project
-        total_sites = project.sites.count()
+        total_sites = project.sites.filter(is_active=True,
+                                           enable_subsites=False).count()
         page_size = 1000
         page = 0
         while total_sites > 0:
-            sites = project.sites.all()[page*page_size:(page+1)*page_size]
+            sites = project.sites.filter(is_active=True, enable_subsites=False)[
+                    page*page_size:(page+1)*page_size]
             print("updating site progress batch", page*page_size, (page+1)*page_size)
             for site in sites:
                 set_site_progress(site, project, obj)
@@ -2679,10 +2681,10 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
 
             elif item.get('question_type') == "FormSubCountQuestion":
                 meta_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
-
-        SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
-        site.site_meta_attributes_ans = meta_ans
-        site.save()
+        if meta_ans != site.site_meta_attributes_ans:
+            SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
+            site.site_meta_attributes_ans = meta_ans
+            site.save()
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception as e:
         print('Exception occured', e)
