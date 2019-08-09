@@ -2567,11 +2567,13 @@ def update_sites_progress(pk, task_id):
         time.sleep(3)
         obj = ProgressSettings.objects.get(pk=pk)
         project = obj.project
-        total_sites = project.sites.count()
+        total_sites = project.sites.filter(is_active=True,
+                                           enable_subsites=False).count()
         page_size = 1000
         page = 0
         while total_sites > 0:
-            sites = project.sites.all()[page*page_size:(page+1)*page_size]
+            sites = project.sites.filter(is_active=True, enable_subsites=False)[
+                    page*page_size:(page+1)*page_size]
             print("updating site progress batch", page*page_size, (page+1)*page_size)
             for site in sites:
                 set_site_progress(site, project, obj)
