@@ -4529,12 +4529,14 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
             return context
 
         elif submission:
-            submission = get_object_or_404(Instance, id=int(submission.replace(',','')))
+            try:
+                submission = get_object_or_404(Instance, id=int(submission.replace(',','')))
 
-            context['submission_id'] = submission.id
+                context['submission_id'] = submission.id
 
-            return context
-
+                return context
+            except ValueError:
+                return context
         else:
             return context
 
