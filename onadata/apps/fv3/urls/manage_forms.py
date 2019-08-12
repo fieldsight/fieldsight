@@ -1,6 +1,6 @@
 from django.conf.urls import url
 from onadata.apps.fv3.viewsets.manage_forms import GeneralFormsVS, \
-    GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS
+    GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS, SubStageFormsVS
 
 manage_forms_urlpatterns = [
 
@@ -15,6 +15,9 @@ manage_forms_urlpatterns = [
         name='schedulefl'),
     url(r'^api/manage-forms/stages/$',
         StageFormsVS.as_view({'get': 'list'}),
+        name='stagelist'),
+    url(r'^api/manage-forms/sub-stages/$',
+        SubStageFormsVS.as_view({'get': 'list'}),
         name='stagelist'),
 
 

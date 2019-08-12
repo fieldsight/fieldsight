@@ -4,9 +4,11 @@ from rest_framework import viewsets
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
-from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission
+from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
+    StagePermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
-    GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer
+    GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer, \
+    SubStageSerializer
 
 
 class GeneralFormsVS(viewsets.ModelViewSet):
@@ -147,9 +149,24 @@ class StageFormsVS(viewsets.ModelViewSet):
         else:
             return []
 
-        return queryset.annotate(sub_stage_weight=Sum(F('parent__weight')))
-
-
+        return queryset.annotate(sub_stage_weight=Sum(F('parent__weight'))
+                                 ).order_by('order', 'date_created')
 
     def get_serializer_context(self):
         return self.request.query_params
+
+
+class SubStageFormsVS(viewsets.ModelViewSet):
+    queryset = Stage.objects.filter(stage__isnull=False)
+    serializer_class = SubStageSerializer
+    permission_classes = [StagePermission]
+
+    def filter_queryset(self, queryset):
+        query_params = self.request.query_params
+        stage_id = query_params.get('stage_id')
+        return self.queryset.filter(stage__id=stage_id).select_related(
+        'stage_forms', 'em').order_by('order', 'date_created')
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+
