@@ -61,7 +61,6 @@ class GeneralProjectFormSerializer(serializers.ModelSerializer):
 class ScheduleSerializer(serializers.ModelSerializer):
     em = serializers.SerializerMethodField('get_education_material',
                                            read_only=True)
-    days = serializers.SerializerMethodField('get_all_days', read_only=True)
     xf = serializers.SerializerMethodField('get_assigned_form',
                                              read_only=True)
     is_deployed = serializers.SerializerMethodField(
@@ -94,9 +93,9 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Schedule
-        fields = ('id', 'em', 'days', 'xf',
+        fields = ('id', 'em', 'xf',
                   'is_deployed', 'default_submission_status', 'schedule_level',
-                  'responses_count', 'date_created')
+                  'responses_count', 'date_created', 'schedule_level_id')
 
     def get_all_days(self, obj):
         return u"%s" % (", ".join(day.day for day in obj.selected_days.all()))

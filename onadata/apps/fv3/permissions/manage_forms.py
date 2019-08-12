@@ -13,7 +13,7 @@ class ManageFormsPermission(permissions.BasePermission):
             return False
         if request.is_super_admin:
             return True
-        query_params = self.request.query_params
+        query_params = request.query_params
         site_id = query_params.get('site_id')
         project_id = query_params.get('project_id')
         if project_id or site_id:
