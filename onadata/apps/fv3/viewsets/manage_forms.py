@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Count, Q, Case, When, F, IntegerField, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
@@ -153,6 +154,8 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                                        schedule_forms__is_deleted=False)
     serializer_class = ScheduleSerializer
     permission_classes = [ManageFormsPermission]
+    authentication_classes = [BasicAuthentication,
+                              CsrfExemptSessionAuthentication]
 
     def filter_queryset(self, queryset):
         query_params = self.request.query_params
@@ -184,6 +187,46 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         return self.request.query_params
+
+    def create(self, request, *args, **kwargs):
+        query_params = request.query_params
+        site_id = query_params.get('site_id')
+        project_id = query_params.get('project_id')
+        if not (site_id or project_id):
+            return Response({"error": "Project or Site id required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        xf = request.data.get('xf')
+        if not xf:
+            return Response({"error": "Xform  id required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        default_submission_status = request.data.get('default_submission_status')
+        if project_id:
+            request.data['project_id'] = project_id
+            with transaction.atomic():
+                serializer = self.get_serializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                schedule = serializer.save()
+                fxf = FieldSightXF.objects.create(
+                    default_submission_status=default_submission_status,
+                    xf_id=xf, project_id=project_id, schedule_id=schedule.id,
+                    is_scheduled=True
+                )
+
+        elif site_id:
+            with transaction.atomic():
+                request.data['site_id'] = site_id
+                serializer = self.get_serializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                schedule = serializer.save()
+                fxf = FieldSightXF.objects.create(
+                    default_submission_status=default_submission_status,
+                    xf_id=xf, project_id=project_id, schedule=schedule,
+                    is_scheduled=True
+                )
+        serializer = ScheduleSerializer(schedule)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED,
+                        headers=headers)
 
 
 class StageFormsVS(viewsets.ModelViewSet):

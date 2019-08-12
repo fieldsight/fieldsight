@@ -94,7 +94,8 @@ class ScheduleSerializer(serializers.ModelSerializer):
         model = Schedule
         fields = ('id', 'em', 'xf',
                   'is_deployed', 'default_submission_status', 'schedule_level',
-                  'responses_count', 'date_created', 'schedule_level_id')
+                  'responses_count', 'date_created', 'schedule_level_id',
+                  'name')
 
     def get_all_days(self, obj):
         return u"%s" % (", ".join(day.day for day in obj.selected_days.all()))
