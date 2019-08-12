@@ -1,8 +1,11 @@
 from django.db.models import Count, Q, Case, When, F, IntegerField, Sum
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.authentication import BasicAuthentication
+from rest_framework.response import Response
 
 from onadata.apps.fieldsight.models import Site
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
 from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
     StagePermission
@@ -18,6 +21,8 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                                            is_survey=False)
     serializer_class = GeneralFormSerializer
     permission_classes = [ManageFormsPermission]
+    authentication_classes = [CsrfExemptSessionAuthentication,
+                              BasicAuthentication]
 
     def filter_queryset(self, queryset):
         query_params = self.request.query_params
@@ -30,7 +35,6 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                 response_count=Count(
                     'project_form_instances')).select_related('xf', 'em')
         elif site_id:
-            print(site_id)
             project_id = get_object_or_404(Site, pk=site_id).project.id
             queryset = queryset.filter(Q(site__id=site_id, from_project=False)
                                        | Q(project__id=project_id))
@@ -49,14 +53,52 @@ class GeneralFormsVS(viewsets.ModelViewSet):
     def get_serializer_context(self):
         return self.request.query_params
 
+    def create(self, request, *args, **kwargs):
+        query_params = request.query_params
+        site_id = query_params.get('site_id')
+        project_id = query_params.get('project_id')
+        if not (site_id or project_id):
+            return Response({"error": "Project or Site id required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        xf = request.data.get('xf')
+        if not xf:
+            return Response({"error": "Xform  id required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        default_submission_status = request.data.get('default_submission_status')
+        if project_id:
+            fxf = FieldSightXF.objects.create(
+                default_submission_status=default_submission_status,
+                xf_id=xf, project_id=project_id
+            )
+        elif site_id:
+            fxf = FieldSightXF.objects.create(
+                default_submission_status=default_submission_status,
+                xf_id=xf, project_id=project_id
+            )
+        serializer = GeneralFormSerializer(fxf)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED,
+                        headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.default_submission_status = request.data.get(
+            'default_submission_status')
+        instance.save()
+        serializer = GeneralFormSerializer(instance)
+        return Response(serializer.data)
+
 
 class GeneralProjectFormsVS(viewsets.ModelViewSet):
     queryset = FieldSightXF.objects.filter(is_staged=False,
                                            is_scheduled=False,
                                            is_deleted=False,
-                                           is_survey=True)
+                                           is_survey=True,
+                                           project__isnull=False)
     serializer_class = GeneralProjectFormSerializer
     permission_classes = [ManageFormsPermission]
+    authentication_classes = [CsrfExemptSessionAuthentication,
+                              BasicAuthentication]
 
     def filter_queryset(self, queryset):
         query_params = self.request.query_params
@@ -71,6 +113,36 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         return self.request.query_params
+
+    def create(self, request, *args, **kwargs):
+        query_params = request.query_params
+        project_id = query_params.get('project_id')
+        if not project_id:
+            return Response({"error": "Project id required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        xf = request.data.get('xf')
+        if not xf:
+            return Response({"error": "xf: Xform  id required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        default_submission_status = request.data.get('default_submission_status')
+        if project_id:
+            fxf = FieldSightXF.objects.create(is_survey=True,
+                                              default_submission_status=
+                                              default_submission_status,
+                                              xf_id=xf, project_id=project_id
+            )
+        serializer = GeneralProjectFormSerializer(fxf)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED,
+                        headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.default_submission_status = request.data.get(
+            'default_submission_status')
+        instance.save()
+        serializer = GeneralProjectFormSerializer(instance)
+        return Response(serializer.data)
 
 
 class ScheduleFormsVS(viewsets.ModelViewSet):

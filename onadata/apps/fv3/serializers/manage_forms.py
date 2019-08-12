@@ -10,7 +10,7 @@ class XFormSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = XForm
-        fields = ("id_string", "title")
+        fields = ("id_string", "title", 'id')
 
 
 class GeneralFormSerializer(serializers.ModelSerializer):
