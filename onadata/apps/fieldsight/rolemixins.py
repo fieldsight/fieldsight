@@ -253,7 +253,7 @@ class ReviewerRoleMixin(LoginRequiredMixin):
         
         site_id = self.kwargs.get('pk')
         user_id = request.user.id
-        user_role = request.roles.filter(user_id = user_id, site_id = site_id, group_id=3)
+        user_role = request.roles.filter(user_id = user_id, site_id = site_id, group__name="Site Supervisor")
         
         if user_role:
             return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
@@ -407,7 +407,7 @@ class SPFmixin(LoginRequiredMixin):
 
         if self.kwargs.get('is_project') == '0':
             site_id = self.kwargs.get('pk')
-            user_role = request.roles.filter(user_id = user_id, site_id = site_id, group_id=3)
+            user_role = request.roles.filter(user_id = user_id, site_id = site_id, group__name="Site Supervisor")
             if user_role:
                 return super(SPFmixin, self).dispatch(request, *args, **kwargs)
             project_id=Site.objects.get(pk=site_id).project.id

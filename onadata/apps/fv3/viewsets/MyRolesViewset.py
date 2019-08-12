@@ -94,7 +94,7 @@ def my_roles(request):
                                                                    Q(group__name="Region Supervisor", region__is_active=True)|
                                                                    Q(group__name="Region Reviewer", region__is_active=True)|
                                                                    Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                   Q(group__name="Site Reviewer", site__is_active=True)|
+                                                                   Q(group__name="Reviewer", site__is_active=True)|
                                                                    Q(group__name="Staff Project Manager", staff_project__is_deleted=False)
 
                                                                    ).distinct('organization')
