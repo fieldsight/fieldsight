@@ -482,6 +482,9 @@ class ReadonlyFormMixin(LoginRequiredMixin):
         if request.roles.filter(site__project__id=project_id, group__name="Reviewer").exists():
             return super(ReadonlyFormMixin, self).dispatch(request, fsxf_id, *args, **kwargs)
 
+        if request.roles.filter(site__project__id=project_id, group__name="Site Supervisor").exists():
+            return super(ReadonlyFormMixin, self).dispatch(request, fsxf_id, *args, **kwargs)
+
         organization_id = Project.objects.get(pk=project_id).organization.id
         user_role_asorgadmin = request.roles.filter(organization_id = organization_id, group_id = 1)
         if user_role_asorgadmin:
