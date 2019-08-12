@@ -195,7 +195,7 @@ class MyRolesSerializer(serializers.ModelSerializer):
             data = UserRole.objects.filter(user=obj.user, organization=obj.organization).select_related('user', 'group', 'site', 'organization',
                                                                       'staff_project', 'region').filter(Q(group__name="Project Manager", project__is_active=True)|
                                                                     Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                    Q(group__name="Site Reviewer", site__is_active=True)|
+                                                                    Q(group__name="Reviewer", site__is_active=True)|
                                                                     Q(group__name="Region Reviewer", region__is_active=True)|
                                                                     Q(group__name="Region Supervisor", region__is_active=True)|
                                                                     Q(group__name="Project Donor", project__is_active=True)
