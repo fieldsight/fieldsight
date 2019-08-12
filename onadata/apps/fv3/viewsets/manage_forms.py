@@ -1,12 +1,12 @@
-from django.db.models import Count, Q, Case, When, F, IntegerField
+from django.db.models import Count, Q, Case, When, F, IntegerField, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 
 from onadata.apps.fieldsight.models import Site
-from onadata.apps.fsforms.models import FieldSightXF, Schedule
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
 from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
-    GeneralProjectFormSerializer, ScheduleSerializer
+    GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer
 
 
 class GeneralFormsVS(viewsets.ModelViewSet):
@@ -112,3 +112,44 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
         return self.request.query_params
 
 
+class StageFormsVS(viewsets.ModelViewSet):
+    queryset = Stage.objects.filter(stage__isnull=True)
+    serializer_class = StageSerializer
+    permission_classes = [ManageFormsPermission]
+
+    def filter_queryset(self, queryset):
+        query_params = self.request.query_params
+        site_id = query_params.get('site_id')
+        project_id = query_params.get('project_id')
+        if project_id:
+            queryset = queryset.filter(project__id=project_id)
+        elif site_id:
+            site = get_object_or_404(Site, pk=site_id)
+            project_id = site.project_id
+            queryset = queryset.filter(
+                Q(site__id=site_id, project_stage_id=0) |
+                Q(project__id=project_id))
+            if site.type:
+                project_id = site.project.id
+                queryset = queryset.filter(Q(site__id=site_id,
+                                             project_stage_id=0)
+                                           | Q
+                                           (Q(project__id=project_id) &
+                                            Q(tags__contains=[site.type_id])) |
+                                           Q(Q(project__id=project_id)
+                                             & Q(tags=[]))
+                                           )
+            else:
+                project_id = site.project.id
+                queryset = queryset.filter(
+                    Q(site__id=site_id, project_stage_id=0)
+                    | Q(project__id=project_id))
+        else:
+            return []
+
+        return queryset.annotate(sub_stage_weight=Sum(F('parent__weight')))
+
+
+
+    def get_serializer_context(self):
+        return self.request.query_params

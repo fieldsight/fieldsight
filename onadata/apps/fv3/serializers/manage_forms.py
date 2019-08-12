@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from onadata.apps.fsforms.models import FieldSightXF, Schedule
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
 from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import \
     EMSerializer
 from onadata.apps.logger.models import XForm
@@ -145,3 +145,16 @@ class ScheduleSerializer(serializers.ModelSerializer):
             return obj.response_count if hasattr(obj, "response_count") else 0
         elif obj.site:
             return obj.site_response_count if hasattr(obj, "site_response_count") else 0
+
+
+class StageSerializer(serializers.ModelSerializer):
+    sub_stage_weight = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+        fields = ('id', 'name', 'sub_stage_weight')
+
+    def get_sub_stage_weight(self, obj):
+        if hasattr(obj, "sub_stage_weight"):
+            return obj.sub_stage_weight
+        return 0

@@ -1,6 +1,6 @@
 from django.conf.urls import url
 from onadata.apps.fv3.viewsets.manage_forms import GeneralFormsVS, \
-    GeneralProjectFormsVS, ScheduleFormsVS
+    GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS
 
 manage_forms_urlpatterns = [
 
@@ -9,9 +9,13 @@ manage_forms_urlpatterns = [
         name='gfl'),
     url(r'^api/manage-forms/survey/$',
         GeneralProjectFormsVS.as_view({'get': 'list'}),
-        name='gpfl'),
+        name='surveyfl'),
     url(r'^api/manage-forms/schedule/$',
         ScheduleFormsVS.as_view({'get': 'list'}),
-        name='spfl'),
+        name='schedulefl'),
+    url(r'^api/manage-forms/stages/$',
+        StageFormsVS.as_view({'get': 'list'}),
+        name='stagelist'),
+
 
 ]
