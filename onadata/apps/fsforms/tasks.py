@@ -31,6 +31,7 @@ def copy_allstages_to_sites(pk, is_deployed=True):
                                         ).update(is_deployed=is_deployed)
         send_bulk_message_stages_deployed_project(project)
     except Exception as e:
+        print(e)
         num_retries = copy_allstages_to_sites.request.retries
         seconds_to_wait = 2.0 ** num_retries
         # First countdown will be 1.0, then 2.0, 4.0, etc.
@@ -38,7 +39,7 @@ def copy_allstages_to_sites(pk, is_deployed=True):
 
 
 @shared_task(max_retries=10, soft_time_limit=60)
-def copy_stage_to_sites(main_stage, pk):
+def copy_stage_to_sites(main_stage, pk, is_deployed=True):
     try:
         main_stage = Stage.objects.get(pk=main_stage)
         project = Project.objects.get(pk=pk)
@@ -47,21 +48,9 @@ def copy_stage_to_sites(main_stage, pk):
         project_forms = FieldSightXF.objects.filter(stage__id__in=sub_stages_id, is_deleted=False)
         project_form_ids = [p.id for p in project_forms]
         with transaction.atomic():
-            FieldSightXF.objects.filter(pk__in=project_form_ids).update(is_deployed=True)  # deploy this project  stage substages all forms
-
-            deleted_forms = FieldSightXF.objects.filter(is_deleted=True, is_staged=True, project=project)
-            sites_affected = []
-            deploy_data = {
-                'project_stage': StageSerializer(main_stage).data,
-                'project_sub_stages': StageSerializer(project_sub_stages, many=True).data,
-                'project_forms': StageFormSerializer(project_forms, many=True).data,
-                'deleted_forms': StageFormSerializer(deleted_forms, many=True).data,
-                'deleted_stages': [],
-                'sites_affected': sites_affected,
-            }
-            d = DeployEvent(project=project, data=deploy_data)
-            d.save()
-            send_bulk_message_stage_deployed_project(project, main_stage, d.id)
+            FieldSightXF.objects.filter(pk__in=project_form_ids).update(
+                is_deployed=is_deployed)
+            send_bulk_message_stage_deployed_project(project, main_stage, 0)
     except Exception as e:
         print(str(e))
         num_retries = copy_stage_to_sites.request.retries

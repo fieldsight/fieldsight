@@ -2135,17 +2135,7 @@ def set_deploy_main_stage(request, is_project, pk, stage_id):
             site = Site.objects.get(pk=pk)
             main_stage = Stage.objects.get(pk=stage_id)
             FieldSightXF.objects.filter(stage__stage__id=main_stage.pk, is_deleted=False).update(is_deployed=True)
-            sub_stages  = Stage.objects.filter(stage__id=main_stage.pk, stage_forms__is_deleted=False)
-            stage_forms = FieldSightXF.objects.filter(stage__stage__id=main_stage.pk, is_deleted=False, is_deployed=True)
-            deleted_forms = FieldSightXF.objects.filter(project__id=pk, is_deleted=True, is_staged=True)
-            deploy_data = {'main_stage':StageSerializer(main_stage).data,
-                           'sub_stages':StageSerializer(sub_stages, many=True).data,
-                           'stage_forms':StageFormSerializer(stage_forms, many=True).data,
-                           'deleted_forms': StageFormSerializer(deleted_forms, many=True).data,
-                            }
-            d = DeployEvent(site=site, data=deploy_data)
-            d.save()
-            send_bulk_message_stage_deployed_site(site, main_stage, d.id)
+            send_bulk_message_stage_deployed_site(site, main_stage, 0)
             serializer = StageSerializer(main_stage)
             return Response(serializer.data, status=status.HTTP_200_OK)
     # except Exception as e:
