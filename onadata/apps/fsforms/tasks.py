@@ -60,29 +60,16 @@ def copy_stage_to_sites(main_stage, pk, is_deployed=True):
 
 
 @shared_task(max_retries=10, soft_time_limit=60)
-def copy_sub_stage_to_sites(sub_stage, pk):
+def copy_sub_stage_to_sites(sub_stage, pk, is_deployed=True):
     try:
         sub_stage = Stage.objects.get(pk=sub_stage)
         project = Project.objects.get(pk=pk)
-        main_stage = sub_stage.stage
         stage_form = sub_stage.stage_forms
 
         with transaction.atomic():
-            stage_form.is_deployed = True
+            stage_form.is_deployed = is_deployed
             stage_form.save()
-            deleted_forms = FieldSightXF.objects.filter(project__id=pk, is_deleted=True, is_staged=True)
-
-
-            deploy_data = {'project_forms': [StageFormSerializer(stage_form).data],
-                       'project_stage': StageSerializer(main_stage).data,
-                       'project_sub_stages': [StageSerializer(sub_stage).data],
-                       'deleted_forms': StageFormSerializer(deleted_forms, many=True).data,
-                       'deleted_stages': [],
-                       'sites_affected': [],
-                       }
-        d = DeployEvent(project=project, data=deploy_data)
-        d.save()
-        send_sub_stage_deployed_project(project, sub_stage, d.id)
+        send_sub_stage_deployed_project(project, sub_stage, 0)
     except Exception as e:
         print(str(e))
         num_retries = copy_sub_stage_to_sites.request.retries

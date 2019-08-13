@@ -2156,16 +2156,7 @@ def set_deploy_sub_stage(request, is_project, pk, stage_id):
             stage_form.is_deployed = True
             stage_form.save()
             serializer = SubStageDetailSerializer(sub_stage)
-            deleted_forms = FieldSightXF.objects.filter(site__id=pk, is_deleted=True, is_staged=True)
-            deploy_data = {
-                'main_stage':StageSerializer(sub_stage.stage).data,
-                'sub_stages':[StageSerializer(sub_stage).data],
-                'stage_forms':[StageFormSerializer(stage_form).data],
-                'deleted_forms': StageFormSerializer(deleted_forms, many=True).data,
-                           }
-            d = DeployEvent(site=site, data=deploy_data)
-            d.save()
-            send_sub_stage_deployed_site(site, sub_stage, d.id)
+            send_sub_stage_deployed_site(site, sub_stage, 0)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:

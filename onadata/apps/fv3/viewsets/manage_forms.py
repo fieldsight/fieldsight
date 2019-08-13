@@ -10,10 +10,10 @@ from onadata.apps.fieldsight.models import Site, Project
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
 from onadata.apps.fsforms.tasks import copy_schedule_to_sites, \
-    copy_allstages_to_sites, copy_stage_to_sites
+    copy_allstages_to_sites, copy_stage_to_sites, copy_sub_stage_to_sites
 from onadata.apps.fsforms.utils import send_message_un_deploy_project, \
     send_message_un_deploy, send_bulk_message_stages_deployed_site, \
-    send_bulk_message_stage_deployed_site
+    send_bulk_message_stage_deployed_site, send_sub_stage_deployed_site
 from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
     StagePermission, DeployFormsPermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
@@ -421,6 +421,26 @@ class DeployForm(APIView):
                                                 is_deleted=False).update(
                         is_deployed=is_deployed)
                     send_bulk_message_stage_deployed_site(site, main_stage, 0)
+                return Response({"message": "success"})
+        elif type == "substage":
+            id = query_params.get('id')
+            if not id:
+                return Response(
+                    {"error": "id: Stage Id Required"},
+                    status=status.HTTP_400_BAD_REQUEST)
+            is_deployed = request.data.get("is_deployed")
+            with transaction.atomic():
+                if project_id:
+                    copy_sub_stage_to_sites.apply_async(
+                        (), {'sub_stage': id,
+                             'pk': project_id, 'is_deployed': is_deployed},
+                        countdown=2)
+                else:
+                    FieldSightXF.objects.filter(stage__id=id,
+                                                is_deleted=False).update(
+                        is_deployed=is_deployed)
+                    send_sub_stage_deployed_site(Site.objects.get(pk=site_id),
+                                                 None, 0)
                 return Response({"message": "success"})
         return Response({"error": "not valid type"},
                         status=status.HTTP_400_BAD_REQUEST)
