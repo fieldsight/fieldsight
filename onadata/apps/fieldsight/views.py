@@ -4540,7 +4540,7 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
 
         elif submission:
             try:
-                context['submission_id'] = submission
+                context['submission'] = submission
 
                 return context
             except ValueError:
