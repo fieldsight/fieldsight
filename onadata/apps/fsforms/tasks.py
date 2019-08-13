@@ -22,11 +22,13 @@ from onadata.apps.fsforms.share_xform import share_form, share_forms
 
 
 @shared_task(max_retries=10, soft_time_limit=60)
-def copy_allstages_to_sites(pk):
+def copy_allstages_to_sites(pk, is_deployed=True):
     try:
         project = Project.objects.get(pk=pk)
         with transaction.atomic():
-            FieldSightXF.objects.filter(is_staged=True, project=project, is_deleted=False).update(is_deployed=True)
+            FieldSightXF.objects.filter(is_staged=True, project=project,
+                                        is_deleted=False
+                                        ).update(is_deployed=is_deployed)
         send_bulk_message_stages_deployed_project(project)
     except Exception as e:
         num_retries = copy_allstages_to_sites.request.retries
