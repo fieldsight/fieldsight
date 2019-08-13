@@ -1169,6 +1169,8 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
         if hasattr(form.Meta, 'project_filters'):
             for field in form.Meta.project_filters:
                 form.fields[field].queryset = form.fields[field].queryset.filter(project=project, deleted=False)
+        if not form.instance.site:
+            del form.fields['weight']
         return form
 
 
