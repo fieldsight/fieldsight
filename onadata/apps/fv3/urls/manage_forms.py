@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from onadata.apps.fv3.viewsets.manage_forms import GeneralFormsVS, \
-    GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS, SubStageFormsVS
+    GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS, SubStageFormsVS, \
+    DeployForm
 
 manage_forms_urlpatterns = [
 
@@ -34,6 +35,9 @@ manage_forms_urlpatterns = [
     url(r'^api/manage-forms/sub-stages/(?P<pk>\d+)/$',
         SubStageFormsVS.as_view({'put': 'update'}),
         name='substageupdate'),
+    url(r'^api/manage-forms/deploy/$',
+        DeployForm.as_view(),
+        name='deploy'),
 
 
 ]

@@ -4,12 +4,16 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from onadata.apps.fieldsight.models import Site, Project
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
+from onadata.apps.fsforms.tasks import copy_schedule_to_sites
+from onadata.apps.fsforms.utils import send_message_un_deploy_project, \
+    send_message_un_deploy
 from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
-    StagePermission
+    StagePermission, DeployFormsPermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
     GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer, \
     SubStageSerializer
@@ -317,5 +321,61 @@ class SubStageFormsVS(viewsets.ModelViewSet):
                 xf_id=xf, project=stage.project, site=stage.site,
                 is_staged=True, stage=sub_stage
             )
+
+
+class DeployForm(APIView):
+    permission_classes = [DeployFormsPermission]
+    authentication_classes = [CsrfExemptSessionAuthentication,
+                              BasicAuthentication]
+
+    def post(self, request):
+        query_params = request.query_params
+        type = query_params.get('type')
+        if not type:
+            return Response({"error": "type: Deployment form Type Required"}
+                            , status=status.HTTP_400_BAD_REQUEST)
+        site_id = query_params.get('site_id')
+        project_id = query_params.get('project_id')
+        if not (site_id or project_id):
+            return Response({"error": "site_id or project_id required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if type == "general":
+            id = query_params.get('id')
+            if not id:
+                return Response(
+                    {"error": "id: general form Id Required"},
+                    status=status.HTTP_400_BAD_REQUEST)
+            is_deployed = request.data.get("is_deployed")
+            with transaction.atomic():
+                fxf = FieldSightXF.objects.get(pk=id)
+                fxf.is_deployed = is_deployed
+                fxf.save()
+                if project_id:
+                        send_message_un_deploy_project(fxf)
+                else:
+                    send_message_un_deploy(fxf)
+                return Response({"message": "success"})
+        elif type == "schedule":
+            id = query_params.get('id')
+            if not id:
+                return Response(
+                    {"error": "id: general form Id Required"},
+                    status=status.HTTP_400_BAD_REQUEST)
+            is_deployed = request.data.get("is_deployed")
+            with transaction.atomic():
+                fxf = FieldSightXF.objects.get(is_scheduled=True,
+                                               schedule_id=id)
+                fxf.is_deployed = is_deployed
+                fxf.save()
+                if project_id:
+                    arguments = {'schedule_id': id,
+                                 'fxf_status': is_deployed}
+                    copy_schedule_to_sites.apply_async((), arguments,
+                                                       countdown=2)
+                else:
+                    send_message_un_deploy(fxf)
+                return Response({"message": "success"})
+        return Response({"error": "not valid type"},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 

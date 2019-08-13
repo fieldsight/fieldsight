@@ -21,7 +21,7 @@ class GeneralFormSerializer(serializers.ModelSerializer):
     class Meta:
         model = FieldSightXF
         fields = ('id', 'xf', 'date_created', 'default_submission_status',
-                  'responses_count', 'em')
+                  'responses_count', 'em', 'is_deployed')
 
     def get_responses_count(self, obj):
         is_project = self.context.get('project_id', False)
@@ -47,7 +47,7 @@ class GeneralProjectFormSerializer(serializers.ModelSerializer):
     class Meta:
         model = FieldSightXF
         fields = ('id', 'xf', 'date_created', 'default_submission_status',
-                  'responses_count', 'em')
+                  'responses_count', 'em', 'is_deployed')
 
     def get_responses_count(self, obj):
         is_project = self.context.get('project_id', False)
