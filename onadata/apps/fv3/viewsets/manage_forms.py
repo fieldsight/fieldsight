@@ -277,7 +277,7 @@ class StageFormsVS(viewsets.ModelViewSet):
         site_id = query_params.get('site_id')
         project_id = query_params.get('project_id')
         if project_id:
-            serializer.save(project = Project.objects.get(pk=project_id))
+            serializer.save(project=Project.objects.get(pk=project_id))
         elif site_id:
             site = get_object_or_404(Site, pk=site_id)
             serializer.save(site=site)
@@ -287,6 +287,8 @@ class SubStageFormsVS(viewsets.ModelViewSet):
     queryset = Stage.objects.filter(stage__isnull=False)
     serializer_class = SubStageSerializer
     permission_classes = [StagePermission]
+    authentication_classes = [CsrfExemptSessionAuthentication,
+                              BasicAuthentication]
 
     def filter_queryset(self, queryset):
         query_params = self.request.query_params
@@ -296,4 +298,24 @@ class SubStageFormsVS(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         return {'request': self.request}
+
+    def perform_create(self, serializer):
+        query_params = self.request.query_params
+        xf = self.request.data.get('xf')
+        if not xf:
+            return Response({"error": "Xform  id required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        default_submission_status = self.request.data.get(
+            'default_submission_status')
+        stage_id = query_params.get('stage_id')
+        if stage_id:
+            stage = Stage.objects.get(pk=stage_id)
+            sub_stage = serializer.save(stage=stage, project=stage.project,
+                                        site=stage.site)
+            xf = FieldSightXF.objects.create(
+                default_submission_status=default_submission_status,
+                xf_id=xf, project=stage.project, site=stage.site,
+                is_staged=True, stage=sub_stage
+            )
+
 

@@ -153,7 +153,8 @@ class StageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Stage
-        fields = ('id', 'name', 'sub_stage_weight', 'tags', 'description')
+        fields = ('id', 'name', 'sub_stage_weight', 'tags', 'description',
+                  'order')
 
     def get_sub_stage_weight(self, obj):
         if hasattr(obj, "sub_stage_weight"):
@@ -225,40 +226,13 @@ class SubStageSerializer(serializers.ModelSerializer):
                   'date_created', 'em', 'responses_count',
                   'xf', 'has_em', 'is_deployed', 'default_submission_status')
 
-    def create(self, validated_data):
-        stage_id = self.context['request'].query_params.get('stage_id')
-        default_submission_status = self.context['request'].data.get(
-            'default_submission_status', 0)
-        xf = self.context['request'].data.get('xf', {})
-        xform = False
-        if xf and xf != '':
-            xf_id = xf.get('id', False)
-            if xf_id:
-                xform = XForm.objects.get(pk=xf_id)
-        stage = super(SubStageSerializer, self).create(validated_data)
-        main_stage = Stage.objects.get(pk=stage_id)
-        if xform:
-            FieldSightXF.objects.create(xf=xform, site=main_stage.site,
-                                        project=main_stage.project,
-                                        is_staged=True,
-                                        stage=stage,
-                                        default_submission_status=
-                                        default_submission_status)
-        stage.stage = main_stage
-        stage.site = main_stage.site
-        stage.project = main_stage.project
-        stage.save()
-        return stage
-
     def update(self, instance, validated_data):
-        xf = self.context['request'].data.get('xf', {})
+        xf = self.context['request'].data.get('xf')
         default_submission_status = self.context['request'].data.get(
             'default_submission_status', 0)
         xform = False
         if xf and xf != '':
-            xf_id = xf.get('id', False)
-            if xf_id:
-                xform = XForm.objects.get(pk=xf_id)
+            xform = XForm.objects.get(pk=xf)
         stage = super(SubStageSerializer, self).update(instance, validated_data)
         if xform:
             try:
