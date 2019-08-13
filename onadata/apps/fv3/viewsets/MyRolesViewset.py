@@ -67,9 +67,15 @@ def my_site_ids(project_obj, user):
 def my_roles(request):
     user_id = request.GET.get('profile', None)
     if user_id is not None:
-        profile_obj = UserProfile.objects.select_related('user').get(user_id=int(user_id))
+        try:
+            profile_obj = UserProfile.objects.select_related('user').get(user_id=int(user_id))
+        except ObjectDoesNotExist:
+            profile_obj = UserProfile.objects.create(user_id=int(user_id))
     else:
-        profile_obj = UserProfile.objects.select_related('user').get(user=request.user)
+        try:
+            profile_obj = UserProfile.objects.select_related('user').get(user=request.user)
+        except ObjectDoesNotExist:
+            profile_obj = UserProfile.objects.create(user=request.user)
 
     can_create_team = True
     if request.user.organizations.all():
