@@ -107,15 +107,20 @@ class MySiteSerializer(serializers.ModelSerializer):
             group = None
 
         else:
-            obj = obj.site_roles.select_related('group').filter(user=user)
+            site_group = obj.site_roles.select_related('group').filter(user=user)
 
-            if len(obj) > 1:
+            if len(site_group) > 1:
                 group = "Site Supervisor"
 
-            elif len(obj) == 0:
-                group = None
+            elif len(site_group) == 0:
+                region_group = obj.region.region_roles.filter(user=user)[0].group.name
+                if len(region_group) > 1:
+                    group = 'Region Supervisor'
+                else:
+                    group = obj.region.region_roles.filter(user=user)[0].group.name
+
             else:
-                group = obj.get().group.name
+                group = obj.site_roles.all().filter(user=user)[0].group.name
 
         return group
 
