@@ -23,10 +23,13 @@ manage_forms_urlpatterns = [
         ScheduleFormsVS.as_view({'put': 'update'}),
         name='schedulefu'),
     url(r'^api/manage-forms/stages/$',
-        StageFormsVS.as_view({'get': 'list'}),
+        StageFormsVS.as_view({'get': 'list',  'post':'create'}),
         name='stagelist'),
+    url(r'^api/manage-forms/stages/(?P<pk>\d+)/$',
+        StageFormsVS.as_view({'put': 'update'}),
+        name='stageupdate'),
     url(r'^api/manage-forms/sub-stages/$',
-        SubStageFormsVS.as_view({'get': 'list'}),
+        SubStageFormsVS.as_view({'get': 'list', 'post':'create'}),
         name='stagelist'),
 
 

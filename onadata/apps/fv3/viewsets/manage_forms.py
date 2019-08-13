@@ -5,7 +5,7 @@ from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.response import Response
 
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.fieldsight.models import Site, Project
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
 from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
@@ -233,6 +233,8 @@ class StageFormsVS(viewsets.ModelViewSet):
     queryset = Stage.objects.filter(stage__isnull=True)
     serializer_class = StageSerializer
     permission_classes = [ManageFormsPermission]
+    authentication_classes = [CsrfExemptSessionAuthentication,
+                              BasicAuthentication]
 
     def filter_queryset(self, queryset):
         query_params = self.request.query_params
@@ -269,6 +271,16 @@ class StageFormsVS(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         return self.request.query_params
+
+    def perform_create(self, serializer):
+        query_params = self.request.query_params
+        site_id = query_params.get('site_id')
+        project_id = query_params.get('project_id')
+        if project_id:
+            serializer.save(project = Project.objects.get(pk=project_id))
+        elif site_id:
+            site = get_object_or_404(Site, pk=site_id)
+            serializer.save(site=site)
 
 
 class SubStageFormsVS(viewsets.ModelViewSet):
