@@ -1,7 +1,7 @@
 from django.conf.urls import url
 from onadata.apps.fv3.viewsets.manage_forms import GeneralFormsVS, \
     GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS, SubStageFormsVS, \
-    DeployForm
+    DeployForm, DeleteUndeployedForm
 
 manage_forms_urlpatterns = [
 
@@ -38,6 +38,9 @@ manage_forms_urlpatterns = [
     url(r'^api/manage-forms/deploy/$',
         DeployForm.as_view(),
         name='deploy'),
+    url(r'^api/manage-forms/delete/$',
+        DeleteUndeployedForm.as_view(),
+        name='delete'),
 
 
 ]

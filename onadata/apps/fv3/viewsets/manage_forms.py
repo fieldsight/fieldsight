@@ -446,3 +446,182 @@ class DeployForm(APIView):
                         status=status.HTTP_400_BAD_REQUEST)
 
 
+class DeleteUndeployedForm(APIView):
+    permission_classes = [DeployFormsPermission]
+    authentication_classes = [CsrfExemptSessionAuthentication,
+                              BasicAuthentication]
+
+    def post(self, request):
+        query_params = request.query_params
+        type = query_params.get('type')
+        if not type:
+            return Response({"error": "type: Delete form Type Required"}
+                            , status=status.HTTP_400_BAD_REQUEST)
+        site_id = query_params.get('site_id')
+        project_id = query_params.get('project_id')
+        if not (site_id or project_id):
+            return Response({"error": "site_id or project_id required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if type == "general":
+            id = query_params.get('id')
+            if not id:
+                return Response(
+                    {"error": "id: general form Id Required"},
+                    status=status.HTTP_400_BAD_REQUEST)
+            if FieldSightXF.objects.filter(pk=id).exists():
+                general_form = FieldSightXF.objects.get(pk=id)
+                if general_form.is_deployed:
+                    return Response({"error": "You cannot delete a deployed "
+                                              "form"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                extra_json = {}
+                if project_id:
+                    if general_form.project_form_instances.count():
+                        return Response(
+                            {"error": "This form have submissions, delete "
+                                      "submissions first"},
+                               status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        general_form.is_deleted = True
+                        general_form.save()
+                        extra_object = general_form.project
+                        extra_message = "project"
+                        site_id = None
+                        project_id = extra_object.id
+                        organization_id = extra_object.organization_id
+                        extra_json[
+                            'submission_count'] = \
+                            general_form.project_form_instances.all().count()
+                        general_form.logs.create(source=self.request.user, type=34,
+                                           title="deleted form" + self.kwargs.get(
+                                               'fsxf_id'),
+                                           organization_id=organization_id,
+                                           project_id=project_id,
+                                           site_id=site_id,
+                                           extra_json=extra_json,
+                                           extra_object=extra_object,
+                                           extra_message=extra_message,
+                                           content_object=general_form)
+                        return Response({"message": "success"})
+                else:
+                    if general_form.site_form_instances.count():
+                        return Response(
+                            {"error": "This form have submissions, delete "
+                                      "submissions first"},
+                            status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        general_form.is_deleted = True
+                        general_form.save()
+                        extra_object = general_form.site
+                        site_id = extra_object.id
+                        project_id = extra_object.project_id
+                        organization_id = extra_object.project.organization_id
+                        extra_message = "site"
+                        extra_json[
+                                'submission_count'] = \
+                                general_form.project_form_instances.all().count()
+                        general_form.logs.create(source=self.request.user,
+                                                 type=34,
+                                                 title="deleted form" + self.kwargs.get(
+                                                     'fsxf_id'),
+                                                 organization_id=organization_id,
+                                                 project_id=project_id,
+                                                 site_id=site_id,
+                                                 extra_json=extra_json,
+                                                 extra_object=extra_object,
+                                                 extra_message=extra_message,
+                                                 content_object=general_form)
+                        return Response({"message": "success"})
+            else:
+                return Response(
+                    {"error": "id: general form id Incorrect"},
+                    status=status.HTTP_400_BAD_REQUEST)
+        elif type == "schedule":
+            id = query_params.get('id')
+            if not id:
+                return Response(
+                    {"error": "id: general form Id Required"},
+                    status=status.HTTP_400_BAD_REQUEST)
+            is_deployed = request.data.get("is_deployed")
+            with transaction.atomic():
+                fxf = FieldSightXF.objects.get(is_scheduled=True,
+                                               schedule_id=id)
+                fxf.is_deployed = is_deployed
+                fxf.save()
+                if project_id:
+                    arguments = {'schedule_id': id,
+                                 'fxf_status': is_deployed}
+                    copy_schedule_to_sites.apply_async((), arguments,
+                                                       countdown=2)
+                else:
+                    send_message_un_deploy(fxf)
+                return Response({"message": "success"})
+        elif type == "all":
+            id = query_params.get('id')
+            if not id:
+                return Response(
+                    {"error": "id: Project or site Id Required"},
+                    status=status.HTTP_400_BAD_REQUEST)
+            is_deployed = request.data.get("is_deployed")
+            with transaction.atomic():
+                if project_id:
+                    copy_allstages_to_sites.apply_async((),
+                                                        {'pk': id,
+                                                         'is_deployed':
+                                                             is_deployed},
+                                                        countdown=2)
+                else:
+                    site = Site.objects.get(pk=id)
+                    site.site_forms.filter(is_staged=True, xf__isnull=False,
+                                           is_deployed=is_deployed,
+                                           is_deleted=False).update(
+                        is_deployed=True)
+                    send_bulk_message_stages_deployed_site(site)
+                return Response({"message": "success"})
+        elif type == "stage":
+            id = query_params.get('id')
+            if not id:
+                return Response(
+                    {"error": "id: Stage Id Required"},
+                    status=status.HTTP_400_BAD_REQUEST)
+            is_deployed = request.data.get("is_deployed")
+            with transaction.atomic():
+                if project_id:
+                    copy_stage_to_sites.apply_async((),
+                                                    {'main_stage': id,
+                                                     'pk': project_id,
+                                                     'is_deployed':
+                                                         is_deployed},
+                                                    countdown=2)
+                else:
+                    site = Site.objects.get(pk=id)
+                    main_stage = Stage.objects.get(pk=id)
+                    FieldSightXF.objects.filter(stage__stage__id=main_stage.pk,
+                                                is_deleted=False).update(
+                        is_deployed=is_deployed)
+                    send_bulk_message_stage_deployed_site(site, main_stage, 0)
+                return Response({"message": "success"})
+        elif type == "substage":
+            id = query_params.get('id')
+            if not id:
+                return Response(
+                    {"error": "id: Stage Id Required"},
+                    status=status.HTTP_400_BAD_REQUEST)
+            is_deployed = request.data.get("is_deployed")
+            with transaction.atomic():
+                if project_id:
+                    copy_sub_stage_to_sites.apply_async(
+                        (), {'sub_stage': id,
+                             'pk': project_id, 'is_deployed': is_deployed},
+                        countdown=2)
+                else:
+                    FieldSightXF.objects.filter(stage__id=id,
+                                                is_deleted=False).update(
+                        is_deployed=is_deployed)
+                    send_sub_stage_deployed_site(Site.objects.get(pk=site_id),
+                                                 None, 0)
+                return Response({"message": "success"})
+        return Response({"error": "not valid type"},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+
