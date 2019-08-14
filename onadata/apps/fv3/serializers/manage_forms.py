@@ -68,6 +68,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
     schedule_level = serializers.SerializerMethodField(
         'get_schedule_level_type', read_only=True)
     responses_count = serializers.SerializerMethodField()
+    fsxf = serializers.SerializerMethodField()
 
     def validate(self, data):
         """
@@ -95,7 +96,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
         fields = ('id', 'em', 'xf',
                   'is_deployed', 'default_submission_status', 'schedule_level',
                   'responses_count', 'date_created', 'schedule_level_id',
-                  'name')
+                  'name', 'fsxf')
 
     def get_all_days(self, obj):
         return u"%s" % (", ".join(day.day for day in obj.selected_days.all()))
@@ -117,6 +118,11 @@ class ScheduleSerializer(serializers.ModelSerializer):
                 return XFormSerializer(fsxf.xf).data
         return None
 
+    def get_fsxf(self, obj):
+        try:
+            return obj.schedule_forms.id
+        except:
+            return None
 
     def get_is_deployed_status(self, obj):
         if not FieldSightXF.objects.filter(schedule=obj).exists():
@@ -170,6 +176,7 @@ class SubStageSerializer(serializers.ModelSerializer):
     has_em = serializers.SerializerMethodField()
     is_deployed = serializers.SerializerMethodField()
     default_submission_status = serializers.SerializerMethodField()
+    fsxf = serializers.SerializerMethodField()
 
     def get_responses_count(self, obj):
         try:
@@ -220,11 +227,18 @@ class SubStageSerializer(serializers.ModelSerializer):
         except:
             return {}
 
+    def get_fsxf(self, obj):
+        try:
+            return obj.stage_forms.id
+        except:
+            return None
+
     class Meta:
         model = Stage
         fields = ('weight', 'name', 'description', 'id', 'order',
                   'date_created', 'em', 'responses_count',
-                  'xf', 'has_em', 'is_deployed', 'default_submission_status')
+                  'xf', 'has_em', 'is_deployed', 'default_submission_status',
+                  'fsxf')
 
     def update(self, instance, validated_data):
         xf = self.context['request'].data.get('xf')
