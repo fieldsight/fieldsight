@@ -37,6 +37,7 @@ class FieldSightLog(models.Model):
         (9, 'User created a new Team named Organization Name'),
         (10, 'User created a new project named Project Name.'),
         (11, 'User created a new site named Site Name in Project Name.'),
+        (110, 'User created a new Sub site named Site Name in Site Name.'),
         (12, 'User created number + sites in Project Name.'),
         (13, 'User changed the details of Organization Name.'),
         (14, 'User changed the details of Project Name.'),

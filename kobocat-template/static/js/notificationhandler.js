@@ -14,6 +14,7 @@
         9 : type9,
         10 : type10,
         11 : type11,
+        110 : type110,
         12 : type12,
         13 : type13,
         14 : type14,
@@ -137,6 +138,19 @@ function type11(data){
     }
     else{
         content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created a new site named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> in Project named <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
+    return content;
+}
+
+function type110(data){
+console.log(data.terms_and_labels);
+    if(data.terms_and_labels!=null){
+    console.log("tm and evel")
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created a new Sub '+ data.terms_and_labels.site + ' named <b><a href="' + data.get_event_url + '">' + data.get_event_name + '</a></b>in Site named <b><a href="' + data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name+'</a></b> created a new sub site named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> in Site named <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
 
     }
     return content;
