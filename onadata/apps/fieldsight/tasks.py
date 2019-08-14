@@ -2663,10 +2663,6 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                     answer = ""
                 else:
                     answer = instance.json.get(item.get('question').get('name'), '')
-                    if answer == '':
-                        for key, value in instance.json.items():
-                            if item.get('question').get('name') in key:
-                                answer = value
                 if item['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
                     answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fs_proj_xf.xf.user.username + '/attachments/' + answer
                 meta_ans[item['question_name']] = answer

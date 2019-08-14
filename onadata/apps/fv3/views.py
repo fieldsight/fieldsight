@@ -516,10 +516,10 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
 
         if search_param and region_id:
             return self.queryset.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
-                                        region_id=region_id, is_survey=False, is_active=True)
+                                        region_id=region_id, is_survey=False, is_active=True, site__isnull=True)
 
         if region_id:
-            return self.queryset.filter(region_id=region_id, is_survey=False, is_active=True)
+            return self.queryset.filter(region_id=region_id, is_survey=False, is_active=True, site__isnull=True)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
