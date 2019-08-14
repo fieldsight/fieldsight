@@ -492,16 +492,17 @@ class DeleteUndeployedForm(APIView):
                         extra_json[
                             'submission_count'] = \
                             general_form.project_form_instances.all().count()
-                        general_form.logs.create(source=self.request.user, type=34,
-                                           title="deleted form" + self.kwargs.get(
-                                               'fsxf_id'),
-                                           organization_id=organization_id,
-                                           project_id=project_id,
-                                           site_id=site_id,
-                                           extra_json=extra_json,
-                                           extra_object=extra_object,
-                                           extra_message=extra_message,
-                                           content_object=general_form)
+                        general_form.logs.create(
+                            source=self.request.user,
+                            type=34,
+                            title="deleted form  " + id,
+                            organization_id=organization_id,
+                            project_id=project_id,
+                            site_id=site_id,
+                            extra_json=extra_json,
+                            extra_object=extra_object,
+                            extra_message=extra_message,
+                            content_object=general_form)
                         return Response({"message": "success"})
                 else:
                     if general_form.site_form_instances.count():
@@ -522,8 +523,7 @@ class DeleteUndeployedForm(APIView):
                                 general_form.project_form_instances.all().count()
                         general_form.logs.create(source=self.request.user,
                                                  type=34,
-                                                 title="deleted form" + self.kwargs.get(
-                                                     'fsxf_id'),
+                                                 title="deleted form" + id,
                                                  organization_id=organization_id,
                                                  project_id=project_id,
                                                  site_id=site_id,
