@@ -2668,7 +2668,11 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 meta_ans[item['question_name']] = answer
 
             elif item.get('question_type') == 'FormSubStat' and fs_proj_xf.id == item.get('form_id', 0):
-                answer = "Last submitted on " + instance.date.strftime("%d %b %Y %I:%M %P")
+                if instance.date_modified:
+                    answer = "Last submitted on " + instance.date_modified.strftime("%d %b %Y %I:%M %P")
+                else:
+                    answer = "Last submitted on " + instance.date_created.strftime("%d %b %Y %I:%M %P")
+
                 meta_ans[item['question_name']] = answer
 
             elif item.get('question_type') == "FormQuestionAnswerStatus":
