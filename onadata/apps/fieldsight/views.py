@@ -1065,9 +1065,13 @@ class SubSiteCreateView(SiteView, ProjectRoleMixin, CreateView):
             ))
 
         self.object = form.save(project_id=self.kwargs.get('pk'), new=True, site_id=self.kwargs.get('site'))
-        noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
+        noti = self.object.logs.create(source=self.request.user, type=110,
+                                       title="new sub Site",
+                                       site=self.object.site,
                                        organization=self.object.project.organization,
-                                       project=self.object.project, content_object=self.object, extra_object=self.object.project,
+                                       project=self.object.project,
+                                       content_object=self.object,
+                                       extra_object=self.object.site,
                                        description=u'{0} created a new Sub '
                                                    u'site named {1} in {2}'.format(self.request.user.get_full_name(),
                                                                                  self.object.name, self.object.project.name))
