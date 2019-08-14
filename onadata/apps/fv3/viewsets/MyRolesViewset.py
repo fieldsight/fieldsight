@@ -162,7 +162,7 @@ class MySitesView(APIView):
                 paginator.page_size = 200
 
                 if is_project_manager_or_team_admin(project_obj, request.user):
-                    data = Site.objects.filter(project=project_obj, is_active=True)
+                    data = Site.objects.filter(project=project_obj, is_active=True, site__isnull=True, is_survey=False)
 
                     result_page = paginator.paginate_queryset(data, request)
 

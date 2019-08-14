@@ -395,7 +395,7 @@ class Region(models.Model):
                                                                    'project__organization').values_list('name', flat=True)
 
     def get_sites_id(self):
-        return Site.objects.filter(
+        return Site.objects.filter(site__isnull=True).filter(
             Q(region_id=self.id) | Q(region_id__parent=self.id) | Q(
                 region_id__parent__parent=self.id)).select_related('region', 'project', 'type', 'project__type',
                                                                    'project__organization').values_list('id',

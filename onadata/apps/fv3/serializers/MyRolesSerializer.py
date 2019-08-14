@@ -113,11 +113,12 @@ class MySiteSerializer(serializers.ModelSerializer):
                 group = "Site Supervisor"
 
             elif len(site_group) == 0:
-                region_group = obj.region.region_roles.filter(user=user)[0].group.name
+                region_group = user.user_roles.filter(group__name__in=["Region Supervisor", "Region Reviewer"],
+                                                      region__is_active=True, ended_at=None)
                 if len(region_group) > 1:
                     group = 'Region Supervisor'
                 else:
-                    group = obj.region.region_roles.filter(user=user)[0].group.name
+                    group = region_group[0].group.name
 
             else:
                 group = obj.site_roles.all().filter(user=user)[0].group.name
