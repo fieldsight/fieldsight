@@ -94,6 +94,34 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
             return False
 
 
+class ProjectDashboardPermissions(permissions.BasePermission):
+    """
+    Object-level permission to only allow owners of an object to View it.
+    """
+
+    def has_object_permission(self, request, view, obj):
+
+        if request.is_super_admin:
+            return True
+
+        project = obj
+
+        if project is not None:
+            organization_id = project.organization_id
+            user_role_org_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
+
+            if user_role_org_admin:
+                return True
+
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                "Project Donor"])
+
+            if user_role_as_manager:
+                return True
+
+        return False
+
+
 class SiteDashboardPermissions(permissions.BasePermission):
     """
     Object-level permission to only allow owners of an object to View it.

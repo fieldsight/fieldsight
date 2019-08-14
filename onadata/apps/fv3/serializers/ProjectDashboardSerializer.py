@@ -1,16 +1,48 @@
 import datetime
+import json
 
-from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q, F
+from collections import OrderedDict
+from django.db.models import Q
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
+from django.core.serializers import serialize
 
 from rest_framework import serializers
 
-
-from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels
-from onadata.apps.main.models import UserProfile
-from onadata.apps.userrole.models import UserRole
+from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
+from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site
 from onadata.apps.logger.models import Instance
+from onadata.apps.eventlog.models import FieldSightLog
+from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
+from onadata.apps.fsforms.line_data_project import date_range
+
+
+class LineChartGeneratorProject(object):
+
+    def __init__(self, project):
+        self.project = project
+        self.date_list = list(date_range(project.date_created.strftime("%Y%m%d"), datetime.datetime.today().strftime("%Y%m%d"), 6))
+
+    def get_count(self, date):
+        import datetime as dt
+        date = date + dt.timedelta(days=1)
+        obj = self.project.project_instances.filter(date__lte=date.date())
+        total_submissions = obj.count()
+        pending_submissions = obj.filter(form_status=0).count()
+        rejected_submissions = obj.filter(form_status=1).count()
+        flagged_submissions = obj.filter(form_status=2).count()
+        approved_submissions = obj.filter(form_status=3).count()
+
+        return {'total_submissions': total_submissions, 'pending_submissions': pending_submissions, 'approved_submissions':
+            approved_submissions, 'rejected_submissions': rejected_submissions, 'flagged_submissions': flagged_submissions}
+
+    def data(self):
+        d = OrderedDict()
+        dt = self.date_list
+        for date in dt:
+            count = self.get_count(date)
+            d[date.strftime('%Y-%m-%d')] = count
+        return d
 
 
 class ProjectDashboardSerializer(serializers.ModelSerializer):
@@ -19,12 +51,19 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
     total_sites = serializers.SerializerMethodField()
     total_users = serializers.SerializerMethodField()
     project_managers = serializers.SerializerMethodField()
+    logs = serializers.SerializerMethodField()
     terms_and_labels = serializers.SerializerMethodField()
+    form_submissions_chart_data = serializers.SerializerMethodField()
+    has_region = serializers.SerializerMethodField()
+    site_progress_chart_data = serializers.SerializerMethodField()
+    breadcrumbs = serializers.SerializerMethodField()
+    map = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = ('id', 'name', 'address', 'public_desc', 'logo', 'contacts', 'project_activity', 'total_sites',
-                  'total_users', 'project_managers', 'terms_and_labels')
+                  'total_users', 'project_managers', 'has_region', 'logs', 'form_submissions_chart_data',
+                  'site_progress_chart_data', 'map', 'terms_and_labels', 'breadcrumbs')
 
     def get_contacts(self, obj):
         contacts = {
@@ -96,57 +135,84 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
         return project_managers
 
+    def get_logs(self, obj):
+        qs = FieldSightLog.objects.filter(Q(project=obj) | (
+                Q(content_type=ContentType.objects.get(app_label="fieldsight", model="project")) & Q(
+            object_id=obj.id)))[:20]
+        serializers_qs = NotificationSerializer(qs, many=True)
+        return serializers_qs.data
+
+    def get_has_region(self, obj):
+        has_region = False
+        if obj.project_region.all():
+            has_region = True
+        return has_region
+
+    def get_form_submissions_chart_data(self, obj):
+        line_chart = LineChartGeneratorProject(obj)
+        line_chart_data = line_chart.data()
+        data = {'total_submissions':
+                    {'data': [d['total_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()},
+                'pending_submissions':
+                    {'data': [d['pending_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()},
+                'approved_submissions':
+                    {'data': [d['approved_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()},
+                'rejected_submissions':
+                    {'data': [d['rejected_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()},
+                'flagged_submissions':
+                    {'data': [d['flagged_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()}
+                }
+
+        return data
+
+    def get_site_progress_chart_data(self, obj):
+        bar_graph = ProgressBarGenerator(obj)
+        progress_labels = bar_graph.data.keys()
+        progress_data = bar_graph.data.values()
+
+        return {
+            'labels': progress_labels,
+            'data': progress_data
+        }
+
     def get_terms_and_labels(self, obj):
 
         if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=obj).exists():
 
-            return {'site': obj.terms_and_labels.site,
-                    'donor': obj.terms_and_labels.donor,
-                    'site_supervisor': obj.terms_and_labels.site_supervisor,
-                    'site_reviewer': obj.terms_and_labels.site_reviewer,
-                    'region': obj.terms_and_labels.region,
-                    'region_supervisor': obj.terms_and_labels.region_supervisor,
-                    'region_reviewer': obj.terms_and_labels.region_reviewer,
-                    }
-
+                return {'site': obj.terms_and_labels.site,
+                        'donor': obj.terms_and_labels.donor,
+                        'site_supervisor': obj.terms_and_labels.site_supervisor,
+                        'site_reviewer': obj.terms_and_labels.site_reviewer,
+                        'region': obj.terms_and_labels.region,
+                        'region_supervisor': obj.terms_and_labels.region_supervisor,
+                        'region_reviewer': obj.terms_and_labels.region_reviewer,
+                        }
         else:
-            return {'site': 'Site',
-                    'donor': 'Donor',
-                    'site_supervisor': 'Site Supervisor',
-                    'site_reviewer': 'Site Reviewer',
-                    'region': 'Region',
-                    'region_supervisor': 'Region Supervisor',
-                    'region_reviewer': 'Region Reviewer',
-                    }
+                return {'site': 'Site',
+                        'donor': 'Donor',
+                        'site_supervisor': 'Site Supervisor',
+                        'site_reviewer': 'Site Reviewer',
+                        'region': 'Region',
+                        'region_supervisor': 'Region Supervisor',
+                        'region_reviewer': 'Region Reviewer',
+                        }
+
+    def get_map(self, obj):
+        sites = Site.objects.filter(project=obj)[:100]
+        data = serialize('custom_geojson', sites, geometry_field='location', fields=('location', 'id', 'name'))
+        return json.loads(data)
 
     def get_breadcrumbs(self, obj):
-        name = obj.name
-        project = obj.project
-        project_url = '#'
-        organization = obj.project.organization
-        organization_url = ''
+        project = obj.name
+        organization = obj.organization
+        organization_url = obj.get_absolute_url()
         request = self.context['request']
-        if request.roles.filter(Q(group__name="Project Manager", project=project) | Q(group__name="Organization Admin",
-                                                                                      organization=organization)) or request.is_super_admin:
-            project_url = project.get_absolute_url()
         if request.roles.filter(group__name="Organization Admin", organization=organization) or request.is_super_admin:
             organization_url = organization.get_absolute_url()
 
-        if obj.site:
-            return {
-                'root_site': obj.site.name,
-                'root_site_url': obj.site.get_absolute_url(),
-                'site': name,
-                'project': project.name,
-                'project_url': project_url,
-                'organization': organization.name,
-                'organization_url': organization_url
-            }
-
-        return {
-            'site': name,
-            'project': project.name,
-            'project_url': project_url,
-            'organization': organization.name,
-            'organization_url': organization_url
-        }
+        return {'name': project, 'organization': organization.name, 'organization_url': organization_url}
