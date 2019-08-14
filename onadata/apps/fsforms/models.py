@@ -64,6 +64,13 @@ class FormGroup(models.Model):
         return getattr(self, "name", "")
 
 
+class ActiveStagesManager(models.Manager):
+    def get_queryset(self):
+        return super(ActiveStagesManager, self).get_queryset(
+
+        ).filter(is_deleted=False)
+
+
 class Stage(models.Model):
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
@@ -82,6 +89,8 @@ class Stage(models.Model):
     project_stage_id = models.IntegerField(default=0)
     weight = models.IntegerField(default=0)
     tags = ArrayField(models.IntegerField(), default=[])
+    is_deleted = models.BooleanField(default=False)
+    objects = ActiveStagesManager()
     logs = GenericRelation('eventlog.FieldSightLog')
 
     class Meta:
