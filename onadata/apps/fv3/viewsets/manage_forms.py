@@ -625,56 +625,78 @@ class DeleteUndeployedForm(APIView):
                         {"error": "This Project Stages form have submissions, "
                                   "delete submissions first"},
                            status=status.HTTP_400_BAD_REQUEST)
+                elif FieldSightXF.objects.filter(is_staged=True,
+                                                is_deployed=False,
+                                                project_id=id).count():
+                    return Response(
+                        {"error": "This Project have deployed Stages, "
+                                  "undeploy stages first"},
+                           status=status.HTTP_400_BAD_REQUEST)
                 else:
-                    schedule_form.is_deleted = True
-                    schedule_form.save()
-                    extra_object = schedule_form.project
+                    count = Stage.objects.filter(project_id=id,
+                                          is_deleted=False).count()
+                    Stage.objects.filter(project_id=id).update(is_deleted=True)
+                    FieldSightXF.objects.filter(is_staged=True,
+                                                is_deployed=False,
+                                                project_id=id).update(
+                        is_deleted=True)
+                    extra_object = Project.objects.get(pk=id)
                     extra_message = "project"
                     site_id = None
-                    project_id = extra_object.id
                     organization_id = extra_object.organization_id
                     extra_json[
-                        'submission_count'] = \
-                        schedule_form.project_form_instances.all().count()
-                    schedule_form.logs.create(
+                        'stage_count'] = count
+                    extra_object.logs.create(
+                        source=self.request.user,
+                        type=341,
+                        title="All stages in project " + id,
+                        organization_id=organization_id,
+                        project=extra_object,
+                        site_id=site_id,
+                        extra_json=extra_json,
+                        extra_object=extra_object,
+                        extra_message=extra_message,
+                        content_object=extra_object)
+                    return Response({"message": "success"})
+            else:
+                if FInstance.objects.filter(
+                        project_fxf__site__id=id).count():
+                    return Response(
+                        {"error": "This Site Stages form have submissions, "
+                                  "delete submissions first"},
+                        status=status.HTTP_400_BAD_REQUEST)
+                elif FieldSightXF.objects.filter(is_staged=True,
+                                                is_deployed=False,
+                                                site_id=id).count():
+                    return Response(
+                        {"error": "This Site have deployed Stages, "
+                                  "undeploy stages first"},
+                           status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    count = Stage.objects.filter(site_id=id).count()
+                    Stage.objects.filter(project_id=id).update(is_deleted=True)
+                    FieldSightXF.objects.filter(is_staged=True,
+                                                is_deployed=False,
+                                                site_id=id).update(
+                        is_deleted=True)
+                    extra_object = Site.objects.get(pk=id)
+                    extra_message = "site"
+                    site_id = None
+                    project_id = extra_object.id
+                    organization_id = extra_object.project.organization_id
+                    extra_json[
+                        'stage_count'] = count
+                    extra_object.logs.create(
                         source=self.request.user,
                         type=34,
-                        title="deleted form  " + id,
+                        title="All deleted stages in site " + id,
                         organization_id=organization_id,
                         project_id=project_id,
                         site_id=site_id,
                         extra_json=extra_json,
                         extra_object=extra_object,
                         extra_message=extra_message,
-                        content_object=schedule_form)
-                    return Response({"message": "success"})
-            else:
-                if schedule_form.site_form_instances.count():
-                    return Response(
-                        {"error": "This form have submissions, delete "
-                                  "submissions first"},
-                        status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    schedule_form.is_deleted = True
-                    schedule_form.save()
-                    extra_object = schedule_form.site
-                    site_id = extra_object.id
-                    project_id = extra_object.project_id
-                    organization_id = extra_object.project.organization_id
-                    extra_message = "site"
-                    extra_json[
-                            'submission_count'] = \
-                            schedule_form.project_form_instances.all().count()
-                    schedule_form.logs.create(source=self.request.user,
-                                             type=34,
-                                             title="deleted form" + id,
-                                             organization_id=organization_id,
-                                             project_id=project_id,
-                                             site_id=site_id,
-                                             extra_json=extra_json,
-                                             extra_object=extra_object,
-                                             extra_message=extra_message,
-                                             content_object=schedule_form)
+                        content_object=extra_object)
                     return Response({"message": "success"})
 
         return Response({"error": "not valid type"},

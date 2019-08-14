@@ -31,7 +31,7 @@ from onadata.apps.userrole.models import UserRole
 
 class NotificationListView(LoginRequiredMixin, ListView):
     model = FieldSightLog
-    paginate_by = 100
+    paginate_by = 2
 
     def get_queryset(self):
         return super(NotificationListView, self).get_queryset().order_by('-date')
