@@ -31,7 +31,7 @@ from onadata.apps.userrole.models import UserRole
 
 class NotificationListView(LoginRequiredMixin, ListView):
     model = FieldSightLog
-    paginate_by = 2
+    paginate_by = 100
 
     def get_queryset(self):
         return super(NotificationListView, self).get_queryset().order_by('-date')
@@ -50,17 +50,20 @@ class NotificationViewSet(viewsets.ModelViewSet):
     A simple ViewSet for viewing and editing sites.
     """
 
-    queryset = FieldSightLog.objects.select_related('source__user_profile').all().prefetch_related('seen_by')
+    queryset = FieldSightLog.objects.exclude(type__in=[341, 342, 343])
     serializer_class = NotificationSerializer
     pagination_class = LargeResultsSetPagination
 
     def filter_queryset(self, queryset):
         if self.request.is_super_admin:
-            return queryset 
+            return queryset.select_related('source__user_profile').all(
+
+            ).prefetch_related('seen_by')
         org_ids = self.request.roles.filter(group__name='Organization Admin').values('organization_id')
         project_ids = self.request.roles.filter(group__name='Project Manager').values('project_id')
         site_ids = self.request.roles.filter(Q(group__name='Site Supervisor') | Q(group__name='Reviewer')).values('site_id')
-        return queryset.filter(Q(organization_id__in=org_ids) | Q(project_id__in=project_ids) | Q(site_id__in=site_ids) | Q(recipient_id=self.request.user.id))
+        return queryset.filter(Q(organization_id__in=org_ids) | Q(
+            project_id__in=project_ids) | Q(site_id__in=site_ids) | Q(recipient_id=self.request.user.id)).select_related('source__user_profile').all().prefetch_related('seen_by')
 
 
 class MyTaskListViewSet(viewsets.ModelViewSet):

@@ -626,15 +626,14 @@ class DeleteUndeployedForm(APIView):
                                   "delete submissions first"},
                            status=status.HTTP_400_BAD_REQUEST)
                 elif FieldSightXF.objects.filter(is_staged=True,
-                                                is_deployed=False,
+                                                is_deployed=True,
                                                 project_id=id).count():
                     return Response(
                         {"error": "This Project have deployed Stages, "
                                   "undeploy stages first"},
                            status=status.HTTP_400_BAD_REQUEST)
                 else:
-                    count = Stage.objects.filter(project_id=id,
-                                          is_deleted=False).count()
+                    count = Stage.objects.filter(project_id=id).count()
                     Stage.objects.filter(project_id=id).update(is_deleted=True)
                     FieldSightXF.objects.filter(is_staged=True,
                                                 is_deployed=False,
@@ -666,7 +665,7 @@ class DeleteUndeployedForm(APIView):
                                   "delete submissions first"},
                         status=status.HTTP_400_BAD_REQUEST)
                 elif FieldSightXF.objects.filter(is_staged=True,
-                                                is_deployed=False,
+                                                is_deployed=True,
                                                 site_id=id).count():
                     return Response(
                         {"error": "This Site have deployed Stages, "
@@ -682,16 +681,104 @@ class DeleteUndeployedForm(APIView):
                     extra_object = Site.objects.get(pk=id)
                     extra_message = "site"
                     site_id = None
-                    project_id = extra_object.id
                     organization_id = extra_object.project.organization_id
                     extra_json[
                         'stage_count'] = count
                     extra_object.logs.create(
                         source=self.request.user,
-                        type=34,
-                        title="All deleted stages in site " + id,
+                        type=341,
+                        title="All stages in site " + id,
                         organization_id=organization_id,
-                        project_id=project_id,
+                        project_id=extra_object.project,
+                        site_id=site_id,
+                        extra_json=extra_json,
+                        extra_object=extra_object,
+                        extra_message=extra_message,
+                        content_object=extra_object)
+                    return Response({"message": "success"})
+        elif type == "stage":
+            id = query_params.get('id')
+            if not id:
+                return Response(
+                    {"error": "id: stage Id Required"},
+                    status=status.HTTP_400_BAD_REQUEST)
+            extra_json = {}
+            if project_id:
+                ids = Stage.objects.filter(stage_id=id).values_list('pk',
+                                                                    flat=True)
+                if FInstance.objects.filter(
+                        project_fxf__stage__id__in=ids).count():
+                    return Response(
+                        {"error": "This Stage form have submissions, "
+                                  "delete submissions first"},
+                           status=status.HTTP_400_BAD_REQUEST)
+                elif FieldSightXF.objects.filter(is_staged=True,
+                                                is_deployed=True,
+                                                stage__id__in=ids).count():
+                    return Response(
+                        {"error": "This Stage have deployed sub Stages, "
+                                  "undeploy stages first"},
+                           status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    count = len(ids)
+                    Stage.objects.filter(stage_id=id).update(is_deleted=True)
+                    FieldSightXF.objects.filter(is_staged=True,
+                                                is_deployed=False,
+                                                stage_id__in=ids).update(
+                        is_deleted=True)
+                    extra_object = Stage.objects.get(pk=id).project
+                    extra_message = "project"
+                    site_id = None
+                    organization_id = extra_object.organization_id
+                    extra_json[
+                        'stage_count'] = count
+                    extra_object.logs.create(
+                        source=self.request.user,
+                        type=342,
+                        title="All substages in stage " + id,
+                        organization_id=organization_id,
+                        project=extra_object,
+                        site_id=site_id,
+                        extra_json=extra_json,
+                        extra_object=extra_object,
+                        extra_message=extra_message,
+                        content_object=extra_object)
+                    return Response({"message": "success"})
+            else:
+                ids = Stage.objects.filter(stage_id=id).values_list('pk',
+                                                                    flat=True)
+                if FInstance.objects.filter(
+                        site_fxf__stage__id__in=ids).count():
+                    return Response(
+                        {"error": "This Site Stage form have submissions, "
+                                  "delete submissions first"},
+                        status=status.HTTP_400_BAD_REQUEST)
+                elif FieldSightXF.objects.filter(is_staged=True,
+                                                is_deployed=True,
+                                                pk__in=ids).count():
+                    return Response(
+                        {"error": "This Site have deployed Stages, "
+                                  "undeploy stages first"},
+                           status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    count = Stage.objects.filter(site_id=id).count()
+                    Stage.objects.filter(project_id=id).update(is_deleted=True)
+                    FieldSightXF.objects.filter(is_staged=True,
+                                                is_deployed=False,
+                                                site_id=id).update(
+                        is_deleted=True)
+                    extra_object = Site.objects.get(pk=id)
+                    extra_message = "site"
+                    site_id = None
+                    organization_id = extra_object.project.organization_id
+                    extra_json[
+                        'stage_count'] = count
+                    extra_object.logs.create(
+                        source=self.request.user,
+                        type=341,
+                        title="All substages in stage " + id,
+                        organization_id=organization_id,
+                        project_id=extra_object.project,
                         site_id=site_id,
                         extra_json=extra_json,
                         extra_object=extra_object,
