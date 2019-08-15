@@ -588,6 +588,15 @@ class Site(models.Model):
 
         return response
 
+    def get_parent_sites(self):
+        site = self
+        site_ids = Site.objects.select_related('site').filter(id=site.id).values('id', 'site',
+                                                                                         'site__site')
+        parent_sites = []
+        parent_sites.extend([site_ids[0]['id'], site_ids[0]['site'], site_ids[0]['site__site']])
+
+        return parent_sites
+
     def get_absolute_url(self):
         return "/fieldsight/application/#/site-dashboard/{}".format(self.pk)
 

@@ -199,7 +199,6 @@ def site_documents(request):
     query_params = request.query_params
     site_id = query_params.get('site_id')
     site_id = int(site_id)
-    print('site idddd', site_id)
     if check_site_permission(request, site_id):
         try:
             blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()

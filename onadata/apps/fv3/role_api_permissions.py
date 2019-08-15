@@ -148,11 +148,6 @@ class SiteDashboardPermissions(permissions.BasePermission):
             if user_role_as_manager:
                 return True
 
-            user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
-
-            if user_role_reviewer:
-                return True
-
             region = site.region
             if region is not None:
 
@@ -163,9 +158,25 @@ class SiteDashboardPermissions(permissions.BasePermission):
                 if user_role_as_region_reviewer_supervisor:
                     return True
 
-            user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
-            if user_role:
-                return True
+            if region is None:
+                user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                "Region Supervisor"],
+                                                                               region=region)
+
+                if user_role_as_region_reviewer_supervisor:
+                    return True
+
+            if site.site is not None:
+                user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                 site_id__in=site.get_parent_sites())
+                if user_role:
+                    return True
+
+            if site.site is None:
+                user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                 site=site)
+                if user_role:
+                    return True
 
             return False
         return False
@@ -210,14 +221,25 @@ class SiteSubmissionPermission(permissions.BasePermission):
                     if user_role_as_region_reviewer_supervisor:
                         return True
 
-                user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
+                if region is None:
+                    user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                    "Region Supervisor"],
+                                                                                   region=region)
 
-                if user_role_reviewer:
-                    return True
+                    if user_role_as_region_reviewer_supervisor:
+                        return True
 
-                user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
-                if user_role:
-                    return True
+                if site.site is not None:
+                    user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                     site_id__in=site.get_parent_sites())
+                    if user_role:
+                        return True
+
+                if site.site is None:
+                    user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                     site=site)
+                    if user_role:
+                        return True
 
                 return False
             return False
@@ -261,17 +283,26 @@ def check_site_permission(request, pk):
             if user_role_as_region_reviewer_supervisor:
                 return True
 
-        user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
+        if region is None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region=region)
 
-        if user_role_reviewer:
-            return True
+            if user_role_as_region_reviewer_supervisor:
+                return True
 
+        if site.site is not None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"], site_id__in=site.get_parent_sites())
+            if user_role:
+                return True
 
-        user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
-        if user_role:
-            return True
+        if site.site is None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                             site=site)
+            if user_role:
+                return True
 
-        return False
+    return False
 
 
 def has_write_permission_in_site(request, pk):
