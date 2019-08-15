@@ -160,10 +160,14 @@ class ProjectSiteSerializer(serializers.ModelSerializer):
 
 
 class ProjectRegionSerializer(serializers.ModelSerializer):
+    number_of_sites = serializers.SerializerMethodField()
 
     class Meta:
         model = Region
-        fields = ('id', 'project', 'identifier', 'name', 'date_created', 'parent')
+        fields = ('id', 'project', 'identifier', 'name', 'date_created', 'parent', 'number_of_sites')
+
+    def get_number_of_sites(self, obj):
+        return obj.get_sites_count()
 
 
 class ProjectSitesSerializer(serializers.ModelSerializer):

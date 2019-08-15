@@ -376,6 +376,9 @@ class Region(models.Model):
     #     else:
     #         return site_count
 
+    def __unicode__(self):
+        return u'{}'.format(self.name)
+
     def getname(self):
         return self.name or self.identifier
 
