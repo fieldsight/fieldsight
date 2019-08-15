@@ -14,6 +14,7 @@ from django.core.files.storage import default_storage
 from django.utils.text import slugify
 from jsonfield import JSONField
 
+
 from .static_lists import COUNTRIES
 from django.contrib.auth.models import Group, User
 from django.dispatch import receiver
@@ -375,6 +376,9 @@ class Region(models.Model):
     #     else:
     #         return site_count
 
+    def __unicode__(self):
+        return u'{}'.format(self.name)
+
     def getname(self):
         return self.name or self.identifier
 
@@ -394,14 +398,23 @@ class Region(models.Model):
                                                                    'project__organization').values_list('name', flat=True)
 
     def get_sites_id(self):
-        return Site.objects.filter(
+        return Site.objects.filter(site__isnull=True).filter(
             Q(region_id=self.id) | Q(region_id__parent=self.id) | Q(
                 region_id__parent__parent=self.id)).select_related('region', 'project', 'type', 'project__type',
                                                                    'project__organization').values_list('id',
                                                                                                         flat=True)
 
-    def get_concat_identifier(self):       
-        return self.identifier + "_"
+    def get_parent_regions(self):
+        region = self
+        region_ids = Region.objects.select_related('parent').filter(id=region.id).values('id', 'parent',
+                                                                                         'parent__parent')
+        parent_regions = []
+        parent_regions.extend([region_ids[0]['id'], region_ids[0]['parent'], region_ids[0]['parent__parent']])
+
+        return parent_regions
+
+    def get_concat_identifier(self):
+            return self.identifier + "_"
 
 
 class SiteType(models.Model):
@@ -452,6 +465,7 @@ class Site(models.Model):
     current_status = models.IntegerField(default=0)
     enable_subsites = models.BooleanField(default=False)
     site = models.ForeignKey('self', blank=True, null=True, related_name="sub_sites")
+    weight = models.IntegerField(default=0, blank=True)
     all_objects = SiteAllManager()
     objects = SiteManager()
     
@@ -506,42 +520,14 @@ class Site(models.Model):
         return self.type.name
 
     def update_current_progress(self):
-        from onadata.apps.fieldsight.tasks import update_current_progress_site
-        update_current_progress_site.apply_async(
-            kwargs={'site_id': self.id}, countdown=5)
+        if not self.enable_subsites:
+            from onadata.apps.fieldsight.tasks import update_current_progress_site
+            update_current_progress_site.apply_async(
+                kwargs={'site_id': self.id}, countdown=5)
 
     def progress(self):
-        approved_site_forms_weight = self.site_instances.filter(form_status=3, site_fxf__is_staged=True).distinct('site_fxf').values_list('site_fxf__stage__weight', flat=True)
-        approved_site_weight_total = sum([w for w in approved_site_forms_weight if w  is not None])
-        approved_project_forms_weight = self.site_instances.filter(form_status=3, project_fxf__is_staged=True).distinct('project_fxf').values_list('project_fxf__stage__weight', flat=True)
-        approved_projects_weight_total = sum([w for w in approved_project_forms_weight if w is not None])
-        approved_weight = approved_site_weight_total + approved_projects_weight_total
-        if approved_weight:
-            from onadata.apps.fsforms.models import Stage
-            site_stages_weight = Stage.objects.filter(stage__site=self).aggregate(Sum('weight'))['weight__sum']
-            project_stages_weight = Stage.objects.filter(stage__project=self.project).aggregate(Sum('weight'))['weight__sum']
-            site_stages_weight = site_stages_weight if site_stages_weight else 0
-            project_stages_weight = project_stages_weight if project_stages_weight else 0
-            total_weight = site_stages_weight + project_stages_weight
-            p = ("%.0f" % (approved_weight / (total_weight * 0.01)))
-            p = int(p)
-            if p > 99:
-                return 100
-            return p
-        approved_forms_site = self.site_instances.filter(form_status=3, site_fxf__is_staged=True).values_list('site_fxf', flat=True)
-        approved_forms_project = self.site_instances.filter(form_status=3, project_fxf__is_staged=True).values_list('project_fxf', flat=True)
-        approved = len(set(approved_forms_site)) + len(set(approved_forms_project))
-        if not approved:
-            return 0
-        from onadata.apps.fsforms.models import Stage
-        stages = Stage.objects.filter(stage__project=self.project).count() + Stage.objects.filter(stage__site=self).count()
-        if not stages:
-            return 0
-        p = ("%.0f" % (approved/(stages*0.01)))
-        p = int(p)
-        if p > 99:
-            return 100
-        return p
+        from onadata.apps.fieldsight.utils.progress import default_progress
+        return default_progress(self, self.project)
 
     @property
     def site_progress(self):

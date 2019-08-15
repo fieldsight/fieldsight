@@ -30,8 +30,19 @@ class StageListViewSet(viewsets.ModelViewSet):
         if is_project == "1":
             queryset = queryset.filter(project__id=pk)
         else:
-            project_id = get_object_or_404(Site, pk=pk).project.id
-            queryset = queryset.filter(Q(site__id=pk, project_stage_id=0) |Q (project__id=project_id))
+            site = get_object_or_404(Site, pk=pk)
+            if site.type:
+                project_id = site.project.id
+                queryset = queryset.filter(Q(site__id=pk, project_stage_id=0) | Q
+                (Q(project__id=project_id) & Q(tags__contains=[
+                    site.type_id])) | Q
+                (Q(project__id=project_id) & Q(tags=[]))
+                                           )
+            else:
+                project_id = site.project.id
+                queryset = queryset.filter(
+                    Q(site__id=pk, project_stage_id=0)
+                    | Q(project__id=project_id))
         return queryset.annotate(sub_stage_weight=Sum(F('parent__weight')))
 
     def retrieve_by_id(self, request, *args, **kwargs):

@@ -1018,6 +1018,7 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         if hasattr(form.Meta, 'project_filters'):
             for field in form.Meta.project_filters:
                 form.fields[field].queryset = form.fields[field].queryset.filter(project=form.project, deleted=False)
+        del form.fields['weight']
         return form
 
 
@@ -1064,9 +1065,13 @@ class SubSiteCreateView(SiteView, ProjectRoleMixin, CreateView):
             ))
 
         self.object = form.save(project_id=self.kwargs.get('pk'), new=True, site_id=self.kwargs.get('site'))
-        noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
+        noti = self.object.logs.create(source=self.request.user, type=110,
+                                       title="new sub Site",
+                                       site=self.object.site,
                                        organization=self.object.project.organization,
-                                       project=self.object.project, content_object=self.object, extra_object=self.object.project,
+                                       project=self.object.project,
+                                       content_object=self.object,
+                                       extra_object=self.object.site,
                                        description=u'{0} created a new Sub '
                                                    u'site named {1} in {2}'.format(self.request.user.get_full_name(),
                                                                                  self.object.name, self.object.project.name))
@@ -1082,6 +1087,7 @@ class SubSiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         if hasattr(form.Meta, 'project_filters'):
             for field in form.Meta.project_filters:
                 form.fields[field].queryset = form.fields[field].queryset.filter(project_id=self.kwargs.get('pk'), deleted=False)
+        form.fields['weight'].required = True
         return form
 
 
@@ -1167,6 +1173,8 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
         if hasattr(form.Meta, 'project_filters'):
             for field in form.Meta.project_filters:
                 form.fields[field].queryset = form.fields[field].queryset.filter(project=project, deleted=False)
+        if not form.instance.site:
+            del form.fields['weight']
         return form
 
 
@@ -2876,7 +2884,8 @@ class RegionalSitelist(RegionSupervisorReviewerMixin, ListView):
         return context
 
     def get_queryset(self, **kwargs):
-        queryset = Site.objects.filter(project_id=self.kwargs.get('pk'), is_survey=False, is_active=True).select_related('project')
+        queryset = Site.objects.filter(project_id=self.kwargs.get('pk'),
+                                       is_survey=False, is_active=True).select_related('project')
         
         if self.kwargs.get('region_id') == "0":
             object_list = queryset.filter(region=None)
@@ -2951,8 +2960,15 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
     def get_success_url(self):
         return self.object.get_absolute_url()
 
+    def get_form(self, *args, **kwargs):
+        form = super(RegionalSiteCreateView, self).get_form(*args, **kwargs)
+        del form.fields['weight']
+        return form
+
     def form_valid(self, form):
-        self.object = form.save(project_id=self.kwargs.get('pk'), region_id=self.kwargs.get('region_pk'), new=True)
+        self.object = form.save(project_id=self.kwargs.get('pk'),
+                                region_id=self.kwargs.get('region_pk'),
+                                new=True, weight=0)
         noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
                                        organization=self.object.project.organization,
                                        project=self.object.project, content_object=self.object, extra_object=self.object.project,
@@ -4529,12 +4545,12 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
             return context
 
         elif submission:
-            submission = get_object_or_404(Instance, id=int(submission.replace(',','')))
+            try:
+                context['submission'] = submission
 
-            context['submission_id'] = submission.id
-
-            return context
-
+                return context
+            except ValueError:
+                return context
         else:
             return context
 

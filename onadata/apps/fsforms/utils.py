@@ -289,39 +289,38 @@ def send_message_xf_changed(fxf=None, form_type=None, id=None):
 def get_version(xml):
     import re
     n = XML_VERSION_MAX_ITER
-    p = re.compile('version="(.*)">')
-    m = p.search(xml)
-    if m:
-        return m.group(1)
-    
-    else:
-        version = check_version(xml, n)
+    version = check_version(xml, n)
     
     if version:
         return version
 
     else:
-        #for new version labels
-        p1 = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/__version__" """)
-        m1 = p1.search(xml)
-        if m1:
-            return m1.group(1)
-        
-        p1 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/__version__" """)
+        p = re.compile('version="(.*)">')
+        m = p.search(xml)
+        if m:
+            return m.group(1)
+
+        # for new version labels
+        p1 = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/_version_" """)
         m1 = p1.search(xml)
         if m1:
             return m1.group(1)
 
+        p2 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/_version_" """)
+        m2 = p2.search(xml)
+        if m2:
+            return m2.group(1)
+
         #for old version labels
-        p = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/_version_" """)
-        m = p.search(xml)
-        if m:
-            return m.group(1)
+        p3 = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/__version__" """)
+        m3 = p3.search(xml)
+        if m3:
+            return m3.group(1)
         
-        p1 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/_version_" """)
-        m1 = p.search(xml)
-        if m1:
-            return m1.group(1)
+        p4 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/__version__" """)
+        m4 = p4.search(xml)
+        if m4:
+            return m4.group(1)
 
     return None
 
@@ -331,15 +330,15 @@ def check_version(xml, n):
     for i in range(n, 0, -1):
         #for old version labels(containing only numbers)
         p = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/_version__00{0}" """.format(i))
-        m1 = p.search(xml)
-        if m1:
-            return m.group(1)
-
-        #for old version labels(containing both letters and alphabets)
-        p = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/_version__00{0}" """.format(i))
         m = p.search(xml)
         if m:
             return m.group(1)
+
+        #for old version labels(containing both letters and alphabets)
+        p1 = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/_version__00{0}" """.format(i))
+        m1 = p1.search(xml)
+        if m1:
+            return m1.group(1)
 
     return None
 

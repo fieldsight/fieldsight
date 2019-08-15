@@ -483,8 +483,9 @@ def update_site_progress(sender, instance, *args, **kwargs):
                             except IntegrityError as e:
                                 print(e)
             else:
-                from onadata.apps.fieldsight.utils.progress import set_site_progress
-                set_site_progress(instance.site,instance.site.project)
+                if not instance.site.enable_subsites:
+                    from onadata.apps.fieldsight.utils.progress import set_site_progress
+                    set_site_progress(instance.site,instance.site.project)
     except:
         pass
 
@@ -589,6 +590,11 @@ class FInstance(models.Model):
 
     @property
     def get_version(self):
+        n = XML_VERSION_MAX_ITER
+        for i in range(n, 0, -1):
+            tag = "_version__00{0}".format(i)
+            if self.instance.json.get(tag):
+                return self.instance.json.get(tag)
         if self.instance.json.get('_version_'):
             return self.instance.json.get('_version_')
         else:

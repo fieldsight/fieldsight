@@ -1,4 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -93,6 +94,34 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
             return False
 
 
+class ProjectDashboardPermissions(permissions.BasePermission):
+    """
+    Object-level permission to only allow owners of an object to View it.
+    """
+
+    def has_object_permission(self, request, view, obj):
+
+        if request.is_super_admin:
+            return True
+
+        project = obj
+
+        if project is not None:
+            organization_id = project.organization_id
+            user_role_org_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
+
+            if user_role_org_admin:
+                return True
+
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                "Project Donor"])
+
+            if user_role_as_manager:
+                return True
+
+        return False
+
+
 class SiteDashboardPermissions(permissions.BasePermission):
     """
     Object-level permission to only allow owners of an object to View it.
@@ -126,8 +155,11 @@ class SiteDashboardPermissions(permissions.BasePermission):
 
             region = site.region
             if region is not None:
-                user_role_as_region_reviewer_supervisor = request.roles.filter(region_id=region.id, group__name__in=["Region Reviewer",
-                                                                                                                     "Region Supervisor"])
+
+                user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                "Region Supervisor"],
+                                                                               region_id__in=region.get_parent_regions())
+
                 if user_role_as_region_reviewer_supervisor:
                     return True
 
@@ -170,18 +202,18 @@ class SiteSubmissionPermission(permissions.BasePermission):
                 if user_role_as_manager:
                     return True
 
-                user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
-
-                if user_role_reviewer:
-                    return True
-
                 region = site.region
                 if region is not None:
-                    user_role_as_region_reviewer_supervisor = request.roles.filter(region_id=region.id,
+                    user_role_as_region_reviewer_supervisor = request.roles.filter(region_id__in=region.get_parent_regions(),
                                                                                    group__name__in=["Region Reviewer",
                                                                                                     "Region Supervisor"])
                     if user_role_as_region_reviewer_supervisor:
                         return True
+
+                user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
+
+                if user_role_reviewer:
+                    return True
 
                 user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
                 if user_role:
@@ -220,18 +252,20 @@ def check_site_permission(request, pk):
         if user_role_as_manager:
             return True
 
+        region = site.region
+        if region is not None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region_id__in=region.get_parent_regions())
+
+            if user_role_as_region_reviewer_supervisor:
+                return True
+
         user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
 
         if user_role_reviewer:
             return True
 
-        region = site.region
-        if region is not None:
-            user_role_as_region_reviewer_supervisor = request.roles.filter(region_id=region.id,
-                                                                           group__name__in=["Region Reviewer",
-                                                                                            "Region Supervisor"])
-            if user_role_as_region_reviewer_supervisor:
-                return True
 
         user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
         if user_role:
@@ -267,7 +301,10 @@ def has_write_permission_in_site(request, pk):
 
         region = site.region
         if region is not None:
-            user_role_as_region_supervisor = request.roles.filter(region_id=region.id, group__name=["Region Supervisor"])
+
+            user_role_as_region_supervisor = request.roles.filter(region_id__in=region.get_parent_regions(),
+                                                                  group__name="Region Supervisor")
+
             if user_role_as_region_supervisor:
                 return True
 
@@ -307,9 +344,9 @@ def check_regional_perm(request, region):
             if user_role_as_manager:
                 return True
 
-            user_role_as_region_reviewer_supervisor = request.roles.filter(region_id=region.id,
-                                                                           group__name__in=["Region Reviewer",
-                                                                                            "Region Supervisor"])
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region_id__in=region.get_parent_regions())
             if user_role_as_region_reviewer_supervisor:
                 return True
 

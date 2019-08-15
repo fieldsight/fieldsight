@@ -23,7 +23,8 @@
 	<link rel="stylesheet" href="{% static 'css/leaflet.css' %}">
     <link rel="stylesheet" href="{% static 'css/MarkerCluster.css' %}">
     <link rel="stylesheet" href="{% static 'css/MarkerCluster.Default.css' %}">
-	<script type="text/javascript" src="{{ STATIC_URL }}js/notificationhandler.js?v=1.11"></script>
+	<script type="text/javascript"
+			src="{{ STATIC_URL }}js/notificationhandler.js?v=1.15"></script>
 	<style type="text/css">
     	.unread {
     		background-color: #e6ecff;
@@ -45,7 +46,6 @@
 		{%block extracss %}
 		{% endblock %}
 
-		<link rel="apple-touch-icon" href="{% static 'dummy/apple-touch-icon.png' %}">
 		<link rel="stylesheet" href="{% static 'dummy/assets/css/style.css' %}">
         <script src="{% static 'dummy/assets/js/vendor/modernizr-2.8.3-respond-1.4.2.min.js' %}"></script>
         <link href="https://fonts.googleapis.com/css?family=Ubuntu:300,300i,400,400i,500,500i,700,700i" rel="stylesheet">
@@ -385,7 +385,8 @@
 
 
 </script>
-<script type="text/javascript" src="{{ STATIC_URL }}js/fieldsight/notifications.js?v=1.0" ></script>
+<script type="text/javascript"
+		src="{{ STATIC_URL }}js/fieldsight/notifications.js?v=1.2.3" ></script>
 {%block extrascript %}
 {% endblock %}
     </body>

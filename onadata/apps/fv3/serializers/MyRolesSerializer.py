@@ -15,10 +15,11 @@ class MyProjectSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='project_id')
     name = serializers.CharField(source='project.name')
     has_project_access = serializers.SerializerMethodField()
+    project_url = serializers.SerializerMethodField()
 
     class Meta:
         model = UserRole
-        fields = ('id', 'name', 'has_project_access')
+        fields = ('id', 'name', 'has_project_access', 'project_url')
 
     def get_has_project_access(self, obj):
         user = self.context['user']
@@ -34,10 +35,15 @@ class MyProjectSerializer(serializers.ModelSerializer):
         return has_access
 
     def get_project_url(self, obj):
+        user = self.context['user']
         has_project_access = self.get_has_project_access(obj)
 
         if has_project_access:
-            project_url = settings.SITE_URL + obj.project.get_absolute_url()
+            if user.user_roles.filter(project=obj.project, group__name="Project Manager", ended_at=None):
+
+                project_url = obj.project.get_absolute_url()
+            else:
+                project_url = '/fieldsight/project-dashboard/lite/{}/'.format(obj.project_id)
 
             return project_url
 
@@ -56,9 +62,11 @@ class MyRegionSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         user = self.context['request'].user
-        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name="Project Manager", project=obj.project)|
+        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name__in=["Project Manager", "Project Donor"], project=obj.project)|
                                                                          Q(group__name="Organization Admin",
-                                                                           organization=obj.project.organization)).exists()
+                                                                           organization=obj.project.organization, ended_at=None))\
+            .exists()
+
         if is_project_manager_or_team_admin:
             group = None
 
@@ -92,18 +100,28 @@ class MySiteSerializer(serializers.ModelSerializer):
     def get_role(self, obj):
         user = self.context['request'].user
         is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name="Project Manager", project=obj.project)|
-                                                          Q(group__name="Organization Admin", organization=obj.project.organization)).exists()
+                                                          Q(group__name="Organization Admin", organization=obj.project.organization),
+                                                                        ended_at=None).exists()
 
         if is_project_manager_or_team_admin:
             group = None
 
         else:
-            obj = obj.site_roles.select_related('group').filter(user=user)
+            site_group = obj.site_roles.select_related('group').filter(user=user)
 
-            if len(obj) > 1:
+            if len(site_group) > 1:
                 group = "Site Supervisor"
+
+            elif len(site_group) == 0:
+                region_group = user.user_roles.filter(group__name__in=["Region Supervisor", "Region Reviewer"],
+                                                      region__is_active=True, ended_at=None)
+                if len(region_group) > 1:
+                    group = 'Region Supervisor'
+                else:
+                    group = region_group[0].group.name
+
             else:
-                group = obj.get().group.name
+                group = obj.site_roles.all().filter(user=user)[0].group.name
 
         return group
 
@@ -176,14 +194,14 @@ class MyRolesSerializer(serializers.ModelSerializer):
 
         if org_admin:
             data = Project.objects.filter(organization=obj.organization, is_active=True)
-            roles = [{'id': r.id, 'name': r.name, 'has_project_access': True} for r in data]
+            roles = [{'id': r.id, 'name': r.name, 'has_project_access': True, 'project_url': r.get_absolute_url()} for r in data]
             # roles = [{'id': proj.id, 'name': proj.name, 'project_url': settings.SITE_URL + proj.get_absolute_url()} for proj in data]
 
         else:
             data = UserRole.objects.filter(user=obj.user, organization=obj.organization).select_related('user', 'group', 'site', 'organization',
                                                                       'staff_project', 'region').filter(Q(group__name="Project Manager", project__is_active=True)|
                                                                     Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                    Q(group__name="Site Reviewer", site__is_active=True)|
+                                                                    Q(group__name="Reviewer", site__is_active=True)|
                                                                     Q(group__name="Region Reviewer", region__is_active=True)|
                                                                     Q(group__name="Region Supervisor", region__is_active=True)|
                                                                     Q(group__name="Project Donor", project__is_active=True)
