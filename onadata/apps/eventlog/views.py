@@ -50,7 +50,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     A simple ViewSet for viewing and editing sites.
     """
 
-    queryset = FieldSightLog.objects.exclude(type__in=[341, 342, 343])
+    queryset = FieldSightLog.objects.all()
     serializer_class = NotificationSerializer
     pagination_class = LargeResultsSetPagination
 
