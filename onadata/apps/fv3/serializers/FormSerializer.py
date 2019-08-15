@@ -2,13 +2,14 @@ from rest_framework import serializers
 
 from onadata.apps.logger.models import XForm
 
-from onadata.apps.fsforms.models import Asset, FieldSightXF
+from onadata.apps.fsforms.models import Asset, FieldSightXF, ObjectPermission
 
 from onadata.apps.fieldsight.models import Project, Organization
 
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Permission
+from django.contrib.contenttypes.models import ContentType
 from datetime import datetime
 
 
@@ -31,13 +32,16 @@ class XFormSerializer(serializers.ModelSerializer):
     shareable_users_url = serializers.SerializerMethodField()
     shareable_teams_url = serializers.SerializerMethodField()
     shareable_projects_url = serializers.SerializerMethodField()
+    can_view = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
         fields = ('id_string', 'title', 'owner', 'edit_url', 'preview_url', 'replace_url',
                   'download_url', 'media_url', 'date_created', 'date_modified', 'share_users_url',
                   'share_project_url', 'share_team_url', 'share_global_url', 'add_language_url',
-                  'clone_form_url', 'delete_url', 'shareable_users_url', 'shareable_teams_url', 'shareable_projects_url')
+                  'clone_form_url', 'delete_url', 'shareable_users_url', 'shareable_teams_url', 'shareable_projects_url',
+                  'can_view', 'can_edit')
 
     def get_owner(self, obj):
         return obj.user.username
@@ -97,6 +101,38 @@ class XFormSerializer(serializers.ModelSerializer):
     def get_shareable_projects_url(self, obj):
         return "/fv3/api/form/projects/"
 
+    def get_can_view(self, obj):
+        user = None
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            user = request.user
+        permission = Permission.objects.get(content_type__app_label='kpi', codename='view_asset')
+        object_id = Asset.objects.get(uid=obj.id_string).id
+        content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
+        if ObjectPermission.objects.filter(object_id=object_id,
+                                           content_type=content_type,
+                                           user=user,
+                                           permission_id=permission.pk).exists():
+            return True
+        else:
+            return False
+
+    def get_can_edit(self, obj):
+        user = None
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            user = request.user
+        permission = Permission.objects.get(content_type__app_label='kpi', codename='change_asset')
+        object_id = Asset.objects.get(uid=obj.id_string).id
+        content_type = ContentType.objects.get(id=settings.ASSET_CONTENT_TYPE_ID)
+        if ObjectPermission.objects.filter(object_id=object_id,
+                                           content_type=content_type,
+                                           user=user,
+                                           permission_id=permission.pk).exists():
+            return True
+        else:
+            return False
+
 
 class ShareUserListSerializer(serializers.ModelSerializer):
     profile_picture = serializers.SerializerMethodField()
@@ -142,7 +178,7 @@ class ProjectFormSerializer(serializers.ModelSerializer):
         xf = XForm.objects.filter(field_sight_form__project=obj,
                                   field_sight_form__is_deployed=True,
                                   field_sight_form__is_deleted=False).distinct()
-        serializer = XFormSerializer(xf, many=True)
+        serializer = XFormSerializer(xf, many=True, context={'request': self.context['request']})
         return serializer.data
 
 
