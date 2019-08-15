@@ -38,6 +38,9 @@
         32 : type32,
         33 : type33,
         34 : type34,
+        341 : type341,
+        342 : type342,
+        343 : type343,
         35 : type35,
         36 : type36,
         37 : type37,
@@ -328,6 +331,21 @@ function type32(data){
 function type33(data){
     var formdetail = data.get_event_name.split("form");
     content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> deleted a response submitted by '+ data.extra_json['submitted_by'] +' in '+ formdetail[0] +'form <b><a href="' +  data.get_event_url + '">' + formdetail[1] + '</a></b>' + '</a></b> in '+ data.extra_message +' <b><a href="' + data.get_extraobj_url+ '">' + data.get_extraobj_name+'</a></b>.';
+    return content;
+}
+
+function type341(data){
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> deleted all stages with count '+ data.extra_json['stage_count'] +' in <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    return content;
+}
+
+function type342(data){
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> deleted a stages with substage count '+ data.extra_json['stage_count'] +' in <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    return content;
+}
+
+function type343(data){
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> deleted a substage in <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
     return content;
 }
 
