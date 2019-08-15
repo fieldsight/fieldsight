@@ -4,6 +4,7 @@ from rest_framework import routers
 from onadata.apps.fv3.urls.project_settings import progress_urlpatterns
 from onadata.apps.fv3.urls.myroles import my_roles_urlpatterns
 from onadata.apps.fv3.urls.site_dashboard import site_dashboard_urlpatterns
+from onadata.apps.fv3.urls.manage_forms import manage_forms_urlpatterns
 from onadata.apps.fv3.urls.project_dashboard import project_dashboard_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
     ProjectDefineSiteMeta, ProjectSitesViewset, check_region
@@ -74,4 +75,5 @@ urlpatterns = [
 urlpatterns += progress_urlpatterns
 urlpatterns += my_roles_urlpatterns
 urlpatterns += site_dashboard_urlpatterns
+urlpatterns += manage_forms_urlpatterns
 urlpatterns += project_dashboard_urlpatterns

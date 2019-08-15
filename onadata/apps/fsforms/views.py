@@ -7,7 +7,6 @@ import datetime
 from bson import json_util
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse, reverse_lazy
 from django.db import transaction
 from django.db.models import Q, Sum, F, Max
@@ -23,16 +22,18 @@ from django.http import HttpResponse, HttpResponseForbidden, Http404, HttpRespon
 
 from pure_pagination import Paginator, EmptyPage, PageNotAnInteger
 from rest_framework import status
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, \
+    authentication_classes
 from rest_framework.parsers import FileUploadParser, MultiPartParser, FormParser
 from rest_framework.response import Response
-from channels import Group as ChannelGroup
 
 from onadata.apps.fieldsight.models import Site, Project
 
 from onadata.apps.fsforms.enketo_utils import enketo_view_url, \
-    enketo_url_new_submission, enketo_preview_url
+    enketo_url_new_submission, enketo_preview_url, \
+    CsrfExemptSessionAuthentication
 from onadata.apps.users.models import UserProfile
 from onadata.apps.fsforms.reports_util import delete_form_instance, get_images_for_site_all, get_instances_for_field_sight_form, build_export_context, \
     get_xform_and_perms, query_mongo, get_instance, update_status, get_instances_for_project_field_sight_form
@@ -1996,8 +1997,8 @@ class XFormView(object):
 class XformDetailView(LoginRequiredMixin, SuperAdminMixin, XFormView, DetailView):
     pass
 
-@login_required
 @api_view(['POST'])
+@authentication_classes([CsrfExemptSessionAuthentication, BasicAuthentication])
 def save_educational_material(request):
     id = request.POST.get('id', False)
     if id:
@@ -2013,7 +2014,7 @@ def save_educational_material(request):
                 ei = EducationalImages(image=img, educational_material=em)
                 ei.save()
         serializer = EMSerializer(em)
-        return Response({'data': serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     return Response({'error': 'Invalid Educational Material Data'}, status=status.HTTP_400_BAD_REQUEST)
 
 @login_required
@@ -2135,17 +2136,7 @@ def set_deploy_main_stage(request, is_project, pk, stage_id):
             site = Site.objects.get(pk=pk)
             main_stage = Stage.objects.get(pk=stage_id)
             FieldSightXF.objects.filter(stage__stage__id=main_stage.pk, is_deleted=False).update(is_deployed=True)
-            sub_stages  = Stage.objects.filter(stage__id=main_stage.pk, stage_forms__is_deleted=False)
-            stage_forms = FieldSightXF.objects.filter(stage__stage__id=main_stage.pk, is_deleted=False, is_deployed=True)
-            deleted_forms = FieldSightXF.objects.filter(project__id=pk, is_deleted=True, is_staged=True)
-            deploy_data = {'main_stage':StageSerializer(main_stage).data,
-                           'sub_stages':StageSerializer(sub_stages, many=True).data,
-                           'stage_forms':StageFormSerializer(stage_forms, many=True).data,
-                           'deleted_forms': StageFormSerializer(deleted_forms, many=True).data,
-                            }
-            d = DeployEvent(site=site, data=deploy_data)
-            d.save()
-            send_bulk_message_stage_deployed_site(site, main_stage, d.id)
+            send_bulk_message_stage_deployed_site(site, main_stage, 0)
             serializer = StageSerializer(main_stage)
             return Response(serializer.data, status=status.HTTP_200_OK)
     # except Exception as e:
@@ -2166,16 +2157,7 @@ def set_deploy_sub_stage(request, is_project, pk, stage_id):
             stage_form.is_deployed = True
             stage_form.save()
             serializer = SubStageDetailSerializer(sub_stage)
-            deleted_forms = FieldSightXF.objects.filter(site__id=pk, is_deleted=True, is_staged=True)
-            deploy_data = {
-                'main_stage':StageSerializer(sub_stage.stage).data,
-                'sub_stages':[StageSerializer(sub_stage).data],
-                'stage_forms':[StageFormSerializer(stage_form).data],
-                'deleted_forms': StageFormSerializer(deleted_forms, many=True).data,
-                           }
-            d = DeployEvent(site=site, data=deploy_data)
-            d.save()
-            send_sub_stage_deployed_site(site, sub_stage, d.id)
+            send_sub_stage_deployed_site(site, sub_stage, 0)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:
