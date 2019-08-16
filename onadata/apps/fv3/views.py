@@ -93,7 +93,7 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
 
         if region_id:  # Region Reviewer Roles
             sites = Site.objects.filter(Q(region=region_id) | Q(
-                site__region=region_id))
+                region_id__parent=region_id) | Q(region_id__parent__parent=region_id))
         elif project_id:  # Site Supervisor Roles
             sites = Site.objects.filter(project=project_id).filter(Q(
                 site_roles__region__isnull=True,

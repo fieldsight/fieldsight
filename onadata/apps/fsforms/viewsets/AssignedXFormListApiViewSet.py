@@ -54,6 +54,19 @@ class AssignedXFormListApi(XFormListApi):
 
         return Response(serializer.data, headers=self.get_openrosa_headers())
 
+    def multiple_project_forms(self, request, *args, **kwargs):
+        project_ids = self.request.GET.getlist('project_id')
+        object_list = self.queryset.filter(Q(project__id__in=project_ids,
+                                                site__isnull=True,
+                                                is_deleted=False,
+                                                is_deployed=True) | Q(
+            project__id__in=project_ids, site__isnull=True, is_survey=True,
+            is_deleted=False, is_deployed=True))
+
+        serializer = self.get_serializer(object_list, many=True)
+
+        return Response(serializer.data, headers=self.get_openrosa_headers())
+
     def site_overide_forms(self, request, *args, **kwargs):
         self.object_list = self.queryset.filter(Q(site__project_id=kwargs.get('project_id'),
                                                     fsform__isnull=True, project__isnull=True,
@@ -62,6 +75,18 @@ class AssignedXFormListApi(XFormListApi):
                                                   from_project=False, is_deployed=True, is_deleted=False))
 
         serializer = self.get_serializer(self.object_list, many=True)
+
+        return Response(serializer.data, headers=self.get_openrosa_headers())
+
+    def multiple_site_overide_forms(self, request, *args, **kwargs):
+        project_ids = self.request.GET.getlist('project_id')
+        object_list = self.queryset.filter(Q(
+            site__project_id__in=project_ids, fsform__isnull=True,
+            project__isnull=True, is_deployed=True, is_deleted=False) |
+            Q(site__project_id__in=project_ids,
+              from_project=False, is_deployed=True, is_deleted=False))
+
+        serializer = self.get_serializer(object_list, many=True)
 
         return Response(serializer.data, headers=self.get_openrosa_headers())
 
