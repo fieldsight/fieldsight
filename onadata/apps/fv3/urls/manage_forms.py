@@ -2,6 +2,8 @@ from django.conf.urls import url
 from onadata.apps.fv3.viewsets.manage_forms import GeneralFormsVS, \
     GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS, SubStageFormsVS, \
     DeployForm, DeleteUndeployedForm
+from onadata.apps.fsforms.viewsets.AssignedXFormListApiViewSet import \
+    AssignedXFormListApi
 
 manage_forms_urlpatterns = [
 
@@ -41,6 +43,11 @@ manage_forms_urlpatterns = [
     url(r'^api/manage-forms/delete/$',
         DeleteUndeployedForm.as_view(),
         name='delete'),
+    url(r'^assignedFormList/project/$', AssignedXFormListApi.as_view(
+            {'get': 'multiple_project_forms'}), name='multiple-project-form-list'),
+    url(r'^assignedFormList/siteLevel/$', AssignedXFormListApi.as_view(
+            {'get': 'multiple_site_overide_forms'}),
+            name='multiple-site-overide-form-list'),
 
 
 ]
