@@ -102,9 +102,13 @@ class MySiteSerializer(serializers.ModelSerializer):
         is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name="Project Manager", project=obj.project)|
                                                           Q(group__name="Organization Admin", organization=obj.project.organization),
                                                                         ended_at=None).exists()
-
+        is_project_donor = user.user_roles.all().filter(group__name="Project Donor", project=obj.project,
+                                                        ended_at=None).exists()
         if is_project_manager_or_team_admin:
             group = None
+
+        elif is_project_donor:
+            group = 'Donor'
 
         else:
             site_group = obj.site_roles.select_related('group').filter(user=user)

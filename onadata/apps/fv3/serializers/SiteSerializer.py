@@ -14,7 +14,7 @@ from onadata.apps.users.models import UserProfile
 from django.core.exceptions import ObjectDoesNotExist
 from onadata.apps.fsforms.line_data_project import ProgressGeneratorSite
 from onadata.apps.fsforms.models import FInstance, Stage
-from onadata.apps.fv3.role_api_permissions import check_site_permission
+from onadata.apps.fv3.role_api_permissions import has_write_permission_in_site
 
 from onadata.apps.fsforms.line_data_project import date_range
 
@@ -176,7 +176,7 @@ class SiteSerializer(serializers.ModelSerializer):
     def get_has_write_permission(self, obj):
 
         request = self.context['request']
-        if check_site_permission(request, obj.id):
+        if has_write_permission_in_site(request, obj.id):
             return True
         else:
             return False
