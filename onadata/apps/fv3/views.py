@@ -116,6 +116,9 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
 
         return sites
 
+    def get_serializer_context(self):
+        return {'parent_region': self.request.query_params.get('region_id')}
+
 
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])

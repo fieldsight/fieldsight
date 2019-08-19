@@ -76,7 +76,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     def get_terms_and_labels(self, obj):
 
         if obj.project:
-            terms = ProjectLevelTermsAndLabels.objects.filter(project=obj.project).exists()
+            terms = ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=obj.project)
 
             if terms:
 

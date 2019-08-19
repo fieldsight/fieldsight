@@ -117,7 +117,7 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
     def get_total_users(self, obj):
 
-        total_users = obj.project_roles.filter(ended_at__isnull=True).distinct('user').count()
+        total_users = obj.project_roles.select_related('user').filter(ended_at__isnull=True).distinct('user').count()
         return total_users
 
     def get_total_sites(self, obj):
@@ -127,8 +127,9 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         return total_sites
 
     def get_project_managers(self, obj):
-        project_managers_qs = obj.project_roles.filter(ended_at__isnull=True, group__name="Project Manager").\
-            select_related("user", "user__user_profile")
+        project_managers_qs = obj.project_roles.select_related("user", "user__user_profile").filter(ended_at__isnull=True,
+                                                                                                    group__name="Project Manager")
+
         project_managers = [{'id': role.user.id, 'full_name': role.user.get_full_name(), 'email': role.user.email,
                              'profile_picture': role.user.user_profile.profile_picture.url} for role in
                             project_managers_qs]
@@ -136,7 +137,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         return project_managers
 
     def get_logs(self, obj):
-        qs = FieldSightLog.objects.filter(Q(project=obj) | (
+        qs = FieldSightLog.objects.select_related('source', 'source__user_profile', 'project__terms_and_labels', 'extra_content_type', 'content_type') \
+                 .prefetch_related('content_object', 'extra_object', 'seen_by').filter(Q(project=obj) | (
                 Q(content_type=ContentType.objects.get(app_label="fieldsight", model="project")) & Q(
             object_id=obj.id)))[:20]
         serializers_qs = NotificationSerializer(qs, many=True)
