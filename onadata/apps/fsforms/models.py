@@ -64,6 +64,13 @@ class FormGroup(models.Model):
         return getattr(self, "name", "")
 
 
+class ActiveStagesManager(models.Manager):
+    def get_queryset(self):
+        return super(ActiveStagesManager, self).get_queryset(
+
+        ).filter(is_deleted=False)
+
+
 class Stage(models.Model):
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
@@ -82,6 +89,8 @@ class Stage(models.Model):
     project_stage_id = models.IntegerField(default=0)
     weight = models.IntegerField(default=0)
     tags = ArrayField(models.IntegerField(), default=[])
+    is_deleted = models.BooleanField(default=False)
+    objects = ActiveStagesManager()
     logs = GenericRelation('eventlog.FieldSightLog')
 
     class Meta:
@@ -976,7 +985,7 @@ class XformHistory(models.Model):
         if m:
             return m.group(1)
         
-        version = check_version(xml)
+        version = check_version(xml, n)
         
         if version:
             return version
@@ -988,7 +997,7 @@ class XformHistory(models.Model):
                 return m.group(1)
             
             p1 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/_version_" """)
-            m1 = p.search(xml)
+            m1 = p1.search(xml)
             if m1:
                 return m1.group(1)
             
@@ -999,19 +1008,6 @@ class XformHistory(models.Model):
             
             p1 = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/__version__" """)
             m1 = p1.search(xml)
-            if m1:
-                return m1.group(1)
-        return None
-
-    def check_version(xml, n):
-        for i in range(n, 0, -1):
-            p = re.compile("""<bind calculate="\'(.*)\'" nodeset="/(.*)/_version__00{0}" """.format(i))
-            m = p.search(xml)
-            if m:
-                return m.group(1)
-            
-            p = re.compile("""<bind calculate="(.*)" nodeset="/(.*)/_version__00{0}" """.format(i))
-            m1 = p.search(xml)
             if m1:
                 return m1.group(1)
         return None

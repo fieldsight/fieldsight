@@ -59,6 +59,7 @@ class RegionSerializer(serializers.ModelSerializer):
 
 class SiteSerializer(serializers.ModelSerializer):
     type_label = serializers.CharField(source='type.name')
+    region = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
@@ -66,6 +67,11 @@ class SiteSerializer(serializers.ModelSerializer):
                   'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
                   'date_modified', 'is_active', 'site_meta_attributes_ans',
                   'enable_subsites', 'site')
+
+    def get_region(self, obj):
+        parent_region = self.context['parent_region']
+
+        return parent_region
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -160,10 +166,14 @@ class ProjectSiteSerializer(serializers.ModelSerializer):
 
 
 class ProjectRegionSerializer(serializers.ModelSerializer):
+    number_of_sites = serializers.SerializerMethodField()
 
     class Meta:
         model = Region
-        fields = ('id', 'project', 'identifier', 'name', 'date_created', 'parent')
+        fields = ('id', 'project', 'identifier', 'name', 'date_created', 'parent', 'number_of_sites')
+
+    def get_number_of_sites(self, obj):
+        return obj.get_sites_count()
 
 
 class ProjectSitesSerializer(serializers.ModelSerializer):

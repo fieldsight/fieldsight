@@ -376,6 +376,9 @@ class Region(models.Model):
     #     else:
     #         return site_count
 
+    def __unicode__(self):
+        return u'{}'.format(self.name)
+
     def getname(self):
         return self.name or self.identifier
 
@@ -395,7 +398,7 @@ class Region(models.Model):
                                                                    'project__organization').values_list('name', flat=True)
 
     def get_sites_id(self):
-        return Site.objects.filter(
+        return Site.objects.filter(site__isnull=True).filter(
             Q(region_id=self.id) | Q(region_id__parent=self.id) | Q(
                 region_id__parent__parent=self.id)).select_related('region', 'project', 'type', 'project__type',
                                                                    'project__organization').values_list('id',
@@ -584,6 +587,15 @@ class Site(models.Model):
         response['approved'] = approved
 
         return response
+
+    def get_parent_sites(self):
+        site = self
+        site_ids = Site.objects.select_related('site').filter(id=site.id).values('id', 'site',
+                                                                                         'site__site')
+        parent_sites = []
+        parent_sites.extend([site_ids[0]['id'], site_ids[0]['site'], site_ids[0]['site__site']])
+
+        return parent_sites
 
     def get_absolute_url(self):
         return "/fieldsight/application/#/site-dashboard/{}".format(self.pk)

@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from onadata.apps.fieldsight.models import Site
+from onadata.apps.fv3.role_api_permissions import ProjectRoleApiPermissions, ProjectDonorApiPermissions
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 
 
@@ -16,7 +17,7 @@ class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Site.objects.filter(site__isnull=True).select_related('project',
                                                             'region', 'type')
     serializer_class = ProjectSitesListSerializer
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, ProjectDonorApiPermissions]
     pagination_class = ProjectsitesPagination
 
     def get_queryset(self):

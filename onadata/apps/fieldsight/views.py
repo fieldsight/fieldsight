@@ -307,8 +307,59 @@ class SiteSurveyListView(LoginRequiredMixin, ProjectMixin, TemplateView):
         return TemplateResponse(request, "fieldsight/site_survey_list.html", {'project':pk})
 
 
-class SiteDashboardView(SiteRoleMixin, TemplateView):
+class SiteDashboardView(TemplateView):
     template_name = 'fieldsight/site_dashboard.html'
+
+    def dispatch(self, request, *args, **kwargs):
+
+        if request.is_super_admin:
+            return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
+
+        site_id = self.kwargs.get('pk')
+        site = Site.objects.get(id=site_id)
+        region = site.region
+        user_id = request.user.id
+
+        organization_id = Site.objects.get(pk=site_id).project.organization_id
+        user_role_org_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
+        if user_role_org_admin:
+            return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
+
+        project = Site.objects.get(pk=site_id).project
+        user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                            "Project Donor"])
+        if user_role_as_manager:
+            return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
+
+        if region is not None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region_id__in=region.get_parent_regions())
+
+            if user_role_as_region_reviewer_supervisor:
+                return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
+
+        if region is None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region=region)
+
+            if user_role_as_region_reviewer_supervisor:
+                return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
+
+        if site.site is not None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                             site_id__in=site.get_parent_sites())
+            if user_role:
+                return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
+
+        if site.site is None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                             site=site)
+            if user_role:
+                return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
+
+        raise PermissionDenied()
 
     def get_context_data(self, is_supervisor_only, **kwargs):
         # dashboard_data = super(SiteDashboardView, self).get_context_data(**kwargs)
@@ -967,12 +1018,16 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         context['obj'] = project
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
         context['terms_and_labels'] = terms_and_labels
+        context['region'] = project.cluster_sites
+
         if terms_and_labels:
 
             context['site_name'] = project.terms_and_labels.site
+            context['region_name'] = project.terms_and_labels.region
 
         else:
             context['site_name'] = "Site"
+            context['region_name'] = "Region"
 
         return context
         
@@ -1014,11 +1069,14 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
     def get_form(self, *args, **kwargs):
 
         form = super(SiteCreateView, self).get_form(*args, **kwargs)
-        form.project = Project.objects.get(pk=self.kwargs.get('pk'))
+        project = Project.objects.get(pk=self.kwargs.get('pk'))
+        form.project = project
+        form.fields['region'].queryset = form.fields['region'].queryset.filter(project=project)
         if hasattr(form.Meta, 'project_filters'):
             for field in form.Meta.project_filters:
                 form.fields[field].queryset = form.fields[field].queryset.filter(project=form.project, deleted=False)
         del form.fields['weight']
+
         return form
 
 
@@ -1065,9 +1123,13 @@ class SubSiteCreateView(SiteView, ProjectRoleMixin, CreateView):
             ))
 
         self.object = form.save(project_id=self.kwargs.get('pk'), new=True, site_id=self.kwargs.get('site'))
-        noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
+        noti = self.object.logs.create(source=self.request.user, type=110,
+                                       title="new sub Site",
+                                       site=self.object.site,
                                        organization=self.object.project.organization,
-                                       project=self.object.project, content_object=self.object, extra_object=self.object.project,
+                                       project=self.object.project,
+                                       content_object=self.object,
+                                       extra_object=self.object.site,
                                        description=u'{0} created a new Sub '
                                                    u'site named {1} in {2}'.format(self.request.user.get_full_name(),
                                                                                  self.object.name, self.object.project.name))
@@ -1097,11 +1159,15 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
         context['json_answers'] = json.dumps(site.site_meta_attributes_ans)
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=site.project).exists()
         context['terms_and_labels'] = terms_and_labels
+        context['region'] = site.project.cluster_sites
 
         if terms_and_labels:
             context['site_name'] = site.project.terms_and_labels.site
+            context['region_name'] = site.project.terms_and_labels.region
+
         else:
             context['site_name'] = 'Site'
+            context['region_name'] = 'Region'
 
         return context
 
@@ -1166,9 +1232,12 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
 
         form = super(SiteUpdateView, self).get_form(*args, **kwargs)
         project = form.instance.project
+        form.fields['region'].queryset = form.fields['region'].queryset.filter(project=project)
         if hasattr(form.Meta, 'project_filters'):
             for field in form.Meta.project_filters:
                 form.fields[field].queryset = form.fields[field].queryset.filter(project=project, deleted=False)
+        if not form.instance.site:
+            del form.fields['weight']
         return form
 
 
@@ -1686,10 +1755,30 @@ class OrgUserList(OrganizationRoleMixin, ListView):
         return queryset
 
 
-class ProjUserList(ProjectRoleMixin, ListView):
+class ProjUserList(ListView):
     model = UserRole
     paginate_by = 90
     template_name = "fieldsight/user_list_updated.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.is_super_admin:
+            return super(ProjUserList, self).dispatch(request, *args, **kwargs)
+        print(self.kwargs)
+
+        project_id = self.kwargs.get('pk')
+        user_id = request.user.id
+        user_role = request.roles.filter(user_id=user_id, project_id=project_id, group__name__in=['Project Manager',
+                                                                                                  'Project Donor'])
+
+        if user_role:
+            return super(ProjUserList, self).dispatch(request, *args, **kwargs)
+        organization_id = Project.objects.get(pk=project_id).organization.id
+        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
+
+        if user_role_asorgadmin:
+            return super(ProjUserList, self).dispatch(request, *args, **kwargs)
+
+        raise PermissionDenied()
 
     def get_context_data(self, **kwargs):
         context = super(ProjUserList, self).get_context_data(**kwargs)
@@ -1704,10 +1793,69 @@ class ProjUserList(ProjectRoleMixin, ListView):
         return queryset
 
 
-class SiteUserList(ReviewerRoleMixin, ListView):
+class SiteUserList(ListView):
     model = UserRole
     paginate_by = 50
     template_name = "fieldsight/user_list_updated.html"
+
+    def dispatch(self, request, *args, **kwargs):
+
+        if request.is_super_admin:
+            return super(SiteUserList, self).dispatch(request, *args, **kwargs)
+
+        site_id = self.kwargs.get('pk')
+        site = Site.objects.get(id=site_id)
+        region = site.region
+        user_id = request.user.id
+        if region is not None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name="Region Supervisor",
+                                                                           region_id__in=region.get_parent_regions())
+
+            if user_role_as_region_reviewer_supervisor:
+                return super(SiteUserList, self).dispatch(request, *args, **kwargs)
+
+        if region is None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name="Region Supervisor",
+                                                                           region=region)
+
+            if user_role_as_region_reviewer_supervisor:
+                return super(SiteUserList, self).dispatch(request, *args, **kwargs)
+
+        if site.site is not None:
+            user_role = request.roles.filter(group__name="Site Supervisor",
+                                             site_id__in=site.get_parent_sites())
+            if user_role:
+                return super(SiteUserList, self).dispatch(request, *args, **kwargs)
+
+        if site.site is None:
+            user_role = request.roles.filter(group__name="Site Supervisor",
+                                             site=site)
+            if user_role:
+                return super(SiteUserList, self).dispatch(request, *args, **kwargs)
+        user_role = request.roles.filter(user_id=user_id, site_id=site_id, group__name="Site Supervisor")
+
+        if user_role:
+            return super(SiteUserList, self).dispatch(request, *args, **kwargs)
+
+        project = Site.objects.get(pk=site_id).project
+        user_role_aspadmin = request.roles.filter(user_id=user_id, project_id=project.id, group__name__in=['Project Manager',
+                                                                                                           'Project Donor'])
+        if user_role_aspadmin:
+            return super(SiteUserList, self).dispatch(request, *args, **kwargs)
+
+        if Site.objects.filter(pk=site_id, region__isnull=False).values('region').exists():
+            region = Site.objects.get(pk=site_id).region
+            user_role_region_reviewer = request.roles.filter(user_id=user_id, project_id=project.id,
+                                                             region_id=region.id, group__name="Region Supervisor")
+            if user_role_region_reviewer:
+                return super(SiteUserList, self).dispatch(request, *args, **kwargs)
+
+        organization_id = project.organization.id
+        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
+        if user_role_asorgadmin:
+            return super(SiteUserList, self).dispatch(request, *args, **kwargs)
+
+        raise PermissionDenied()
 
     def get_context_data(self, **kwargs):
         context = super(SiteUserList, self).get_context_data(**kwargs)
@@ -2947,7 +3095,19 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
         context['project'] = project
         context['json_questions'] = json.dumps(project.site_meta_attributes)
         context['pk'] = self.kwargs.get('pk')
-        context['labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        context['labels'] = terms_and_labels
+        context['region'] = project.cluster_sites
+
+
+        if terms_and_labels:
+
+            context['site_name'] = project.terms_and_labels.site
+            context['region_name'] = project.terms_and_labels.region
+
+        else:
+            context['site_name'] = "Site"
+            context['region_name'] = "Region"
 
         return context
 
@@ -2956,6 +3116,8 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
 
     def get_form(self, *args, **kwargs):
         form = super(RegionalSiteCreateView, self).get_form(*args, **kwargs)
+        project = Project.objects.get(pk=self.kwargs.get('pk'))
+        form.fields['region'].queryset = form.fields['region'].queryset.filter(project=project)
         del form.fields['weight']
         return form
 
@@ -4540,9 +4702,7 @@ class ApplicationView(LoginRequiredMixin, TemplateView):
 
         elif submission:
             try:
-                submission = get_object_or_404(Instance, id=int(submission.replace(',','')))
-
-                context['submission_id'] = submission.id
+                context['submission'] = submission
 
                 return context
             except ValueError:

@@ -26,7 +26,7 @@ def get_form_answer(site_id, meta):
                 answer = sub_answers.get(meta.get('question').get('name'), '')
 
             if meta['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
-                answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fxf.xf.user.username + '/attachments/' + answer
+                answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fxf[0].xf.user.username + '/attachments/' + answer
         else:
             answer = ""
     else:

@@ -102,20 +102,30 @@ class MySiteSerializer(serializers.ModelSerializer):
         is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name="Project Manager", project=obj.project)|
                                                           Q(group__name="Organization Admin", organization=obj.project.organization),
                                                                         ended_at=None).exists()
-
+        is_project_donor = user.user_roles.all().filter(group__name="Project Donor", project=obj.project,
+                                                        ended_at=None).exists()
         if is_project_manager_or_team_admin:
             group = None
 
-        else:
-            obj = obj.site_roles.select_related('group').filter(user=user)
+        elif is_project_donor:
+            group = 'Donor'
 
-            if len(obj) > 1:
+        else:
+            site_group = obj.site_roles.select_related('group').filter(user=user)
+
+            if len(site_group) > 1:
                 group = "Site Supervisor"
 
-            elif len(obj) == 0:
-                group = None
+            elif len(site_group) == 0:
+                region_group = user.user_roles.filter(group__name__in=["Region Supervisor", "Region Reviewer"],
+                                                      region__is_active=True, ended_at=None)
+                if len(region_group) > 1:
+                    group = 'Region Supervisor'
+                else:
+                    group = region_group[0].group.name
+
             else:
-                group = obj.get().group.name
+                group = obj.site_roles.all().filter(user=user)[0].group.name
 
         return group
 
@@ -195,7 +205,7 @@ class MyRolesSerializer(serializers.ModelSerializer):
             data = UserRole.objects.filter(user=obj.user, organization=obj.organization).select_related('user', 'group', 'site', 'organization',
                                                                       'staff_project', 'region').filter(Q(group__name="Project Manager", project__is_active=True)|
                                                                     Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                    Q(group__name="Site Reviewer", site__is_active=True)|
+                                                                    Q(group__name="Reviewer", site__is_active=True)|
                                                                     Q(group__name="Region Reviewer", region__is_active=True)|
                                                                     Q(group__name="Region Supervisor", region__is_active=True)|
                                                                     Q(group__name="Project Donor", project__is_active=True)

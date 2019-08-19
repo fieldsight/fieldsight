@@ -67,9 +67,15 @@ def my_site_ids(project_obj, user):
 def my_roles(request):
     user_id = request.GET.get('profile', None)
     if user_id is not None:
-        profile_obj = UserProfile.objects.select_related('user').get(user_id=int(user_id))
+        try:
+            profile_obj = UserProfile.objects.select_related('user').get(user_id=int(user_id))
+        except ObjectDoesNotExist:
+            profile_obj = UserProfile.objects.create(user_id=int(user_id))
     else:
-        profile_obj = UserProfile.objects.select_related('user').get(user=request.user)
+        try:
+            profile_obj = UserProfile.objects.select_related('user').get(user=request.user)
+        except ObjectDoesNotExist:
+            profile_obj = UserProfile.objects.create(user=request.user)
 
     can_create_team = True
     if request.user.organizations.all():
@@ -94,7 +100,7 @@ def my_roles(request):
                                                                    Q(group__name="Region Supervisor", region__is_active=True)|
                                                                    Q(group__name="Region Reviewer", region__is_active=True)|
                                                                    Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                   Q(group__name="Site Reviewer", site__is_active=True)|
+                                                                   Q(group__name="Reviewer", site__is_active=True)|
                                                                    Q(group__name="Staff Project Manager", staff_project__is_deleted=False)
 
                                                                    ).distinct('organization')
@@ -156,7 +162,7 @@ class MySitesView(APIView):
                 paginator.page_size = 200
 
                 if is_project_manager_or_team_admin(project_obj, request.user):
-                    data = Site.objects.filter(project=project_obj, is_active=True)
+                    data = Site.objects.filter(project=project_obj, is_active=True, site__isnull=True, is_survey=False)
 
                     result_page = paginator.paginate_queryset(data, request)
 
@@ -209,6 +215,8 @@ def submissions_map(request):
                                                                                                project=project_obj).order_by(
                         '-date')
 
+                    submission_history = [sub for sub in submission_history if sub.content_object.is_deleted is False]
+
                     data = [{'submitted_by': history.get_source_name(), 'form_name': history.get_event_name(),
                              'profile':  settings.SITE_URL + history.get_source_url(), 'form_url': settings.SITE_URL+
                                                                                                           str(history.get_event_url()),
@@ -222,6 +230,7 @@ def submissions_map(request):
 
                     submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user,
                                                                                                site_id__in=merge_site_ids).order_by('-date')
+                    submission_history = [sub for sub in submission_history if sub.content_object.is_deleted is False]
 
                     data = [{'submitted_by': history.get_source_name(), 'profile':  settings.SITE_URL + history.get_source_url(),
                              'form_name': history.get_event_name(),

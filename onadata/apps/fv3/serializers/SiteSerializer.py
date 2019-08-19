@@ -85,8 +85,15 @@ class SiteSerializer(serializers.ModelSerializer):
         if obj.location:
 
             data = {'coordinates': [obj.location.x, obj.location.y]}
+        else:
+            data = {
+                     "coordinates": [
+                    85.324309,
+                    27.714876
+                    ]
+                    }
 
-            return data
+        return data
 
     def get_total_users(self, obj):
 

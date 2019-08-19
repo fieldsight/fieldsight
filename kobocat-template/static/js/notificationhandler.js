@@ -14,6 +14,7 @@
         9 : type9,
         10 : type10,
         11 : type11,
+        110 : type110,
         12 : type12,
         13 : type13,
         14 : type14,
@@ -37,6 +38,9 @@
         32 : type32,
         33 : type33,
         34 : type34,
+        341 : type341,
+        342 : type342,
+        343 : type343,
         35 : type35,
         36 : type36,
         37 : type37,
@@ -137,6 +141,19 @@ function type11(data){
     }
     else{
         content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created a new site named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> in Project named <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+
+    }
+    return content;
+}
+
+function type110(data){
+console.log(data.terms_and_labels);
+    if(data.terms_and_labels!=null){
+    console.log("tm and evel")
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> created a new Sub '+ data.terms_and_labels.site + ' named <b><a href="' + data.get_event_url + '">' + data.get_event_name + '</a></b>in Site named <b><a href="' + data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    }
+    else{
+        content = '<b><a href="' + data.get_source_url + '">'+ data.source_name+'</a></b> created a new sub site named <b><a href="' +  data.get_event_url + '">' + data.get_event_name + '</a></b> in Site named <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
 
     }
     return content;
@@ -314,6 +331,21 @@ function type32(data){
 function type33(data){
     var formdetail = data.get_event_name.split("form");
     content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> deleted a response submitted by '+ data.extra_json['submitted_by'] +' in '+ formdetail[0] +'form <b><a href="' +  data.get_event_url + '">' + formdetail[1] + '</a></b>' + '</a></b> in '+ data.extra_message +' <b><a href="' + data.get_extraobj_url+ '">' + data.get_extraobj_name+'</a></b>.';
+    return content;
+}
+
+function type341(data){
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> deleted all stages with count '+ data.extra_json['stage_count'] +' in <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    return content;
+}
+
+function type342(data){
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> deleted a stages with substage count '+ data.extra_json['stage_count'] +' in <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
+    return content;
+}
+
+function type343(data){
+    content = '<b><a href="' + data.get_source_url + '">'+ data.source_name +'</a></b> deleted a substage in <b><a href="' +  data.get_extraobj_url + '">' + data.get_extraobj_name + '</a></b>.';
     return content;
 }
 

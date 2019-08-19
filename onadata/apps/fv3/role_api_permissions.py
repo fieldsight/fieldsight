@@ -25,7 +25,7 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
             if project_id:
 
                 user_id = request.user.id
-                user_role = request.roles.filter(user_id=user_id, project_id=int(project_id), group__name="Project Manager")
+                user_role = request.roles.filter(user_id=user_id, project_id=int(project_id), group__name__in="Project Manager")
                 if user_role:
                     return True
 
@@ -94,6 +94,34 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
             return False
 
 
+class ProjectDashboardPermissions(permissions.BasePermission):
+    """
+    Object-level permission to only allow owners of an object to View it.
+    """
+
+    def has_object_permission(self, request, view, obj):
+
+        if request.is_super_admin:
+            return True
+
+        project = obj
+
+        if project is not None:
+            organization_id = project.organization_id
+            user_role_org_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
+
+            if user_role_org_admin:
+                return True
+
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                "Project Donor"])
+
+            if user_role_as_manager:
+                return True
+
+        return False
+
+
 class SiteDashboardPermissions(permissions.BasePermission):
     """
     Object-level permission to only allow owners of an object to View it.
@@ -120,11 +148,6 @@ class SiteDashboardPermissions(permissions.BasePermission):
             if user_role_as_manager:
                 return True
 
-            user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
-
-            if user_role_reviewer:
-                return True
-
             region = site.region
             if region is not None:
 
@@ -135,9 +158,25 @@ class SiteDashboardPermissions(permissions.BasePermission):
                 if user_role_as_region_reviewer_supervisor:
                     return True
 
-            user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
-            if user_role:
-                return True
+            if region is None:
+                user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                "Region Supervisor"],
+                                                                               region=region)
+
+                if user_role_as_region_reviewer_supervisor:
+                    return True
+
+            if site.site is not None:
+                user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                 site_id__in=site.get_parent_sites())
+                if user_role:
+                    return True
+
+            if site.site is None:
+                user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                 site=site)
+                if user_role:
+                    return True
 
             return False
         return False
@@ -182,14 +221,25 @@ class SiteSubmissionPermission(permissions.BasePermission):
                     if user_role_as_region_reviewer_supervisor:
                         return True
 
-                user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
+                if region is None:
+                    user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                    "Region Supervisor"],
+                                                                                   region=region)
 
-                if user_role_reviewer:
-                    return True
+                    if user_role_as_region_reviewer_supervisor:
+                        return True
 
-                user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
-                if user_role:
-                    return True
+                if site.site is not None:
+                    user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                     site_id__in=site.get_parent_sites())
+                    if user_role:
+                        return True
+
+                if site.site is None:
+                    user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                     site=site)
+                    if user_role:
+                        return True
 
                 return False
             return False
@@ -233,17 +283,26 @@ def check_site_permission(request, pk):
             if user_role_as_region_reviewer_supervisor:
                 return True
 
-        user_role_reviewer = request.roles.filter(site_id=site.id, group__name="Reviewer")
+        if region is None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region=region)
 
-        if user_role_reviewer:
-            return True
+            if user_role_as_region_reviewer_supervisor:
+                return True
 
+        if site.site is not None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"], site_id__in=site.get_parent_sites())
+            if user_role:
+                return True
 
-        user_role = request.roles.filter(site_id=site.id, group__name="Site Supervisor")
-        if user_role:
-            return True
+        if site.site is None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                             site=site)
+            if user_role:
+                return True
 
-        return False
+    return False
 
 
 def has_write_permission_in_site(request, pk):
@@ -338,3 +397,90 @@ class RegionalPermission(permissions.BasePermission):
         else:
             return False
 
+
+class ProjectDonorApiPermissions(DjangoObjectPermissions):
+    """
+    Object-level permission to only allow owners of an object to edit, update and delete it and also model-level
+    permission.
+    """
+
+    def has_permission(self, request, view):
+
+        if request.is_super_admin:
+            return True
+
+        project_id = request.query_params.get('project', None)
+
+        try:
+            if project_id:
+
+                user_id = request.user.id
+                user_role = request.roles.filter(user_id=user_id, project_id=int(project_id), group__name__in=["Project Manager",
+                                                                                                               "Project Donor"])
+                if user_role:
+                    return True
+
+                organization_id = Project.objects.get(pk=int(project_id)).organization.id
+                user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
+
+                if user_role_asorgadmin:
+                    return True
+
+                return False
+
+            elif view.get_object():
+                obj = view.get_object()
+
+                try:
+                    project_id = obj.project.id
+                except:
+                    project_id = obj.id
+
+                user_id = request.user.id
+                user_role = request.roles.filter(user_id=user_id, project_id=project_id, group__name__in=["Project Manager",
+                                                                                                          "Project Donor"])
+
+                if user_role:
+                    return True
+
+                organization_id = Project.objects.get(pk=project_id).organization.id
+                user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
+
+                if user_role_asorgadmin:
+                    return True
+
+                return False
+
+            else:
+                return False
+        except AssertionError:
+            return Response({"message": "Project Id is required."}, status=status.HTTP_204_NO_CONTENT)
+
+    def has_object_permission(self, request, view, obj):
+
+        if request.is_super_admin:
+            return True
+
+        elif obj:
+
+            try:
+                project_id = obj.project.id
+            except:
+                project_id = obj.id
+
+            user_id = request.user.id
+            user_role = request.roles.filter(user_id=user_id, project_id=project_id, group__name="Project Manager")
+
+            if user_role:
+                return True
+
+            organization_id = Project.objects.get(pk=project_id).organization.id
+            user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
+
+            if user_role_asorgadmin:
+                return True
+
+            return False
+
+        else:
+            return False

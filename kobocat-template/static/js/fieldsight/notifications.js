@@ -40,17 +40,18 @@
 
 
 			    typeid = data.type;
-			    var readstatus='unread';
-			    if(data.seen_by.includes(user_id)){
-			       readstatus='read';
-			    }
-			// get description for notificationaccotding to its type id
-			    var content = types[typeid](data);
-			//append the data in main notificatin div
+
+                var readstatus='unread';
+                if(data.seen_by.includes(user_id)){
+                   readstatus='read';
+                }
+            // get description for notificationaccotding to its type id
+                var content = types[typeid](data);
+            //append the data in main notificatin div
 
 
 
-			    var new_li = '<div class="dropdown-item '+ readstatus +'"  id="'+data.id+'" onclick="redirect(`'+data.get_absolute_url+'`);">'+
+                var new_li = '<div class="dropdown-item '+ readstatus +'"  id="'+data.id+'" onclick="redirect(`'+data.get_absolute_url+'`);">'+
                 '<div class="notification-item">'+
                   '<div class="notification-avatar pull-left" href="">'+
                   '<i class="avatar-icon la la-info"></i>'+
@@ -62,14 +63,14 @@
                   '<p class="notification-highlight-time">'+ dateparser(data.date) +'</p></div></div></div>';
 
 
-			    // var div = document.getElementById('notifications');
+                // var div = document.getElementById('notifications');
 
-			    // div.innerHTML += new_li;
-			    speed = speed+100;
+                // div.innerHTML += new_li;
+                speed = speed+100;
 
 
-				$(new_li).appendTo("#notification-ul");
-				$("#"+data.id).fadeIn(speed);
+                $(new_li).appendTo("#notification-ul");
+                $("#"+data.id).fadeIn(speed);
 
 		}
 

@@ -173,6 +173,8 @@ class ReadonlySiteLevelRoleMixin(LoginRequiredMixin):
             return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
         site_id = self.kwargs.get('pk')
+        site = Site.objects.get(id=site_id)
+        region = site.region
         user_id = request.user.id
         project = Site.objects.get(pk=site_id).project
 
@@ -186,16 +188,33 @@ class ReadonlySiteLevelRoleMixin(LoginRequiredMixin):
         if user_role_pm:
             return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
-        if Site.objects.filter(pk=site_id, region__isnull=False).values('region').exists():
-            region = Site.objects.get(pk=site_id).region
-            user_role_as_region_user = request.roles.filter(user_id=user_id, project_id=project.id, region_id=region.id,
-                                                            group__name__in=["Region Supervisor", "Region Reviewer"])
-            if user_role_as_region_user:
+        if region is not None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region_id__in=region.get_parent_regions())
+
+            if user_role_as_region_reviewer_supervisor:
                 return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=True, *args, **kwargs)
 
-        user_role = request.roles.filter(site_id = site_id, group__name__in=["Reviewer","Site Supervisor"])
-        if user_role:
-            return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
+        if region is None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region=region)
+
+            if user_role_as_region_reviewer_supervisor:
+                return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=True, *args, **kwargs)
+
+        if site.site is not None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                             site_id__in=site.get_parent_sites())
+            if user_role:
+                return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
+
+        if site.site is None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                             site=site)
+            if user_role:
+                return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
         user_role_asdonor = request.roles.filter( project_id = project.id, group__name="Project Donor")
         if user_role_asdonor:
@@ -252,9 +271,36 @@ class ReviewerRoleMixin(LoginRequiredMixin):
             return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
         
         site_id = self.kwargs.get('pk')
+        site = Site.objects.get(id=site_id)
+        region = site.region
         user_id = request.user.id
-        user_role = request.roles.filter(user_id = user_id, site_id = site_id, group_id=3)
-        
+        if region is not None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name="Region Supervisor",
+                                                                           region_id__in=region.get_parent_regions())
+
+            if user_role_as_region_reviewer_supervisor:
+                return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
+
+        if region is None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name="Region Supervisor",
+                                                                           region=region)
+
+            if user_role_as_region_reviewer_supervisor:
+                return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
+
+        if site.site is not None:
+            user_role = request.roles.filter(group__name="Site Supervisor",
+                                             site_id__in=site.get_parent_sites())
+            if user_role:
+                return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
+
+        if site.site is None:
+            user_role = request.roles.filter(group__name="Site Supervisor",
+                                             site=site)
+            if user_role:
+                return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
+        user_role = request.roles.filter(user_id = user_id, site_id = site_id, group__name="Site Supervisor")
+
         if user_role:
             return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
         
@@ -265,7 +311,7 @@ class ReviewerRoleMixin(LoginRequiredMixin):
 
         if Site.objects.filter(pk=site_id, region__isnull=False).values('region').exists():
             region = Site.objects.get(pk=site_id).region
-            user_role_region_reviewer = request.roles.filter(user_id=user_id, project_id=project.id, region_id=region.id, group__name="Region Reviewer")
+            user_role_region_reviewer = request.roles.filter(user_id=user_id, project_id=project.id, region_id=region.id, group__name="Region Supervisor")
             if user_role_region_reviewer:
                 return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
 
@@ -287,6 +333,8 @@ class SiteRoleMixin(LoginRequiredMixin):
             return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
         
         site_id = self.kwargs.get('pk')
+        site = Site.objects.get(id=site_id)
+        region = site.region
         user_id = request.user.id
 
         organization_id = Site.objects.get(pk=site_id).project.organization_id
@@ -299,25 +347,36 @@ class SiteRoleMixin(LoginRequiredMixin):
         if user_role_as_manager:
             return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
 
-        user_role_reviewer = request.roles.filter(site_id=site_id, group__name="Reviewer")
+        if region is not None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region_id__in=region.get_parent_regions())
 
-        if user_role_reviewer:
-            return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
+            if user_role_as_region_reviewer_supervisor:
+                return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
 
-        user_role_as_region_reviewer = request.roles.filter(project_id=project.id, group__name="Region Reviewer")
-        if user_role_as_region_reviewer:
-            return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
+        if region is None:
+            user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                            "Region Supervisor"],
+                                                                           region=region)
 
-        user_role_as_region_supervisor = request.roles.filter(project_id=project.id, group__name="Region Supervisor")
-        if user_role_as_region_supervisor:
-            return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
+            if user_role_as_region_reviewer_supervisor:
+                return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
 
+        if site.site is not None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                             site_id__in=site.get_parent_sites())
+            if user_role:
+                return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
 
-        user_role = request.roles.filter(site_id = site_id, group__name="Site Supervisor")
-        if user_role:
-            return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
+        if site.site is None:
+            user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                             site=site)
+            if user_role:
+                return super(SiteRoleMixin, self).dispatch(request, is_supervisor_only=True, *args, **kwargs)
 
         raise PermissionDenied()
+
 
 class SiteDeleteRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
@@ -407,11 +466,48 @@ class SPFmixin(LoginRequiredMixin):
 
         if self.kwargs.get('is_project') == '0':
             site_id = self.kwargs.get('pk')
-            user_role = request.roles.filter(user_id = user_id, site_id = site_id, group_id=3)
+            site = Site.objects.get(id=site_id)
+            user_role = request.roles.filter(user_id = user_id, site_id = site_id, group__name="Site Supervisor")
             if user_role:
                 return super(SPFmixin, self).dispatch(request, *args, **kwargs)
             project_id=Site.objects.get(pk=site_id).project.id
-        
+            region = site.region
+            if region is not None:
+                user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                "Region Supervisor"],
+                                                                               region_id__in=region.get_parent_regions())
+
+                if user_role_as_region_reviewer_supervisor:
+                    return super(SPFmixin, self).dispatch(request, *args, **kwargs)
+
+            if region is None:
+                user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                "Region Supervisor"],
+                                                                               region=region)
+
+                if user_role_as_region_reviewer_supervisor:
+                    return super(SPFmixin, self).dispatch(request, *args, **kwargs)
+
+            if site.site is not None:
+                user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                 site_id__in=site.get_parent_sites())
+                if user_role:
+                    return super(SPFmixin, self).dispatch(request, *args, **kwargs)
+
+            if site.site is None:
+                user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                 site=site)
+                if user_role:
+                    return super(SPFmixin, self).dispatch(request, *args, **kwargs)
+
+            if Site.objects.filter(pk=site_id, region__isnull=False).values('region').exists():
+                region = Site.objects.get(pk=site_id).region
+                user_role_region_supervisor = request.roles.filter(user_id=user_id, project_id=project_id,
+                                                                 region_id=region.id, group__name="Region Supervisor")
+                if user_role_region_supervisor:
+                    return super(SPFmixin, self).dispatch(request, *args, **kwargs)
+                project_id = Site.objects.get(pk=site_id).project.id
+
         else:
             project_id = self.kwargs.get('pk')
 
@@ -480,6 +576,9 @@ class ReadonlyFormMixin(LoginRequiredMixin):
 
         #reviewer
         if request.roles.filter(site__project__id=project_id, group__name="Reviewer").exists():
+            return super(ReadonlyFormMixin, self).dispatch(request, fsxf_id, *args, **kwargs)
+
+        if request.roles.filter(site__project__id=project_id, group__name="Site Supervisor").exists():
             return super(ReadonlyFormMixin, self).dispatch(request, fsxf_id, *args, **kwargs)
 
         organization_id = Project.objects.get(pk=project_id).organization.id

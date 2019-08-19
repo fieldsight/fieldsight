@@ -93,7 +93,7 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
 
         if region_id:  # Region Reviewer Roles
             sites = Site.objects.filter(Q(region=region_id) | Q(
-                site__region=region_id))
+                region_id__parent=region_id) | Q(region_id__parent__parent=region_id))
         elif project_id:  # Site Supervisor Roles
             sites = Site.objects.filter(project=project_id).filter(Q(
                 site_roles__region__isnull=True,
@@ -115,6 +115,9 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
                 return []
 
         return sites
+
+    def get_serializer_context(self):
+        return {'parent_region': self.request.query_params.get('region_id')}
 
 
 @permission_classes([IsAuthenticated])
@@ -516,10 +519,10 @@ class RegionalSites(viewsets.ReadOnlyModelViewSet):
 
         if search_param and region_id:
             return self.queryset.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
-                                        region_id=region_id, is_survey=False, is_active=True)
+                                        region_id=region_id, is_survey=False, is_active=True, site__isnull=True)
 
         if region_id:
-            return self.queryset.filter(region_id=region_id, is_survey=False, is_active=True)
+            return self.queryset.filter(region_id=region_id, is_survey=False, is_active=True, site__isnull=True)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
