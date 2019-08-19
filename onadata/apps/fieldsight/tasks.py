@@ -1097,19 +1097,20 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
                 if formresponse.site_id:
                     answers['identifier'] = formresponse.site.identifier
                     answers['name'] = formresponse.site.name
-                    answers['submitted_by'] = formresponse.submitted_by.email or formresponse.submitted_by.username 
+                    
                 else:
                     answers['identifier'] = 'Na'
                     answers['name'] = 'Na'
-                    answers['submitted_by'] = ''
-
+                
+                answers['submitted_by'] = formresponse.submitted_by.email or formresponse.submitted_by.username 
+                answers['submitted_on'] = formresponse.instance.date_created
                 answers['status'] = form_status_map[formresponse.form_status]
                 
                 if r_question_answers:
                     repeat_answers.append({'uid':formresponse.instance_id, 'name': answers['name'], 'identifier': answers['identifier'], 'repeated': r_question_answers })
 
                 if len(questions) + 3 > len(head_columns):
-                    head_columns = [{'question_name':'uid','question_label':'uid'}, {'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}, {'question_name':'submitted_by','question_label':'submitted_by'}, {'question_name':'status','question_label':'status'}] + questions  
+                    head_columns = [{'question_name':'uid','question_label':'uid'}, {'question_name':'identifier','question_label':'identifier'}, {'question_name':'name','question_label':'name'}, {'question_name':'submitted_by','question_label':'submitted_by'}, {'question_name':'status','question_label':'status'}, {'question_name':'submmitted_on','question_label':'Submitted on'}] + questions  
                 row=[]
 
                 for col_num in range(len(head_columns)):
