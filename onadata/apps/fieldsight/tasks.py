@@ -1018,7 +1018,7 @@ def generateSiteDetailsXls(task_prog_obj_id, project_id, region_ids, type_ids=No
         buffer.close()
 
 
-@shared_task(time_limit=300, soft_time_limit=300)
+@shared_task(time_limit=600, soft_time_limit=600)
 def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, start_date, end_date, filterRegion, filterSiteTypes):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
@@ -1142,7 +1142,7 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
                     wr.cell(row=1, column=1).value = 'uid'
                     wr.cell(row=1, column=2).value = 'Identifier'
                     wr.cell(row=1, column=3).value = 'Name'
-                    wr.cell(row=1, column=3).value = 'Submitted by'
+                    wr.cell(row=1, column=4).value = 'Submitted by'
 
                     #for loop needed.
                     for col_num in range(len(group['questions'])):
