@@ -568,6 +568,15 @@
      var label_site_type = $('#id_type').parent().find('label');
      label_site_type.html('Type of '+ '{{site_name}}');
 
+     var label_region = $('#id_region').parent().find('label');
+     label_region.html('{{region_name}}');
+
+     if('{{region}}' == 'False')
+     	{
+     	 $('#id_region').parent().remove();
+     	}
+
+
     </script>
 
 

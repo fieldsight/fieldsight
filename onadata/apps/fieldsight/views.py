@@ -1018,12 +1018,16 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
         context['obj'] = project
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
         context['terms_and_labels'] = terms_and_labels
+        context['region'] = project.cluster_sites
+
         if terms_and_labels:
 
             context['site_name'] = project.terms_and_labels.site
+            context['region_name'] = project.terms_and_labels.region
 
         else:
             context['site_name'] = "Site"
+            context['region_name'] = "Region"
 
         return context
         
@@ -1065,11 +1069,14 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
     def get_form(self, *args, **kwargs):
 
         form = super(SiteCreateView, self).get_form(*args, **kwargs)
-        form.project = Project.objects.get(pk=self.kwargs.get('pk'))
+        project = Project.objects.get(pk=self.kwargs.get('pk'))
+        form.project = project
+        form.fields['region'].queryset = form.fields['region'].queryset.filter(project=project)
         if hasattr(form.Meta, 'project_filters'):
             for field in form.Meta.project_filters:
                 form.fields[field].queryset = form.fields[field].queryset.filter(project=form.project, deleted=False)
         del form.fields['weight']
+
         return form
 
 
@@ -1152,11 +1159,15 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
         context['json_answers'] = json.dumps(site.site_meta_attributes_ans)
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=site.project).exists()
         context['terms_and_labels'] = terms_and_labels
+        context['region'] = site.project.cluster_sites
 
         if terms_and_labels:
             context['site_name'] = site.project.terms_and_labels.site
+            context['region_name'] = site.project.terms_and_labels.region
+
         else:
             context['site_name'] = 'Site'
+            context['region_name'] = 'Region'
 
         return context
 
@@ -1221,6 +1232,7 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
 
         form = super(SiteUpdateView, self).get_form(*args, **kwargs)
         project = form.instance.project
+        form.fields['region'].queryset = form.fields['region'].queryset.filter(project=project)
         if hasattr(form.Meta, 'project_filters'):
             for field in form.Meta.project_filters:
                 form.fields[field].queryset = form.fields[field].queryset.filter(project=project, deleted=False)
@@ -3083,7 +3095,19 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
         context['project'] = project
         context['json_questions'] = json.dumps(project.site_meta_attributes)
         context['pk'] = self.kwargs.get('pk')
-        context['labels'] = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        context['labels'] = terms_and_labels
+        context['region'] = project.cluster_sites
+
+
+        if terms_and_labels:
+
+            context['site_name'] = project.terms_and_labels.site
+            context['region_name'] = project.terms_and_labels.region
+
+        else:
+            context['site_name'] = "Site"
+            context['region_name'] = "Region"
 
         return context
 
@@ -3092,6 +3116,8 @@ class RegionalSiteCreateView(SiteView, RegionSupervisorReviewerMixin, CreateView
 
     def get_form(self, *args, **kwargs):
         form = super(RegionalSiteCreateView, self).get_form(*args, **kwargs)
+        project = Project.objects.get(pk=self.kwargs.get('pk'))
+        form.fields['region'].queryset = form.fields['region'].queryset.filter(project=project)
         del form.fields['weight']
         return form
 
