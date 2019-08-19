@@ -105,14 +105,23 @@ class SiteForms(APIView):
                         return Response({'scheduled_forms': data})
 
                     elif query_params == 'stage':
+                        site = Site.objects.get(pk=site_id)
 
-                        stages_queryset = Stage.objects.filter(
-                            stage__isnull=True
-                        ).filter(Q(site__id=site_id,
-                                   project_stage_id=0
-                                   ) | Q(
-                            project__id=project_id
-                        )).order_by('order', 'date_created')
+                        if site.type:
+                            project_id = site.project.id
+                            stages_queryset = Stage.objects.filter(Q(site__id=site_id,
+                                                         project_stage_id=0)
+                                                       | Q
+                                                       (Q(project__id=project_id) &
+                                                        Q(tags__contains=[site.type_id])) |
+                                                       Q(Q(project__id=project_id)
+                                                         & Q(tags=[]))
+                                                       )
+                        else:
+                            project_id = site.project.id
+                            stages_queryset = Stage.objects.filter(
+                                Q(site__id=site_id, project_stage_id=0)
+                                | Q(project__id=project_id))
                         stages = StageFormSerializer(stages_queryset, many=True, context={'site_id': site_id})
 
                         return Response({'stage_forms': stages.data})

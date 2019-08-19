@@ -251,9 +251,9 @@ class StageFormsVS(viewsets.ModelViewSet):
         elif site_id:
             site = get_object_or_404(Site, pk=site_id)
             project_id = site.project_id
-            queryset = queryset.filter(
-                Q(site__id=site_id, project_stage_id=0) |
-                Q(project__id=project_id))
+            # queryset = queryset.filter(
+            #     Q(site__id=site_id, project_stage_id=0) |
+            #     Q(project__id=project_id))
             if site.type:
                 project_id = site.project.id
                 queryset = queryset.filter(Q(site__id=site_id,
