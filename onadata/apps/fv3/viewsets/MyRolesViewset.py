@@ -215,6 +215,8 @@ def submissions_map(request):
                                                                                                project=project_obj).order_by(
                         '-date')
 
+                    submission_history = [sub for sub in submission_history if sub.content_object.is_deleted is False]
+
                     data = [{'submitted_by': history.get_source_name(), 'form_name': history.get_event_name(),
                              'profile':  settings.SITE_URL + history.get_source_url(), 'form_url': settings.SITE_URL+
                                                                                                           str(history.get_event_url()),
@@ -228,6 +230,7 @@ def submissions_map(request):
 
                     submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user,
                                                                                                site_id__in=merge_site_ids).order_by('-date')
+                    submission_history = [sub for sub in submission_history if sub.content_object.is_deleted is False]
 
                     data = [{'submitted_by': history.get_source_name(), 'profile':  settings.SITE_URL + history.get_source_url(),
                              'form_name': history.get_event_name(),

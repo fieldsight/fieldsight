@@ -49,7 +49,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     get_source_url = serializers.ReadOnlyField()
     
     get_event_name = serializers.ReadOnlyField()
-    get_event_url = serializers.ReadOnlyField()
+    get_event_url = serializers.SerializerMethodField()
 
     get_extraobj_name = serializers.ReadOnlyField()
     get_extraobj_url = serializers.ReadOnlyField()
@@ -68,10 +68,19 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FieldSightLog
-        exclude = ('description', 'project', 'is_seen', 'content_type', 'organization', 'site', 'object_id', 'extra_object_id', 'source', 'extra_content_type',)
+        exclude = ('description', 'project', 'is_seen', 'content_type', 'organization', 'site', 'object_id',
+                   'extra_object_id', 'source', 'extra_content_type',)
 
     def get_source_name(self, obj):
         return obj.source.first_name + " " + obj.source.last_name
+
+    def get_get_event_url(self, obj):
+        if obj.type in [16, 17, 18, 19, 31, 33] and obj.content_object.is_deleted:
+            get_event_url = '#'
+
+        else:
+            get_event_url = obj.get_event_url()
+        return get_event_url
 
     def get_terms_and_labels(self, obj):
 
