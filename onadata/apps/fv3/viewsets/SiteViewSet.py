@@ -109,7 +109,7 @@ class SiteForms(APIView):
 
                         if site.type:
                             project_id = site.project.id
-                            stages_queryset = Stage.objects.filter(Q(site__id=site_id,
+                            stages_queryset = Stage.objects.filter(stage__isnull=True).filter(Q(site__id=site_id,
                                                          project_stage_id=0)
                                                        | Q
                                                        (Q(project__id=project_id) &
@@ -119,7 +119,7 @@ class SiteForms(APIView):
                                                        )
                         else:
                             project_id = site.project.id
-                            stages_queryset = Stage.objects.filter(
+                            stages_queryset = Stage.objects.filter(stage__isnull=True).filter(
                                 Q(site__id=site_id, project_stage_id=0)
                                 | Q(project__id=project_id))
                         stages = StageFormSerializer(stages_queryset, many=True, context={'site_id': site_id})
