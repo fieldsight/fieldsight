@@ -544,8 +544,7 @@ class ProjectGsuitSyncForm(forms.ModelForm):
         }
 
     def clean(self):
-        day = self.cleaned_data.get("gsuit_sync_date")
-        date = self.cleaned_data.get("date")
+        date = self.cleaned_data.get("gsuit_sync_date")
         schedule = self.cleaned_data.get("gsuit_sync")
         end_of_month = self.cleaned_data.get("gsuit_sync_end_of_month")
 
@@ -554,7 +553,7 @@ class ProjectGsuitSyncForm(forms.ModelForm):
                 "End of month must be unchecked."
             )
 
-        if day != "D" and date is None:    
+        if date is None:    
             raise forms.ValidationError(
                 "Date is required."
             )
@@ -585,7 +584,6 @@ class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
 
 
     def clean(self):
-        day = self.cleaned_data.get("day")
         date = self.cleaned_data.get("date")
         schedule = self.cleaned_data.get("schedule")
         end_of_month = self.cleaned_data.get("end_of_month")
@@ -595,7 +593,7 @@ class FieldsightFormGsuitSyncNewForm(forms.ModelForm):
                 "End of month must be unchecked."
             )
 
-        if day != "D" and date is None:    
+        if date is None:    
             raise forms.ValidationError(
                 "Date is required."
             )
@@ -613,7 +611,6 @@ class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
         }
 
     def clean(self):
-        day = self.cleaned_data.get("day")
         date = self.cleaned_data.get("date")
         schedule = self.cleaned_data.get("schedule")
         end_of_month = self.cleaned_data.get("end_of_month")
@@ -623,7 +620,7 @@ class FieldsightFormGsuitSyncEditForm(forms.ModelForm):
                 "End of month must be unchecked."
             )
 
-        if day != "D" and date is None:    
+        if date is None:    
             raise forms.ValidationError(
                 "Date is required."
             )
