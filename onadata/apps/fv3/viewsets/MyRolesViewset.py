@@ -245,7 +245,7 @@ def submissions_map(request):
                 if is_project_manager_or_team_admin(project_obj, request.user):
 
                     submissions = settings.MONGO_DB.instances.aggregate(
-                        [{"$match": {"fs_project": {"$in": [int(project_id), str(project_id), unicode(project_id)]}, "_submitted_by": request.user.username}}, {
+                        [{"$match": {"fs_project": {"$in": [int(project_id), str(project_id), unicode(project_id)]}, "_submitted_by": request.user.username, '_deleted_at': None}}, {
                             "$project": {
                                 "_id": 0, "type": {"$literal": "Feature"},
                                 "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"}, "properties": {
@@ -269,7 +269,7 @@ def submissions_map(request):
                     merge_site_ids = list(set(int_merge_site_ids+str_merge_site_ids))
 
                     submissions = settings.MONGO_DB.instances.aggregate(
-                        [{"$match": {"fs_site": {"$in": merge_site_ids}, "_submitted_by": request.user.username}}, {
+                        [{"$match": {"fs_site": {"$in": merge_site_ids}, "_submitted_by": request.user.username, '_deleted_at': None}}, {
                             "$project": {
                                 "_id": 0, "type": {"$literal": "Feature"},
                                 "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"},
