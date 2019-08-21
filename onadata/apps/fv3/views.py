@@ -600,3 +600,21 @@ def sub_regions(request):
         project_url = region.project.get_absolute_url()
     breadcrumbs = {'region': region.name, 'project_name': project_name, 'project_url': project_url}
     return Response({'data': region_data, 'project': region.project.id, 'breadcrumbs': breadcrumbs, 'terms_and_labels': terms_and_labels})
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def users(request):
+    site = request.query_params.get('site', None)
+    if site is not None:
+        site = Site.objects.get(id=site)
+        project = get_object_or_404(Project, id=site.project.id)
+        queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
+            Q(site=site) | Q(region__project=project)).select_related('user').distinct('user_id')
+
+        data = [{'id':data.id} for data in queryset]
+
+        return Response(data)
+
+    else:
+        return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site id is required.'})
