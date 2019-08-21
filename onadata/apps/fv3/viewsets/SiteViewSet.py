@@ -251,11 +251,13 @@ class BlueprintsPostDeleteView(APIView):
                 return Response(status=status.HTTP_404_NOT_FOUND,  data={"detail": "Object not found."})
             if check_site_permission(request, site.id):
                 files = request.FILES.getlist('files')
-                for file in files:
-                    BluePrints.objects.create(site=site, image=file)
+                if len(files) > 0:
+                    for file in files:
+                        BluePrints.objects.create(site=site, image=file)
 
-                return Response(status=status.HTTP_201_CREATED, data={"detail": "successfully created blueprints."})
-
+                    return Response(status=status.HTTP_201_CREATED, data={"detail": "successfully created blueprints."})
+                else:
+                    return Response(status=status.HTTP_400_BAD_REQUEST, data={"detail": "Please select at least one file."})
             else:
                 return Response(status=status.HTTP_403_FORBIDDEN,
                                 data={"detail": "You do not have permission to perform this action."})

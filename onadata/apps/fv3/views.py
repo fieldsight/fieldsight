@@ -375,6 +375,7 @@ class GeoLayerView(APIView):
     permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
     def get(self, request, format=None):
+        print('userrr', self.request.user)
 
         project_id = request.query_params.get('project', None)
 
@@ -413,6 +414,7 @@ class GeoLayerView(APIView):
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def organization_geolayer(request):
+    print('userrr', request.user)
     query_params = request.query_params
     project_id = query_params.get('project')
     if project_id:
