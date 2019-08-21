@@ -214,7 +214,7 @@ def site_documents(request):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        data = [{'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
+        data = [{'id': blueprint.id, 'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
                 for blueprint in blueprints_obj]
         return Response(data)
     else:
