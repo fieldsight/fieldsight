@@ -620,7 +620,7 @@ class DeleteUndeployedForm(APIView):
             extra_json = {}
             if project_id:
                 if FInstance.objects.filter(
-                        project_fxf__project__id=id).count():
+                        project_fxf__project__id=id, project_fxf__is_staged=True).count():
                     return Response(
                         {"error": "This Project Stages form have submissions, "
                                   "delete submissions first"},
