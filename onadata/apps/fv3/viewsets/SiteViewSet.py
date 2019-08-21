@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanceSerializer, StageFormSerializer, \
     SiteCropImageSerializer
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.fieldsight.models import Site, BluePrints
 from onadata.apps.fsforms.models import FInstance, Schedule, Stage, FieldSightXF
 
 from onadata.apps.fsforms.reports_util import get_recent_images
@@ -221,3 +221,59 @@ def site_documents(request):
         return Response(status=status.HTTP_403_FORBIDDEN,
                         data={"detail": "You do not have permission to perform this action."})
 
+
+@permission_classes([IsAuthenticated])
+@api_view(['DELETE'])
+def delete_blueprint(request, pk):
+    blueprint = get_object_or_404(BluePrints, id=pk)
+    if check_site_permission(request, blueprint.site.id):
+
+        blueprint.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    else:
+        return Response(status=status.HTTP_403_FORBIDDEN, data={"detail": "You do not have permission to perform this action."})
+
+
+class BlueprintsPostDeleteView(APIView):
+    """
+    create and delete site blueprints.
+    """
+    authentication_classes = (CsrfExemptSessionAuthentication, SessionAuthentication, IsAuthenticated)
+
+    def post(self, request, format=None):
+        site = request.query_params.get('site', None)
+        blueprint = request.query_params.get('blueprint', None)
+        if site is not None:
+            try:
+                site = get_object_or_404(Site, id=site)
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND,  data={"detail": "Object not found."})
+            if check_site_permission(request, site):
+                files = request.FILES.getlist('files')
+                for file in files:
+                    BluePrints.objects.create(site=site, image=file)
+
+                return Response(status=status.HTTP_201_CREATED, data={"detail": "successfully created blueprints."})
+
+            else:
+                return Response(status=status.HTTP_403_FORBIDDEN,
+                                data={"detail": "You do not have permission to perform this action."})
+
+        elif blueprint is not None:
+            try:
+                blueprint = BluePrints.objects.get(id=blueprint)
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND,  data={"detail": "Object not found."})
+
+            if check_site_permission(request, blueprint.site.id):
+
+                blueprint.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT, data={"detail": "successfully deleted."})
+
+            else:
+                return Response(status=status.HTTP_403_FORBIDDEN,
+                                data={"detail": "You do not have permission to perform this action."})
+
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site or blueprint params is required.'})

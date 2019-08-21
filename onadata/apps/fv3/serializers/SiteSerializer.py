@@ -15,6 +15,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from onadata.apps.fsforms.line_data_project import ProgressGeneratorSite
 from onadata.apps.fsforms.models import FInstance, Stage
 from onadata.apps.fv3.role_api_permissions import has_write_permission_in_site
+from onadata.apps.fieldsight.models import BluePrints
 
 from onadata.apps.fsforms.line_data_project import date_range
 

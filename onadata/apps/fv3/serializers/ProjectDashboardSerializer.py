@@ -235,8 +235,7 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
             filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances.\
             filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
             filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances.\
-            filter(form_status=3).count(), 'progress': (form.stage_forms.project_form_instances.\
-            filter(form_status=3).count()/form.stage_forms.project_form_instances.count())*100}
+            filter(form_status=3).count(), 'progress': 0}
                 for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')
 
                 ]
