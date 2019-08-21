@@ -249,7 +249,7 @@ class BlueprintsPostDeleteView(APIView):
                 site = get_object_or_404(Site, id=site)
             except ObjectDoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND,  data={"detail": "Object not found."})
-            if check_site_permission(request, site):
+            if check_site_permission(request, site.id):
                 files = request.FILES.getlist('files')
                 for file in files:
                     BluePrints.objects.create(site=site, image=file)
