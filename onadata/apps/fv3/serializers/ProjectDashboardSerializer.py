@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
 from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site
+from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule
 from onadata.apps.logger.models import Instance
 from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
@@ -218,3 +219,68 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
             organization_url = organization.get_absolute_url()
 
         return {'name': project, 'organization': organization.name, 'organization_url': organization_url}
+
+
+class ProgressStageFormSerializer(serializers.ModelSerializer):
+    sub_stages = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+
+        fields = ('name', 'sub_stages')
+
+    def get_sub_stages(self, obj):
+
+        data = [{'form_name': form.stage_forms.xf.title, 'pending': form.stage_forms.project_form_instances.\
+            filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances.\
+            filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
+            filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances.\
+            filter(form_status=3).count(), 'progress': (form.stage_forms.project_form_instances.\
+            filter(form_status=3).count()/form.stage_forms.project_form_instances.count())*100}
+                for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')
+
+                ]
+        return data
+
+
+class ProgressGeneralFormSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    progress_data = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FieldSightXF
+
+        fields = ('name', 'progress_data')
+
+    def get_name(self, obj):
+        return obj.xf.title
+
+    def get_progress_data(self, obj):
+        total = obj.project_form_instances.count()
+        approved = obj.project_form_instances.filter(form_status=3).count()
+        progress = (approved / total) * 100
+        data = [{'pending': obj.project_form_instances.filter(form_status=0).count(), 'rejected': obj.project_form_instances. \
+            filter(form_status=1).count(), 'flagged': obj.project_form_instances.filter(form_status=2).count(),
+                 'approved': approved, 'progress': progress}
+                ]
+        return data
+
+
+class ProgressScheduledFormSerializer(serializers.ModelSerializer):
+    progress_data = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Schedule
+
+        fields = ('name', 'progress_data')
+
+    def get_progress_data(self, obj):
+        total = obj.schedule_forms.project_form_instances.count()
+        approved = obj.schedule_forms.project_form_instances.filter(form_status=3).count()
+        progress = (approved/total)*100
+        data = [{'pending': obj.schedule_forms.project_form_instances.filter(form_status=0).count(), 'rejected':
+            obj.schedule_forms.project_form_instances.filter(form_status=1).count(), 'flagged': obj.schedule_forms.\
+            project_form_instances.filter(form_status=2).count(),
+                 'approved': approved, 'progress': progress}
+                ]
+        return data
