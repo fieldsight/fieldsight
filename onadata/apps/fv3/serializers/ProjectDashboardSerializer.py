@@ -235,8 +235,7 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
             filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances.\
             filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
             filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances.\
-            filter(form_status=3).count(), 'progress': (form.stage_forms.project_form_instances.\
-            filter(form_status=3).count()/form.stage_forms.project_form_instances.count())*100}
+            filter(form_status=3).count(), 'progress': 0}
                 for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')
 
                 ]
@@ -258,7 +257,7 @@ class ProgressGeneralFormSerializer(serializers.ModelSerializer):
     def get_progress_data(self, obj):
         total = obj.project_form_instances.count()
         approved = obj.project_form_instances.filter(form_status=3).count()
-        progress = (approved / total) * 100
+        progress = 0
         data = [{'pending': obj.project_form_instances.filter(form_status=0).count(), 'rejected': obj.project_form_instances. \
             filter(form_status=1).count(), 'flagged': obj.project_form_instances.filter(form_status=2).count(),
                  'approved': approved, 'progress': progress}
@@ -277,7 +276,7 @@ class ProgressScheduledFormSerializer(serializers.ModelSerializer):
     def get_progress_data(self, obj):
         total = obj.schedule_forms.project_form_instances.count()
         approved = obj.schedule_forms.project_form_instances.filter(form_status=3).count()
-        progress = (approved/total)*100
+        progress = 0
         data = [{'pending': obj.schedule_forms.project_form_instances.filter(form_status=0).count(), 'rejected':
             obj.schedule_forms.project_form_instances.filter(form_status=1).count(), 'flagged': obj.schedule_forms.\
             project_form_instances.filter(form_status=2).count(),

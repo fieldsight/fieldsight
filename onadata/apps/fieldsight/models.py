@@ -26,6 +26,22 @@ from django.core.serializers import serialize
 from django.db.models import Q
 
 
+DOC_TYPE_CHOICES = (
+    ('Drawing', 'Drawing'),
+    ('Permit', 'Permit'),
+    ('Registration', 'Registration'),
+    ('Identification', 'Identification'),
+    ('Report', 'Report'),
+    ('Contract', 'Contract'),
+    ('Variation', 'Variation'),
+    ('Manual or Instruction', 'Manual or Instruction'),
+    ('Payment or Invoice', 'Payment or Invoice'),
+    ('Notes', 'Notes'),
+    ('Other', 'Other'),
+
+)
+
+
 class TimeZone(models.Model):
     time_zone = models.CharField(max_length=255, blank=True, null=True)
     country = models.CharField(max_length=255, blank=True, null=True)
@@ -616,9 +632,12 @@ def get_survey_image_filename(instance, filename):
 
 
 class BluePrints(models.Model):
+    name = models.CharField(max_length=250, null=True, blank=True)
     site = models.ForeignKey(Site, related_name="blueprints")
     image = models.FileField(upload_to=get_image_filename,
                              verbose_name='BluePrints',)
+    doc_type = models.CharField(choices=DOC_TYPE_CHOICES, max_length=30, default='Drawing', null=True, blank=True)
+    added_date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     def get_name(self):
         import os

@@ -20,7 +20,7 @@ from onadata.apps.fv3.viewsets.SubmissionViewSet import AlterSubmissionStatusVie
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
     ProjectSitesListViewSet, SubSitesListViewSet
 
-from onadata.apps.fv3.views import RegionalSites, sub_regions
+from onadata.apps.fv3.views import RegionalSites, sub_regions, users
 
 router = routers.DefaultRouter()
 
@@ -69,6 +69,7 @@ urlpatterns = [
         {'get': 'list'}), name='sub_sites_list'),
     url(r'^api/regional-sites/$', RegionalSites.as_view({'get' : 'list'}), name='regional_sites'),
     url(r'^api/sub-regions/$', sub_regions, name='sub_regions'),
+    url(r'^api/users/$', users, name='users'),
 
 ]
 
