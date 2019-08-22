@@ -34,7 +34,7 @@ class XFormSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = XForm
-        fields = ('id_string', 'title', 'owner', 'edit_url', 'preview_url', 'replace_url',
+        fields = ('id','id_string', 'title', 'owner', 'edit_url', 'preview_url', 'replace_url',
                   'download_url', 'media_url', 'date_created', 'date_modified', 'share_users_url',
                   'share_project_url', 'share_team_url', 'share_global_url', 'add_language_url',
                   'clone_form_url', 'delete_url', 'shareable_users_url', 'shareable_teams_url', 'shareable_projects_url')

@@ -23,8 +23,8 @@ class StageViewSet(viewsets.ModelViewSet):
     queryset = Stage.objects.filter(stage_forms__isnull=True, stage__isnull=True).order_by('order', 'date_created')
     serializer_class = StageSerializer1
 
-    @method_decorator(cache_page(60 * 60 * 1))
-    @method_decorator(vary_on_cookie)
+    # @method_decorator(cache_page(60 * 60 * 1))
+    # @method_decorator(vary_on_cookie)
     def list(self, request, *args, **kwargs):
         return super(StageViewSet, self).list(request, *args, **kwargs)
 
