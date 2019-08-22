@@ -22,6 +22,7 @@ from onadata.apps.fsforms.models import FInstance, Schedule, Stage, FieldSightXF
 
 from onadata.apps.fsforms.reports_util import get_recent_images
 from onadata.apps.fv3.role_api_permissions import SiteDashboardPermissions, SiteSubmissionPermission, check_site_permission
+from onadata.apps.fv3.viewsets.utils import check_file_extension, readable_date
 
 
 class SiteSubmissionsPagination(PageNumberPagination):
@@ -184,22 +185,13 @@ def site_recent_pictures(request):
                         data={"detail": "You do not have permission to perform this action."})
 
 
-def check_file_extension(file_url):
-    type = 'others'
+def doc_name(obj):
+    if obj.name is not None:
+        name = obj.name
+    else:
+        name = obj.get_name()
 
-    if file_url.endswith(('.jpg', '.png', '.jpeg')):
-        type = 'image'
-
-    elif file_url.endswith(('.xls', '.xlsx')):
-        type = 'excel'
-
-    elif file_url.endswith('.pdf'):
-        type = 'pdf'
-
-    elif file_url.endswith(('.doc', '.docm', 'docx', '.dot', '.dotm', '.dot', '.txt', '.odt')):
-        type = 'word'
-
-    return type
+    return name
 
 
 @permission_classes([IsAuthenticated])
@@ -215,8 +207,8 @@ def site_documents(request):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        data = [{'id': blueprint.id, 'name': blueprint.name, 'file': blueprint.image.url, 'doc_type': blueprint.doc_type,
-                 'added_date': blueprint.added_date,
+        data = [{'id': blueprint.id, 'name': doc_name(blueprint), 'file': blueprint.image.url, 'doc_type': blueprint.doc_type,
+                 'added_date': readable_date(blueprint.added_date),
                  'type': check_file_extension((blueprint.image.url.lower()))}
                 for blueprint in blueprints_obj]
         return Response(data={'documents': data, 'breadcrumbs': {'name': 'Site Documents', 'site': site_obj.name,
@@ -262,7 +254,7 @@ class BlueprintsPostDeleteView(APIView):
                     objs = [
                         BluePrints(
                             site=site,
-                            image=file,
+                            q=file,
                             name=name,
                             doc_type=doc_type
                         )
