@@ -254,7 +254,7 @@ class BlueprintsPostDeleteView(APIView):
                     objs = [
                         BluePrints(
                             site=site,
-                            q=file,
+                            image=file,
                             name=name,
                             doc_type=doc_type
                         )
