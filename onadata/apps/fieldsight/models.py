@@ -639,9 +639,9 @@ class BluePrints(models.Model):
     doc_type = models.CharField(choices=DOC_TYPE_CHOICES, max_length=30, default='Drawing', null=True, blank=True)
     added_date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
-    # def get_name(self):
-    #     import os
-    #     return os.path.basename(self.image.file.name)
+    def get_name(self):
+        import os
+        return os.path.basename(self.image.file.name)
 
 
 class SiteCreateSurveyImages(models.Model):

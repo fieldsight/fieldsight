@@ -207,6 +207,7 @@ def check_file_extension(file_url):
 def site_documents(request):
     query_params = request.query_params
     site_id = query_params.get('site_id')
+    site_obj = get_object_or_404(Site, id=site_id)
     site_id = int(site_id)
     if check_site_permission(request, site_id):
         try:
@@ -214,9 +215,12 @@ def site_documents(request):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        data = [{'id': blueprint.id, 'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
+        data = [{'id': blueprint.id, 'name': blueprint.name, 'file': blueprint.image.url, 'doc_type': blueprint.doc_type,
+                 'added_date': blueprint.added_date,
+                 'type': check_file_extension((blueprint.image.url.lower()))}
                 for blueprint in blueprints_obj]
-        return Response(data)
+        return Response(data={'documents': data, 'breadcrumbs': {'name': 'Site Documents', 'site': site_obj.name,
+                                                                 'site_url': site_obj.get_absolute_url()}})
     else:
         return Response(status=status.HTTP_403_FORBIDDEN,
                         data={"detail": "You do not have permission to perform this action."})
@@ -251,9 +255,20 @@ class BlueprintsPostDeleteView(APIView):
                 return Response(status=status.HTTP_404_NOT_FOUND,  data={"detail": "Object not found."})
             if check_site_permission(request, site.id):
                 files = request.FILES.getlist('files')
+                doc_type = request.POST.get('doc_type')
+                name = request.POST.get('name')
+
                 if len(files) > 0:
-                    for file in files:
-                        BluePrints.objects.create(site=site, image=file)
+                    objs = [
+                        BluePrints(
+                            site=site,
+                            image=file,
+                            name=name,
+                            doc_type=doc_type
+                        )
+                        for file in files
+                    ]
+                    BluePrints.objects.bulk_create(objs)
 
                     return Response(status=status.HTTP_201_CREATED, data={"detail": "successfully created blueprints."})
                 else:
