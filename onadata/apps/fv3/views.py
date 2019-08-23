@@ -18,7 +18,8 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from django.contrib.gis.geos import Point
-from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels, ProjectMetaAttrHistory
+from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels, \
+    ProjectMetaAttrHistory, Organization
 from onadata.apps.fsforms.models import FInstance, ProgressSettings
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
@@ -33,7 +34,8 @@ from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, Unass
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
-from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm
+from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
+    check_site_permission
 
 
 class ProjectSitesPagination(PageNumberPagination):
@@ -608,15 +610,59 @@ def sub_regions(request):
 @api_view(['GET'])
 def users(request):
     site = request.query_params.get('site', None)
+    project = request.query_params.get('project', None)
+    team = request.query_params.get('team', None)
+
     if site is not None:
-        site = Site.objects.get(id=site)
-        project = get_object_or_404(Project, id=site.project.id)
-        queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
-            Q(site=site) | Q(region__project=project)).select_related('user').distinct('user_id')
+            try:
+                site = Site.objects.select_related('project').get(id=site)
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+            if check_site_permission(request, site.id):
 
-        data = [{'id':data.id} for data in queryset]
+                project = get_object_or_404(Project, id=site.project.id)
+                queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
+                    Q(site=site) | Q(region__project=project)).select_related('user', 'user__user_profile').distinct('user_id')
 
-        return Response(data)
+                data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+                         'profile_picture': user_obj.user.user_profile.profile_picture.url}
+                        for user_obj in queryset]
+
+                return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'site': site.name, 'site_url':
+                    site.get_absolute_url()}})
+            else:
+                return Response(status=status.HTTP_403_FORBIDDEN,
+                                data={"detail": "You do not have permission to perform this action."})
+    elif project is not None:
+        try:
+            project = Project.objects.get(id=project)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        queryset = UserRole.objects.select_related('user', 'user__profile').filter(project=project,
+                                                                   ended_at__isnull=True).distinct('user_id')
+
+        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+                 'profile_picture': user_obj.user.user_profile.profile_picture.url}
+                for user_obj in queryset]
+
+        return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'project': project.name, 'project_url':
+            project.get_absolute_url()}})
+
+    elif team is not None:
+        try:
+            team = Organization.objects.get(id=team)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        queryset = UserRole.objects.select_related('user').filter(organization=team, ended_at__isnull=True).distinct('user_id')
+
+        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+                 'profile_picture': user_obj.user.user_profile.profile_picture.url}
+                for user_obj in queryset]
+
+        return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'team': team.name, 'team_url':
+            team.get_absolute_url()}})
 
     else:
-        return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site id is required.'})
+        return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site id or project id or team id is required.'})

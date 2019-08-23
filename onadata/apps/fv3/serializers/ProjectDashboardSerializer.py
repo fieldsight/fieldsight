@@ -230,20 +230,22 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
         fields = ('name', 'sub_stages')
 
     def get_sub_stages(self, obj):
+        project = obj.project
+        total_sites = project.sites.filter(is_active=True, is_survey=False, site__isnull=False).count()
 
         try:
 
-            data = [{'form_name': form.stage_forms.xf.title, 'pending': form.stage_forms.project_form_instances.\
-                filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances.\
-                filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}'.format(form.stage_forms.id),
+                     'pending': form.stage_forms.project_form_instances.filter(form_status=0).count(),
+                     'rejected': form.stage_forms.project_form_instances.filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
                 filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances.\
-                filter(form_status=3).count(), 'progress': (form.stage_forms.project_form_instances.\
-                filter(form_status=3).count()/form.stage_forms.project_form_instances.count())*100}
+                filter(form_status=3).count(), 'progress': round((float(form.stage_forms.project_form_instances.all().
+                                                            distinct('site').count())/total_sites)*100)}
                     for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')
 
                     ]
         except ZeroDivisionError:
-            data = [{'form_name': form.stage_forms.xf.title, 'pending': form.stage_forms.project_form_instances. \
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}'.format(form.stage_forms.id), 'pending': form.stage_forms.project_form_instances. \
                 filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances. \
                 filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances. \
                 filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances. \
@@ -257,47 +259,58 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
 class ProgressGeneralFormSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     progress_data = serializers.SerializerMethodField()
+    form_url = serializers.SerializerMethodField()
 
     class Meta:
         model = FieldSightXF
 
-        fields = ('name', 'progress_data')
+        fields = ('name', 'form_url', 'progress_data')
 
     def get_name(self, obj):
         return obj.xf.title
 
+    def get_form_url(self, obj):
+        return '/forms/project-submissions/{}' .format(obj.id)
+
     def get_progress_data(self, obj):
-        total = obj.project_form_instances.count()
-        approved = obj.project_form_instances.filter(form_status=3).count()
+        project = obj.project
+        total_sites = project.sites.filter(is_active=True, is_survey=False).count()
+        submission_in_site = obj.project_form_instances.all().distinct('site').count()
+
         try:
-            progress = (approved/total)*100
+            progress = round((float(submission_in_site)/total_sites)*100, 2)
         except ZeroDivisionError:
             progress = 0
         data = [{'pending': obj.project_form_instances.filter(form_status=0).count(), 'rejected': obj.project_form_instances. \
             filter(form_status=1).count(), 'flagged': obj.project_form_instances.filter(form_status=2).count(),
-                 'approved': approved, 'progress': progress}
+                 'approved': obj.project_form_instances.filter(form_status=3).count(), 'progress': progress}
                 ]
         return data
 
 
 class ProgressScheduledFormSerializer(serializers.ModelSerializer):
     progress_data = serializers.SerializerMethodField()
+    form_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Schedule
 
-        fields = ('name', 'progress_data')
+        fields = ('name', 'form_url', 'progress_data')
+
+    def get_form_url(self, obj):
+        return '/forms/project-submissions/{}' .format(obj.schedule_forms.id)
 
     def get_progress_data(self, obj):
-        total = obj.schedule_forms.project_form_instances.count()
-        approved = obj.schedule_forms.project_form_instances.filter(form_status=3).count()
+        project = obj.project
+        total_sites = project.sites.filter(is_active=True, is_survey=False).count()
+        submission_in_site = obj.schedule_forms.project_form_instances.distinct('site').count()
         try:
-            progress = (approved/total)*100
+            progress = round((float(submission_in_site)/total_sites)*100, 2)
         except ZeroDivisionError:
             progress = 0
         data = [{'pending': obj.schedule_forms.project_form_instances.filter(form_status=0).count(), 'rejected':
             obj.schedule_forms.project_form_instances.filter(form_status=1).count(), 'flagged': obj.schedule_forms.\
             project_form_instances.filter(form_status=2).count(),
-                 'approved': approved, 'progress': progress}
+                 'approved': obj.schedule_forms.project_form_instances.filter(form_status=3).count(), 'progress': progress}
                 ]
         return data

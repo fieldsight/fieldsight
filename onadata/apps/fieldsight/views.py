@@ -1419,7 +1419,7 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                     else:
                         messages.success(request, 'Sites cannot be updated a the moment.')
 
-                return HttpResponseRedirect(reverse('fieldsight:proj-site-list', kwargs={'pk': pk}))
+                return HttpResponseRedirect('/fieldsight/application/?project={}#/project-sitelist'.format(pk))
             except Exception as e:
                 form.full_clean()
                 if terms_and_labels:
