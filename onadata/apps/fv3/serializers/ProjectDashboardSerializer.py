@@ -233,9 +233,9 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
 
         try:
 
-            data = [{'form_name': form.stage_forms.xf.title, 'pending': form.stage_forms.project_form_instances.\
-                filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances.\
-                filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}'.format(form.stage_forms.id),
+                     'pending': form.stage_forms.project_form_instances.filter(form_status=0).count(),
+                     'rejected': form.stage_forms.project_form_instances.filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
                 filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances.\
                 filter(form_status=3).count(), 'progress': (form.stage_forms.project_form_instances.\
                 filter(form_status=3).count()/form.stage_forms.project_form_instances.count())*100}
@@ -243,7 +243,7 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
 
                     ]
         except ZeroDivisionError:
-            data = [{'form_name': form.stage_forms.xf.title, 'pending': form.stage_forms.project_form_instances. \
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}'.format(form.stage_forms.id), 'pending': form.stage_forms.project_form_instances. \
                 filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances. \
                 filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances. \
                 filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances. \
@@ -257,14 +257,18 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
 class ProgressGeneralFormSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     progress_data = serializers.SerializerMethodField()
+    form_url = serializers.SerializerMethodField()
 
     class Meta:
         model = FieldSightXF
 
-        fields = ('name', 'progress_data')
+        fields = ('name', 'form_url', 'progress_data')
 
     def get_name(self, obj):
         return obj.xf.title
+
+    def get_form_url(self, obj):
+        return '/forms/project-submissions/{}' .format(obj.id)
 
     def get_progress_data(self, obj):
         total = obj.project_form_instances.count()
@@ -282,11 +286,15 @@ class ProgressGeneralFormSerializer(serializers.ModelSerializer):
 
 class ProgressScheduledFormSerializer(serializers.ModelSerializer):
     progress_data = serializers.SerializerMethodField()
+    form_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Schedule
 
-        fields = ('name', 'progress_data')
+        fields = ('name', 'form_url', 'progress_data')
+
+    def get_form_url(self, obj):
+        return '/forms/project-submissions/{}' .format(obj.schedule_forms.id)
 
     def get_progress_data(self, obj):
         total = obj.schedule_forms.project_form_instances.count()
