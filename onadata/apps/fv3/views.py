@@ -33,7 +33,8 @@ from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, Unass
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
-from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm
+from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
+    check_site_permission
 
 
 class ProjectSitesPagination(PageNumberPagination):
@@ -609,14 +610,21 @@ def sub_regions(request):
 def users(request):
     site = request.query_params.get('site', None)
     if site is not None:
-        site = Site.objects.get(id=site)
-        project = get_object_or_404(Project, id=site.project.id)
-        queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
-            Q(site=site) | Q(region__project=project)).select_related('user').distinct('user_id')
+            site = Site.objects.select_related('project').get(id=site)
+            if check_site_permission(request, site.id):
 
-        data = [{'id':data.id} for data in queryset]
+                project = get_object_or_404(Project, id=site.project.id)
+                queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
+                    Q(site=site) | Q(region__project=project)).select_related('user', 'user__user_profile').distinct('user_id')
 
-        return Response(data)
+                data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+                         'profile_picture': user_obj.user.user_profile.profile_picture.url}
+                        for user_obj in queryset]
 
+                return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'site': site.name, 'site_url':
+                    site.get_absolute_url()}})
+            else:
+                return Response(status=status.HTTP_403_FORBIDDEN,
+                                data={"detail": "You do not have permission to perform this action."})
     else:
         return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site id is required.'})
