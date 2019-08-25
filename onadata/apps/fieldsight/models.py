@@ -365,7 +365,7 @@ class Project(models.Model):
         return qs.get('outstanding', 0), qs.get('flagged', 0), qs.get('approved', 0), qs.get('rejected', 0)
 
     def get_absolute_url(self):
-        return reverse('fieldsight:project-dashboard', kwargs={'pk': self.pk})
+        return "/fieldsight/application/#/project-dashboard/{}".format(self.pk)
 
 
 class Region(models.Model):

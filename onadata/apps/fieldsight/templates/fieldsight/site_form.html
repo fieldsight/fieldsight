@@ -79,7 +79,7 @@
 						{% if form.instance.name %}
 						<li class="breadcrumb-item"><a href="{% url 'fieldsight:application' %}#/site-dashboard/{{form.instance.pk|stringformat:'d'}}">{{ form.instance.name }}</a></li>
 						 {% else %}
-						<li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' project.pk %}">{{ project.name }}</a></li>
+						<li class="breadcrumb-item"><a href="{{project.get_absolute_url}}">{{ project.name }}</a></li>
 						 {% endif %}
 						<li class="breadcrumb-item active" aria-current="page">{{ scenario }}</li>
 					 </ol>

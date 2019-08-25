@@ -101,7 +101,7 @@ else if (tab == "4"){ vm.setSelectedVm('survey')}
             {% if is_project == "0" %}
 			<li class="breadcrumb-item"><a href="{{obj.get_absolute_url}}">{{ obj.name }}</a></li>
             {% else %}
-			<li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' pk %}">{{ obj.name }}</a></li>
+			<li class="breadcrumb-item"><a href="{{obj.get_absolute_url}}">{{ obj.name }}</a></li>
             {% endif %}
 			<li class="breadcrumb-item active" aria-current="page">{% trans 'Manage' %} {% trans 'Forms' %}</li>
 		    {% endblock %}
