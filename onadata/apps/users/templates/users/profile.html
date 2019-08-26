@@ -155,7 +155,7 @@
 										{% for role in roles_project_doner %}
 
 											<div class="col-lg-6 col-md-6 margin-top">
-												<a href="{% url 'fieldsight:donor_project_dashboard_lite' role.project.pk %}" title="">
+												<a href="{{role.project.get_absolute_url}}" title="">
 												<div class="project-item-wrap clearfix">
 													<div class="project-logo">
 														<img src="{% if role.project.logo %}{{ role.project.logo.url }}{% else %}{% static 'dummy/assets/img/default_image.png' %}{% endif %}" alt="" width="50" height="50">
