@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
 from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site
+from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule
 from onadata.apps.logger.models import Instance
 from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
@@ -58,12 +59,13 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
     site_progress_chart_data = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
     map = serializers.SerializerMethodField()
+    is_project_manager = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = ('id', 'name', 'address', 'public_desc', 'logo', 'contacts', 'project_activity', 'total_sites',
                   'total_users', 'project_managers', 'has_region', 'logs', 'form_submissions_chart_data',
-                  'site_progress_chart_data', 'map', 'terms_and_labels', 'breadcrumbs')
+                  'site_progress_chart_data', 'map', 'terms_and_labels', 'breadcrumbs', 'is_project_manager')
 
     def get_contacts(self, obj):
         contacts = {
@@ -76,8 +78,22 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
         return contacts
 
+    def get_is_project_manager(self, obj):
+        request = self.context['request']
+
+        is_project_manager = False
+        organization_id = obj.organization.id
+        user_role_as_manager = request.roles.filter(project_id=obj.id, group__name="Project Manager")
+        user_role_as_team_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
+
+        if user_role_as_manager or request.is_super_admin or user_role_as_team_admin:
+            is_project_manager = True
+
+        return is_project_manager
+
     def get_project_activity(self, obj):
         one_week_ago = datetime.datetime.today() - datetime.timedelta(days=7)
+        instances = Instance.objects.filter(fieldsight_instance__project_id=obj.id, date_created__gte=one_week_ago)
 
         try:
             site_visits_query = settings.MONGO_DB.instances.aggregate(
@@ -99,14 +115,12 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         except:
             site_visits_in_last_7_days = "Error occured."
 
-        submissions_in_last_7_days = Instance.objects.filter(fieldsight_instance__project=obj, date_created=one_week_ago)
-        active_supervisors_in_last_7_days = submissions_in_last_7_days.distinct('user').count()
         outstanding, flagged, approved, rejected = obj.get_submissions_count()
 
         return {
             'site_visits_in_last_7_days': site_visits_in_last_7_days,
-            'submissions_in_last_7_days': submissions_in_last_7_days.count(),
-            'active_supervisors_in_last_7_days': active_supervisors_in_last_7_days,
+            'submissions_in_last_7_days': instances.count(),
+            'active_supervisors_in_last_7_days': instances.distinct('user').count(),
             'total_submissions': outstanding + flagged + approved + rejected,
             'pending_submissions': outstanding,
             'approved_submissions': approved,
@@ -218,3 +232,98 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
             organization_url = organization.get_absolute_url()
 
         return {'name': project, 'organization': organization.name, 'organization_url': organization_url}
+
+
+class ProgressStageFormSerializer(serializers.ModelSerializer):
+    sub_stages = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+
+        fields = ('name', 'sub_stages')
+
+    def get_sub_stages(self, obj):
+        project = obj.project
+        total_sites = project.sites.filter(is_active=True, is_survey=False, enable_subsites=False).count()
+
+        try:
+
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}'.format(form.stage_forms.id),
+                     'pending': form.stage_forms.project_form_instances.filter(form_status=0).count(),
+                     'rejected': form.stage_forms.project_form_instances.filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
+                filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances.\
+                filter(form_status=3).count(), 'progress': round((float(form.stage_forms.project_form_instances.all().
+                                                            distinct('site').count())/total_sites)*100)}
+                    for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')
+
+                    ]
+        except ZeroDivisionError:
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}'.format(form.stage_forms.id), 'pending': form.stage_forms.project_form_instances. \
+                filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances. \
+                filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances. \
+                filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances. \
+                filter(form_status=3).count(), 'progress': 0}
+                    for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')
+
+                    ]
+        return data
+
+
+class ProgressGeneralFormSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    progress_data = serializers.SerializerMethodField()
+    form_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FieldSightXF
+
+        fields = ('name', 'form_url', 'progress_data')
+
+    def get_name(self, obj):
+        return obj.xf.title
+
+    def get_form_url(self, obj):
+        return '/forms/project-submissions/{}' .format(obj.id)
+
+    def get_progress_data(self, obj):
+        project = obj.project
+        total_sites = project.sites.filter(is_active=True, is_survey=False).count()
+        submission_in_site = obj.project_form_instances.all().distinct('site').count()
+
+        try:
+            progress = round((float(submission_in_site)/total_sites)*100, 2)
+        except ZeroDivisionError:
+            progress = 0
+        data = [{'pending': obj.project_form_instances.filter(form_status=0).count(), 'rejected': obj.project_form_instances. \
+            filter(form_status=1).count(), 'flagged': obj.project_form_instances.filter(form_status=2).count(),
+                 'approved': obj.project_form_instances.filter(form_status=3).count(), 'progress': progress}
+                ]
+        return data
+
+
+class ProgressScheduledFormSerializer(serializers.ModelSerializer):
+    progress_data = serializers.SerializerMethodField()
+    form_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Schedule
+
+        fields = ('name', 'form_url', 'progress_data')
+
+    def get_form_url(self, obj):
+        return '/forms/project-submissions/{}' .format(obj.schedule_forms.id)
+
+    def get_progress_data(self, obj):
+        project = obj.project
+        total_sites = project.sites.filter(is_active=True, is_survey=False).count()
+        submission_in_site = obj.schedule_forms.project_form_instances.distinct('site').count()
+        try:
+            progress = round((float(submission_in_site)/total_sites)*100, 2)
+        except ZeroDivisionError:
+            progress = 0
+        data = [{'pending': obj.schedule_forms.project_form_instances.filter(form_status=0).count(), 'rejected':
+            obj.schedule_forms.project_form_instances.filter(form_status=1).count(), 'flagged': obj.schedule_forms.\
+            project_form_instances.filter(form_status=2).count(),
+                 'approved': obj.schedule_forms.project_form_instances.filter(form_status=3).count(), 'progress': progress}
+                ]
+        return data

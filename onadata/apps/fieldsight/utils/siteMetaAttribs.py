@@ -107,11 +107,11 @@ def get_site_meta_ans(site_id):
                                  sitenew[0].site_meta_attributes_ans,
                                  selected_metas,
                                  sitenew[0].project.site_meta_attributes)
-                    metas[meta.get('question_text')] = answer
+                    metas[meta.get('question_name')] = answer
 
                 else:
                     answer = "No site referenced"
-                    metas[meta.get('question_text')] = answer
+                    metas[meta.get('question_name')] = answer
 
             else:
                 if meta.get('question_type') == "Form":
@@ -129,7 +129,7 @@ def get_site_meta_ans(site_id):
                 else:
                     answer = meta_answer.get(meta.get('question_name'), "")
 
-                metas[meta.get('question_text')] = answer
+                metas[meta.get('question_name')] = answer
 
     generate_ans(metas, project.id, project.site_meta_attributes, site.site_meta_attributes_ans, None, None)
 

@@ -251,7 +251,7 @@ var org = "{{obj.pk}}";
 											</div>
 											<!-- ko foreach: sites  -->
 											{% if projects.count == 1%}
-											<a data-bind="attr: { href: url }" class="project-item-wrap clearfix ">
+											<a data-bind="attr: { href: '/fieldsight/application/#/project-dashboard/'+ id() }" class="project-item-wrap clearfix ">
 												<div class="project-logo">
 													 <img data-bind="attr:{src: logo}">
 												</div>
@@ -262,7 +262,7 @@ var org = "{{obj.pk}}";
 												</div>
 											</a>
 											{% else %}
-											<a data-bind="attr: { href: url }" class="project-item-wrap clearfix margin-top">
+											<a data-bind="attr: { href: '/fieldsight/application/#/project-dashboard/'+ id() }" class="project-item-wrap clearfix margin-top">
 												<div class="project-logo">
 													 <img data-bind="attr:{src: logo}">
 												</div>

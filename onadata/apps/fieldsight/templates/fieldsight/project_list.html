@@ -42,8 +42,8 @@
                                         <p>{{ obj.get_country_display }}</p>
 									</div>
 									<div class="action-button margin-top">
-										<a href="{% url 'fieldsight:project-dashboard' obj.pk %}" title="" class="btn btn-sm btn-primary">{% trans 'View' %}</a>
-										<a href="{% url 'fieldsight:project-edit' obj.pk %}" title="" class="btn btn-sm btn-primary">{% trans 'Edit' %}</a>
+										<a href="{{obj.get_absolute_url}}" title="" class="btn btn-sm btn-primary">{% trans 'View' %}</a>
+										<a href="/fieldsight/application/?project={{obj.pk}}#/project-settings" title="" class="btn btn-sm btn-primary">{% trans 'Edit' %}</a>
 									</div>
 								</div>
 							</div>

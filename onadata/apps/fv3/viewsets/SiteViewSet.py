@@ -17,11 +17,12 @@ from rest_framework.views import APIView
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanceSerializer, StageFormSerializer, \
     SiteCropImageSerializer
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.fieldsight.models import Site, BluePrints
 from onadata.apps.fsforms.models import FInstance, Schedule, Stage, FieldSightXF
 
 from onadata.apps.fsforms.reports_util import get_recent_images
 from onadata.apps.fv3.role_api_permissions import SiteDashboardPermissions, SiteSubmissionPermission, check_site_permission
+from onadata.apps.fv3.viewsets.utils import check_file_extension, readable_date
 
 
 class SiteSubmissionsPagination(PageNumberPagination):
@@ -184,22 +185,13 @@ def site_recent_pictures(request):
                         data={"detail": "You do not have permission to perform this action."})
 
 
-def check_file_extension(file_url):
-    type = 'others'
+def doc_name(obj):
+    if obj.name is not None:
+        name = obj.name
+    else:
+        name = obj.get_name()
 
-    if file_url.endswith(('.jpg', '.png', '.jpeg')):
-        type = 'image'
-
-    elif file_url.endswith(('.xls', '.xlsx')):
-        type = 'excel'
-
-    elif file_url.endswith('.pdf'):
-        type = 'pdf'
-
-    elif file_url.endswith(('.doc', '.docm', 'docx', '.dot', '.dotm', '.dot', '.txt', '.odt')):
-        type = 'word'
-
-    return type
+    return name
 
 
 @permission_classes([IsAuthenticated])
@@ -207,6 +199,7 @@ def check_file_extension(file_url):
 def site_documents(request):
     query_params = request.query_params
     site_id = query_params.get('site_id')
+    site_obj = get_object_or_404(Site, id=site_id)
     site_id = int(site_id)
     if check_site_permission(request, site_id):
         try:
@@ -214,10 +207,82 @@ def site_documents(request):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        data = [{'name': blueprint.get_name(), 'file': blueprint.image.url, 'type': check_file_extension((blueprint.image.url.lower()))}
+        data = [{'id': blueprint.id, 'name': doc_name(blueprint), 'file': blueprint.image.url, 'doc_type': blueprint.doc_type,
+                 'added_date': readable_date(blueprint.added_date),
+                 'type': check_file_extension((blueprint.image.url.lower()))}
                 for blueprint in blueprints_obj]
-        return Response(data)
+        return Response(data={'documents': data, 'breadcrumbs': {'name': 'Site Documents', 'site': site_obj.name,
+                                                                 'site_url': site_obj.get_absolute_url()}})
     else:
         return Response(status=status.HTTP_403_FORBIDDEN,
                         data={"detail": "You do not have permission to perform this action."})
 
+
+@permission_classes([IsAuthenticated])
+@api_view(['DELETE'])
+def delete_blueprint(request, pk):
+    blueprint = get_object_or_404(BluePrints, id=pk)
+    if check_site_permission(request, blueprint.site.id):
+
+        blueprint.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    else:
+        return Response(status=status.HTTP_403_FORBIDDEN, data={"detail": "You do not have permission to perform this action."})
+
+
+class BlueprintsPostDeleteView(APIView):
+    """
+    create and delete site blueprints.
+    """
+    authentication_classes = (CsrfExemptSessionAuthentication, SessionAuthentication, IsAuthenticated)
+
+    def post(self, request, format=None):
+        site = request.query_params.get('site', None)
+        blueprint = request.query_params.get('blueprint', None)
+        if site is not None:
+            try:
+                site = get_object_or_404(Site, id=site)
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND,  data={"detail": "Object not found."})
+            if check_site_permission(request, site.id):
+                files = request.FILES.getlist('files')
+                doc_type = request.POST.get('doc_type')
+                name = request.POST.get('name')
+
+                if len(files) > 0:
+                    objs = [
+                        BluePrints(
+                            site=site,
+                            image=file,
+                            name=name,
+                            doc_type=doc_type
+                        )
+                        for file in files
+                    ]
+                    BluePrints.objects.bulk_create(objs)
+
+                    return Response(status=status.HTTP_201_CREATED, data={"detail": "successfully created blueprints."})
+                else:
+                    return Response(status=status.HTTP_400_BAD_REQUEST, data={"detail": "Please select at least one file."})
+            else:
+                return Response(status=status.HTTP_403_FORBIDDEN,
+                                data={"detail": "You do not have permission to perform this action."})
+
+        elif blueprint is not None:
+            try:
+                blueprint = BluePrints.objects.get(id=blueprint)
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND,  data={"detail": "Object not found."})
+
+            if check_site_permission(request, blueprint.site.id):
+
+                blueprint.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT, data={"detail": "successfully deleted."})
+
+            else:
+                return Response(status=status.HTTP_403_FORBIDDEN,
+                                data={"detail": "You do not have permission to perform this action."})
+
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site or blueprint params is required.'})

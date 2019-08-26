@@ -100,8 +100,7 @@ def my_roles(request):
                                                                    Q(group__name="Region Supervisor", region__is_active=True)|
                                                                    Q(group__name="Region Reviewer", region__is_active=True)|
                                                                    Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                   Q(group__name="Reviewer", site__is_active=True)|
-                                                                   Q(group__name="Staff Project Manager", staff_project__is_deleted=False)
+                                                                   Q(group__name="Reviewer", site__is_active=True)
 
                                                                    ).distinct('organization')
     teams = MyRolesSerializer(teams, many=True, context={'user': request.user})
@@ -245,7 +244,7 @@ def submissions_map(request):
                 if is_project_manager_or_team_admin(project_obj, request.user):
 
                     submissions = settings.MONGO_DB.instances.aggregate(
-                        [{"$match": {"fs_project": {"$in": [int(project_id), str(project_id), unicode(project_id)]}, "_submitted_by": request.user.username}}, {
+                        [{"$match": {"fs_project": {"$in": [int(project_id), str(project_id), unicode(project_id)]}, "_submitted_by": request.user.username, '_deleted_at': None}}, {
                             "$project": {
                                 "_id": 0, "type": {"$literal": "Feature"},
                                 "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"}, "properties": {
@@ -269,7 +268,7 @@ def submissions_map(request):
                     merge_site_ids = list(set(int_merge_site_ids+str_merge_site_ids))
 
                     submissions = settings.MONGO_DB.instances.aggregate(
-                        [{"$match": {"fs_site": {"$in": merge_site_ids}, "_submitted_by": request.user.username}}, {
+                        [{"$match": {"fs_site": {"$in": merge_site_ids}, "_submitted_by": request.user.username, '_deleted_at': None}}, {
                             "$project": {
                                 "_id": 0, "type": {"$literal": "Feature"},
                                 "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"},

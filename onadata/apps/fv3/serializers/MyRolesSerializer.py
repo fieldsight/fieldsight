@@ -43,7 +43,7 @@ class MyProjectSerializer(serializers.ModelSerializer):
 
                 project_url = obj.project.get_absolute_url()
             else:
-                project_url = '/fieldsight/project-dashboard/lite/{}/'.format(obj.project_id)
+                project_url = obj.project.get_absolute_url()
 
             return project_url
 

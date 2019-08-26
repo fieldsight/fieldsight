@@ -864,7 +864,9 @@ def siteDetailsGenerator(project, sites, ws):
                     
         for meta in get_answer_questions:
             form_owner = None
-            query = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : { 
+            query = settings.MONGO_DB.instances.aggregate([
+                {"$sort":{"_id":1}},
+                {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
                 "_id" : "$fs_site",
                 "answer": { '$last': "$"+meta['question']['name'] }
                }
@@ -886,7 +888,9 @@ def siteDetailsGenerator(project, sites, ws):
 
         for meta in get_answer_status_questions:
         
-            query = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : { 
+            query = settings.MONGO_DB.instances.aggregate([
+                {"$sort": {"_id": 1}},
+                {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
                 "_id" : "$fs_site",
                 "answer": { '$last': "$"+meta['question']['name'] }
                }

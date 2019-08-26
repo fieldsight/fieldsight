@@ -1272,7 +1272,7 @@ class SiteDeleteView(SiteDeleteRoleMixin, View):
                                description=u'{0} deleted of site named {'
                                            u'1}'.format(
                                    self.request.user.get_full_name(), site.name))
-        return HttpResponseRedirect(reverse('fieldsight:proj-site-list', kwargs={'pk': site.project_id}))
+        return HttpResponseRedirect('/fieldsight/application/?project=' + str(site.project.id) + '#/project-sitelist')
 
     # def delete(self,*args, **kwargs):
     #     self.kwargs['pk'] = self.get_object().pk
@@ -1419,7 +1419,7 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                     else:
                         messages.success(request, 'Sites cannot be updated a the moment.')
 
-                return HttpResponseRedirect(reverse('fieldsight:proj-site-list', kwargs={'pk': pk}))
+                return HttpResponseRedirect('/fieldsight/application/?project={}#/project-sitelist'.format(pk))
             except Exception as e:
                 form.full_clean()
                 if terms_and_labels:

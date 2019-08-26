@@ -31,7 +31,7 @@
     <nav aria-label="breadcrumb" role="navigation">
         {% block breadcrumbs %}
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'fieldsight:project-dashboard' project %}">{{ obj.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{{obj.get_absolute_url}}">{{ obj.name }}</a></li>
             {% if terms_and_labels %}
                 <li class="breadcrumb-item active" aria-current="page">{% trans 'Bulk' %} {{obj.terms_and_labels.site}} {% trans 'Upload' %}</li>
 

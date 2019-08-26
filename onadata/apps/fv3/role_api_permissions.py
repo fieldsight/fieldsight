@@ -25,7 +25,8 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
             if project_id:
 
                 user_id = request.user.id
-                user_role = request.roles.filter(user_id=user_id, project_id=int(project_id), group__name__in="Project Manager")
+                user_role = request.roles.filter(user_id=user_id, project_id=int(project_id), group__name__in=["Project Manager",
+                                                                                                               "Project Donor"])
                 if user_role:
                     return True
 
@@ -46,7 +47,8 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
                     project_id = obj.id
 
                 user_id = request.user.id
-                user_role = request.roles.filter(user_id=user_id, project_id=project_id, group__name="Project Manager")
+                user_role = request.roles.filter(user_id=user_id, project_id=project_id, group__name__in=["Project Manager",
+                                                                                                          "Project Donor"])
 
                 if user_role:
                     return True
@@ -256,7 +258,7 @@ def check_site_permission(request, pk):
     site_id = int(pk)
     if site_id:
         try:
-            site = Site.objects.get(id=site_id)
+            site = Site.objects.select_related('project', 'project__organization').get(id=site_id)
         except ObjectDoesNotExist:
             return Response({"message": "Site Id does not exist."}, status=status.HTTP_204_NO_CONTENT)
 

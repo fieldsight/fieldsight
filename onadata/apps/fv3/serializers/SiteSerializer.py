@@ -15,6 +15,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from onadata.apps.fsforms.line_data_project import ProgressGeneratorSite
 from onadata.apps.fsforms.models import FInstance, Stage
 from onadata.apps.fv3.role_api_permissions import has_write_permission_in_site
+from onadata.apps.fieldsight.models import BluePrints
 
 from onadata.apps.fsforms.line_data_project import date_range
 
@@ -191,7 +192,7 @@ class SiteSerializer(serializers.ModelSerializer):
         organization = obj.project.organization
         organization_url = ''
         request = self.context['request']
-        if request.roles.filter(Q(group__name="Project Manager", project=project) | Q(group__name="Organization Admin",
+        if request.roles.filter(Q(group__name__in=["Project Manager", "Project Donor"], project=project) | Q(group__name="Organization Admin",
                                                                                       organization=organization)) or request.is_super_admin:
             project_url = project.get_absolute_url()
         if request.roles.filter(group__name="Organization Admin", organization=organization) or request.is_super_admin:
@@ -262,7 +263,7 @@ class StageFormSerializer(serializers.ModelSerializer):
         fields = ('name', 'sub_stages')
 
     def get_sub_stages(self, obj):
-        data = [{'form_name': form.stage_forms.xf.title, 'new_submission_url': settings.SITE_URL + '/forms/new/' +
+        data = [{'sub_stage_name': form.name,'form_name': form.stage_forms.xf.title, 'new_submission_url': settings.SITE_URL + '/forms/new/' +
                                                                                str(self.context['site_id']) + '/'+str(form.stage_forms.id)}
                 for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')]
         return data
