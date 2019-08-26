@@ -2241,9 +2241,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                 },
                 {
                     "$group": {
-                        "_id": {
-                            "_user":"$_id.user",
-                        },
+                        "_id": "$_id.user",
                         "days_worked": { '$sum': 1}
                     }
                 }
