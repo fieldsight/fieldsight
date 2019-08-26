@@ -79,6 +79,7 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
     def get_project_activity(self, obj):
         one_week_ago = datetime.datetime.today() - datetime.timedelta(days=7)
+        instances = Instance.objects.filter(fieldsight_instance__project_id=obj.id, date_created__gte=one_week_ago)
 
         try:
             site_visits_query = settings.MONGO_DB.instances.aggregate(
@@ -100,14 +101,12 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         except:
             site_visits_in_last_7_days = "Error occured."
 
-        submissions_in_last_7_days = Instance.objects.filter(fieldsight_instance__project=obj, date_created=one_week_ago)
-        active_supervisors_in_last_7_days = submissions_in_last_7_days.distinct('user').count()
         outstanding, flagged, approved, rejected = obj.get_submissions_count()
 
         return {
             'site_visits_in_last_7_days': site_visits_in_last_7_days,
-            'submissions_in_last_7_days': submissions_in_last_7_days.count(),
-            'active_supervisors_in_last_7_days': active_supervisors_in_last_7_days,
+            'submissions_in_last_7_days': instances.count(),
+            'active_supervisors_in_last_7_days': instances.distinct('user').count(),
             'total_submissions': outstanding + flagged + approved + rejected,
             'pending_submissions': outstanding,
             'approved_submissions': approved,
@@ -231,7 +230,7 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
 
     def get_sub_stages(self, obj):
         project = obj.project
-        total_sites = project.sites.filter(is_active=True, is_survey=False, site__isnull=False).count()
+        total_sites = project.sites.filter(is_active=True, is_survey=False, enable_subsites=False).count()
 
         try:
 
