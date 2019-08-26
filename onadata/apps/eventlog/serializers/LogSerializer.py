@@ -120,7 +120,7 @@ class TaskSerializer(serializers.ModelSerializer):
         if obj.task_type in [0, 2, 3, 4, 8, 10, 13]:
 
             if obj.get_event_url():
-                project_id = int(obj.get_event_url().split('/')[3])
+                project_id = int(obj.get_event_url().split('/')[5])
                 project = Project.objects.get(id=project_id)
                 terms = ProjectLevelTermsAndLabels.objects.filter(project_id=project.id).exists()
 
