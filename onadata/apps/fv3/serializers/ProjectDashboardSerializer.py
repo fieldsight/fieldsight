@@ -59,12 +59,13 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
     site_progress_chart_data = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
     map = serializers.SerializerMethodField()
+    is_project_manager = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = ('id', 'name', 'address', 'public_desc', 'logo', 'contacts', 'project_activity', 'total_sites',
                   'total_users', 'project_managers', 'has_region', 'logs', 'form_submissions_chart_data',
-                  'site_progress_chart_data', 'map', 'terms_and_labels', 'breadcrumbs')
+                  'site_progress_chart_data', 'map', 'terms_and_labels', 'breadcrumbs', 'is_project_manager')
 
     def get_contacts(self, obj):
         contacts = {
@@ -76,6 +77,19 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         }
 
         return contacts
+
+    def get_is_project_manager(self, obj):
+        request = self.context['request']
+
+        is_project_manager = False
+        organization_id = obj.organization.id
+        user_role_as_manager = request.roles.filter(project_id=obj.id, group__name="Project Manager")
+        user_role_as_team_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
+
+        if user_role_as_manager or request.is_super_admin or user_role_as_team_admin:
+            is_project_manager = True
+
+        return is_project_manager
 
     def get_project_activity(self, obj):
         one_week_ago = datetime.datetime.today() - datetime.timedelta(days=7)
