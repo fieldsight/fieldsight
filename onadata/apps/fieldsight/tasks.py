@@ -2203,9 +2203,44 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                 {
                     "$group": {
                         "_id": "$_id._user",
-                        "total_worked_days": {'$sum': '$visits'},
                         "submissions": {'$sum': '$submissions'},
                         "sites_visited": {'$sum': 1}
+                    }
+                }
+            ]
+        )['result']
+
+        all_days_worked = settings.MONGO_DB.instances.aggregate(
+            [
+                {
+                    "$match":{
+                        "fs_project": {
+                            "$in":[project_id, int(project_id)]
+                        },
+                        "start": { 
+                            '$gte' : new_startdate.isoformat(),
+                            '$lte' : new_enddate.isoformat() 
+                        },
+                        "fs_project": {'$in' : [str(project_id), int(project_id)]}
+                    }
+                },
+                { 
+                    "$group" : { 
+                        "_id" :  { 
+                            "user": "$_submitted_by",
+                            "date": { 
+                                "$substr": [ "$start", 0, 10 ]
+                            }
+                        },
+                            "submissions": {'$sum':1}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "_user":"$_id.user",
+                        },
+                        "days_worked": { '$sum': 1}
                     }
                 }
             ]
@@ -2214,8 +2249,12 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
         user_stats = {}
 
         for visit in site_visits:
+            visit['total_worked_days'] = 0
             user_stats[visit['_id']] = visit
-        
+
+        for days_worked in all_days_worked:
+            user_stats[days_worked['_id']]['total_worked_days'] = days_worked['days_worked']
+
         query={}
         last_month = new_enddate - datetime.timedelta(days=30)
         query['all_submissions'] = Sum(
