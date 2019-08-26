@@ -192,7 +192,7 @@ class SiteSerializer(serializers.ModelSerializer):
         organization = obj.project.organization
         organization_url = ''
         request = self.context['request']
-        if request.roles.filter(Q(group__name="Project Manager", project=project) | Q(group__name="Organization Admin",
+        if request.roles.filter(Q(group__name__in=["Project Manager", "Project Donor"], project=project) | Q(group__name="Organization Admin",
                                                                                       organization=organization)) or request.is_super_admin:
             project_url = project.get_absolute_url()
         if request.roles.filter(group__name="Organization Admin", organization=organization) or request.is_super_admin:

@@ -25,7 +25,8 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
             if project_id:
 
                 user_id = request.user.id
-                user_role = request.roles.filter(user_id=user_id, project_id=int(project_id), group__name="Project Manager")
+                user_role = request.roles.filter(user_id=user_id, project_id=int(project_id), group__name__in=["Project Manager",
+                                                                                                               "Project Donor"])
                 if user_role:
                     return True
 
@@ -46,7 +47,8 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
                     project_id = obj.id
 
                 user_id = request.user.id
-                user_role = request.roles.filter(user_id=user_id, project_id=project_id, group__name="Project Manager")
+                user_role = request.roles.filter(user_id=user_id, project_id=project_id, group__name__in=["Project Manager",
+                                                                                                          "Project Donor"])
 
                 if user_role:
                     return True
