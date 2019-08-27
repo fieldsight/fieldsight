@@ -1,0 +1,12 @@
+from django.conf.urls import url
+
+from onadata.apps.fv3.viewsets.TeamViewSet import TeamDashboardViewSet
+
+
+team_dashboard_urlpatterns = [
+    url(r'^api/team/(?P<pk>\d+)/$', TeamDashboardViewSet.as_view({'get': 'retrieve'}), name='team'),
+
+
+]
+
+
