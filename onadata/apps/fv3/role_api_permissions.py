@@ -124,6 +124,28 @@ class ProjectDashboardPermissions(permissions.BasePermission):
         return False
 
 
+class TeamDashboardPermissions(permissions.BasePermission):
+    """
+    Object-level permission to only allow owners of an object to View it.
+    """
+
+    def has_object_permission(self, request, view, obj):
+
+        if request.is_super_admin:
+            return True
+
+        team = obj
+
+        if team is not None:
+
+            user_role_org_admin = request.roles.filter(organization_id=team.id, group__name="Organization Admin")
+
+            if user_role_org_admin:
+                return True
+
+        return False
+
+
 class SiteDashboardPermissions(permissions.BasePermission):
     """
     Object-level permission to only allow owners of an object to View it.

@@ -5,22 +5,21 @@ from django.core.serializers import serialize
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Organization, Site, Project
-from onadata.apps.userrole.models import UserRole
 
 
-class OrganizationSerializer(serializers.ModelSerializer):
+class TeamSerializer(serializers.ModelSerializer):
 
     total_sites = serializers.SerializerMethodField()
     submissions = serializers.SerializerMethodField()
     contact = serializers.SerializerMethodField()
     projects = serializers.SerializerMethodField()
     admin = serializers.SerializerMethodField()
-    map_data = serializers.SerializerMethodField()
+    breadcrumbs = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = ('id', 'name', 'address', 'logo', 'public_desc', 'contact', 'total_sites',
-                  'submissions', 'projects', 'admin', 'map_data')
+                  'submissions', 'projects', 'admin', 'breadcrumbs')
 
     def get_total_sites(self, obj):
 
@@ -43,15 +42,25 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return contact
 
     def get_projects(self, obj):
-        projects = Project.objects.filter(organization_id=obj.pk, is_active=True).values('id', 'name', 'logo')
+        projects = obj.projects.filter(is_active=True).values('id', 'name', 'logo')
 
         return projects
 
     def get_admin(self, obj):
-        admin = UserRole.objects.filter(organization=obj, ended_at__isnull=True, group__name="Organization Admin").\
-            values('id', 'user__username', 'user__email', 'user__user_profile__profile_picture')
+        admin_queryset = obj.organization_roles.filter(ended_at__isnull=True, group__name="Organization Admin")
 
-        return admin
+        data = [{'id': admin.id, 'full_name': admin.user.get_full_name(), 'email': admin.user.email, 'profile':
+            admin.user.user_profile.profile_picture.url} for admin in admin_queryset]
+
+        return data
+
+    def get_breadcrumbs(self, obj):
+        request = self.context['request']
+        if request.is_super_admin:
+            return {'name': obj.name, 'teams': 'Teams', 'teams_url': '/fieldsight/organization'}
+
+        else:
+            return {'name': obj.name}
 
     def get_map_data(self, obj):
         sites = Site.objects.filter(project__organization=obj, is_survey=False, is_active=True)[:100]
@@ -59,6 +68,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
                          fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone', 'id'))
 
         return json.loads(data)
+
 
 
 
