@@ -133,8 +133,9 @@ class LibraryFormsListView(LibraryFormView, MyLibraryListView, ProjectMixin):
 
 
 class MyOwnFormsListView(LoginRequiredMixin, FSFormView, OwnListView):
-    pass
 
+    def dispatch(self, request, *args, **kwargs):
+        return HttpResponseRedirect('/fieldsight/application/#/forms/myform')
 
 class FormView(object):
     model = FieldSightXF
