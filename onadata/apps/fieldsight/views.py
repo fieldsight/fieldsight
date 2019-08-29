@@ -227,9 +227,29 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         return dashboard_data
 
 
-class ProjectDashboard(ProjectRoleMixin, TemplateView):
+class ProjectDashboard(TemplateView):
     template_name = "fieldsight/project_dashboard.html"
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.is_super_admin:
+            return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
+        print(self.kwargs)
+
+        project_id = self.kwargs.get('pk')
+        user_id = request.user.id
+        user_role = request.roles.filter(user_id=user_id, project_id=project_id, group__name__in=['Project Manager',
+                                                                                                  'Project Donor'])
+
+        if user_role:
+            return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
+        organization_id = Project.objects.get(pk=project_id).organization.id
+        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
+
+        if user_role_asorgadmin:
+            return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
+
+        raise PermissionDenied()
+
     def get_context_data(self, **kwargs):
         obj = get_object_or_404(Project, pk=self.kwargs.get('pk'), is_active=True)
         peoples_involved = obj.project_roles.filter(ended_at__isnull=True).distinct('user').count()
