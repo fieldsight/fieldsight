@@ -14,12 +14,14 @@ class TeamSerializer(serializers.ModelSerializer):
     contact = serializers.SerializerMethodField()
     projects = serializers.SerializerMethodField()
     admin = serializers.SerializerMethodField()
+    total_projects = serializers.SerializerMethodField()
+    total_users = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
-        fields = ('id', 'name', 'address', 'logo', 'public_desc', 'contact', 'total_sites',
-                  'submissions', 'projects', 'admin', 'breadcrumbs')
+        fields = ('id', 'name', 'address', 'logo', 'public_desc', 'contact', 'total_sites', 'total_projects',
+                  'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs')
 
     def get_total_sites(self, obj):
 
@@ -42,7 +44,7 @@ class TeamSerializer(serializers.ModelSerializer):
         return contact
 
     def get_projects(self, obj):
-        projects = obj.projects.filter(is_active=True).values('id', 'name', 'logo')
+        projects = obj.projects.filter(is_active=True).values('id', 'name', 'logo', 'address')
 
         return projects
 
@@ -53,6 +55,12 @@ class TeamSerializer(serializers.ModelSerializer):
             admin.user.user_profile.profile_picture.url} for admin in admin_queryset]
 
         return data
+
+    def get_total_projects(self, obj):
+        return obj.projects.filter(is_active=True).count()
+
+    def get_total_users(self, obj):
+        return obj.organization_roles.filter(ended_at__isnull=True).distinct('user_id').count()
 
     def get_breadcrumbs(self, obj):
         request = self.context['request']
