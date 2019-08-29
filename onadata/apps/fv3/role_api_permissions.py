@@ -23,6 +23,11 @@ class ProjectRoleApiPermissions(DjangoObjectPermissions):
 
         try:
             if project_id:
+                try:
+                    project_id = Project.objects.get(id=project_id).id
+
+                except ObjectDoesNotExist:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
 
                 user_id = request.user.id
                 user_role = request.roles.filter(user_id=user_id, project_id=int(project_id), group__name__in=["Project Manager",

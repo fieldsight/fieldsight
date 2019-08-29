@@ -19,7 +19,7 @@ from django.views.generic import ListView, View
 from django.core.urlresolvers import reverse_lazy, reverse
 from django.core.serializers import serialize
 from django.forms.forms import NON_FIELD_ERRORS
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
 
 
@@ -4370,9 +4370,15 @@ def project_dashboard_graphs(request, pk):
 
 
 def site_refrenced_metas(request, pk):
+
+    try:
+        site = Site.objects.get(pk=pk)
+
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Not Found'}, status=404)
+
     metas = generateSiteMetaAttribs(int(pk))
     return JsonResponse(metas, safe=False)
-
 
 
 def redirectToSite(request, pk):

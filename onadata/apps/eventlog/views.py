@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.timezone import now
 from django.shortcuts import render, redirect
@@ -134,7 +135,11 @@ class SiteLog(viewsets.ModelViewSet):
     pagination_class = LargeResultsSetPagination
 
     def filter_queryset(self, queryset):
-        site = Site.objects.get(pk=int(self.kwargs.get('pk')))
+        try:
+            site = Site.objects.get(pk=int(self.kwargs.get('pk')))
+
+        except ObjectDoesNotExist:
+            return Site.objects.all().none()
 
         content_site = ContentType.objects.get(app_label="fieldsight", model="site")
         if check_site_permission(self.request, site.id):

@@ -7,7 +7,7 @@ from django.views.generic.edit import UpdateView as BaseUpdateView, CreateView a
 from django.contrib import messages
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.views.generic import TemplateView
 
 from onadata.apps.fieldsight.models import Organization, Project, Site, Region
@@ -173,7 +173,11 @@ class ReadonlySiteLevelRoleMixin(LoginRequiredMixin):
             return super(ReadonlySiteLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
         site_id = self.kwargs.get('pk')
-        site = Site.objects.get(id=site_id)
+        try:
+            site = Site.objects.get(id=site_id)
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'Not found'}, status=404)
+
         region = site.region
         user_id = request.user.id
         project = Site.objects.get(pk=site_id).project
