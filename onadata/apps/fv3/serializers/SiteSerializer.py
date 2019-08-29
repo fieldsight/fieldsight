@@ -98,13 +98,12 @@ class SiteSerializer(serializers.ModelSerializer):
 
     def get_total_users(self, obj):
 
-        peoples_involved = UserRole.objects.filter(ended_at__isnull=True).filter(
-            Q(site=obj) | Q(region__project=obj.project)).select_related('user').distinct('user_id').count()
+        peoples_involved = obj.site_roles.filter(ended_at__isnull=True).select_related('user').distinct('user_id').count()
         return peoples_involved
 
     def get_total_subsites(self, obj):
         if obj.enable_subsites:
-            return obj.sub_sites.count()
+            return obj.sub_sites.filter(is_active=True).count()
         return 0
 
     def get_users(self, obj):

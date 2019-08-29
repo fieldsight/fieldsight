@@ -1886,9 +1886,7 @@ class SiteUserList(ListView):
         return context
 
     def get_queryset(self):
-        project = Site.objects.get(pk=self.kwargs.get('pk')).project
-        queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
-            Q(site_id=self.kwargs.get('pk')) | Q(region__project=project)).select_related('user').distinct('user_id')
+        queryset = UserRole.objects.filter(ended_at__isnull=True, site_id=self.kwargs.get('pk')).select_related('user').distinct('user_id')
     
         return queryset
 
