@@ -35,6 +35,16 @@ class MyFormsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user, deleted_xform=None)
 
+    def get_serializer(self, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        kwargs['context'] = self.get_serializer_context()
+        return serializer_class(*args, **kwargs)
+
+    def get_serializer_context(self):
+        context = super(MyFormsViewSet, self).get_serializer_context()
+        context['request'] = self.request
+        return context
+
 
 class ShareUserListViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -107,6 +117,16 @@ class MyProjectFormsViewSet(viewsets.ReadOnlyModelViewSet):
         projects = [p for p in projects] + [p for p in admin_projects]
         projects = Project.objects.filter(id__in=projects).order_by('id')
         return projects
+
+    def get_serializer(self, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        kwargs['context'] = self.get_serializer_context()
+        return serializer_class(*args, **kwargs)
+
+    def get_serializer_context(self):
+        context = super(MyProjectFormsViewSet, self).get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class ShareFormViewSet(APIView):
