@@ -78,6 +78,35 @@ class TeamSerializer(serializers.ModelSerializer):
         return json.loads(data)
 
 
+class TeamProjectSerializer(serializers.ModelSerializer):
+
+    total_users = serializers.SerializerMethodField()
+    total_submissions = serializers.SerializerMethodField()
+    total_regions = serializers.SerializerMethodField()
+    total_sites = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = ('id', 'name', 'address', 'logo', 'total_users', 'total_submissions', 'total_regions', 'total_sites')
+
+    def get_total_users(self, obj):
+        users = obj.project_roles.filter(ended_at=None).distinct('user').count()
+
+        return users
+
+    def get_total_submissions(self, obj):
+        instances = obj.project_instances.filter(is_deleted=False).count()
+        return instances
+
+    def get_total_regions(self, obj):
+        regions = obj.project_region.filter(is_active=True, parent__isnull=True).count()
+
+        return regions
+
+    def get_total_sites(self, obj):
+        sites = obj.sites.filter(is_active=True, is_survey=False, site__isnull=True).count()
+
+        return sites
 
 
 
