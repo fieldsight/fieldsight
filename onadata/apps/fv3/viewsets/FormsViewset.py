@@ -1,21 +1,26 @@
-import json
 from django.db.models import Q
 
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from django.db import models, IntegrityError, transaction
+from django.db import IntegrityError, transaction
 from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fieldsight.models import Project, Organization
-from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset, DeletedXForm
+from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset, \
+    DeletedXForm, Schedule
 from onadata.apps.fv3.permissions.manage_forms import FormsPermission
-from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
-    ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, \
-    AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer, MyFormDeleteSerializer, \
-    ShareUserListSerializer, ShareTeamListSerializer, ShareProjectListSerializer
+from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, \
+    ShareFormSerializer, \
+    ShareProjectFormSerializer, ShareTeamFormSerializer, \
+    ShareGlobalFormSerializer, \
+    AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer, \
+    MyFormDeleteSerializer, \
+    ShareUserListSerializer, ShareTeamListSerializer, \
+    ShareProjectListSerializer, FSXFormSerializer, SchedueFSXFormSerializer, \
+    ScheduleSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -395,9 +400,27 @@ class FormsView(APIView):
             is_deleted=False,  is_deployed=True).filter(Q(
             project__id__in=project_ids) | Q(site__project_id__in=project_ids,
                                             from_project=False)
-            ).select_related("xf")
-        general_forms = [f for f in fieldsight_forms if (f.is_staged==False
-                    and f.is__survey==False and f.is_scheduled==False)]
+            ).select_related("xf", "em")
         general_forms = [f for f in fieldsight_forms if (f.is_staged == False
-                     and f.is__survey == False and f.is_scheduled == False)]
-        return Response({})
+                    and f.is_survey == False and f.is_scheduled == False)]
+        survey_forms = [f for f in fieldsight_forms if (f.is_staged == False
+                     and f.is_survey == False and f.is_scheduled == False)]
+
+        schedule_forms = [f for f in fieldsight_forms if f.is_scheduled]
+        schedule_forms_data = SchedueFSXFormSerializer(schedule_forms,
+                                                       many=True).data
+        if schedule_forms:
+            schedules = Schedule.objects.filter(Q(
+                project__id__in=project_ids) | Q(
+                site__project__id__in=project_ids))
+            schedule_information = ScheduleSerializer(schedules, many=True).data
+
+
+
+
+        general_form_data = FSXFormSerializer(general_forms, many=True).data
+        survey_form_data = FSXFormSerializer(survey_forms, many=True).data
+        return Response({"general": general_form_data,
+                         "survey": survey_form_data,
+                         "schedule": schedule_information,
+                         })
