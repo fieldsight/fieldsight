@@ -200,7 +200,8 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         # user = User.objects.filter(pk=self.kwargs.get('pk'))
         roles_org = UserRole.objects.filter(organization_id = self.kwargs.get('pk'), ended_at__isnull=True, group__name="Organization Admin")
         key = settings.STRIPE_PUBLISHABLE_KEY
-        has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user).exists()
+        has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user,
+                                                            organization=obj).exists()
         is_owner = obj.owner == self.request.user
         dashboard_data = {
             'obj': obj,
