@@ -5,7 +5,7 @@ from onadata.libs.utils.decorators import check_obj
 from onadata.apps.logger.models import XForm
 
 from onadata.apps.fsforms.models import Asset, FieldSightXF, ObjectPermission, \
-    Schedule
+    Schedule, Stage
 
 from onadata.apps.fieldsight.models import Project, Organization
 from onadata.apps.fsforms.utils import get_version
@@ -286,3 +286,37 @@ class SchedueFSXFormSerializer(FSXFormSerializer):
         fields = ('id', 'site', 'project', 'downloadUrl', 'manifestUrl',
                   'name', 'descriptionText', 'formID',
                   'version', 'hash', 'em', 'schedule')
+
+
+class SubStageSerializer(serializers.ModelSerializer):
+    stage_forms = FSXFormSerializer()
+    em = EMSerializer(read_only=True)
+    tags = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+        exclude = ('shared_level', 'site', 'group', 'ready', 'project','stage', 'date_modified', 'date_created')
+
+    def get_tags(self, obj):
+        parent_tags = self.context.get(str(obj.stage_id), [])
+        obj.tags.extend(parent_tags)
+        return list(set(obj.tags))
+
+
+class StageSerializer(serializers.ModelSerializer):
+    parent = serializers.SerializerMethodField('get_substages')
+
+    class Meta:
+        model = Stage
+        exclude = ('shared_level', 'group', 'ready', 'stage',)
+
+    def get_substages(self, stage):
+        stages = Stage.objects.filter(stage=stage,
+                                      stage_forms__is_deleted=False,
+                                      stage_forms__is_deployed=True
+                                      ).select_related( 'stage_forms',
+                                                        'stage_forms__xf',
+                                                        'em').order_by(
+            'order', 'date_created')
+        serializer = SubStageSerializer(instance=stages, many=True)
+        return serializer.data
