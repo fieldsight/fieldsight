@@ -1,4 +1,5 @@
 import json
+from django.db.models import Q
 
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
@@ -10,6 +11,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fieldsight.models import Project, Organization
 from onadata.apps.fsforms.models import FieldSightXF, ObjectPermission, Asset, DeletedXForm
+from onadata.apps.fv3.permissions.manage_forms import FormsPermission
 from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, ShareFormSerializer, \
     ShareProjectFormSerializer, ShareTeamFormSerializer, ShareGlobalFormSerializer, \
     AddLanguageSerializer, CloneFormSerializer, ProjectFormSerializer, MyFormDeleteSerializer, \
@@ -380,3 +382,22 @@ class MySharedFormViewSet(viewsets.ReadOnlyModelViewSet):
             asset_uids.append(a.uid)
 
         return self.queryset.filter(id_string__in=asset_uids)
+
+
+class FormsView(APIView):
+    permission_classes = (IsAuthenticated, FormsPermission)
+    """
+    List all forms in given projects.
+    """
+    def get(self, request, format=None):
+        project_ids = request.GET.getlist('project_id')
+        fieldsight_forms = FieldSightXF.objects.filter(
+            is_deleted=False,  is_deployed=True).filter(Q(
+            project__id__in=project_ids) | Q(site__project_id__in=project_ids,
+                                            from_project=False)
+            ).select_related("xf")
+        general_forms = [f for f in fieldsight_forms if (f.is_staged==False
+                    and f.is__survey==False and f.is_scheduled==False)]
+        general_forms = [f for f in fieldsight_forms if (f.is_staged == False
+                     and f.is__survey == False and f.is_scheduled == False)]
+        return Response({})
