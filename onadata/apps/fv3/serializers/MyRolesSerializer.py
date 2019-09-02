@@ -92,10 +92,12 @@ class MySiteSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     site_url = serializers.SerializerMethodField()
     region = serializers.CharField(source='region.name')
+    type = serializers.CharField(source='type.name')
 
     class Meta:
         model = Site
-        fields = ('id', 'identifier', 'name', 'address', 'site_url', 'region', 'role', 'submissions', 'progress', 'status')
+        fields = ('id', 'identifier', 'name', 'address', 'site_url', 'region', 'role', 'submissions', 'progress',
+                  'status', 'type')
 
     def get_role(self, obj):
         user = self.context['request'].user

@@ -8,6 +8,8 @@ from onadata.apps.fieldsight.models import ProjectLevelTermsAndLabels, Project, 
 
 from django.shortcuts import get_object_or_404
 
+from onadata.apps.fsforms.models import FieldSightXF
+
 
 class LogSerializer(serializers.ModelSerializer):
     source_uid = serializers.ReadOnlyField(source='source_id', read_only=True)
@@ -75,7 +77,8 @@ class NotificationSerializer(serializers.ModelSerializer):
         return obj.source.first_name + " " + obj.source.last_name
 
     def get_get_event_url(self, obj):
-        if obj.type in [16, 17, 18, 19, 31, 33] and obj.content_object.is_deleted:
+        if obj.type in [16, 17, 18, 19, 31, 33] and obj.content_object.is_deleted if isinstance(obj.content_object,
+                                                                                                FieldSightXF) else False:
             get_event_url = '#'
 
         else:

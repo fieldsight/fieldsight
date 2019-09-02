@@ -19,7 +19,7 @@ from django.views.generic import ListView, View
 from django.core.urlresolvers import reverse_lazy, reverse
 from django.core.serializers import serialize
 from django.forms.forms import NON_FIELD_ERRORS
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
 
 
@@ -200,7 +200,8 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         # user = User.objects.filter(pk=self.kwargs.get('pk'))
         roles_org = UserRole.objects.filter(organization_id = self.kwargs.get('pk'), ended_at__isnull=True, group__name="Organization Admin")
         key = settings.STRIPE_PUBLISHABLE_KEY
-        has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user).exists()
+        has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user,
+                                                            organization=obj).exists()
         is_owner = obj.owner == self.request.user
         dashboard_data = {
             'obj': obj,
@@ -227,9 +228,29 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         return dashboard_data
 
 
-class ProjectDashboard(ProjectRoleMixin, TemplateView):
+class ProjectDashboard(TemplateView):
     template_name = "fieldsight/project_dashboard.html"
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.is_super_admin:
+            return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
+        print(self.kwargs)
+
+        project_id = self.kwargs.get('pk')
+        user_id = request.user.id
+        user_role = request.roles.filter(user_id=user_id, project_id=project_id, group__name__in=['Project Manager',
+                                                                                                  'Project Donor'])
+
+        if user_role:
+            return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
+        organization_id = Project.objects.get(pk=project_id).organization.id
+        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
+
+        if user_role_asorgadmin:
+            return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
+
+        raise PermissionDenied()
+
     def get_context_data(self, **kwargs):
         obj = get_object_or_404(Project, pk=self.kwargs.get('pk'), is_active=True)
         peoples_involved = obj.project_roles.filter(ended_at__isnull=True).distinct('user').count()
@@ -1866,9 +1887,7 @@ class SiteUserList(ListView):
         return context
 
     def get_queryset(self):
-        project = Site.objects.get(pk=self.kwargs.get('pk')).project
-        queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
-            Q(site_id=self.kwargs.get('pk')) | Q(region__project=project)).select_related('user').distinct('user_id')
+        queryset = UserRole.objects.filter(ended_at__isnull=True, site_id=self.kwargs.get('pk')).select_related('user').distinct('user_id')
     
         return queryset
 
@@ -4350,9 +4369,15 @@ def project_dashboard_graphs(request, pk):
 
 
 def site_refrenced_metas(request, pk):
+
+    try:
+        site = Site.objects.get(pk=pk)
+
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Not Found'}, status=404)
+
     metas = generateSiteMetaAttribs(int(pk))
     return JsonResponse(metas, safe=False)
-
 
 
 def redirectToSite(request, pk):
@@ -4663,12 +4688,14 @@ class RequestOrganizationSearchView(TemplateView):
         return context
 
 
-@receiver(post_save,sender=Organization)
+@receiver(post_save, sender=Organization)
 def auto_create_project_site(instance, created, **kwargs):
     if created:
         project_type_id = ProjectType.objects.first().id
-        project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id)
-        Site.objects.create(name="Example Site", project=project, identifier="example site")
+        project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id,
+                                         location=instance.location)
+        Site.objects.create(name="Example Site", project=project, identifier="example site",
+                            location=instance.location)
 
 
 class ApplicationView(LoginRequiredMixin, TemplateView):
