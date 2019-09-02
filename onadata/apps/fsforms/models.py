@@ -396,7 +396,8 @@ class FieldSightXF(models.Model):
             else:
                 if FieldSightXF.objects.filter(
                         xf=self.xf, is_scheduled=False, is_staged=False,
-                        site=self.site, project=self.project).exists():
+                        site=self.site, project=self.project,
+                        is_deleted=False).exists():
                     if not FieldSightXF.objects.filter(xf=self.xf,
                                                        is_scheduled=False,
                                                        is_staged=False,

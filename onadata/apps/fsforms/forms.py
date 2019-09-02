@@ -111,7 +111,9 @@ class GeneralForm(HTML5BootstrapModelForm, KOModelForm):
         asset_uids = get_shared_asset_ids(self.request.user)
 
         if self.is_project:
-            exclude_id = FieldSightXF.objects.filter(project=self.project_or_site).values_list('xf', flat=True).order_by('xf').distinct()
+            exclude_id = FieldSightXF.objects.filter(
+                project=self.project_or_site, is_deleted=False).values_list(
+                'xf', flat=True).order_by('xf').distinct()
         else:
             exclude_id = FieldSightXF.objects.filter(project=self.project_or_site.project, site=self.project_or_site).values_list('xf',
                                                                                                flat=True).order_by('xf').distinct()
@@ -309,7 +311,9 @@ class KoScheduleForm(HTML5BootstrapModelForm, KOModelForm):
         asset_uids = get_shared_asset_ids(self.request.user)
         exclude_id = []
         if self.is_project:
-            exclude_id = FieldSightXF.objects.filter(project=self.project_or_site).values_list('xf', flat=True).order_by('xf').distinct()
+            exclude_id = FieldSightXF.objects.filter(
+                project=self.project_or_site, is_deleted=False).values_list('xf',
+                                                            flat=True).order_by('xf').distinct()
         else:
             exclude_id = FieldSightXF.objects.filter(project=self.project_or_site.project, site=self.project_or_site).values_list('xf',
                                                                                                flat=True).order_by('xf').distinct()

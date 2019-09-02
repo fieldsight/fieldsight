@@ -203,11 +203,13 @@ class FSXFormSerializer(serializers.ModelSerializer):
                     xf=data['xf'], is_staged=False, is_scheduled=False, site=data['site']).exists():
                 raise serializers.ValidationError("Form Already Exists, Duplicate General Forms Not Allowded")
             elif FieldSightXF.objects.filter(
-                    xf=data['xf'], is_staged=False, is_scheduled=False, project=data['site'].project).exists():
+                    xf=data['xf'], is_staged=False, is_scheduled=False,
+                    is_deleted=False, project=data['site'].project).exists():
                 raise serializers.ValidationError("Form Already Exists In Project, Duplicate General Forms Not Allowded")
         elif data.has_key('project'):
             if FieldSightXF.objects.filter(
-                    xf=data['xf'], is_staged=False, is_scheduled=False, project=data['project']).exists():
+                    xf=data['xf'], is_staged=False, is_scheduled=False, is_deleted=False,
+                    project=data['project']).exists():
                 raise serializers.ValidationError("Form Already Exists, Duplicate General Forms Not Allowded")
         return data
 
