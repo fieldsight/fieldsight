@@ -5,6 +5,7 @@ from django.core.serializers import serialize
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Organization, Site, Project
+from onadata.apps.subscriptions.models import Package, Subscription
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -17,11 +18,12 @@ class TeamSerializer(serializers.ModelSerializer):
     total_projects = serializers.SerializerMethodField()
     total_users = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
+    package_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = ('id', 'name', 'address', 'logo', 'public_desc', 'contact', 'total_sites', 'total_projects',
-                  'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs')
+                  'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs', 'package_details')
 
     def get_total_sites(self, obj):
 
@@ -76,6 +78,15 @@ class TeamSerializer(serializers.ModelSerializer):
                          fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone', 'id'))
 
         return json.loads(data)
+
+    def get_package_details(self, obj):
+        request = self.context['request']
+        if not request.user.is_superuser and obj.owner == request.user:
+            packages_qs = Package.objects.all()
+            packages = [{'plan': package.get_plan_display(), 'submissions': package.submissions, 'total_charge':
+                package.total_charge, 'extra_submissions_charge': package.extra_submissions_charge, 'period_type':
+                package.get_period_type_display()} for package in packages_qs]
+            return packages
 
 
 class TeamProjectSerializer(serializers.ModelSerializer):
