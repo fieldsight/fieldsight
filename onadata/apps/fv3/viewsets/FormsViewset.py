@@ -408,19 +408,23 @@ class FormsView(APIView):
 
         schedule_forms = [f for f in fieldsight_forms if f.is_scheduled]
         schedule_forms_data = SchedueFSXFormSerializer(schedule_forms,
-                                                       many=True).data
+                                                      many=True).data
+        form_with_schedule = []
         if schedule_forms:
             schedules = Schedule.objects.filter(Q(
                 project__id__in=project_ids) | Q(
                 site__project__id__in=project_ids))
             schedule_information = ScheduleSerializer(schedules, many=True).data
-
-
-
+            schedule_information_dict = {}
+            for schedule in schedule_information:
+                schedule_information_dict[schedule['id']] = schedule
+            for form in schedule_forms_data:
+                form['schedule'] = schedule_information_dict[form['schedule']]
+                form_with_schedule.append(form)
 
         general_form_data = FSXFormSerializer(general_forms, many=True).data
         survey_form_data = FSXFormSerializer(survey_forms, many=True).data
         return Response({"general": general_form_data,
                          "survey": survey_form_data,
-                         "schedule": schedule_information,
+                         "schedule": form_with_schedule,
                          })
