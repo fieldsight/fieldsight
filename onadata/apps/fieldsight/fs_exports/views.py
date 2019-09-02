@@ -65,7 +65,7 @@ class ProjectStatsticsReport(ReadonlyProjectLevelRoleMixin, View):
             status, data = 401, {'status':'false','message':'Error occured please try again.'}
         return JsonResponse(data, status=status)
 
-class LogsReport(ReadonlyProjectLevelRoleMixin, View):
+class LogsReport(View):
     def post(self, *args, **kwargs):
         user = self.request.user
         data = json.loads(self.request.body)
