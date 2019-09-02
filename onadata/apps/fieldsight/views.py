@@ -4687,12 +4687,14 @@ class RequestOrganizationSearchView(TemplateView):
         return context
 
 
-@receiver(post_save,sender=Organization)
+@receiver(post_save, sender=Organization)
 def auto_create_project_site(instance, created, **kwargs):
     if created:
         project_type_id = ProjectType.objects.first().id
-        project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id)
-        Site.objects.create(name="Example Site", project=project, identifier="example site")
+        project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id,
+                                         location=Point(85.3240, 27.7172,srid=4326))
+        Site.objects.create(name="Example Site", project=project, identifier="example site",
+                            location=Point(85.3240, 27.7172,srid=4326))
 
 
 class ApplicationView(LoginRequiredMixin, TemplateView):

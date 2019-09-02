@@ -219,7 +219,7 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
                         }
 
     def get_map(self, obj):
-        sites = Site.objects.filter(project=obj)[:100]
+        sites = Site.objects.filter(project=obj).exclude(location=None)[:100]
         data = serialize('custom_geojson', sites, geometry_field='location', fields=('location', 'id', 'name'))
         return json.loads(data)
 
