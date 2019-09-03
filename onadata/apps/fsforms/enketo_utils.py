@@ -153,7 +153,7 @@ def enketo_url_new_submission(form_url, id_string, site=None,
         return False
 
 
-    url = settings.ENKETO_URL + '/api/v2/survey/single'
+    url = settings.ENKETO_URL + '/api/v2/survey'
 
     values = {
         'form_id': id_string,
@@ -169,8 +169,8 @@ def enketo_url_new_submission(form_url, id_string, site=None,
         except ValueError:
             pass
         else:
-            if 'single_url' in response:
-                return response['single_url'] + '?ref={}_{}'.format(
+            if 'url' in response:
+                return response['url'] + '?ref={}_{}'.format(
         site, form)
     else:
         try:
