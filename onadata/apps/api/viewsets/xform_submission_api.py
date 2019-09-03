@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from django.utils.decorators import method_decorator
 from django.db import transaction
-from django.db.moddels import Q
+from django.db.models import Q
 
 from rest_framework import permissions
 from rest_framework import status
