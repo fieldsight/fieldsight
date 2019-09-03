@@ -201,6 +201,8 @@ def site_documents(request):
     site_id = query_params.get('site_id')
     site_obj = get_object_or_404(Site, id=site_id)
     site_id = int(site_id)
+    site_blueprints = BluePrints.objects.filter(site=site_obj).count()
+    show_button = True if site_blueprints < 10 else False
     if check_site_permission(request, site_id):
         try:
             blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
@@ -211,7 +213,7 @@ def site_documents(request):
                  'added_date': readable_date(blueprint.added_date),
                  'type': check_file_extension((blueprint.image.url.lower()))}
                 for blueprint in blueprints_obj]
-        return Response(data={'documents': data, 'breadcrumbs': {'name': 'Site Documents', 'site': site_obj.name,
+        return Response(data={'show_button': show_button, 'documents': data, 'breadcrumbs': {'name': 'Site Documents', 'site': site_obj.name,
                                                                  'site_url': site_obj.get_absolute_url()}})
     else:
         return Response(status=status.HTTP_403_FORBIDDEN,
