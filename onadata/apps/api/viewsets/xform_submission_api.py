@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from django.utils.decorators import method_decorator
 from django.db import transaction
+from django.db.moddels import Q
 
 from rest_framework import permissions
 from rest_framework import status
@@ -21,11 +22,11 @@ from rest_framework.response import Response
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
-from onadata.apps.fsforms.fieldsight_logger_tools import save_submission
+from onadata.apps.fsforms.fieldsight_logger_tools import save_submission, save_attachments
 from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.xform_instance_parser import \
-    get_deprecated_uuid_from_xml, get_uuid_from_xml
+    get_deprecated_uuid_from_xml, get_uuid_from_xml, DuplicateInstance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models.parsed_instance import update_mongo_instance
 from onadata.libs import filters
@@ -285,6 +286,35 @@ Here is some example JSON, it would replace `[the JSON]` above:
         media_files = request.FILES.values()
         new_uuid = get_uuid_from_xml(xml)
         site_id = site
+
+        xml_hash = Instance.get_hash(xml)
+
+        if xform.has_start_time:
+            # XML matches are identified by identical content hash OR, when a
+            # content hash is not present, by string comparison of the full
+            # content, which is slow! Use the management command
+            # `populate_xml_hashes_for_instances` to hash existing submissions
+            existing_instance = Instance.objects.filter(
+                Q(xml_hash=xml_hash) |
+                Q(xml_hash=Instance.DEFAULT_XML_HASH, xml=xml),
+                xform__user=xform.user,
+            ).first()
+        else:
+            existing_instance = None
+
+        if existing_instance:
+            # ensure we have saved the extra attachments
+            any_new_attachment = save_attachments(existing_instance, media_files)
+
+            if not any_new_attachment:
+                raise DuplicateInstance()
+            else:
+                context = self.get_serializer_context()
+                serializer = SubmissionSerializer(existing_instance, context=context)
+                return Response(serializer.data,
+                                headers=self.get_openrosa_headers(request),
+                                status=status.HTTP_201_CREATED,
+                                template_name=self.template_name)
         with transaction.atomic():
             if fs_xf.is_survey:
                 instance = save_submission(
