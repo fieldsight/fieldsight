@@ -230,28 +230,32 @@ Here is some example JSON, it would replace `[the JSON]` above:
 
             return self.create_new_submission(request, site, form)
 
-        if dep:
+        elif dep:
             uuid_value = dep.replace("uuid:", "")
             if not Instance.objects.filter(uuid=uuid_value).exists():
                 return Response({'error': "Cannot edit this submission"},
                                 headers=self.get_openrosa_headers(request),
                                 status=status.HTTP_400_BAD_REQUEST)
-        is_json_request = is_json(request)
-        #
-        error, instance = (create_instance_from_json if is_json_request else
-                           create_instance_from_xml)(username, request)
+            is_json_request = is_json(request)
+            #
+            error, instance = (create_instance_from_json if is_json_request else
+                               create_instance_from_xml)(username, request)
 
-        if error or not instance:
-            return self.error_response(error, is_json_request, request)
-        update_mongo(instance)
-        update_meta(instance)
-        context = self.get_serializer_context()
-        serializer = SubmissionSerializer(instance, context=context)
+            if error or not instance:
+                return self.error_response(error, is_json_request, request)
+            update_mongo(instance)
+            update_meta(instance)
+            context = self.get_serializer_context()
+            serializer = SubmissionSerializer(instance, context=context)
 
-        return Response(serializer.data,
-                        headers=self.get_openrosa_headers(request),
-                        status=status.HTTP_201_CREATED,
-                        template_name=self.template_name)
+            return Response(serializer.data,
+                            headers=self.get_openrosa_headers(request),
+                            status=status.HTTP_201_CREATED,
+                            template_name=self.template_name)
+        else:
+            return Response({'error': "submission not implemented"},
+                            headers=self.get_openrosa_headers(request),
+                            status=status.HTTP_400_BAD_REQUEST)
 
     def error_response(self, error, is_json_request, request):
         if not error:
