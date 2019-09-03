@@ -205,7 +205,7 @@ def site_documents(request):
     show_button = True if site_blueprints < 10 else False
     if check_site_permission(request, site_id):
         try:
-            blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()
+            blueprints_obj = Site.objects.get(pk=site_id).blueprints.all()[:10]
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
