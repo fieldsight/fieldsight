@@ -322,6 +322,10 @@ class ProfileCreateView(MyProfileView, CreateView):
         user.save()
         form.instance.user = self.request.user
         self.object = form.save()
+        invitations = UserInvite.objects.filter(email=user.email, is_used=False, is_declied=False).exists()
+        if invitations:
+
+            accept_all_invitations(self.request, user.username)
         # return HttpResponseRedirect(reverse_lazy('users:view_invitations', kwargs={'pk':user.pk}))
         return HttpResponseRedirect('/fieldsight/application/#/my-roles')
 

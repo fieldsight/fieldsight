@@ -1,11 +1,16 @@
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
+from onadata.libs.utils.decorators import check_obj
 from onadata.apps.logger.models import XForm
 
-from onadata.apps.fsforms.models import Asset, FieldSightXF, ObjectPermission
+from onadata.apps.fsforms.models import Asset, FieldSightXF, ObjectPermission, \
+    Schedule, Stage
 
 from onadata.apps.fieldsight.models import Project, Organization
-
+from onadata.apps.fsforms.utils import get_version
+from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import \
+    EMSerializer
 
 from django.conf import settings
 from django.contrib.auth.models import User, Permission
@@ -214,3 +219,104 @@ class CloneFormSerializer(serializers.Serializer):
 class MyFormDeleteSerializer(serializers.Serializer):
     id_string = serializers.CharField()
 
+
+class FSXFormSerializer(serializers.ModelSerializer):
+    em = EMSerializer(read_only=True)
+    name = serializers.SerializerMethodField('get_title', read_only=True)
+    descriptionText = serializers.SerializerMethodField('get_description', read_only=True)
+    version = serializers.SerializerMethodField()
+    hash = serializers.SerializerMethodField()
+    downloadUrl = serializers.SerializerMethodField('get_url', read_only=True)
+    formID = serializers.SerializerMethodField('get_form_id', read_only=True)
+    manifestUrl = serializers.SerializerMethodField('get_manifest_url')
+
+    class Meta:
+        model = FieldSightXF
+        fields = ('id', 'site', 'project', 'downloadUrl', 'manifestUrl',
+                  'name', 'descriptionText', 'formID',
+                  'version', 'hash', 'em')
+
+    def get_version(self, obj):
+        return get_version(obj.xf.xml)
+
+    @check_obj
+    def get_hash(self, obj):
+        return u"md5:%s" % obj.xf.hash
+
+    @check_obj
+    def get_title(self, obj):
+        return u"%s" % obj.xf.title
+
+    @check_obj
+    def get_form_id(self, obj):
+        return u"%s" % obj.xf.id_string
+
+    @check_obj
+    def get_description(self, obj):
+        return u"%s" % obj.xf.description
+
+    @check_obj
+    def get_url(self, obj):
+        kwargs = {'pk': obj.pk}
+        request = self.context.get('request')
+
+        return reverse('forms:download_xform', kwargs=kwargs, request=request)
+
+    @check_obj
+    def get_manifest_url(self, obj):
+        kwargs = {'pk': obj.xf.pk, 'username': obj.xf.user.username}
+        request = self.context.get('request')
+
+        return reverse('manifest-url', kwargs=kwargs, request=request)
+
+
+class ScheduleSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(source='get_schedule_level_id_display')
+
+    class Meta:
+        model = Schedule
+        fields = ('id', 'name', 'date_range_start', 'date_range_end',
+                  'selected_days',
+                  'type')
+
+
+class SchedueFSXFormSerializer(FSXFormSerializer):
+    class Meta:
+        model = FieldSightXF
+        fields = ('id', 'site', 'project', 'downloadUrl', 'manifestUrl',
+                  'name', 'descriptionText', 'formID',
+                  'version', 'hash', 'em', 'schedule')
+
+
+class SubStageSerializer(serializers.ModelSerializer):
+    stage_forms = FSXFormSerializer()
+    em = EMSerializer(read_only=True)
+    tags = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+        exclude = ('shared_level', 'site', 'group', 'ready', 'project','stage', 'date_modified', 'date_created')
+
+    def get_tags(self, obj):
+        parent_tags = self.context.get(str(obj.stage_id), [])
+        obj.tags.extend(parent_tags)
+        return list(set(obj.tags))
+
+
+class StageSerializer(serializers.ModelSerializer):
+    parent = serializers.SerializerMethodField('get_substages')
+
+    class Meta:
+        model = Stage
+        exclude = ('shared_level', 'group', 'ready', 'stage',)
+
+    def get_substages(self, stage):
+        stages = Stage.objects.filter(stage=stage,
+                                      stage_forms__is_deleted=False,
+                                      stage_forms__is_deployed=True
+                                      ).select_related( 'stage_forms',
+                                                        'stage_forms__xf',
+                                                        'em').order_by(
+            'order', 'date_created')
+        serializer = SubStageSerializer(instance=stages, many=True)
+        return serializer.data

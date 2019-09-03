@@ -129,3 +129,24 @@ class DeployFormsPermission(permissions.BasePermission):
                 if user_role:
                     return True
         return False
+
+
+class FormsPermission(permissions.BasePermission):
+    """
+    Manage forms permissions only to Organization admin and project managers
+    """
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated()):
+            return False
+        project_ids = request.GET.getlist('project_id')
+        if project_ids:
+            for project in project_ids:
+                suervisor_roles = request.roles.filter(
+                    project=project,
+                    group__name__in=["Site Supervisor",
+                                     "Region Suervisor"]).exists()
+                if not suervisor_roles:
+                    return False
+            return True
+        return False
