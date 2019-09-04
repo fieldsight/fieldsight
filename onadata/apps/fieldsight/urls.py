@@ -349,7 +349,5 @@ urlpatterns = [
     url(r'^sync_schedule/form/(?P<pk>\d+)/create/$', SyncScheduleCreateView.as_view(), name='sync_schedule_add'),
     url(r'^sync_schedule/form/(?P<pk>\d+)/update/$', SyncScheduleUpdateView.as_view(), name='sync_schedule_update'),
     url(r'^sync_schedule/form/(?P<pk>\d+)/delete/$', SyncScheduleDeleteView.as_view(), name='sync_schedule_delete'),
-    url(r'^attachment/(?P<pk>\d+)/(?P<size>[^/]+)/$', attachment_url, name='attachment_url'),
+    url(r'^attachment/(?P<instance_id>\d+)/(?P<size>[^/]+)/$', attachment_url, name='attachment_url'),
 ]
-
-    
