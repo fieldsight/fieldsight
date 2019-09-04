@@ -18,8 +18,7 @@ def parse_form_response(main_question, main_answer, base_url, media_folder, inst
                 answer=''
                 
             elif question_type == 'photo' or question_type == 'audio' or question_type == 'video':
-                attachment = Attachment.objects.filter(instance_id=instance_id, media_file_basename=answer_dict[question_name]).first() or Attachment.objects.filter(instance_id=instance_id, media_file__contains=answer_dict[question_name]).first() or Attachment.objects.filter(media_file__contains=answer_dict[question_name]).filter(media_file__contains=media_folder).first()
-                media_url = image_url(attachment, "medium")
+                media_url = 'http://'+base_url+'/attachment/medium?media_file='+ media_folder +'/attachments/'+ answer_dict[question_name]
                 
                 if xlsx:
                     answer = `HYPERLINK(media_url, 'Attachment')`

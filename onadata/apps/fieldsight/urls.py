@@ -69,7 +69,7 @@ from .views import (
     ApplicationView,
     ProjectTermsAndLabelView, project_terms_label_create, ProjectSyncScheduleUpdateView, ProjectTermsLabelUpdate,
     SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView,
-    SubSiteCreateView, GenerateSiteReport)
+    SubSiteCreateView, GenerateSiteReport, attachment_url)
 
 from onadata.apps.fieldsight.viewsets.SiteViewSet import ProjectSiteViewSet
 
@@ -349,7 +349,7 @@ urlpatterns = [
     url(r'^sync_schedule/form/(?P<pk>\d+)/create/$', SyncScheduleCreateView.as_view(), name='sync_schedule_add'),
     url(r'^sync_schedule/form/(?P<pk>\d+)/update/$', SyncScheduleUpdateView.as_view(), name='sync_schedule_update'),
     url(r'^sync_schedule/form/(?P<pk>\d+)/delete/$', SyncScheduleDeleteView.as_view(), name='sync_schedule_delete'),
-
+    url(r'^attachment/(?P<pk>\d+)/(?P<size>[^/]+)/$', attachment_url, name='attachment_url'),
 ]
 
     
