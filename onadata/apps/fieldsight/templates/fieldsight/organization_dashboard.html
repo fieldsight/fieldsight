@@ -178,7 +178,7 @@ var org = "{{obj.pk}}";
 										</ul>
 									</li>
 									<li>
-										<a href="{% url 'fieldsight:org-user-list' obj.pk %}" class="org-profile-stat-item" title="">
+										<a href="/fieldsight/application/#/team-users/{{obj.pk}}" class="org-profile-stat-item" title="">
 											<i class="la la-users"></i>
 											<div class="org-mini-stat-info">
 												<span>{{ peoples_involved.count }}</span>

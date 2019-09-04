@@ -623,8 +623,7 @@ def users(request):
             if check_site_permission(request, site.id):
 
                 project = get_object_or_404(Project, id=site.project.id)
-                queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
-                    Q(site=site) | Q(region__project=project)).select_related('user', 'user__user_profile').distinct('user_id')
+                queryset = UserRole.objects.filter(ended_at__isnull=True).filter(site=site ).select_related('user', 'user__user_profile').distinct('user_id')
 
                 data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
                          'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, site)}
