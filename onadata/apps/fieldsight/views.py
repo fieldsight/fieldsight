@@ -4819,8 +4819,10 @@ def attachment_url(request, instance_id, size='medium'):
     media_file = request.GET.get('media_file')
     media_folder = request.GET.get('media_folder')
     # search for media_file with exact matching name
-    attachment = Attachment.objects.filter(instance_id=instance_id, media_file_basename=media_file).first() or Attachment.objects.filter(instance_id=instance_id, media_file__contains=media_file).first() or Attachment.objects.filter(media_file__contains=media_file).filter(media_file__contains=self.media_folder).first()
+    attachment = Attachment.objects.filter(instance_id=instance_id, media_file_basename=media_file).first() or Attachment.objects.filter(instance_id=instance_id, media_file__contains=media_file).first() or Attachment.objects.filter(media_file__contains=media_file).filter(media_file__contains=media_folder).first()
 
+    print attachment, attachment.media_file
+    
     if not attachment:
         return HttpResponseNotFound(_(u'Attachment not found'))
 
