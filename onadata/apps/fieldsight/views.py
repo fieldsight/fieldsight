@@ -4823,7 +4823,7 @@ def attachment_url(request, instance_id, size='medium'):
     attachment = Attachment.objects.filter(instance_id=instance_id, media_file_basename=media_file).first() or Attachment.objects.filter(instance_id=instance_id, media_file__contains=media_file).first() or Attachment.objects.filter(media_file__contains=media_file).filter(media_file__contains=media_folder).first()
 
     if not attachment:
-        return HttpResponseNotFound(_(u'Attachment not found'))
+        return HttpResponseNotFound('Attachment not found')
 
     media_url = image_url(attachment, size)
     response = HttpResponse()

@@ -818,7 +818,7 @@ def attachment_url(request, size='medium'):
             attachment = result[0]
         except IndexError:
             media_file_logger.info('attachment not found')
-            return HttpResponseNotFound('Attachment not found')
+            return HttpResponseNotFound(_(u'Attachment not found'))
 
         # Checks whether users are allowed to see the media file before giving them
         # the url
