@@ -400,7 +400,7 @@ class FormsView(APIView):
             is_deleted=False,  is_deployed=True).filter(Q(
             project__id__in=project_ids) | Q(site__project_id__in=project_ids,
                                             from_project=False)
-            ).select_related("xf", "em", "xf__user")
+            ).select_related("xf", "em", "xf__user", "site")
         general_forms = [f for f in fieldsight_forms if (f.is_staged == False
                     and f.is_survey == False and f.is_scheduled == False)]
         survey_forms = [f for f in fieldsight_forms if (f.is_staged == False
@@ -428,7 +428,7 @@ class FormsView(APIView):
         stages = Stage.objects.filter(is_deleted=False, stage__isnull=True).filter(
             Q(project__id__in=project_ids) | Q(
                 site__project__id__in=project_ids,
-                                               project_stage_id=0))
+                                               project_stage_id=0)).select_related("site")
         stage_data = StageSerializer(stages, many=True).data
         return Response({"general": general_form_data,
                          "survey": survey_form_data,
