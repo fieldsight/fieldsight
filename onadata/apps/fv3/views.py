@@ -25,6 +25,7 @@ from onadata.apps.fsforms.models import FInstance, ProgressSettings
 from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
     ProjectRegionSerializer, ProjectSitesSerializer
+from onadata.apps.fv3.util import get_user_roles
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectsitesPagination
 from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
@@ -625,7 +626,7 @@ def users(request):
                     Q(site=site) | Q(region__project=project)).select_related('user', 'user__user_profile').distinct('user_id')
 
                 data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
-                         'profile_picture': user_obj.user.user_profile.profile_picture.url}
+                         'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, site)}
                         for user_obj in queryset]
 
                 return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'site': site.name, 'site_url':
@@ -643,7 +644,7 @@ def users(request):
                                                                    ended_at__isnull=True).distinct('user_id')
 
         data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
-                 'profile_picture': user_obj.user.user_profile.profile_picture.url}
+                 'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, project)}
                 for user_obj in queryset]
 
         return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'project': project.name, 'project_url':
@@ -658,7 +659,7 @@ def users(request):
         queryset = UserRole.objects.select_related('user').filter(organization=team, ended_at__isnull=True).distinct('user_id')
 
         data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
-                 'profile_picture': user_obj.user.user_profile.profile_picture.url}
+                 'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, team)}
                 for user_obj in queryset]
 
         return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'team': team.name, 'team_url':
