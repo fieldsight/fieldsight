@@ -18,7 +18,7 @@ def parse_form_response(main_question, main_answer, base_url, media_folder, inst
                 answer=''
                 
             elif question_type == 'photo' or question_type == 'audio' or question_type == 'video':
-                media_url = 'http://'+base_url+'/attachment/medium?media_file='+ media_folder +'/attachments/'+ answer_dict[question_name]
+                media_url = 'https://'+base_url+'/fieldsight/attachment/'+ instance_id +'/medium/?media_file='+ answer_dict[question_name] + '&media_folder=' + media_folder 
                 
                 if xlsx:
                     answer = `HYPERLINK(media_url, 'Attachment')`

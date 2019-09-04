@@ -88,6 +88,7 @@ from onadata.apps.fsforms.models import SyncSchedule
 from onadata.libs.utils.image_tools import image_url
 from onadata.apps.logger.models import Attachment
 from django.core.files.storage import get_storage_class
+from django.core.files.storage import FileSystemStorage
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -4821,8 +4822,6 @@ def attachment_url(request, instance_id, size='medium'):
     # search for media_file with exact matching name
     attachment = Attachment.objects.filter(instance_id=instance_id, media_file_basename=media_file).first() or Attachment.objects.filter(instance_id=instance_id, media_file__contains=media_file).first() or Attachment.objects.filter(media_file__contains=media_file).filter(media_file__contains=media_folder).first()
 
-    print attachment, attachment.media_file
-    
     if not attachment:
         return HttpResponseNotFound(_(u'Attachment not found'))
 
@@ -4836,4 +4835,3 @@ def attachment_url(request, instance_id, size='medium'):
     response["Content-Type"] = ""
     response["X-Accel-Redirect"] = protected_url
     return response
-
