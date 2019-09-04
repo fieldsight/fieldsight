@@ -4819,11 +4819,11 @@ def mvt_tiles(request, zoom, x, y):
     Custom view to serve Mapbox Vector Tiles for the custom polygon model.
     """
     with connection.cursor() as cursor:
-        cursor.execute("SELECT ST_AsMVT(tile) FROM (SELECT id,name, ST_AsMVTGeom(location, TileBBox(%s, %s, %s, 4326)) FROM  fieldsight_site) AS tile", [zoom, x, y])
+        cursor.execute("SELECT ST_AsMVT(tile) FROM (SELECT id,name, ST_AsMVTGeom(location::geometry, TileBBox(%s, %s, %s, 4326)) FROM  fieldsight_site) AS tile", [zoom, x, y])
         tile = bytes(cursor.fetchone()[0])
         # return HttpResponse(len(tile))
-        if not len(tile):
-            raise Http404()
+        # if not len(tile):
+        #     raise Http404()
     return HttpResponse(tile, content_type="application/x-protobuf")
 
 
