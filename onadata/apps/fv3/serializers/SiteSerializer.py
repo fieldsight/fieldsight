@@ -110,7 +110,7 @@ class SiteSerializer(serializers.ModelSerializer):
 
         project = obj.project
 
-        users_role = UserRole.objects.filter(ended_at__isnull=True).filter(Q(site_id=obj.pk) | Q(region__project=project)).\
+        users_role = UserRole.objects.filter(ended_at__isnull=True).filter(site_id=obj.pk).\
             select_related('user', 'user__user_profile').distinct('user_id')
         users_list = []
         for role in users_role:
