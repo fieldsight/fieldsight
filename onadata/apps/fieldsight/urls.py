@@ -69,7 +69,7 @@ from .views import (
     ApplicationView,
     ProjectTermsAndLabelView, project_terms_label_create, ProjectSyncScheduleUpdateView, ProjectTermsLabelUpdate,
     SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView,
-    SubSiteCreateView, GenerateSiteReport)
+    SubSiteCreateView, GenerateSiteReport, mvt_tiles, vect_map)
 
 from onadata.apps.fieldsight.viewsets.SiteViewSet import ProjectSiteViewSet
 
@@ -350,6 +350,8 @@ urlpatterns = [
     url(r'^sync_schedule/form/(?P<pk>\d+)/update/$', SyncScheduleUpdateView.as_view(), name='sync_schedule_update'),
     url(r'^sync_schedule/form/(?P<pk>\d+)/delete/$', SyncScheduleDeleteView.as_view(), name='sync_schedule_delete'),
 
-]
+    # vector tile test
+    url(r'^mvt-tiles/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', mvt_tiles, name='mvt_tiles'),
+    url(r'^vect-map/$', vect_map, name='vect_map'),
 
-    
+]

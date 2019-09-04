@@ -9,7 +9,7 @@ from io import BytesIO
 from django.contrib import messages
 from django.contrib.auth.models import Group, User, Permission
 from django.contrib.gis.geos import Point
-from django.db import transaction
+from django.db import transaction, connection
 from django.db.models import Q
 from django.forms import modelformset_factory
 from django.http import HttpResponseRedirect, JsonResponse, Http404, HttpResponse
@@ -4809,3 +4809,23 @@ class SyncScheduleDeleteView(ProjectRoleMixin, DeleteView):
     
     def get_success_url(self):
         return reverse('fieldsight:sync_schedule', kwargs={'pk': self.object.fxf.project.id})
+
+
+# vector tile test
+
+def mvt_tiles(request, zoom, x, y):
+
+    """
+    Custom view to serve Mapbox Vector Tiles for the custom polygon model.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT ST_AsMVT(tile) FROM (SELECT id,name, ST_AsMVTGeom(location, TileBBox(%s, %s, %s, 4326)) FROM  fieldsight_site) AS tile", [zoom, x, y])
+        tile = bytes(cursor.fetchone()[0])
+        # return HttpResponse(len(tile))
+        if not len(tile):
+            raise Http404()
+    return HttpResponse(tile, content_type="application/x-protobuf")
+
+
+def vect_map(request):
+    return render(request, 'fieldsight/vect_map.html')
