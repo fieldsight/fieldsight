@@ -21,7 +21,7 @@ def parse_form_response(main_question, main_answer, base_url, media_folder, inst
                 media_url = 'https://'+base_url+'/fieldsight/attachment/'+ instance_id +'/medium/?media_file='+ answer_dict[question_name] + '&media_folder=' + media_folder 
                 
                 if xlsx:
-                    answer = `HYPERLINK(media_url, 'Attachment')`
+                    answer = "=HYPERLINK(media_url, 'Attachment')"
                 
                 answer = media_url
             else:
