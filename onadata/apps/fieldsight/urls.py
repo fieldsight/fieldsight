@@ -351,7 +351,7 @@ urlpatterns = [
     url(r'^sync_schedule/form/(?P<pk>\d+)/delete/$', SyncScheduleDeleteView.as_view(), name='sync_schedule_delete'),
 
     # vector tile test
-    url(r'^mvt-tiles/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', mvt_tiles, name='mvt_tiles'),
+    url(r'^mvt-tiles/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', mvt_tiles, name='mvt_tiles_first'),
     url(r'^vect-map/$', vect_map, name='vect_map'),
 
 ]

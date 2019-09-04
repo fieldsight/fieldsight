@@ -6,6 +6,7 @@ from django.db.models import Prefetch, Q
 from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from django.db import connection
 
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
@@ -667,3 +668,31 @@ def users(request):
 
     else:
         return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site id or project id or team id is required.'})
+
+
+# def mvt_tiles(request, zoom, x, y):
+#
+#     """
+#     Custom view to serve Mapbox Vector Tiles for the custom polygon model.
+#     """
+#     with connection.cursor() as cursor:
+#         cursor.execute("SELECT ST_AsMVT(tile) FROM (SELECT id,name, ST_AsMVTGeom(location::geometry, TileBBox(%s, %s, %s, 4326)) FROM  fieldsight_site) AS tile", [zoom, x, y])
+#         tile = bytes(cursor.fetchone()[0])
+#         # return HttpResponse(len(tile))
+#         # if not len(tile):
+#         #     raise Http404()
+#     return HttpResponse(tile, content_type="application/x-protobuf")
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def project_sites_vt(request, pk, zoom, x, y):
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT ST_AsMVT(tile) FROM (SELECT id,name, ST_AsMVTGeom(location::geometry, TileBBox(%s, %s, %s, 4326)) FROM  fieldsight_site where project_id=%s) AS tile",
+            [zoom, x, y, pk])
+        tile = bytes(cursor.fetchone()[0])
+
+    return HttpResponse(tile, content_type="application/x-protobuf")
+
+
