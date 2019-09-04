@@ -22,8 +22,8 @@ def parse_form_response(main_question, main_answer, base_url, media_folder, inst
                 
                 if xlsx:
                     answer = "=HYPERLINK(media_url, 'Attachment')"
-                
-                answer = media_url
+                else:
+                    answer = media_url
             else:
                 answer=answer_dict[question_name]
 
