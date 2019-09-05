@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from onadata.apps.fieldsight.models import Site, Project
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, FormSettings
 from onadata.apps.fsforms.tasks import copy_schedule_to_sites, \
     copy_allstages_to_sites, copy_stage_to_sites, copy_sub_stage_to_sites
 from onadata.apps.fsforms.utils import send_message_un_deploy_project, \
@@ -18,7 +18,7 @@ from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
     StagePermission, DeployFormsPermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
     GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer, \
-    SubStageSerializer
+    SubStageSerializer, FormSettingsSerializer
 
 
 class GeneralFormsVS(viewsets.ModelViewSet):
@@ -873,4 +873,50 @@ class DeleteUndeployedForm(APIView):
         return Response({"error": "not valid type"},
                         status=status.HTTP_400_BAD_REQUEST)
 
+
+class FormSettingsVS(viewsets.ModelViewSet):
+    serializer_class = FormSettingsSerializer
+    queryset = FormSettings.objects.all()
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def retrieve(self, request, *args, **kwargs):
+        form_id = self.request.query_params.get("form_id")
+        if form_id:
+            if FormSettings.objects.filter(form_id=form_id).exists():
+                instance = FormSettings.objects.get(form_id=form_id)
+                serializer = self.get_serializer(instance)
+                return Response(serializer.data)
+            else:
+                return Response({"error": "form have no settings"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {
+                "error": "form_id query params not provided"
+            },
+            status=status.HTTP_400_BAD_REQUEST)
+
+    def perform_create(self, serializer):
+        site_types = self.request.data.get('site_types', [])
+        default_submission_status = self.request.data.get('default_submission_status', 0)
+        weight = self.request.data.get('weight', 0)
+        settings = serializer.save(user=self.request.user, types=site_types)
+        form = settings.form
+        form.default_submission_status = default_submission_status
+        form.save()
+        if form.is_staged:
+            stage = form.stage
+            stage.weight = weight
+            stage.save()
+
+    def perform_update(self, serializer):
+        site_types = self.request.data.get('site_types', [])
+        default_submission_status = self.request.data.get('default_submission_status', 0)
+        weight = self.request.data.get('weight', 0)
+        settings = serializer.save(user=self.request.user, types=site_types)
+        form = settings.form
+        form.default_submission_status = default_submission_status
+        form.save()
+        if form.is_staged:
+            stage = form.stage
+            stage.weight = weight
+            stage.save()
 
