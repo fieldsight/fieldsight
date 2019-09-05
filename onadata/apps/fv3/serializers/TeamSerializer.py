@@ -1,6 +1,7 @@
 import json
 
 from django.core.serializers import serialize
+from django.conf import settings
 
 from rest_framework import serializers
 
@@ -19,11 +20,12 @@ class TeamSerializer(serializers.ModelSerializer):
     total_users = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
     package_details = serializers.SerializerMethodField()
+    stripe_token = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = ('id', 'name', 'address', 'logo', 'public_desc', 'contact', 'total_sites', 'total_projects',
-                  'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs', 'package_details')
+                  'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs', 'package_details', 'stripe_token')
 
     def get_total_sites(self, obj):
 
@@ -87,6 +89,9 @@ class TeamSerializer(serializers.ModelSerializer):
                 package.total_charge, 'extra_submissions_charge': package.extra_submissions_charge, 'period_type':
                 package.get_period_type_display()} for package in packages_qs]
             return packages
+
+    def get_stripe_token(self, obj):
+        return settings.STRIPE_PUBLISHABLE_KEY
 
 
 class TeamProjectSerializer(serializers.ModelSerializer):
