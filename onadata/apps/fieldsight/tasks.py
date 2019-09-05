@@ -1095,7 +1095,7 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
                 if formresponse.site_id and not formresponse.site_id in response_sites:
                     response_sites.append(formresponse.site_id)
                 
-                questions, answers, r_question_answers = parse_form_response(json.loads(form.xf.json)['children'], formresponse.instance.json, base_url, form.xf.user.username)
+                questions, answers, r_question_answers = parse_form_response(json.loads(form.xf.json)['children'], formresponse.instance.json, base_url, form.xf.user.username, formresponse.id, True)
 
                 answers['uid'] = formresponse.instance_id
                 if formresponse.site_id:

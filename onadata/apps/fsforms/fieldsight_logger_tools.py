@@ -240,8 +240,8 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
                                                              update_data={'fs_uuid': fxid, 'fs_status': 0,
                                                                           'fs_site':site, 'fs_project':project,
                                                                           'fs_project_uuid':fs_poj_id})
-    if not created:
-        pi.save(async=False)
+        if not created:
+            pi.save(async=False)
     return instance
 
 

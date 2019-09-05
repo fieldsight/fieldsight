@@ -6,9 +6,10 @@ from onadata.apps.fv3.urls.myroles import my_roles_urlpatterns
 from onadata.apps.fv3.urls.site_dashboard import site_dashboard_urlpatterns
 from onadata.apps.fv3.urls.manage_forms import manage_forms_urlpatterns
 from onadata.apps.fv3.urls.project_dashboard import project_dashboard_urlpatterns
+from onadata.apps.fv3.urls.team_dashboard import team_dashboard_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
     ProjectDefineSiteMeta, ProjectSitesViewset, check_region
-from onadata.apps.fv3.viewsets.OrganizationViewSet import OrganizationViewSet
+
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, \
     MyProjectFormsViewSet, ShareFormViewSet, \
     ShareProjectFormViewSet, ShareTeamFormViewSet, ShareGlobalFormViewSet, \
@@ -47,7 +48,6 @@ urlpatterns = [
 
 
     url(r'^api/submission/(?P<pk>\d+)/$', SubmissionViewSet.as_view({'get':'retrieve'}), name='submission'),
-    url(r'^api/organization/(?P<pk>\d+)/$', OrganizationViewSet.as_view({'get': 'retrieve'}), name='organization'),
 
     url(r'^api/submission-answers/(?P<pk>\d+)/$', SubmissionAnswerViewSet.as_view({'get':'retrieve'}), name='submission-data'),
     url(r'^api/change/submission/status/$', AlterSubmissionStatusViewSet.as_view({'post':'create'}), name='submission-flag'),
@@ -82,3 +82,4 @@ urlpatterns += my_roles_urlpatterns
 urlpatterns += site_dashboard_urlpatterns
 urlpatterns += manage_forms_urlpatterns
 urlpatterns += project_dashboard_urlpatterns
+urlpatterns += team_dashboard_urlpatterns

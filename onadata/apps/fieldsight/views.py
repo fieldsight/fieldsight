@@ -12,7 +12,7 @@ from django.contrib.gis.geos import Point
 from django.db import transaction
 from django.db.models import Q
 from django.forms import modelformset_factory
-from django.http import HttpResponseRedirect, JsonResponse, Http404, HttpResponse
+from django.http import HttpResponseRedirect, JsonResponse, Http404, HttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, render, redirect
 from django.template.response import TemplateResponse
 from django.views.generic import ListView, View
@@ -84,6 +84,11 @@ from .metaAttribsGenerator import generateSiteMetaAttribs
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from onadata.apps.fsforms.models import SyncSchedule
+
+from onadata.libs.utils.image_tools import image_url
+from onadata.apps.logger.models import Attachment
+from django.core.files.storage import get_storage_class
+from django.core.files.storage import FileSystemStorage
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -4814,3 +4819,24 @@ class SyncScheduleDeleteView(ProjectRoleMixin, DeleteView):
     
     def get_success_url(self):
         return reverse('fieldsight:sync_schedule', kwargs={'pk': self.object.fxf.project.id})
+
+
+def attachment_url(request, instance_id, size='medium'):
+    media_file = request.GET.get('media_file')
+    media_folder = request.GET.get('media_folder')
+    # search for media_file with exact matching name
+    attachment = Attachment.objects.filter(instance_id=instance_id, media_file_basename=media_file).first() or Attachment.objects.filter(instance_id=instance_id, media_file__contains=media_file).first() or Attachment.objects.filter(media_file__contains=media_file).filter(media_file__contains=media_folder).first()
+
+    if not attachment:
+        return HttpResponseNotFound('Attachment not found')
+
+    media_url = image_url(attachment, size)
+    response = HttpResponse()
+    default_storage = get_storage_class()()
+    if not isinstance(default_storage, FileSystemStorage):
+        return redirect(media_url)
+    else:
+        return redirect(media_url)
+    response["Content-Type"] = ""
+    response["X-Accel-Redirect"] = protected_url
+    return response

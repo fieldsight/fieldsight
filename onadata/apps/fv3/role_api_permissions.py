@@ -4,7 +4,7 @@ from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.response import Response
 from rest_framework import status, permissions
 
-from onadata.apps.fieldsight.models import Project, Site, Region
+from onadata.apps.fieldsight.models import Project, Site, Region, Organization
 from onadata.apps.fsforms.models import FInstance
 
 
@@ -124,6 +124,29 @@ class ProjectDashboardPermissions(permissions.BasePermission):
                                                                                                 "Project Donor"])
 
             if user_role_as_manager:
+                return True
+
+        return False
+
+
+class TeamDashboardPermissions(permissions.BasePermission):
+    """
+    Object-level permission to only allow owners of an object to View it.
+    """
+
+    def has_permission(self, request, view):
+
+        if request.is_super_admin:
+            return True
+
+        team_id = view.kwargs.get('pk')
+        obj = Organization.objects.get(id=team_id)
+
+        if obj is not None:
+
+            user_role_org_admin = request.roles.filter(organization=obj, group__name="Organization Admin")
+
+            if user_role_org_admin:
                 return True
 
         return False
