@@ -97,8 +97,13 @@ class SiteSerializer(serializers.ModelSerializer):
         return data
 
     def get_total_users(self, obj):
+        region = obj.region
+        if region is not None:
+            peoples_involved = UserRole.objects.filter(ended_at__isnull=True).filter(Q(site_id=obj.pk) | Q(region=region)).\
+                select_related('user', 'user__user_profile').distinct('user_id').count()
+        else:
+            peoples_involved = obj.site_roles.filter(ended_at__isnull=True).select_related('user').distinct('user_id').count()
 
-        peoples_involved = obj.site_roles.filter(ended_at__isnull=True).select_related('user').distinct('user_id').count()
         return peoples_involved
 
     def get_total_subsites(self, obj):
@@ -109,9 +114,14 @@ class SiteSerializer(serializers.ModelSerializer):
     def get_users(self, obj):
 
         project = obj.project
+        region = obj.region
+        if region is not None:
+            users_role = UserRole.objects.filter(ended_at__isnull=True).filter(Q(site_id=obj.pk) | Q(region=region)).\
+                select_related('user', 'user__user_profile').distinct('user_id')
 
-        users_role = UserRole.objects.filter(ended_at__isnull=True).filter(site_id=obj.pk).\
-            select_related('user', 'user__user_profile').distinct('user_id')
+        else:
+            users_role = UserRole.objects.filter(ended_at__isnull=True).filter(site_id=obj.pk). \
+                select_related('user', 'user__user_profile').distinct('user_id')
         users_list = []
         for role in users_role:
             try:

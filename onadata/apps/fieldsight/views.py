@@ -1887,8 +1887,13 @@ class SiteUserList(ListView):
         return context
 
     def get_queryset(self):
-        queryset = UserRole.objects.filter(ended_at__isnull=True, site_id=self.kwargs.get('pk')).select_related('user').distinct('user_id')
-    
+        site = Site.objects.get(id=self.kwargs.get('pk'))
+        region = site.region
+        if region is not None:
+            queryset = UserRole.objects.filter(ended_at__isnull=True).filter(Q(site=site) | Q(region=region)).select_related('user').distinct('user_id')
+        else:
+            queryset = UserRole.objects.filter(ended_at__isnull=True, site_id=self.kwargs.get('pk')).select_related('user').distinct('user_id')
+
         return queryset
 
 @login_required()
