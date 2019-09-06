@@ -278,18 +278,15 @@ class SubStageSerializer(serializers.ModelSerializer):
 
 
 class FormSettingsSerializer(serializers.ModelSerializer):
-    site_types = serializers.SerializerMethodField()
     default_submission_status = serializers.SerializerMethodField()
     weight = serializers.SerializerMethodField()
     username = serializers.SerializerMethodField()
 
     class Meta:
         model = FormSettings
-        exclude = ('types', 'date_created')
+        exclude = ('date_created',)
         read_only_fields = ['user']
 
-    def get_site_types(self, obj):
-        return obj.site_types
 
     def get_weight(self, obj):
         return obj.weight

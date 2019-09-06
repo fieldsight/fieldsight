@@ -462,13 +462,6 @@ class FormSettings(models.Model):
         except:
             return 0
 
-    @property
-    def site_types(self):
-        try:
-            return self.form.stage.stage.tags
-        except:
-            return self.types
-
     def __unicode__(self):
         return getattr(self, "name", "")
 

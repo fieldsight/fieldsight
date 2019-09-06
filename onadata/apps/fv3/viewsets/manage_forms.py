@@ -895,28 +895,28 @@ class FormSettingsVS(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):
-        site_types = self.request.data.get('site_types', [])
         default_submission_status = self.request.data.get('default_submission_status', 0)
         weight = self.request.data.get('weight', 0)
-        settings = serializer.save(user=self.request.user, types=site_types)
+        settings = serializer.save(user=self.request.user)
         form = settings.form
         form.default_submission_status = default_submission_status
         form.save()
         if form.is_staged:
             stage = form.stage
             stage.weight = weight
+            stage.tags = settings.types
             stage.save()
 
     def perform_update(self, serializer):
-        site_types = self.request.data.get('site_types', [])
         default_submission_status = self.request.data.get('default_submission_status', 0)
         weight = self.request.data.get('weight', 0)
-        settings = serializer.save(user=self.request.user, types=site_types)
+        settings = serializer.save(user=self.request.user)
         form = settings.form
         form.default_submission_status = default_submission_status
         form.save()
         if form.is_staged:
             stage = form.stage
             stage.weight = weight
+            stage.tags = settings.types
             stage.save()
 
