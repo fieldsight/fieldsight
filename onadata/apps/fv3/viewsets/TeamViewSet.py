@@ -67,7 +67,7 @@ class StripeSubscriptions(APIView):
         customer_data = {
             'email': request.user.email,
             'description': 'Some Customer Data',
-            'card': request.POST['stripeToken'],
+            'card': request.data['stripeToken'],
             'metadata': {'username': request.user.username}
         }
 
@@ -79,22 +79,22 @@ class StripeSubscriptions(APIView):
         stripe_customer = stripe.Customer.retrieve(cust.stripe_cust_id)
         card = stripe_customer.sources.data[0].last4
 
-        period = request.POST['interval']
+        period = request.data['interval']
 
         starting_date = datetime.now().strftime('%A, %B %d, %Y')
         if period == 'yearly':
-            overage_plan = settings.YEARLY_PLANS_OVERRAGE[request.POST['plan_name']]
-            selected_plan = settings.YEARLY_PLANS[request.POST['plan_name']]
+            overage_plan = settings.YEARLY_PLANS_OVERRAGE[request.data['plan_name']]
+            selected_plan = settings.YEARLY_PLANS[request.data['plan_name']]
             package = Package.objects.get(plan=settings.PLANS[selected_plan], period_type=2)
             ending_date = datetime.now() + dateutil.relativedelta.relativedelta(months=12)
-            plan_name = YEARLY_PLAN_NAME[request.POST['plan_name']]
+            plan_name = YEARLY_PLAN_NAME[request.data['plan_name']]
 
         elif period == 'monthly':
-            overage_plan = settings.MONTHLY_PLANS_OVERRAGE[request.POST['plan_name']]
-            selected_plan = settings.MONTHLY_PLANS[request.POST['plan_name']]
+            overage_plan = settings.MONTHLY_PLANS_OVERRAGE[request.data['plan_name']]
+            selected_plan = settings.MONTHLY_PLANS[request.data['plan_name']]
             package = Package.objects.get(plan=settings.PLANS[selected_plan], period_type=1)
             ending_date = datetime.now() + dateutil.relativedelta.relativedelta(months=1)
-            plan_name = MONTHLY_PLAN_NAME[request.POST['plan_name']]
+            plan_name = MONTHLY_PLAN_NAME[request.data['plan_name']]
 
         try:
 
@@ -129,7 +129,7 @@ class StripeSubscriptions(APIView):
         except Exception as e:
             return Response(status=status.HTTP_204_NO_CONTENT, data={'error': str(e)})
 
-        return Response(status=status.HTTP_201_CREATED, data={'organization': organization,
+        return Response(status=status.HTTP_201_CREATED, data={'organization': organization.name,
                                                               'submissions': package.submissions,
                                                               'amount': package.total_charge,
                                                               'starting_date': starting_date,

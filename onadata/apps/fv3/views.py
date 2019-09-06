@@ -625,7 +625,8 @@ def users(request):
                 project = get_object_or_404(Project, id=site.project.id)
                 queryset = UserRole.objects.filter(ended_at__isnull=True).filter(site=site ).select_related('user', 'user__user_profile').distinct('user_id')
 
-                data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+                data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
+                         'email': user_obj.user.email,
                          'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, site)}
                         for user_obj in queryset]
 
@@ -643,7 +644,8 @@ def users(request):
         queryset = UserRole.objects.select_related('user', 'user__profile').filter(project=project,
                                                                    ended_at__isnull=True).distinct('user_id')
 
-        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
+                 'email': user_obj.user.email,
                  'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, project)}
                 for user_obj in queryset]
 
@@ -658,7 +660,8 @@ def users(request):
 
         queryset = UserRole.objects.select_related('user').filter(organization=team, ended_at__isnull=True).distinct('user_id')
 
-        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
+                 'email': user_obj.user.email,
                  'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, team)}
                 for user_obj in queryset]
 

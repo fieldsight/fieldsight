@@ -21,11 +21,13 @@ class TeamSerializer(serializers.ModelSerializer):
     breadcrumbs = serializers.SerializerMethodField()
     package_details = serializers.SerializerMethodField()
     stripe_token = serializers.SerializerMethodField()
+    map = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = ('id', 'name', 'address', 'logo', 'public_desc', 'contact', 'total_sites', 'total_projects',
-                  'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs', 'package_details', 'stripe_token')
+                  'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs', 'package_details', 'stripe_token',
+                  'map')
 
     def get_total_sites(self, obj):
 
@@ -74,8 +76,9 @@ class TeamSerializer(serializers.ModelSerializer):
         else:
             return {'name': obj.name}
 
-    def get_map_data(self, obj):
-        sites = Site.objects.filter(project__organization=obj, is_survey=False, is_active=True)[:100]
+    def get_map(self, obj):
+
+        sites = Site.objects.filter(project__organization=obj, is_survey=False, is_active=True).exclude(location=None)[:100]
         data = serialize('custom_geojson', sites, geometry_field='location',
                          fields=('name', 'public_desc', 'additional_desc', 'address', 'location', 'phone', 'id'))
 
@@ -83,7 +86,9 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def get_package_details(self, obj):
         request = self.context['request']
-        if not request.user.is_superuser and obj.owner == request.user:
+        has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=request.user,
+                                    organization=obj).exists()
+        if not request.user.is_superuser and obj.owner == request.user and not has_user_free_package:
             packages_qs = Package.objects.all()
             packages = [{'plan': package.get_plan_display(), 'submissions': package.submissions, 'total_charge':
                 package.total_charge, 'extra_submissions_charge': package.extra_submissions_charge, 'period_type':

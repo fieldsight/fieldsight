@@ -112,8 +112,7 @@ def my_roles(request):
         invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
     else:
-        invitations = UserInvite.objects.select_related('by_user').filter(email=request.user.email, is_used=False, is_declied=False)
-
+        invitations = UserInvite.objects.select_related('by_user').filter(email__icontains=request.user.email, is_used=False, is_declied=False)
         invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
     return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data})
@@ -449,7 +448,7 @@ class AcceptAllInvites(APIView):
         except ObjectDoesNotExist:
             return Response(data='Username does not exist.', status=status.HTTP_400_BAD_REQUEST)
 
-        invitations = UserInvite.objects.filter(email=user.email, is_used=False, is_declied=False)
+        invitations = UserInvite.objects.filter(email__icontains=user.email, is_used=False, is_declied=False)
 
         profile = user.user_profile
         if not profile.organization:
