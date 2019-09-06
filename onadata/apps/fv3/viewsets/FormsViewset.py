@@ -427,8 +427,9 @@ class FormsView(APIView):
         survey_form_data = FSXFormSerializer(survey_forms, many=True).data
         stages = Stage.objects.filter(is_deleted=False, stage__isnull=True).filter(
             Q(project__id__in=project_ids) | Q(
-                site__project__id__in=project_ids,
-                                               project_stage_id=0)).select_related("site")
+                site__project__id__in=project_ids, project_stage_id=0))\
+            .select_related("site").prefetch_related(
+            "parent", "parent__stage_forms", "parent__stage_forms__xf", "parent__stage_forms__em", "parent__stage_forms__xf__user")
         stage_data = StageSerializer(stages, many=True).data
         return Response({"general": general_form_data,
                          "survey": survey_form_data,

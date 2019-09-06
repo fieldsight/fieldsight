@@ -140,13 +140,13 @@ class FormsPermission(permissions.BasePermission):
         if not (request.user and request.user.is_authenticated()):
             return False
         project_ids = request.GET.getlist('project_id')
+        projects_acess = request.roles.filter(
+            project__id__in=project_ids,
+            group__name__in=["Site Supervisor",
+                             "Region Suervisor"]).values_list("project__id", flat=True).distinct()
         if project_ids:
             for project in project_ids:
-                suervisor_roles = request.roles.filter(
-                    project=project,
-                    group__name__in=["Site Supervisor",
-                                     "Region Suervisor"]).exists()
-                if not suervisor_roles:
+                if int(project) not in projects_acess:
                     return False
             return True
         return False

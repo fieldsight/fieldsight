@@ -299,12 +299,12 @@ class SchedueFSXFormSerializer(FSXFormSerializer):
 
 class SubStageSerializer(serializers.ModelSerializer):
     stage_forms = FSXFormSerializer()
-    em = EMSerializer(read_only=True)
+    # em = EMSerializer(read_only=True)
     # tags = serializers.SerializerMethodField()
 
     class Meta:
         model = Stage
-        exclude = ('shared_level', 'site', 'group', 'ready', 'project','stage', 'date_modified', 'date_created', 'tags')
+        exclude = ('shared_level', 'site', 'group', 'ready', 'project', 'stage', 'date_modified', 'date_created',)
 
     # def get_tags(self, obj):
     #     parent_tags = self.context.get(str(obj.stage_id), [])
@@ -313,23 +313,23 @@ class SubStageSerializer(serializers.ModelSerializer):
 
 
 class StageSerializer(serializers.ModelSerializer):
-    parent = serializers.SerializerMethodField('get_substages')
+    sub_stages = SubStageSerializer(many=True, source="parent")
     site_project_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Stage
-        exclude = ('shared_level', 'group', 'ready', 'stage','date_modified', 'date_created',)
+        exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created',)
 
-    def get_substages(self, stage):
-        stages = Stage.objects.filter(stage=stage, is_deleted=False,
-                                      stage_forms__is_deleted=False,
-                                      stage_forms__is_deployed=True
-                                      ).select_related( 'stage_forms',
-                                                        'stage_forms__xf',
-                                                        'em').order_by(
-            'order', 'date_created')
-        serializer = SubStageSerializer(instance=stages, many=True)
-        return serializer.data
+    # def get_substages(self, stage):
+    #     stages = Stage.objects.filter(stage=stage, is_deleted=False,
+    #                                   stage_forms__is_deleted=False,
+    #                                   stage_forms__is_deployed=True
+    #                                   ).select_related('stage_forms',
+    #                                                     'stage_forms__xf',
+    #                                                     'em').order_by(
+    #         'order', 'date_created')
+    #     serializer = SubStageSerializer(instance=stages, many=True)
+    #     return serializer.data
 
     def get_site_project_id(self, obj):
         if obj.site:
