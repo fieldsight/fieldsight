@@ -26,11 +26,10 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
 
-        # if obj.current_status <= 3:
-        #     return FORM_STATUS[obj.current_status]
         try:
             if obj.site_instances.all():
-                return FORM_STATUS[obj.current_status]
+                # return FORM_STATUS[obj.current_status]
+                return FORM_STATUS[obj.site_instances.all().order_by('-date')[0].form_status]
         except:
             return None
 

@@ -1,3 +1,6 @@
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
+
 from onadata.apps.userrole.models import UserRole as Role
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import logout
@@ -48,8 +51,9 @@ class RoleMiddleware(object):
             
             if not roles:
                 print(" user have no roles")
+
                 logout(request)
-                return render(request, 'fieldsight/permission_denied.html')
+                # return render(request, 'fieldsight/permission_denied.html')
 
         else:
             print("User anonymous, clearing roles")

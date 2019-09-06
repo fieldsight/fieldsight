@@ -187,9 +187,9 @@ class SiteSerializer(serializers.ModelSerializer):
     def get_breadcrumbs(self, obj):
         name = obj.name
         project = obj.project
-        project_url = '#'
+        project_url = obj.get_absolute_url()
         organization = obj.project.organization
-        organization_url = ''
+        organization_url = obj.get_absolute_url()
         request = self.context['request']
         if request.roles.filter(Q(group__name__in=["Project Manager", "Project Donor"], project=project) | Q(group__name="Organization Admin",
                                                                                       organization=organization)) or request.is_super_admin:
