@@ -143,7 +143,7 @@ class FormsPermission(permissions.BasePermission):
         projects_acess = request.roles.filter(
             project__id__in=project_ids,
             group__name__in=["Site Supervisor",
-                             "Region Suervisor"]).values_list("project__id", flat=True).distinct()
+                             "Region Supervisor"]).values_list("project__id", flat=True).distinct()
         if project_ids:
             for project in project_ids:
                 if int(project) not in projects_acess:
