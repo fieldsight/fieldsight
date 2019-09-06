@@ -11,7 +11,7 @@ class Serializer(GeoJSONSerializer):
         data.update(project=obj.project.name)
         data.update(status=obj.current_status)
         data.update(progress=obj.current_progress)
-        data.update(type=obj.type.name if obj.type else None)
+        data.update(site_type=obj.type.name if obj.type else None)
         data.update(region=obj.region.name if obj.region else None)
 
         return data
