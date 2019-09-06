@@ -4657,7 +4657,7 @@ class ProjectSiteListGeoJSON(FullMapViewMixin, View):
         data = serialize('full_detail_geojson',
                          sites,
                          geometry_field='location',
-                         fields=('name', 'location', 'id', 'identifier' ))
+                         fields=('name', 'location', 'id', 'identifier'))
 
         return JsonResponse(json.loads(data), status=200)
 
