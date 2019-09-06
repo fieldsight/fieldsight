@@ -238,7 +238,7 @@ class SubStageSerializer(serializers.ModelSerializer):
         fields = ('weight', 'name', 'description', 'id', 'order',
                   'date_created', 'em', 'responses_count',
                   'xf', 'has_em', 'is_deployed', 'default_submission_status',
-                  'fsxf')
+                  'fsxf', 'tags')
 
     def update(self, instance, validated_data):
         xf = self.context['request'].data.get('xf')
