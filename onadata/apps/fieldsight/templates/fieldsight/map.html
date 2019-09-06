@@ -446,7 +446,7 @@
 
             $.getJSON(projectLayersUrl, function (geo_layer) {     
              
-
+                console.log(projectList);
                 map = L.map('map', {
                       center: [27.717245,85.323959],
                       zoom: 6,
@@ -524,9 +524,10 @@
                             async: false,
                             url: url,
                             success: function(data) {
-                                if(is_secondary_url){
+                                if(is_secondary_url){ //secondary_url: api geojson & primary_url: file geojson dumped on regular basis
                                     $.each(data.features,function(key, value){
-                                        site_exists = projectMarkerArray.findIndex(e => e.id == value.id);
+                                        site_exists = projectMarkerArray.findIndex(e => e.id == value.id); // check if site already exists from primary url
+                                        console.log(site_exists);
                                         if(site_exists !== -1){
                                             projectMarkerArray[site_exists] = value;
                                         }
