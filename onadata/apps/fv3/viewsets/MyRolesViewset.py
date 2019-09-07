@@ -77,7 +77,8 @@ def my_roles(request):
         except ObjectDoesNotExist:
             profile_obj = UserProfile.objects.create(user=request.user)
 
-    guide_popup = True if request.user.user_roles.all().count() == 0 or request.user.user_roles.filter(group__name="Unassigned") else False
+    guide_popup = True if request.user.user_roles.all().count() == 0 or (request.user.user_roles.filter(group__name="Unassigned")
+                                                                         and request.user.user_roles.all().count() == 1) else False
 
     can_create_team = True
     if request.user.organizations.all():

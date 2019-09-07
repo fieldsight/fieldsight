@@ -576,14 +576,14 @@ class OrganizationCreateView(OrganizationView, CreateView):
                 UserRole.objects.get_or_create(user=user, group=group, organization=self.object, project_id=project.id,
                                            site_id=site.id)
 
-            return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': self.object.pk}))
+            return HttpResponseRedirect(self.object.get_absolute_url())
 
         return HttpResponseRedirect(self.get_success_url())
 
 
 class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView):
     def get_success_url(self):
-        return reverse('fieldsight:organizations-dashboard', kwargs={'pk': self.kwargs['pk']})
+        return self.object.get_absolute_url()
 
     def get_context_data(self, **kwargs):
         context = super(OrganizationUpdateView, self).get_context_data(**kwargs)
