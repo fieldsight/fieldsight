@@ -522,6 +522,7 @@ def web_authenticate(username=None, password=None):
 
 def web_login(request):
     reset = request.GET.get('reset')
+
     if request.user.is_authenticated():
         return redirect('dashboard')
     if request.method == 'POST':

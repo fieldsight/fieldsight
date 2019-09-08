@@ -82,7 +82,7 @@
                                 </ul>
 
                                 {% if has_user_free_package %}
-                                    <a href="{% url 'fieldsight:organizations-dashboard' obj.id%}" class="btn btn-sm btn-primary mb-4">Upgrade Your Package</a>
+                                    <a href="{{obj.get_absolute_url}}" class="btn btn-sm btn-primary mb-4">Upgrade Your Package</a>
                                 {% endif %}
                             </div>
                             <div class="col-md-6">

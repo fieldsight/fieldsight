@@ -45,7 +45,7 @@
 										<p>{{ obj.get_country_display }}</p>
 									</div>
 									<div class="action-button margin-top">
-										<a href="{% url 'fieldsight:organizations-dashboard' obj.pk %}" title="" class="btn btn-sm btn-primary">{% trans 'View' %}</a>
+										<a href="{{obj.get_absolute_url}}" title="" class="btn btn-sm btn-primary">{% trans 'View' %}</a>
 										<a href="{% url 'fieldsight:organization-edit' obj.pk %}" title="" class="btn btn-sm btn-primary">{% trans 'Edit' %}</a>
 									</div>
 								</div>

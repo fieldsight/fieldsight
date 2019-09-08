@@ -77,6 +77,9 @@ def my_roles(request):
         except ObjectDoesNotExist:
             profile_obj = UserProfile.objects.create(user=request.user)
 
+    guide_popup = True if request.user.user_roles.all().count() == 0 or (request.user.user_roles.filter(group__name="Unassigned")
+                                                                         and request.user.user_roles.all().count() == 1) else False
+
     can_create_team = True
     if request.user.organizations.all():
         can_create_team = False
@@ -91,7 +94,7 @@ def my_roles(request):
     profile = {'id': profile_obj.id, 'fullname': profile_obj.getname(), 'username': profile_obj.user.username, 'email': profile_obj.user.email,
                'address': profile_obj.address, 'phone': profile_obj.phone, 'profile_picture': profile_obj.profile_picture.url,
                'twitter': profile_obj.twitter, 'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype,
-               'google_talk': profile_obj.google_talk, 'can_create_team': can_create_team}
+               'google_talk': profile_obj.google_talk, 'can_create_team': can_create_team, 'guide_popup': guide_popup}
 
     teams = UserRole.objects.filter(user=user).select_related('user', 'group', 'site', 'organization',
                                                                       'staff_project', 'region').filter(Q(group__name="Organization Admin", organization__is_active=True)|
@@ -110,8 +113,7 @@ def my_roles(request):
         invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
     else:
-        invitations = UserInvite.objects.select_related('by_user').filter(email=request.user.email, is_used=False, is_declied=False)
-
+        invitations = UserInvite.objects.select_related('by_user').filter(email__icontains=request.user.email, is_used=False, is_declied=False)
         invitations_serializer = UserInvitationSerializer(invitations, many=True)
 
     return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data})
@@ -447,7 +449,7 @@ class AcceptAllInvites(APIView):
         except ObjectDoesNotExist:
             return Response(data='Username does not exist.', status=status.HTTP_400_BAD_REQUEST)
 
-        invitations = UserInvite.objects.filter(email=user.email, is_used=False, is_declied=False)
+        invitations = UserInvite.objects.filter(email__icontains=user.email, is_used=False, is_declied=False)
 
         profile = user.user_profile
         if not profile.organization:
