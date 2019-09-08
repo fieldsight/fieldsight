@@ -69,7 +69,7 @@ from .views import (
     ApplicationView,
     ProjectTermsAndLabelView, project_terms_label_create, ProjectSyncScheduleUpdateView, ProjectTermsLabelUpdate,
     SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView,
-    SubSiteCreateView, GenerateSiteReport, mvt_tiles, vect_map)
+    SubSiteCreateView, GenerateSiteReport, mvt_tiles, vect_map, attachment_url)
 
 from onadata.apps.fieldsight.viewsets.SiteViewSet import ProjectSiteViewSet
 
@@ -354,4 +354,5 @@ urlpatterns = [
     url(r'^mvt-tiles/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', mvt_tiles, name='mvt_tiles_first'),
     url(r'^vect-map/$', vect_map, name='vect_map'),
 
+    url(r'^attachment/(?P<instance_id>\d+)/(?P<size>[^/]+)/$', attachment_url, name='attachment_url'),
 ]

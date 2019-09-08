@@ -1,9 +1,14 @@
-def parse_form_response(main_question, main_answer, base_url, media_folder):
+from onadata.libs.utils.image_tools import image_url
+from onadata.apps.logger.models import Attachment
 
-    parsed_question=[]
-    parsed_answer={}
-    repeat_qa={}
-    repeat_questions=[]
+def parse_form_response(main_question, main_answer, base_url, media_folder, instance_id, xlsx=False):
+
+    parsed_question = []
+    parsed_answer = {}
+    repeat_qa = {}
+    repeat_questions = []
+    instance_id = instance_id
+    xlsx = xlsx
     
 
     def append_row(question_name, question_label, question_type, answer_dict, is_repeat=None):
@@ -13,8 +18,12 @@ def parse_form_response(main_question, main_answer, base_url, media_folder):
                 answer=''
                 
             elif question_type == 'photo' or question_type == 'audio' or question_type == 'video':
-                answer = 'http://'+base_url+'/attachment/medium?media_file='+ media_folder +'/attachments/'+ answer_dict[question_name]
+                media_url = 'https://'+base_url+'/fieldsight/attachment/'+ str(instance_id) +'/medium/?media_file='+ answer_dict[question_name] + '&media_folder=' + media_folder 
                 
+                if xlsx:
+                    answer = '=HYPERLINK("'+media_url+'", "Attachment")'
+                else:
+                    answer = media_url
             else:
                 answer=answer_dict[question_name]
 

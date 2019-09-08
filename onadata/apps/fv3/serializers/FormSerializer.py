@@ -292,7 +292,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
 class SchedueFSXFormSerializer(FSXFormSerializer):
     class Meta:
         model = FieldSightXF
-        fields = ('id', 'site', 'project', 'downloadUrl', 'manifestUrl',
+        fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
                   'name', 'descriptionText', 'formID',
                   'version', 'hash', 'em', 'schedule')
 
