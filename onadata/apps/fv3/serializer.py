@@ -187,3 +187,14 @@ class ProjectSitesSerializer(serializers.ModelSerializer):
                   'type', 'logo', 'location')
 
         extra_kwargs = {'location': {'read_only': True}}
+
+
+class TeamSerializer(serializers.ModelSerializer):
+    team_owner = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Organization
+        fields = ('id', 'name', 'address', 'team_owner')
+
+    def get_team_owner(self, obj):
+        return obj.owner.get_full_name() if obj.owner else None
