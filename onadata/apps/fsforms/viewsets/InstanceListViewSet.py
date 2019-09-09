@@ -37,6 +37,6 @@ class InstanceListViewSet(ModelViewSet):
 
     def filter_queryset(self, queryset, view=None):
         field_sight_form = self.request.query_params.get('field_sight_form', None)
-        instances = Instance.objects.filter(fieldsight_instance__project_fxf=field_sight_form)
+        instances = Instance.objects.filter(fieldsight_instance__project_fxf=field_sight_form, deleted_at=None).order_by('-date_created')
 
         return instances
