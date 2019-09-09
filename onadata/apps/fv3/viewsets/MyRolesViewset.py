@@ -356,9 +356,13 @@ class AcceptInvite(APIView):
                                                                        organization=invitation.organization,
                                                                        project_id=project_id, site_id=site_id)
                 if not site_ids:
-                    userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
-                                                                       organization=invitation.organization,
-                                                                       project_id=project_id, site=None)
+                    try:
+                        userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                           organization=invitation.organization,
+                                                                           project_id=project_id, site=None)
+                    except AttributeError:
+                        invitation.is_used = True
+                        invitation.save()
 
         if not project_ids:
             userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
@@ -460,6 +464,7 @@ class AcceptAllInvites(APIView):
         except ObjectDoesNotExist:
             return Response(data='Username does not exist.', status=status.HTTP_400_BAD_REQUEST)
 
+
         invitations = UserInvite.objects.filter(email__icontains=user.email, is_used=False, is_declied=False)
 
         profile = user.user_profile
@@ -490,9 +495,13 @@ class AcceptAllInvites(APIView):
                                                                            organization=invitation.organization,
                                                                            project_id=project_id, site_id=site_id)
                     if not site_ids:
-                        userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
-                                                                           organization=invitation.organization,
-                                                                           project_id=project_id, site=None)
+                        try:
+                            userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                               organization=invitation.organization,
+                                                                               project_id=project_id, site=None)
+                        except AttributeError:
+                            invitation.is_used = True
+                            invitation.save()
 
             if not project_ids:
                 userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,

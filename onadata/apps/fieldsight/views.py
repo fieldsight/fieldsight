@@ -2207,7 +2207,11 @@ class ActivateRole(TemplateView):
                     delete_unassigned_group(user)
 
                 if not site_ids:
-                    userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project_id=project_id, site=None)
+                    try:
+                        userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project_id=project_id, site=None)
+                    except AttributeError:
+                        invite.is_used = True
+                        invite.save()
                     delete_unassigned_group(user)
 
         if not project_ids:
