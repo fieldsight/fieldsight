@@ -8,7 +8,7 @@ from onadata.apps.fv3.urls.manage_forms import manage_forms_urlpatterns
 from onadata.apps.fv3.urls.project_dashboard import project_dashboard_urlpatterns
 from onadata.apps.fv3.urls.team_dashboard import team_dashboard_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
-    ProjectDefineSiteMeta, ProjectSitesViewset, check_region
+    ProjectDefineSiteMeta, ProjectSitesViewset, check_region, project_sites_vt
 
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, \
     MyProjectFormsViewSet, ShareFormViewSet, \
@@ -74,6 +74,7 @@ urlpatterns = [
     url(r'^api/sub-regions/$', sub_regions, name='sub_regions'),
     url(r'^api/users/$', users, name='users'),
     url(r'^api/forms/$', FormsView.as_view(), name='forms'),
+    url(r'^api/project/sites-vt/(?P<pk>\d+)/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', project_sites_vt, name='project_sites_vt'),
 
 ]
 

@@ -6,6 +6,7 @@ from django.db.models import Prefetch, Q
 from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from django.db import connection
 
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
@@ -622,10 +623,10 @@ def users(request):
             if check_site_permission(request, site.id):
 
                 project = get_object_or_404(Project, id=site.project.id)
-                queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
-                    Q(site=site) | Q(region__project=project)).select_related('user', 'user__user_profile').distinct('user_id')
+                queryset = UserRole.objects.filter(ended_at__isnull=True).filter(site=site ).select_related('user', 'user__user_profile').distinct('user_id')
 
-                data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+                data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
+                         'email': user_obj.user.email,
                          'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, site)}
                         for user_obj in queryset]
 
@@ -643,7 +644,8 @@ def users(request):
         queryset = UserRole.objects.select_related('user', 'user__profile').filter(project=project,
                                                                    ended_at__isnull=True).distinct('user_id')
 
-        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
+                 'email': user_obj.user.email,
                  'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, project)}
                 for user_obj in queryset]
 
@@ -658,7 +660,8 @@ def users(request):
 
         queryset = UserRole.objects.select_related('user').filter(organization=team, ended_at__isnull=True).distinct('user_id')
 
-        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'email': user_obj.user.email,
+        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
+                 'email': user_obj.user.email,
                  'profile_picture': user_obj.user.user_profile.profile_picture.url, 'role': get_user_roles(user_obj, team)}
                 for user_obj in queryset]
 
@@ -667,3 +670,31 @@ def users(request):
 
     else:
         return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site id or project id or team id is required.'})
+
+
+# def mvt_tiles(request, zoom, x, y):
+#
+#     """
+#     Custom view to serve Mapbox Vector Tiles for the custom polygon model.
+#     """
+#     with connection.cursor() as cursor:
+#         cursor.execute("SELECT ST_AsMVT(tile) FROM (SELECT id,name, ST_AsMVTGeom(location::geometry, TileBBox(%s, %s, %s, 4326)) FROM  fieldsight_site) AS tile", [zoom, x, y])
+#         tile = bytes(cursor.fetchone()[0])
+#         # return HttpResponse(len(tile))
+#         # if not len(tile):
+#         #     raise Http404()
+#     return HttpResponse(tile, content_type="application/x-protobuf")
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def project_sites_vt(request, pk, zoom, x, y):
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT ST_AsMVT(tile) FROM (SELECT id,name, ST_AsMVTGeom(location::geometry, TileBBox(%s, %s, %s, 4326)) FROM  fieldsight_site where project_id=%s) AS tile",
+            [zoom, x, y, pk])
+        tile = bytes(cursor.fetchone()[0])
+
+    return HttpResponse(tile, content_type="application/x-protobuf")
+
+

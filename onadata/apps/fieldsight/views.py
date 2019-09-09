@@ -9,7 +9,7 @@ from io import BytesIO
 from django.contrib import messages
 from django.contrib.auth.models import Group, User, Permission
 from django.contrib.gis.geos import Point
-from django.db import transaction
+from django.db import transaction, connection
 from django.db.models import Q
 from django.forms import modelformset_factory
 from django.http import HttpResponseRedirect, JsonResponse, Http404, HttpResponse, HttpResponseNotFound
@@ -581,14 +581,14 @@ class OrganizationCreateView(OrganizationView, CreateView):
                 UserRole.objects.get_or_create(user=user, group=group, organization=self.object, project_id=project.id,
                                            site_id=site.id)
 
-            return HttpResponseRedirect(reverse("fieldsight:organizations-dashboard", kwargs={'pk': self.object.pk}))
+            return HttpResponseRedirect(self.object.get_absolute_url())
 
         return HttpResponseRedirect(self.get_success_url())
 
 
 class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView):
     def get_success_url(self):
-        return reverse('fieldsight:organizations-dashboard', kwargs={'pk': self.kwargs['pk']})
+        return self.object.get_absolute_url()
 
     def get_context_data(self, **kwargs):
         context = super(OrganizationUpdateView, self).get_context_data(**kwargs)
@@ -4667,7 +4667,7 @@ class ProjectSiteListGeoJSON(FullMapViewMixin, View):
         data = serialize('full_detail_geojson',
                          sites,
                          geometry_field='location',
-                         fields=('name', 'location', 'id', 'identifier' ))
+                         fields=('name', 'location', 'id', 'identifier'))
 
         return JsonResponse(json.loads(data), status=200)
 
@@ -4819,6 +4819,26 @@ class SyncScheduleDeleteView(ProjectRoleMixin, DeleteView):
     
     def get_success_url(self):
         return reverse('fieldsight:sync_schedule', kwargs={'pk': self.object.fxf.project.id})
+
+
+# vector tile test
+
+def mvt_tiles(request, zoom, x, y):
+
+    """
+    Custom view to serve Mapbox Vector Tiles for the custom polygon model.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT ST_AsMVT(tile) FROM (SELECT id,name, ST_AsMVTGeom(location::geometry, TileBBox(%s, %s, %s, 4326)) FROM  fieldsight_site) AS tile", [zoom, x, y])
+        tile = bytes(cursor.fetchone()[0])
+        # return HttpResponse(len(tile))
+        # if not len(tile):
+        #     raise Http404()
+    return HttpResponse(tile, content_type="application/x-protobuf")
+
+
+def vect_map(request):
+    return render(request, 'fieldsight/vect_map.html')
 
 
 def attachment_url(request, instance_id, size='medium'):

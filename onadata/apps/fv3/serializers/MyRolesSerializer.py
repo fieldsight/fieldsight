@@ -272,7 +272,8 @@ class UserInvitationSerializer(serializers.ModelSerializer):
 
     def get_current_user(self, obj):
 
-        user = User.objects.get(email=obj.email)
+        user = User.objects.filter(email__icontains=obj.email)[0]
+
         return user.username
 
 
