@@ -187,3 +187,32 @@ class ProjectSitesSerializer(serializers.ModelSerializer):
                   'type', 'logo', 'location')
 
         extra_kwargs = {'location': {'read_only': True}}
+
+
+class TeamSerializer(serializers.ModelSerializer):
+    team_owner = serializers.SerializerMethodField()
+    projects = serializers.SerializerMethodField()
+    users = serializers.SerializerMethodField()
+    sites = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Organization
+        fields = ('id', 'name', 'logo', 'address', 'team_owner', 'projects', 'users', 'sites')
+
+    def get_team_owner(self, obj):
+        return obj.owner.get_full_name() if obj.owner else None
+
+    def get_projects(self, obj):
+        org_projects = obj.projects.filter(is_active=True).count()
+
+        return org_projects
+
+    def get_sites(self, obj):
+        total_sites = Site.objects.filter(project__organization=obj, is_survey=False, is_active=True).count()
+
+        return total_sites
+
+    def get_users(self, obj):
+        users = obj.organization_roles.filter(ended_at__isnull=True).distinct('user').count()
+
+        return users

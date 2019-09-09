@@ -37,12 +37,19 @@ from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
-    check_site_permission
+    check_site_permission, SuperUserPermissions
+from .serializer import TeamSerializer
 
 
 class ProjectSitesPagination(PageNumberPagination):
     page_size = 50
     page_size_query_param = 'page_size'
+
+
+class TeamsPagination(PageNumberPagination):
+    page_size = 200
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
 
 
 @permission_classes([IsAuthenticated])
@@ -620,10 +627,18 @@ def users(request):
                 site = Site.objects.select_related('project').get(id=site)
             except ObjectDoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+            region = site.region
             if check_site_permission(request, site.id):
 
                 project = get_object_or_404(Project, id=site.project.id)
-                queryset = UserRole.objects.filter(ended_at__isnull=True).filter(site=site ).select_related('user', 'user__user_profile').distinct('user_id')
+                region = site.region
+                if region is not None:
+                    queryset = UserRole.objects.filter(ended_at__isnull=True).filter(
+                        Q(site_id=site.id) | Q(region=region)). \
+                        select_related('user', 'user__user_profile').distinct('user_id')
+                else:
+                    queryset = UserRole.objects.filter(ended_at__isnull=True).filter(site=site).\
+                        select_related('user', 'user__user_profile').distinct('user_id')
 
                 data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
                          'email': user_obj.user.email,
@@ -698,3 +713,8 @@ def project_sites_vt(request, pk, zoom, x, y):
     return HttpResponse(tile, content_type="application/x-protobuf")
 
 
+class TeamsViewset(viewsets.ReadOnlyModelViewSet):
+    queryset = Organization.objects.all()
+    serializer_class = TeamSerializer
+    permission_classes = [IsAuthenticated, SuperUserPermissions]
+    pagination_class = TeamsPagination

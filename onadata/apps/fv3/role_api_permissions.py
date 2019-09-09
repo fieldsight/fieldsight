@@ -514,3 +514,15 @@ class ProjectDonorApiPermissions(DjangoObjectPermissions):
 
         else:
             return False
+
+
+class SuperUserPermissions(DjangoObjectPermissions):
+    """
+        Permissions for superuser
+    """
+
+    def has_permission(self, request, view):
+
+        if request.is_super_admin:
+            return True
+
