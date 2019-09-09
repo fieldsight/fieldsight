@@ -390,7 +390,7 @@ class MySharedFormViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class FormsView(APIView):
-    permission_classes = (IsAuthenticated, FormsPermission)
+    permission_classes = (IsAuthenticated,FormsPermission)
     """
     List all forms in given projects.
     """
@@ -400,7 +400,8 @@ class FormsView(APIView):
             is_deleted=False,  is_deployed=True).filter(Q(
             project__id__in=project_ids) | Q(site__project_id__in=project_ids,
                                             from_project=False)
-            ).select_related("xf", "em", "xf__user", "site")
+            ).select_related("xf", "em", "xf__user", "site", "settings").prefetch_related("em__em_images")
+        list(fieldsight_forms)
         general_forms = [f for f in fieldsight_forms if (f.is_staged == False
                     and f.is_survey == False and f.is_scheduled == False)]
         survey_forms = [f for f in fieldsight_forms if (f.is_staged == False
@@ -429,7 +430,9 @@ class FormsView(APIView):
             Q(project__id__in=project_ids) | Q(
                 site__project__id__in=project_ids, project_stage_id=0))\
             .select_related("site").prefetch_related(
-            "parent", "parent__stage_forms", "parent__stage_forms__xf", "parent__stage_forms__em", "parent__stage_forms__xf__user")
+            "parent", "parent__stage_forms", "parent__stage_forms__xf", "parent__stage_forms__settings",
+            "parent__stage_forms__site",
+            "parent__stage_forms__em", "parent__stage_forms__em__em_images", "parent__stage_forms__xf__user")
         stage_data = StageSerializer(stages, many=True).data
         return Response({"general": general_form_data,
                          "survey": survey_form_data,

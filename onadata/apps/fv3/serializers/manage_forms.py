@@ -296,3 +296,10 @@ class FormSettingsSerializer(serializers.ModelSerializer):
 
     def get_username(self, obj):
         return obj.user.username
+
+
+class FormSettingsReadOnlySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = FormSettings
+        fields = ('types', 'regions')
