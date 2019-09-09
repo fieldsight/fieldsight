@@ -404,9 +404,7 @@ class FormsView(APIView):
         list(fieldsight_forms)
         general_forms = [f for f in fieldsight_forms if (f.is_staged == False
                     and f.is_survey == False and f.is_scheduled == False)]
-        survey_forms = [f for f in fieldsight_forms if (f.is_staged == False
-                     and f.is_survey == False and f.is_scheduled == False)]
-
+        survey_forms = [f for f in fieldsight_forms if f.is_survey]
         schedule_forms = [f for f in fieldsight_forms if f.is_scheduled]
         schedule_forms_data = SchedueFSXFormSerializer(schedule_forms,
                                                        many=True).data
