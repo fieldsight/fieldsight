@@ -57,7 +57,7 @@ class TeamSerializer(serializers.ModelSerializer):
     def get_admin(self, obj):
         admin_queryset = obj.organization_roles.filter(ended_at__isnull=True, group__name="Organization Admin")
 
-        data = [{'id': admin.id, 'full_name': admin.user.get_full_name(), 'email': admin.user.email, 'profile':
+        data = [{'id': admin.user.id, 'full_name': admin.user.get_full_name(), 'email': admin.user.email, 'profile':
             admin.user.user_profile.profile_picture.url} for admin in admin_queryset]
 
         return data
@@ -88,7 +88,7 @@ class TeamSerializer(serializers.ModelSerializer):
         request = self.context['request']
         has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=request.user,
                                     organization=obj).exists()
-        if not request.user.is_superuser and obj.owner == request.user and not has_user_free_package:
+        if not request.user.is_superuser and obj.owner == request.user and has_user_free_package:
             packages_qs = Package.objects.all()
             packages = [{'plan': package.get_plan_display(), 'submissions': package.submissions, 'total_charge':
                 package.total_charge, 'extra_submissions_charge': package.extra_submissions_charge, 'period_type':

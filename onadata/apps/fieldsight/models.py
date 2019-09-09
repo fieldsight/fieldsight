@@ -197,8 +197,7 @@ class Organization(models.Model):
         return outstanding, flagged, approved, rejected
 
     def get_absolute_url(self):
-        return reverse('fieldsight:organizations-dashboard',
-                       kwargs={'pk': self.pk})
+        return "/fieldsight/application/#/team-dashboard/{}".format(self.pk)
 
     @property
     def get_staffs(self):
