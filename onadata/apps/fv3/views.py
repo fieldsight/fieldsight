@@ -37,12 +37,19 @@ from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
-    check_site_permission
+    check_site_permission, SuperUserPermissions
+from .serializer import TeamSerializer
 
 
 class ProjectSitesPagination(PageNumberPagination):
     page_size = 50
     page_size_query_param = 'page_size'
+
+
+class TeamsPagination(PageNumberPagination):
+    page_size = 200
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
 
 
 @permission_classes([IsAuthenticated])
@@ -698,3 +705,8 @@ def project_sites_vt(request, pk, zoom, x, y):
     return HttpResponse(tile, content_type="application/x-protobuf")
 
 
+class TeamsViewset(viewsets.ReadOnlyModelViewSet):
+    queryset = Organization.objects.all()
+    serializer_class = TeamSerializer
+    permission_classes = [IsAuthenticated, SuperUserPermissions]
+    pagination_class = TeamsPagination

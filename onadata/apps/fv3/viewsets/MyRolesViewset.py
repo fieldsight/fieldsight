@@ -155,6 +155,7 @@ class MySitesView(APIView):
     def get(self, request, *args,  **kwargs):
 
         project_id = request.query_params.get('project', None)
+        search_param = self.request.query_params.get('q', None)
 
         if project_id:
             try:
@@ -163,12 +164,17 @@ class MySitesView(APIView):
                 paginator.page_size = 200
 
                 if is_project_manager_or_team_admin(project_obj, request.user):
-                    data = Site.objects.filter(project=project_obj, is_active=True, site__isnull=True, is_survey=False)
+                    if search_param:
+                        data = Site.objects.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
+                                                   project=project_obj, is_active=True, site__isnull=True, is_survey=False)
+
+                    else:
+                        data = Site.objects.filter(project=project_obj, is_active=True, site__isnull=True, is_survey=False)
 
                     result_page = paginator.paginate_queryset(data, request)
 
                     sites = MySiteSerializer(result_page, many=True, context={'request': request})
-                    return paginator.get_paginated_response({'data': sites.data})
+                    return paginator.get_paginated_response({'data': sites.data, 'query': search_param})
 
                 else:
                     region_ids = request.roles.filter(group__name__in=["Region Supervisor", "Region Reviewer"],
@@ -186,11 +192,16 @@ class MySitesView(APIView):
                         distinct('site_id').values_list('site_id', flat=True)
 
                     total_sites = list(chain(reg_sites, sites_id))
-                    data = Site.objects.filter(id__in=total_sites)
+                    if search_param:
+                        data = Site.objects.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
+                                                   id__in=total_sites)
+                    else:
+                        data = Site.objects.filter(id__in=total_sites)
+
                     result_page = paginator.paginate_queryset(data, request)
 
                     sites = MySiteSerializer(result_page, many=True, context={'request': request})
-                    return paginator.get_paginated_response({'data': sites.data})
+                    return paginator.get_paginated_response({'data': sites.data, 'query': search_param})
 
             except Exception as e:
                 return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
@@ -345,9 +356,13 @@ class AcceptInvite(APIView):
                                                                        organization=invitation.organization,
                                                                        project_id=project_id, site_id=site_id)
                 if not site_ids:
-                    userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
-                                                                       organization=invitation.organization,
-                                                                       project_id=project_id, site=None)
+                    try:
+                        userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                           organization=invitation.organization,
+                                                                           project_id=project_id, site=None)
+                    except AttributeError:
+                        invitation.is_used = True
+                        invitation.save()
 
         if not project_ids:
             userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
@@ -449,6 +464,7 @@ class AcceptAllInvites(APIView):
         except ObjectDoesNotExist:
             return Response(data='Username does not exist.', status=status.HTTP_400_BAD_REQUEST)
 
+
         invitations = UserInvite.objects.filter(email__icontains=user.email, is_used=False, is_declied=False)
 
         profile = user.user_profile
@@ -479,9 +495,13 @@ class AcceptAllInvites(APIView):
                                                                            organization=invitation.organization,
                                                                            project_id=project_id, site_id=site_id)
                     if not site_ids:
-                        userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
-                                                                           organization=invitation.organization,
-                                                                           project_id=project_id, site=None)
+                        try:
+                            userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                               organization=invitation.organization,
+                                                                               project_id=project_id, site=None)
+                        except AttributeError:
+                            invitation.is_used = True
+                            invitation.save()
 
             if not project_ids:
                 userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
