@@ -1,7 +1,7 @@
 from rest_framework import permissions
 
 from onadata.apps.fieldsight.models import Project, Site
-from onadata.apps.fsforms.models import Stage
+from onadata.apps.fsforms.models import Stage, FieldSightXF
 
 
 class ManageFormsPermission(permissions.BasePermission):
@@ -139,6 +139,8 @@ class FormsPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated()):
             return False
+        if request.is_super_admin:
+            return True
         project_ids = request.GET.getlist('project_id')
         projects_acess = request.roles.filter(
             project__id__in=project_ids,
@@ -150,3 +152,78 @@ class FormsPermission(permissions.BasePermission):
                     return False
             return True
         return False
+
+
+class FormsSettingsPermission(permissions.BasePermission):
+    """
+    Manage forms permissions only to Organization admin and project managers
+    """
+
+    def has_permission(self, request, view):
+        if request.is_super_admin:
+            return True
+        if request.method == "GET":
+            form_id = request.query_params.get('form_id')
+        elif request.method == "POST":
+            form_id = request.data.get('form')
+        elif request.method == "PUT":
+            return True
+        if form_id:
+            pk, project_id, organization_id, site_id, site_project_id, site_project_organization_id = \
+                FieldSightXF.objects.filter(pk=form_id).values_list(
+                    'pk', 'project_id',
+                    'project__organization_id',
+                    'site_id', 'site__project_id', 'site__project__organization_id')[0]
+
+            if project_id:
+                user_role_asorgadmin = request.roles.filter(
+                    organization_id=organization_id,
+                    group__name="Organization Admin")
+                if user_role_asorgadmin:
+                    return True
+                user_role = request.roles.filter(project_id=project_id,
+                                                 group__name="Project Manager")
+                if user_role:
+                    return True
+            else:
+                user_role_asorgadmin = request.roles.filter(
+                    organization_id=site_project_organization_id,
+                    group__name="Organization Admin")
+                if user_role_asorgadmin:
+                    return True
+                user_role = request.roles.filter(project_id=site_project_id,
+                                                 group__name="Project Manager")
+                if user_role:
+                    return True
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        if request.is_super_admin:
+            return True
+        form_id = obj.form_id
+        pk, project_id, organization_id, site_id, site_project_id, site_project_organization_id = \
+            FieldSightXF.objects.filter(pk=form_id).values_list(
+                'pk', 'project_id',
+                'project__organization_id',
+                'site_id', 'site__project_id', 'site__project__organization_id')[0]
+
+        if project_id:
+            user_role_asorgadmin = request.roles.filter(
+                organization_id=organization_id,
+                group__name="Organization Admin")
+            if user_role_asorgadmin:
+                return True
+            user_role = request.roles.filter(project_id=project_id,
+                                             group__name="Project Manager")
+            if user_role:
+                return True
+        else:
+            user_role_asorgadmin = request.roles.filter(
+                organization_id=site_project_organization_id,
+                group__name="Organization Admin")
+            if user_role_asorgadmin:
+                return True
+            user_role = request.roles.filter(project_id=site_project_id,
+                                             group__name="Project Manager")
+            if user_role:
+                return True

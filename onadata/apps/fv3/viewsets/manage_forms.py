@@ -3,6 +3,7 @@ from django.db.models import Count, Q, Case, When, F, IntegerField, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -15,7 +16,7 @@ from onadata.apps.fsforms.utils import send_message_un_deploy_project, \
     send_message_un_deploy, send_bulk_message_stages_deployed_site, \
     send_bulk_message_stage_deployed_site, send_sub_stage_deployed_site
 from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
-    StagePermission, DeployFormsPermission
+    StagePermission, DeployFormsPermission, FormsSettingsPermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
     GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer, \
     SubStageSerializer, FormSettingsSerializer
@@ -871,6 +872,7 @@ class FormSettingsVS(viewsets.ModelViewSet):
     serializer_class = FormSettingsSerializer
     queryset = FormSettings.objects.all()
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+    permission_classes = (IsAuthenticated, FormsSettingsPermission)
 
     def retrieve(self, request, *args, **kwargs):
         form_id = self.request.query_params.get("form_id")

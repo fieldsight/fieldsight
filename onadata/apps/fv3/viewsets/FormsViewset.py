@@ -390,7 +390,7 @@ class MySharedFormViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class FormsView(APIView):
-    permission_classes = (IsAuthenticated,FormsPermission)
+    permission_classes = (IsAuthenticated, FormsPermission)
     """
     List all forms in given projects.
     """
