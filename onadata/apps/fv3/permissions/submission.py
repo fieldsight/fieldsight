@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework import permissions
 
 from onadata.apps.fieldsight.models import Project
+from onadata.apps.fsforms.models import FormSettings
 
 
 class SubmissionDetailPermission(permissions.BasePermission):
@@ -10,10 +11,8 @@ class SubmissionDetailPermission(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        user = request.user
         finstance = obj.fieldsight_instance
         form = finstance.fsxf
-        is_doner = False
         if request.is_super_admin:
             return True
 
@@ -21,12 +20,10 @@ class SubmissionDetailPermission(permissions.BasePermission):
             project_id = form.site.project_id
         else:
             project_id = form.project_id
-
         organization_id = Project.objects.get(pk=project_id).organization.id
         user_role_asorgadmin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
         if user_role_asorgadmin:
             return True
-
         if form.site is not None:
             site_id = form.site_id
             user_role = request.roles.filter(site_id=site_id, group__name="Reviewer")
@@ -34,26 +31,24 @@ class SubmissionDetailPermission(permissions.BasePermission):
                 return True
         else:
             project_id = form.project.id
-
         user_role = request.roles.filter(project_id=project_id, group__name="Project Manager")
         if user_role:
             return True
-
         if form.site is not None:
-            user_role = request.roles.filter(Q(site_id=form.site_id, group__name="Site Supervisor") |
-                                             Q(project_id=form.site.project_id, group__name="Project Donor"))
-            if user_role and request.roles.filter(project_id=form.site.project_id, group__name="Project Donor"):
-                is_doner = True
+            if request.roles.filter(site_id=form.site_id, group__name="Site Supervisor").exists():
+                return True
+            if request.roles.filter(project_id=form.site.project_id, group__name="Project Donor"):
+                if FormSettings.objects.filter(form=form).exists():
+                    return form.settings.donor_visibility
+                return True
         else:
-            user_role = request.roles.filter(project_id=form.project_id, group__name="Project Donor")
-            if user_role:
-                is_doner = True
+            if request.roles.filter(project_id=form.project_id, group__name="Project Donor").exists():
+                if FormSettings.objects.filter(form=form).exists():
+                    return form.settings.donor_visibility
+                return True
 
         if request.roles.filter(project_id=project_id, group__name__in=["Reviewer", "Region Reviewer"]).exists():
-            return True
-
-        if user_role:
-            return True
+                return True
 
         if request.roles.filter(project_id=project_id,
                                 group__name__in=["Site Supervisor", "Region Supervisor"]).exists():
