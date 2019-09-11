@@ -10,7 +10,10 @@ DEFAULT_LIMIT = 30000
 
 def get_images_for_sites_count(site_id):
     try:
-        return settings.MONGO_DB.instances.aggregate([{"$match":{"fs_site":{'$in' : [str(site_id), int(site_id)]}}}, {"$unwind":"$_attachments"},{"$match":{"_attachments.mimetype" : "image/jpeg"}}, { "$group":{"_id":"null", "count":{"$sum": 1} }}])
+        return settings.MONGO_DB.instances.aggregate(
+            [{"$match": {"fs_site":{'$in' : [str(site_id), int(site_id)]}}},
+                {"$unwind": "$_attachments"},{"$match":{"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
+                {"$group": {"_id":  "null", "count":{"$sum": 1} }}])
     except:
         return {'result':[]}
 
@@ -18,12 +21,12 @@ def get_images_for_sites_count(site_id):
 def get_recent_images(site_id):
     return settings.MONGO_DB.instances.aggregate(
         [{"$match": {
-            "fs_site": {'$in' : [str(site_id), int(site_id)]},
+            "fs_site": {'$in': [str(site_id), int(site_id)]},
             '_deleted_at': {'$exists': False}}},
             {"$unwind": "$_attachments"},
-            {"$match": {"_attachments.mimetype" : "image/jpeg"}},
+            {"$match": {"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
             {'$project': {'_attachments.download_url': 1, 'instance': 1}},
-            {"$sort": {"_id": -1 }}, {"$limit": 6}])
+            {"$sort": {"_id": -1}}, {"$limit": 6}])
 
 
 def get_images_for_site(site_id):
@@ -32,7 +35,7 @@ def get_images_for_site(site_id):
             "fs_site": {'$in': [str(site_id), int(site_id)]},
             '_deleted_at': {'$exists': False}}},
             {"$unwind": "$_attachments"},
-            {"$match": {"_attachments.mimetype": "image/jpeg"}},
+            {"$match": {"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
             {"$sort": {"_id": -1}}, {"$limit": 6}])
 
 
@@ -42,17 +45,18 @@ def get_images_for_site_all(site_id):
             "fs_site": {'$in': [str(site_id), int(site_id)]},
             '_deleted_at': {'$exists': False}}},
             {"$unwind": "$_attachments"},
-            {"$match": {"_attachments.mimetype": "image/jpeg"}},
+            {"$match": {"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
             {"$sort": {"_id": -1}}])
 
 
 def get_site_responses_coords(site_id):
-    return settings.MONGO_DB.instances.aggregate([{"$match": {"fs_site": {'$in': [str(site_id), int(site_id)]}, '_deleted_at': None,
-                                                             "_geolocation":{"$not": { "$elemMatch": { "$eq": None }}}}},
-                                                  {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":
-                                                      { "type": {"$literal": "Point"}, "coordinates": "$_geolocation" },
-                                                                 "properties": {"id":"$_id", "fs_uuid":
-                                                                     "$fs_uuid", "submitted_by":"$_submitted_by"}}}])
+    return settings.MONGO_DB.instances.aggregate(
+        [{"$match": {"fs_site": {'$in': [str(site_id), int(site_id)]}, '_deleted_at': None,
+                    "_geolocation":{"$not": { "$elemMatch": { "$eq": None }}}}},
+                                  {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":
+                                      { "type": {"$literal": "Point"}, "coordinates": "$_geolocation" },
+                                                 "properties": {"id":"$_id", "fs_uuid":
+                                                     "$fs_uuid", "submitted_by":"$_submitted_by"}}}])
 
 def get_instaces_for_site_individual_form(fieldsightxf_id):
     query = {"fs_uuid":str(fieldsightxf_id)}

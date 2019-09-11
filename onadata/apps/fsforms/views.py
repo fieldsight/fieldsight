@@ -46,7 +46,7 @@ from onadata.apps.fsforms.utils import send_message, send_message_stages, send_m
     send_message_un_deploy, send_bulk_message_stages_deployed_project, send_bulk_message_stages_deployed_site, \
     send_bulk_message_stage_deployed_project, send_bulk_message_stage_deployed_site, send_sub_stage_deployed_project, \
     send_sub_stage_deployed_site, send_message_flagged, send_message_un_deploy_project, get_version, image_urls_dict, \
-    inject_instanceid
+    inject_instanceid, has_change_form_permission
 from onadata.apps.logger.models import XForm, Attachment, Instance
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.views import set_xform_owner_data
@@ -2177,18 +2177,22 @@ class CreateKoboFormView(TemplateView, LoginRequiredMixin):
 
         return data
 
-class DeleteFInstance(FInstanceRoleMixin, View):
+
+class DeleteFInstance(View):
     def get(self, request, *args, **kwargs):
+        finstance = FInstance.objects.get(instance_id=self.kwargs.get('instance_pk'))
+        form = finstance.fsxf
+        if not has_change_form_permission(request, form, "delete"):
+            raise PermissionDenied
         try:
 
-            finstance = FInstance.objects.get(instance_id=self.kwargs.get('instance_pk'))
             finstance.is_deleted = True
             finstance.save()
             instance = finstance.instance
             instance.deleted_at = datetime.datetime.now()
             instance.save()
             delete_form_instance(int(self.kwargs.get('instance_pk')))
-            
+
 
             if finstance.site:
                 extra_object=finstance.site
@@ -2204,15 +2208,15 @@ class DeleteFInstance(FInstanceRoleMixin, View):
                 extra_message="project"
             extra_json = {}
 
-            extra_json['submitted_by'] = finstance.submitted_by.user_profile.getname() 
+            extra_json['submitted_by'] = finstance.submitted_by.user_profile.getname()
             noti = finstance.logs.create(source=self.request.user, type=33, title="deleted response" + self.kwargs.get('instance_pk'),
-                                       organization_id=organization_id,
-                                       project_id=project_id,
-                                                        site_id=site_id,
-                                                        extra_json=extra_json,
-                                                        extra_object=extra_object,
-                                                        extra_message=extra_message,
-                                                        content_object=finstance)
+                                         organization_id=organization_id,
+                                         project_id=project_id,
+                                         site_id=site_id,
+                                         extra_json=extra_json,
+                                         extra_object=extra_object,
+                                         extra_message=extra_message,
+                                         content_object=finstance)
             messages.success(request, 'Response sucessfully Deleted.')
 
         except Exception as e:
@@ -2329,6 +2333,11 @@ def edit_data(request,  id_string, data_id):
         XForm, id_string__exact=id_string)
     instance = get_object_or_404(
         Instance, pk=data_id, xform=xform)
+    form = instance.fieldsight_instance.fsxf
+    if not has_change_form_permission(request, form, 'edit'):
+        raise PermissionDenied
+
+
     instance_attachments = image_urls_dict(instance)
     # check permission
     # if not has_edit_permission(xform, owner, request, xform.shared):
