@@ -19,7 +19,8 @@ from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
     StagePermission, DeployFormsPermission, FormsSettingsPermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
     GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer, \
-    SubStageSerializer, FormSettingsSerializer, SettingsSerializerGeneralForm, SettingsSerializerProjectGeneralForm
+    SubStageSerializer, FormSettingsSerializer, SettingsSerializerGeneralForm, SettingsSerializerProjectGeneralForm, \
+    SettingsSerializerScheduleForm
 
 
 class GeneralFormsVS(viewsets.ModelViewSet):
@@ -74,7 +75,6 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                 return Response({"error": "Xform  id required"},
                                 status=status.HTTP_400_BAD_REQUEST)
             default_submission_status = request.data.get('default_submission_status')
-            settings = request.data.get('setting')
             if project_id:
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
@@ -85,6 +85,7 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                     default_submission_status=default_submission_status,
                     xf_id=xf, site_id=site_id
                 )
+            settings = request.data.get('setting')
             if settings:
                 settings.update({"form": fxf.id})
                 settings_serializer = SettingsSerializerGeneralForm(data=settings)
@@ -269,11 +270,10 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         default_submission_status = request.data.get('default_submission_status')
         if project_id:
-            request.data['project_id'] = project_id
             with transaction.atomic():
                 serializer = self.get_serializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
-                schedule = serializer.save()
+                schedule = serializer.save(project_id=project_id)
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
                     xf_id=xf, project_id=project_id, schedule_id=schedule.id,
@@ -282,19 +282,63 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
 
         elif site_id:
             with transaction.atomic():
-                request.data['site_id'] = site_id
                 serializer = self.get_serializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
-                schedule = serializer.save()
+                schedule = serializer.save(site_id=site_id)
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
-                    xf_id=xf, project_id=project_id, schedule=schedule,
+                    xf_id=xf, site_id=site_id, schedule=schedule,
                     is_scheduled=True
                 )
+        settings = request.data.get('setting')
+        if settings and fxf and schedule:
+            settings.update({"form": fxf.id})
+            settings_serializer = SettingsSerializerScheduleForm(data=settings)
+            if settings_serializer.is_valid():
+                settings_serializer.save(user=request.user)
+                serializer = ScheduleSerializer(schedule)
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                headers=headers)
+            else:
+                fxf.delete()
+                schedule.delete()
+                return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer = ScheduleSerializer(schedule)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED,
                         headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        schedule = serializer.save()
+        ds_status = request.data.get('default_submission_status')
+        if ds_status:
+            form = schedule.schedule_forms
+            form.default_submission_status = ds_status
+            form.save()
+        settings = request.data.get('setting')
+        if settings:
+            settings.update({"form": instance.schedule_forms.id})
+            if not settings.get('id'):
+                settings_serializer = SettingsSerializerScheduleForm(data=settings)
+            else:
+                settings_serializer = SettingsSerializerScheduleForm(instance.schedule_forms.settings,
+                                                                     data=settings, partial=True)
+
+            if settings_serializer.is_valid():
+                settings_serializer.save(user=request.user)
+                serializer = ScheduleSerializer(instance)
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                headers=headers)
+            else:
+                return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ScheduleSerializer(instance)
+        return Response(serializer.data)
 
 
 class StageFormsVS(viewsets.ModelViewSet):

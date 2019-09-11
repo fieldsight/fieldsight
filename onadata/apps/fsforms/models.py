@@ -276,7 +276,7 @@ class Schedule(models.Model):
             if self.form_exists() else None
 
     def __unicode__(self):
-        return getattr(self, "name", "")
+        return "--"
 
 
 class DeletedXForm(models.Model):

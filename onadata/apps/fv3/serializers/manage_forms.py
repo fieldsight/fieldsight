@@ -19,6 +19,12 @@ class SettingsSerializerGeneralForm(serializers.ModelSerializer):
         exclude = ('date_created', 'user', 'notify_incomplete_schedule')
 
 
+class SettingsSerializerScheduleForm(serializers.ModelSerializer):
+    class Meta:
+        model = FormSettings
+        exclude = ('date_created', 'user')
+
+
 class SettingsSerializerProjectGeneralForm(serializers.ModelSerializer):
     class Meta:
         model = FormSettings
@@ -105,6 +111,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
         'get_schedule_level_type', read_only=True)
     responses_count = serializers.SerializerMethodField()
     fsxf = serializers.SerializerMethodField()
+    setting = serializers.SerializerMethodField()
 
     def validate(self, data):
         """
@@ -129,10 +136,10 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Schedule
-        fields = ('id', 'em', 'xf',
-                  'is_deployed', 'default_submission_status', 'schedule_level',
-                  'responses_count', 'date_created', 'schedule_level_id',
-                  'name', 'fsxf')
+        fields = ('id', 'em', 'xf', 'project', 'site',
+                  'is_deployed', 'default_submission_status', 'schedule_level_id', 'schedule_level',
+                  'selected_days', 'date_range_start', 'date_range_end', 'responses_count',
+                  'date_created', 'fsxf', 'setting')
 
     def get_all_days(self, obj):
         return u"%s" % (", ".join(day.day for day in obj.selected_days.all()))
@@ -188,6 +195,19 @@ class ScheduleSerializer(serializers.ModelSerializer):
         elif obj.site:
             return obj.site_response_count \
                 if hasattr(obj, "site_response_count") else 0
+
+    def get_setting(self, obj):
+        try:
+            return SettingsSerializerScheduleForm(obj.schedule_forms.settings).data
+        except:
+            return {
+                "types": [],
+                "regions": [],
+                "donor_visibility": False,
+                "can_edit": False,
+                "can_delete": False,
+                "notify_incomplete_schedule": False
+            }
 
 
 class StageSerializer(serializers.ModelSerializer):
