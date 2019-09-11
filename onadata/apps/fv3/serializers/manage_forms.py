@@ -19,6 +19,12 @@ class SettingsSerializerGeneralForm(serializers.ModelSerializer):
         exclude = ('date_created', 'user', 'notify_incomplete_schedule')
 
 
+class SettingsSerializerProjectGeneralForm(serializers.ModelSerializer):
+    class Meta:
+        model = FormSettings
+        exclude = ('date_created', 'user', 'notify_incomplete_schedule', 'types', 'regions')
+
+
 class GeneralFormSerializer(serializers.ModelSerializer):
     em = EMSerializer(read_only=True)
     xf = XFormSerializer()
@@ -61,12 +67,23 @@ class GeneralFormSerializer(serializers.ModelSerializer):
 class GeneralProjectFormSerializer(serializers.ModelSerializer):
     em = EMSerializer(read_only=True)
     xf = XFormSerializer()
+    setting = serializers.SerializerMethodField()
     responses_count = serializers.SerializerMethodField()
 
     class Meta:
         model = FieldSightXF
         fields = ('id', 'xf', 'date_created', 'default_submission_status',
-                  'responses_count', 'em', 'is_deployed')
+                  'responses_count', 'em', 'is_deployed', 'setting')
+
+    def get_setting(self, obj):
+        try:
+            return SettingsSerializerProjectGeneralForm(obj.settings).data
+        except:
+            return {
+            "donor_visibility": False,
+            "can_edit": False,
+            "can_delete": False
+    }
 
     def get_responses_count(self, obj):
         is_project = self.context.get('project_id', False)

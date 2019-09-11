@@ -19,7 +19,7 @@ from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
     StagePermission, DeployFormsPermission, FormsSettingsPermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
     GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer, \
-    SubStageSerializer, FormSettingsSerializer, SettingsSerializerGeneralForm
+    SubStageSerializer, FormSettingsSerializer, SettingsSerializerGeneralForm, SettingsSerializerProjectGeneralForm
 
 
 class GeneralFormsVS(viewsets.ModelViewSet):
@@ -83,7 +83,7 @@ class GeneralFormsVS(viewsets.ModelViewSet):
             elif site_id:
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
-                    xf_id=xf, project_id=project_id
+                    xf_id=xf, site_id=site_id
                 )
             if settings:
                 settings.update({"form": fxf.id})
@@ -165,12 +165,23 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
             return Response({"error": "xf: Xform  id required"},
                             status=status.HTTP_400_BAD_REQUEST)
         default_submission_status = request.data.get('default_submission_status')
-        if project_id:
-            fxf = FieldSightXF.objects.create(is_survey=True,
-                                              default_submission_status=
-                                              default_submission_status,
-                                              xf_id=xf, project_id=project_id
-            )
+        fxf = FieldSightXF.objects.create(
+            default_submission_status=default_submission_status,
+            xf_id=xf, project_id=project_id
+        )
+        settings = request.data.get('setting')
+        if settings:
+            settings.update({"form": fxf.id})
+            settings_serializer = SettingsSerializerProjectGeneralForm(data=settings)
+            if settings_serializer.is_valid():
+                settings_serializer.save(user=request.user)
+                serializer = GeneralProjectFormSerializer(fxf)
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                headers=headers)
+            else:
+                fxf.delete()
+                return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer = GeneralProjectFormSerializer(fxf)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED,
@@ -181,7 +192,25 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
         instance.default_submission_status = request.data.get(
             'default_submission_status')
         instance.save()
-        serializer = GeneralProjectFormSerializer(instance)
+        settings = request.data.get('setting')
+        if settings:
+            settings.update({"form": instance.id})
+            if not settings.get('id'):
+                settings_serializer = SettingsSerializerProjectGeneralForm(data=settings)
+            else:
+                settings_serializer = SettingsSerializerProjectGeneralForm(instance.settings, data=settings, partial=True)
+
+            if settings_serializer.is_valid():
+                settings_serializer.save(user=request.user)
+                serializer = GeneralProjectFormSerializer(FieldSightXF.objects.filter(
+                    pk=instance.id).prefetch_related("settings")[0])
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                headers=headers)
+            else:
+                return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = GeneralProjectFormSerializer(FieldSightXF.objects.filter(pk=instance.id).prefetch_related("settings")[0])
         return Response(serializer.data)
 
 
