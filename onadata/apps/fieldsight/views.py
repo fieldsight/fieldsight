@@ -156,7 +156,7 @@ def dashboard(request):
     # }
     # return TemplateResponse(request, "fieldsight/fieldsight_dashboard.html", dashboard_data)
     
-    return HttpResponseRedirect(reverse("fieldsight:organizations-list"))
+    return HttpResponseRedirect("/fieldsight/application/#/teams")
 
 
 def get_site_images(site_id):
@@ -4584,9 +4584,12 @@ class UnassignUserRegionAndSites(View):
     def post(self, request, pk, **kwargs):
         data = json.loads(self.request.body)
         ids = data.get('ids')
+        try:
+            projects = [k for k in ids if 'p' in str(k)]
+        except TypeError:
+            status, data = 200, {'status': 'false', 'message': 'Please select to remove roles.'}
 
-        projects = [k for k in ids if 'p' in str(k)]
-
+            return JsonResponse(data, status=status)
         ids = list(set(ids) - set(projects))
         regions = [k for k in ids if 'r' in str(k)]
         sites = list(set(ids) - set(regions))

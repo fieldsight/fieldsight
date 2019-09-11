@@ -14,14 +14,17 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 
+from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanceSerializer, StageFormSerializer, \
     SiteCropImageSerializer
 from onadata.apps.fieldsight.models import Site, BluePrints
+from onadata.apps.fieldsight.tasks import site_download_zipfile
 from onadata.apps.fsforms.models import FInstance, Schedule, Stage, FieldSightXF
 
 from onadata.apps.fsforms.reports_util import get_recent_images
-from onadata.apps.fv3.role_api_permissions import SiteDashboardPermissions, SiteSubmissionPermission, check_site_permission
+from onadata.apps.fv3.role_api_permissions import SiteSubmissionPermission, \
+    check_site_permission, SitePermissions
 from onadata.apps.fv3.viewsets.utils import check_file_extension, readable_date
 
 
@@ -33,7 +36,7 @@ class SiteSubmissionsPagination(PageNumberPagination):
 class SiteViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Site.objects.select_related('project', 'region')
     serializer_class = SiteSerializer
-    permission_classes = [IsAuthenticated, SiteDashboardPermissions]
+    permission_classes = [IsAuthenticated, SitePermissions]
 
     def get_queryset(self):
         return self.queryset
@@ -69,74 +72,69 @@ class SiteSubmissionsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SiteForms(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, SitePermissions)
 
     def get(self, request, *args,  **kwargs):
 
-        site_id = self.kwargs.get('site_id', None)
+        site_id = self.kwargs.get('pk', None)
         query_params = self.request.query_params.get('type')
 
-        if check_site_permission(request, int(site_id)):
+        if site_id and query_params:
+            site_id = int(site_id)
+            try:
+                project_id = get_object_or_404(Site, pk=int(site_id)).project.id
 
-            if site_id and query_params:
-                site_id = int(site_id)
-                try:
-                    project_id = get_object_or_404(Site, pk=int(site_id)).project.id
+                if query_params == 'general':
+                    generals = FieldSightXF.objects.select_related('xf').filter(is_staged=False, is_deleted=False, is_scheduled=False,
+                                                           is_survey=False). \
+                        filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
 
-                    if query_params == 'general':
-                        generals = FieldSightXF.objects.select_related('xf').filter(is_staged=False, is_deleted=False, is_scheduled=False,
-                                                               is_survey=False). \
-                            filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
+                    data = [{'form_name': obj.xf.title, 'new_submission_url':
+                             settings.SITE_URL + '/forms/new/' + str(site_id) + '/' + str(obj.id)} for obj in generals]
 
-                        data = [{'form_name': obj.xf.title, 'new_submission_url':
-                                 settings.SITE_URL + '/forms/new/' + str(site_id) + '/' + str(obj.id)} for obj in generals]
+                    return Response({'general_forms': data})
 
-                        return Response({'general_forms': data})
+                elif query_params == 'scheduled':
 
-                    elif query_params == 'scheduled':
+                    schedules = Schedule.objects.prefetch_related('schedule_forms__xf').filter(schedule_forms__is_deleted=False,
+                                                        schedule_forms__isnull=False).filter(
+                        Q(site__id=site_id, schedule_forms__from_project=False)
+                        | Q(project__id=project_id))
 
-                        schedules = Schedule.objects.prefetch_related('schedule_forms__xf').filter(schedule_forms__is_deleted=False,
-                                                            schedule_forms__isnull=False).filter(
-                            Q(site__id=site_id, schedule_forms__from_project=False)
-                            | Q(project__id=project_id))
+                    data = [{'form_name': obj.schedule_forms.xf.title, 'new_submission_url':
+                             settings.SITE_URL + '/forms/new/' + str(site_id) + '/' + str(obj.schedule_forms.id)} for obj in schedules]
 
-                        data = [{'form_name': obj.schedule_forms.xf.title, 'new_submission_url':
-                                 settings.SITE_URL + '/forms/new/' + str(site_id) + '/' + str(obj.schedule_forms.id)} for obj in schedules]
+                    return Response({'scheduled_forms': data})
 
-                        return Response({'scheduled_forms': data})
+                elif query_params == 'stage':
+                    site = Site.objects.get(pk=site_id)
 
-                    elif query_params == 'stage':
-                        site = Site.objects.get(pk=site_id)
-
-                        if site.type:
-                            project_id = site.project.id
-                            stages_queryset = Stage.objects.filter(stage__isnull=True).filter(Q(site__id=site_id,
-                                                         project_stage_id=0)
-                                                       | Q
-                                                       (Q(project__id=project_id) &
-                                                        Q(tags__contains=[site.type_id])) |
-                                                       Q(Q(project__id=project_id)
-                                                         & Q(tags=[]))
-                                                       )
-                        else:
-                            project_id = site.project.id
-                            stages_queryset = Stage.objects.filter(stage__isnull=True).filter(
-                                Q(site__id=site_id, project_stage_id=0)
-                                | Q(project__id=project_id))
-                        stages = StageFormSerializer(stages_queryset, many=True, context={'site_id': site_id})
-
-                        return Response({'stage_forms': stages.data})
-
+                    if site.type:
+                        project_id = site.project.id
+                        stages_queryset = Stage.objects.filter(stage__isnull=True).filter(Q(site__id=site_id,
+                                                     project_stage_id=0)
+                                                   | Q
+                                                   (Q(project__id=project_id) &
+                                                    Q(tags__contains=[site.type_id])) |
+                                                   Q(Q(project__id=project_id)
+                                                     & Q(tags=[]))
+                                                   )
                     else:
-                        return Response(data="Form of type " + str(query_params) + " not found.", status=status.HTTP_204_NO_CONTENT)
+                        project_id = site.project.id
+                        stages_queryset = Stage.objects.filter(stage__isnull=True).filter(
+                            Q(site__id=site_id, project_stage_id=0)
+                            | Q(project__id=project_id))
+                    stages = StageFormSerializer(stages_queryset, many=True, context={'site_id': site_id})
 
-                except Exception as e:
-                    return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
-            else:
-                return Response(data="Site Id and form type required.", status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'stage_forms': stages.data})
+
+                else:
+                    return Response(data="Form of type " + str(query_params) + " not found.", status=status.HTTP_204_NO_CONTENT)
+
+            except Exception as e:
+                return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)
         else:
-            return Response(status=status.HTTP_403_FORBIDDEN,
-                            data={"detail": "You do not have permission to perform this action."})
+            return Response(data="Site Id and form type required.", status=status.HTTP_400_BAD_REQUEST)
 
 
 class SiteCropImage(APIView):
@@ -144,6 +142,7 @@ class SiteCropImage(APIView):
     Retrieve and update site logo.
     """
     authentication_classes = (CsrfExemptSessionAuthentication, SessionAuthentication, IsAuthenticated)
+    permission_classes = [SitePermissions, ]
 
     def get_object(self, pk):
         try:
@@ -288,3 +287,30 @@ class BlueprintsPostDeleteView(APIView):
 
         else:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site or blueprint params is required.'})
+
+
+class ZipSiteImages(APIView):
+    permission_classes = [IsAuthenticated, SitePermissions]
+
+    def get(self, request, pk, size_code, format=None):
+        user = self.request.user
+        try:
+            site = get_object_or_404(Site, pk=pk)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+        size = "-small"
+        if size_code == '1':
+            size = "-medium"
+        elif size_code == '2':
+            size = "-large"
+        task_obj = CeleryTaskProgress.objects.create(user=user, content_object=site, task_type=6)
+
+        if task_obj:
+            task = site_download_zipfile.delay(task_obj.pk, size)
+            task_obj.task_id = task.id
+            task_obj.save()
+            status, data = 200, {'status': 'true',
+                                 'message': 'Sucess, the Zip file is being generated. You will be notified after the file is generated.'}
+        else:
+            status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
+        return Response(data, status=status)
