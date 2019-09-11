@@ -73,7 +73,7 @@ class TeamSerializer(serializers.ModelSerializer):
     def get_breadcrumbs(self, obj):
         request = self.context['request']
         if request.is_super_admin:
-            return {'name': obj.name, 'teams': 'Teams', 'teams_url': '/fieldsight/organization'}
+            return {'name': obj.name, 'teams': 'Teams', 'teams_url': '/fieldsight/application/#/teams'}
 
         else:
             return {'name': obj.name}

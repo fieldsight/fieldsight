@@ -156,7 +156,7 @@ def dashboard(request):
     # }
     # return TemplateResponse(request, "fieldsight/fieldsight_dashboard.html", dashboard_data)
     
-    return HttpResponseRedirect(reverse("fieldsight:organizations-list"))
+    return HttpResponseRedirect("/fieldsight/application/#/teams")
 
 
 def get_site_images(site_id):

@@ -156,17 +156,23 @@ class TeamDashboardPermissions(permissions.BasePermission):
         return False
 
 
-class SiteDashboardPermissions(permissions.BasePermission):
+class SitePermissions(permissions.BasePermission):
     """
     Object-level permission to only allow owners of an object to View it.
     """
 
-    def has_object_permission(self, request, view, obj):
+    def has_permission(self, request, view):
+
+        print('hasss permmrmr')
 
         if request.is_super_admin:
             return True
 
-        site = obj
+        site_id = view.kwargs.get('pk')
+        try:
+            site = Site.objects.get(id=site_id)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
         if site is not None:
             organization_id = site.project.organization_id
