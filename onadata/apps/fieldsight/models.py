@@ -450,6 +450,7 @@ class SiteAllManager(models.Manager):
     def get_queryset(self):
         return super(SiteAllManager, self).get_queryset().all()
 
+
 class SiteManager(GeoManager):
     def get_queryset(self):
         return super(SiteManager, self).get_queryset().filter(is_active=True)
@@ -458,7 +459,8 @@ class SiteManager(GeoManager):
 class Site(models.Model):
     identifier = models.CharField("ID", max_length=255)
     name = models.CharField(db_index=True,max_length=255)
-    type = models.ForeignKey(SiteType, verbose_name='Type of Site', related_name="sites", null=True, blank=True, on_delete=models.SET_NULL)
+    type = models.ForeignKey(SiteType, verbose_name='Type of Site', related_name="sites",
+                             null=True, blank=True, on_delete=models.SET_NULL)
     phone = models.CharField(max_length=255, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     public_desc = models.TextField("Public Description", blank=True, null=True)

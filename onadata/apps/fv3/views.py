@@ -107,11 +107,11 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
                 region_id__parent=region_id) | Q(region_id__parent__parent=region_id))
         elif project_id:  # Site Supervisor Roles
             sites = Site.objects.filter(project=project_id).filter(Q(
-                site_roles__region__isnull=True,
                 site_roles__group__name="Site Supervisor",
+                site_roles__ended_at__isnull=True,
                 site_roles__user=self.request.user) | Q(
-                site__site_roles__region__isnull=True,
                 site__site_roles__group__name="Site Supervisor",
+                site__site_roles__ended_at__isnull=True,
                 site__site_roles__user=self.request.user)).order_by(
                 'id').distinct('id')
 
