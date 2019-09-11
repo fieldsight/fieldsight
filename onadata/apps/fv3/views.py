@@ -108,10 +108,10 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
         elif project_id:  # Site Supervisor Roles
             sites = Site.objects.filter(project=project_id).filter(Q(
                 site_roles__group__name="Site Supervisor",
-                site_roles__ended_at__isnull=False,
+                site_roles__ended_at__isnull=True,
                 site_roles__user=self.request.user) | Q(
                 site__site_roles__group__name="Site Supervisor",
-                site__site_roles__ended_at__isnull=False,
+                site__site_roles__ended_at__isnull=True,
                 site__site_roles__user=self.request.user)).order_by(
                 'id').distinct('id')
 
