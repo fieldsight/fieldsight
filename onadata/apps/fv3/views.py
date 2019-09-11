@@ -111,7 +111,7 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
                 site_roles__ended_at__isnull=False,
                 site_roles__user=self.request.user) | Q(
                 site__site_roles__group__name="Site Supervisor",
-                site___site_roles__ended_at__isnull=False,
+                site__site_roles__ended_at__isnull=False,
                 site__site_roles__user=self.request.user)).order_by(
                 'id').distinct('id')
 
