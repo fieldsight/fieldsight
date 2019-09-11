@@ -118,7 +118,7 @@ class DeployFormsPermission(permissions.BasePermission):
                 if user_role:
                     return True
             else:
-                site = Site.objects.get(pk=site_id)
+                site = Site.objects.get(pk=site_id).select_related('project')
                 user_role_asorgadmin = request.roles.filter(
                     organization_id=site.project.organization_id,
                     group__name="Organization Admin")
