@@ -20,7 +20,7 @@ from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
     GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer, \
     SubStageSerializer, FormSettingsSerializer, SettingsSerializerGeneralForm, SettingsSerializerProjectGeneralForm, \
-    SettingsSerializerScheduleForm
+    SettingsSerializerScheduleForm, SettingsSerializerSubStage
 
 
 class GeneralFormsVS(viewsets.ModelViewSet):
@@ -407,6 +407,7 @@ class SubStageFormsVS(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         query_params = self.request.query_params
         xf = self.request.data.get('xf')
+        setting = self.request.data.get('setting')
         if not xf:
             return Response({"error": "Xform  id required"},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -417,11 +418,19 @@ class SubStageFormsVS(viewsets.ModelViewSet):
             stage = Stage.objects.get(pk=stage_id)
             sub_stage = serializer.save(stage=stage, project=stage.project,
                                         site=stage.site)
-            xf = FieldSightXF.objects.create(
+            fxf = FieldSightXF.objects.create(
                 default_submission_status=default_submission_status,
                 xf_id=xf, project=stage.project, site=stage.site,
                 is_staged=True, stage=sub_stage
             )
+            if setting:
+                setting.update({"form": fxf.id})
+                settings_serializer = SettingsSerializerSubStage(data=setting)
+                if settings_serializer.is_valid():
+                    setting_obj = settings_serializer.save(user=self.request.user)
+                    sub_stage.tags = setting_obj.types
+                    sub_stage.regions = setting_obj.regions
+                    sub_stage.save()
 
 
 class DeployForm(APIView):
