@@ -89,6 +89,7 @@ class Stage(models.Model):
     project_stage_id = models.IntegerField(default=0)
     weight = models.IntegerField(default=0)
     tags = ArrayField(models.IntegerField(), default=[])
+    regions = ArrayField(models.IntegerField(), default=[])
     is_deleted = models.BooleanField(default=False)
     objects = ActiveStagesManager()
     logs = GenericRelation('eventlog.FieldSightLog')
@@ -276,7 +277,7 @@ class Schedule(models.Model):
             if self.form_exists() else None
 
     def __unicode__(self):
-        return getattr(self, "name", "")
+        return "--"
 
 
 class DeletedXForm(models.Model):

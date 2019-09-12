@@ -14,7 +14,6 @@ from django.contrib.sites.models import Site as DjangoSite
 BASEURL = DjangoSite.objects.get_current().domain
 
 
-
 class StageSerializer(serializers.ModelSerializer):
     sub_stage_weight = serializers.SerializerMethodField()
 
