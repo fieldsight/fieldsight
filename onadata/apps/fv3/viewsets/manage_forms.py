@@ -76,11 +76,30 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                                 status=status.HTTP_400_BAD_REQUEST)
             default_submission_status = request.data.get('default_submission_status')
             if project_id:
+                if FieldSightXF.objects.filter(
+                        xf_id=xf,
+                        project_id=project_id,
+                        is_deleted=False,
+                        is_survey=False,
+                        is_scheduled=False,
+                        is_staged=False
+                ).exists():
+                    return Response({"error": "Form already exists in general form"},
+                                    status=status.HTTP_400_BAD_REQUEST)
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
                     xf_id=xf, project_id=project_id
                 )
             elif site_id:
+                if FieldSightXF.objects.filter(
+                        xf_id=xf,
+                        is_deleted=False,
+                        is_survey=False,
+                        is_scheduled=False,
+                        is_staged=False
+                ).filter(Q(site_id=site_id,) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
+                    return Response({"error": "Form already exists in general form"},
+                                    status=status.HTTP_400_BAD_REQUEST)
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
                     xf_id=xf, site_id=site_id
@@ -165,6 +184,13 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
         if not xf:
             return Response({"error": "xf: Xform  id required"},
                             status=status.HTTP_400_BAD_REQUEST)
+        if FieldSightXF.objects.filter(
+                xf_id=xf,
+                project_id=project_id,
+                is_survey=True,
+                is_deleted=False,
+        ).exists():
+            return Response({"error": "Form already exists in Project general form"}, status=status.HTTP_400_BAD_REQUEST)
         default_submission_status = request.data.get('default_submission_status')
         fxf = FieldSightXF.objects.create(
             is_survey=True,
@@ -269,8 +295,16 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
         if not xf:
             return Response({"error": "Xform  id required"},
                             status=status.HTTP_400_BAD_REQUEST)
+
         default_submission_status = request.data.get('default_submission_status')
         if project_id:
+            if FieldSightXF.objects.filter(
+                    xf_id=xf,
+                    project_id=project_id,
+                    is_scheduled=True,
+                    is_deleted=True
+            ).exists():
+                return Response({"error": "Form already exists in Schedule form"}, status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic():
                 serializer = self.get_serializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
@@ -282,6 +316,13 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                 )
 
         elif site_id:
+            if FieldSightXF.objects.filter(
+                    xf_id=xf,
+                    is_deleted=False,
+                    is_scheduled=True,
+            ).filter(Q(site_id=site_id) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
+                return Response({"error": "Form already exists in Schedule form"},
+                                status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic():
                 serializer = self.get_serializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
