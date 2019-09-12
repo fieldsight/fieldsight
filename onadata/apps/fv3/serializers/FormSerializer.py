@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from onadata.apps.fv3.serializers.manage_forms import FormSettingsReadOnlySerializer
+from onadata.apps.fv3.serializers.manage_forms import FormSettingsReadOnlySerializer, \
+    FormSettingsReadOnlySerializerSchedule
 from onadata.libs.utils.decorators import check_obj
 from onadata.apps.logger.models import XForm
 
@@ -292,6 +293,8 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
 
 class SchedueFSXFormSerializer(FSXFormSerializer):
+    settings = FormSettingsReadOnlySerializerSchedule(read_only=True)
+
     class Meta:
         model = FieldSightXF
         fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
@@ -306,7 +309,7 @@ class SubStageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Stage
-        exclude = ('shared_level', 'site', 'group', 'ready', 'project', 'stage', 'date_modified', 'date_created', 'tags')
+        exclude = ('shared_level', 'site', 'group', 'ready', 'project', 'stage', 'date_modified', 'date_created')
 
     # def get_tags(self, obj):
     #     parent_tags = self.context.get(str(obj.stage_id), [])
@@ -321,7 +324,7 @@ class StageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Stage
-        exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created', 'tags')
+        exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created', 'tags', 'regions')
 
     # def get_substages(self, stage):
     #     stages = Stage.objects.filter(stage=stage, is_deleted=False,

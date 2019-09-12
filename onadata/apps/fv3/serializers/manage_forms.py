@@ -404,6 +404,13 @@ class FormSettingsReadOnlySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FormSettings
+        fields = ('types', 'regions')
+
+
+class FormSettingsReadOnlySerializerSchedule(serializers.ModelSerializer):
+
+    class Meta:
+        model = FormSettings
         fields = ('types', 'regions', 'notify_incomplete_schedule')
 
 
