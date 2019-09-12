@@ -163,8 +163,6 @@ class SitePermissions(permissions.BasePermission):
 
     def has_permission(self, request, view):
 
-        print('hasss permmrmr')
-
         if request.is_super_admin:
             return True
 
