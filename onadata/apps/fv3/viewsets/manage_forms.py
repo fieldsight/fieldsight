@@ -167,6 +167,7 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         default_submission_status = request.data.get('default_submission_status')
         fxf = FieldSightXF.objects.create(
+            is_survey=True,
             default_submission_status=default_submission_status,
             xf_id=xf, project_id=project_id
         )
