@@ -1,4 +1,4 @@
-import json
+import json, os
 
 from django.core.serializers import serialize
 from django.conf import settings
@@ -10,6 +10,7 @@ from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.subscriptions.models import Package, Subscription
 from onadata.apps.geo.models import GeoLayer
 
+PROJECT_PATH = os.path.abspath(os.path.dirname(__name__))
 
 class TeamSerializer(serializers.ModelSerializer):
 
@@ -144,7 +145,19 @@ class TeamUpdateSerializer(serializers.ModelSerializer):
 
 
 class TeamGeoLayer(serializers.ModelSerializer):
+    properties = serializers.SerializerMethodField()
 
     class Meta:
         model = GeoLayer
-        fields = ('id', 'organization', 'level', 'title', 'title_prop', 'code_prop', 'geo_shape_file', 'tolerance')
+        fields = ('id', 'organization', 'level', 'title', 'title_prop', 'code_prop', 'geo_shape_file', 'tolerance',
+                  'properties')
+
+    def get_properties(self, obj):
+        if obj.geo_shape_file:
+            path = PROJECT_PATH + obj.geo_shape_file.url
+            with open(path, 'r') as myfile:
+                data = myfile.read()
+            read_data = json.loads(data)
+            properties = read_data['features'][0]['properties'].keys()
+            
+            return properties
