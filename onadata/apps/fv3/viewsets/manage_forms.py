@@ -50,16 +50,16 @@ class GeneralFormsVS(viewsets.ModelViewSet):
 
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False)
                                            | Q(project__id=project_id, settings__isnull=True)
-                                           | Q(project__id=project_id, settigs__tags__contains=[site.type_id]),
+                                           | Q(project__id=project_id, settings__tags__contains=[site.type_id]),
                                            settings__regions__contains=[site.region_id])
             elif site.type:
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False)
                                            | Q(project__id=project_id, settings__isnull=True)
-                                           | Q(project__id=project_id, settigs__tags__contains=[site.type_id]))
+                                           | Q(project__id=project_id, settings__tags__contains=[site.type_id]))
             elif site.region:
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False)
                                            | Q(project__id=project_id, settings__isnull=True)
-                                           | Q(project__id=project_id, settigs__region__contains=[site.region_id]))
+                                           | Q(project__id=project_id, settings__region__contains=[site.region_id]))
             else:
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
 
