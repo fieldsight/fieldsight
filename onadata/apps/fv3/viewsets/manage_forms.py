@@ -44,11 +44,27 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                 response_count=Count(
                     'project_form_instances')).select_related('xf', 'em').prefetch_related("settings")
         elif site_id:
+            site = Site.objects.get(pk=site_id)
             project_id = get_object_or_404(Site, pk=site_id).project.id
-            queryset = queryset.filter(Q(site__id=site_id, from_project=False)
-                                       | Q(project__id=project_id))
+            if site.type and site.region:
+
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
+                                           | Q(project__id=project_id, settings__isnull=True)
+                                           | Q(project__id=project_id, settigs__tags__contains=[site.type_id]),
+                                           settings__regions__contains=[site.region_id])
+            elif site.type:
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
+                                           | Q(project__id=project_id, settings__isnull=True)
+                                           | Q(project__id=project_id, settigs__tags__contains=[site.type_id]))
+            elif site.region:
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
+                                           | Q(project__id=project_id, settings__isnull=True)
+                                           | Q(project__id=project_id, settigs__region__contains=[site.region_id]))
+            else:
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
+
             return queryset.annotate(
-                site_response_count=Count("site_form_instances", ),
+                site_response_count=Count("site_form_instances"),
                 response_count=Count(Case(
                     When(project__isnull=False,
                          project_form_instances__site__id=site_id,
