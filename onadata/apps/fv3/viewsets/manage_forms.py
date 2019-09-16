@@ -294,7 +294,7 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
             elif site.region:
                 queryset = queryset.filter(Q(site__id=site_id,)
                                            | Q(project__id=project_id, schedule_forms__settings__isnull=True)
-                                           | Q(project__id=project_id, schedule_forms__settings__region__contains=[site.region_id]))
+                                           | Q(project__id=project_id, schedule_forms__settings__regions__contains=[site.region_id]))
             else:
                 queryset = queryset.filter(Q(site__id=site_id) | Q(project__id=project_id))
             return queryset.annotate(
