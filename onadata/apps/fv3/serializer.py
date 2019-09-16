@@ -191,16 +191,20 @@ class ProjectSitesSerializer(serializers.ModelSerializer):
 
 class TeamSerializer(serializers.ModelSerializer):
     team_owner = serializers.SerializerMethodField()
+    team_owner_id = serializers.SerializerMethodField()
     projects = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
     sites = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
-        fields = ('id', 'name', 'logo', 'address', 'team_owner', 'projects', 'users', 'sites')
+        fields = ('id', 'name', 'logo', 'address', 'team_owner', 'team_owner_id', 'projects', 'users', 'sites')
 
     def get_team_owner(self, obj):
         return obj.owner.get_full_name() if obj.owner else None
+
+    def get_team_owner_id(self, obj):
+        return obj.owner.id if obj.owner else None
 
     def get_projects(self, obj):
         org_projects = obj.projects.filter(is_active=True).count()

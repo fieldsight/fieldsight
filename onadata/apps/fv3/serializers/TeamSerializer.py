@@ -1,4 +1,4 @@
-import json
+import json,os,requests
 
 from django.core.serializers import serialize
 from django.conf import settings
@@ -6,7 +6,9 @@ from django.conf import settings
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Organization, Site, Project
+from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.subscriptions.models import Package, Subscription
+from onadata.apps.geo.models import GeoLayer
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -71,7 +73,7 @@ class TeamSerializer(serializers.ModelSerializer):
     def get_breadcrumbs(self, obj):
         request = self.context['request']
         if request.is_super_admin:
-            return {'name': obj.name, 'teams': 'Teams', 'teams_url': '/fieldsight/organization'}
+            return {'name': obj.name, 'teams': 'Teams', 'teams_url': '/fieldsight/application/#/teams'}
 
         else:
             return {'name': obj.name}
@@ -130,5 +132,31 @@ class TeamProjectSerializer(serializers.ModelSerializer):
         return sites
 
 
+class TeamUpdateSerializer(serializers.ModelSerializer):
+    logo = Base64ImageField(
+        max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
+    )
+
+    class Meta:
+        model = Organization
+        fields = ('id', 'name', 'type', 'phone', 'email', 'address', 'website', 'public_desc', 'logo',
+                  'location', 'country')
 
 
+class TeamGeoLayer(serializers.ModelSerializer):
+    properties = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GeoLayer
+        fields = ('id', 'organization', 'level', 'title', 'title_prop', 'code_prop', 'geo_shape_file', 'tolerance',
+                  'properties')
+
+    def get_properties(self, obj):
+        if obj.geo_shape_file:
+            path = obj.geo_shape_file.url
+            response = requests.get(path)
+            read_data = json.loads(response.content)
+            properties = read_data['features'][0]['properties'].keys()
+            # update_properties = properties.pop('id', None)
+
+            return properties

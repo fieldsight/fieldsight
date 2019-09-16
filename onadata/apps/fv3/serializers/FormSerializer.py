@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
+from onadata.apps.fv3.serializers.manage_forms import FormSettingsReadOnlySerializer, \
+    FormSettingsReadOnlySerializerSchedule
 from onadata.libs.utils.decorators import check_obj
 from onadata.apps.logger.models import XForm
 
@@ -224,6 +226,7 @@ class MyFormDeleteSerializer(serializers.Serializer):
 
 class FSXFormSerializer(serializers.ModelSerializer):
     em = EMSerializer(read_only=True)
+    settings = FormSettingsReadOnlySerializer(read_only=True)
     name = serializers.SerializerMethodField('get_title', read_only=True)
     descriptionText = serializers.SerializerMethodField('get_description', read_only=True)
     version = serializers.SerializerMethodField()
@@ -238,7 +241,7 @@ class FSXFormSerializer(serializers.ModelSerializer):
         model = FieldSightXF
         fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
                   'name', 'descriptionText', 'formID',
-                  'version', 'hash', 'em')
+                  'version', 'hash', 'em', 'settings')
 
     def get_version(self, obj):
         return get_version(obj.xf.xml)
@@ -290,21 +293,23 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
 
 class SchedueFSXFormSerializer(FSXFormSerializer):
+    settings = FormSettingsReadOnlySerializerSchedule(read_only=True)
+
     class Meta:
         model = FieldSightXF
         fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
                   'name', 'descriptionText', 'formID',
-                  'version', 'hash', 'em', 'schedule')
+                  'version', 'hash', 'em', 'schedule', 'settings')
 
 
 class SubStageSerializer(serializers.ModelSerializer):
     stage_forms = FSXFormSerializer()
-    em = EMSerializer(read_only=True)
+    # em = EMSerializer(read_only=True)
     # tags = serializers.SerializerMethodField()
 
     class Meta:
         model = Stage
-        exclude = ('shared_level', 'site', 'group', 'ready', 'project','stage', 'date_modified', 'date_created', 'tags')
+        exclude = ('shared_level', 'site', 'group', 'ready', 'project', 'stage', 'date_modified', 'date_created')
 
     # def get_tags(self, obj):
     #     parent_tags = self.context.get(str(obj.stage_id), [])
@@ -313,25 +318,29 @@ class SubStageSerializer(serializers.ModelSerializer):
 
 
 class StageSerializer(serializers.ModelSerializer):
-    parent = serializers.SerializerMethodField('get_substages')
+    sub_stages = SubStageSerializer(many=True, source="parent")
     site_project_id = serializers.SerializerMethodField()
+    types = serializers.SerializerMethodField()
 
     class Meta:
         model = Stage
-        exclude = ('shared_level', 'group', 'ready', 'stage','date_modified', 'date_created',)
+        exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created', 'tags', 'regions')
 
-    def get_substages(self, stage):
-        stages = Stage.objects.filter(stage=stage, is_deleted=False,
-                                      stage_forms__is_deleted=False,
-                                      stage_forms__is_deployed=True
-                                      ).select_related( 'stage_forms',
-                                                        'stage_forms__xf',
-                                                        'em').order_by(
-            'order', 'date_created')
-        serializer = SubStageSerializer(instance=stages, many=True)
-        return serializer.data
+    # def get_substages(self, stage):
+    #     stages = Stage.objects.filter(stage=stage, is_deleted=False,
+    #                                   stage_forms__is_deleted=False,
+    #                                   stage_forms__is_deployed=True
+    #                                   ).select_related('stage_forms',
+    #                                                     'stage_forms__xf',
+    #                                                     'em').order_by(
+    #         'order', 'date_created')
+    #     serializer = SubStageSerializer(instance=stages, many=True)
+    #     return serializer.data
 
     def get_site_project_id(self, obj):
         if obj.site:
             return obj.site.project_id
         return None
+
+    def get_types(self, obj):
+        return obj.tags
