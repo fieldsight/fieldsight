@@ -126,7 +126,7 @@ class TeamOwnerAccount(APIView):
         else:
             return Response(status=status.HTTP_200_OK, data={"team_owner": False})
 
-    def post(self, request, format=None):
+    def post(self, request, org_id, format=None):
         """
           replace old card with new
         """
@@ -137,7 +137,7 @@ class TeamOwnerAccount(APIView):
 
         stripe.Customer.modify(
             customer,
-            source=request.POST['stripeToken'],
+            source=request.data['stripeToken'],
         )
 
         return Response(status=status.HTTP_200_OK, data={"detail": "successfully updated."})
