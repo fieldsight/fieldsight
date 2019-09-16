@@ -15,6 +15,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
+from onadata.apps.fieldsight.metaAttribsGenerator import generateSiteMetaAttribs
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanceSerializer, StageFormSerializer, \
     SiteCropImageSerializer
@@ -314,3 +315,11 @@ class ZipSiteImages(APIView):
         else:
             status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
         return Response(data, status=status)
+
+
+class SiteMetaAttributes(APIView):
+    permission_classes = [IsAuthenticated, SitePermissions]
+
+    def get(self, request, pk):
+        metas = generateSiteMetaAttribs(int(pk))
+        return Response(metas, status=status.HTTP_200_OK)
