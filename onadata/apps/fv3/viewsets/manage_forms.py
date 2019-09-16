@@ -59,7 +59,7 @@ class GeneralFormsVS(viewsets.ModelViewSet):
             elif site.region:
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False)
                                            | Q(project__id=project_id, settings__isnull=True)
-                                           | Q(project__id=project_id, settings__region__contains=[site.region_id]))
+                                           | Q(project__id=project_id, settings__regions__contains=[site.region_id]))
             else:
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
 
