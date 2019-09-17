@@ -514,16 +514,14 @@ class ProjectDefineSiteMeta(APIView):
             task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                          description="Update site meta attributes answer and store history",
                                                          task_type=24, content_object=project)
-            import time
-            time.sleep(2)
             if task_obj:
                 create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
             else:
                 if CeleryTaskProgress.objects.filter(task_type=24, user=request.user,
-                                                     content_object=project
+                                                     object_id=project.id
                                                      ).order_by("-date_added").exists():
                     task_obj = CeleryTaskProgress.objects.filter(task_type=24, user=request.user,
-                                                     content_object=project
+                                                     object_id=project.id
                                                      ).order_by("-date_added")[0]
                     create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
 
