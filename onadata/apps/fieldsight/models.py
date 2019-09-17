@@ -839,6 +839,23 @@ class ProjectMetaAttrHistory(models.Model):
 @receiver(post_save, sender=ProgressSettings)
 def check_deployed(sender, instance, created,  **kwargs):
     if instance.deployed:
+        if instance.source == 5:
+            return
+        if ProgressSettings.objects.filter(project=instance.project, deployed=False).exists():
+            last_settings = ProgressSettings.objects.filter(project=instance.project, deployed=False)[0]
+            if last_settings.source == instance.source:
+                if instance.source in [0, 1]:
+                    return
+                elif instance.source == 2:
+                    if (instance.pull_integer_form == last_settings.pull_integer_form) and (instance.pull_integer_form_question == last_settings.pull_integer_form_question):
+                        return
+                elif instance.source == 3:
+                    if instance.no_submissions_total_count == last_settings.no_submissions_total_count:
+                        return
+                elif instance.source == 4:
+                    if (instance.no_submissions_total_count == last_settings.no_submissions_total_count) and (instance.no_submissions_form == last_settings.no_submissions_form):
+                        return
+
         from onadata.apps.fieldsight.tasks import update_sites_progress
         from onadata.apps.eventlog.models import CeleryTaskProgress
         task_obj = CeleryTaskProgress.objects.create(user=instance.user,
