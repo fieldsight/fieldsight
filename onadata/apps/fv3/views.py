@@ -478,10 +478,10 @@ class ProjectDefineSiteMeta(APIView):
         project = Project.objects.get(pk=pk)
         old_meta = project.site_meta_attributes
         new_meta_attributes_raw = request.data.get('json_questions')
-        for i, nm in enumerate(new_meta_attributes_raw):
-            for om in old_meta:
-                if nm['id'] == om['id']:
-                    new_meta_attributes_raw[i]['question_name'] = om['question_name']
+        # for i, nm in enumerate(new_meta_attributes_raw):
+        #     for om in old_meta:
+        #         if nm['id'] == om['id']:
+        #             new_meta_attributes_raw[i]['question_name'] = om['question_name']
 
         project.site_meta_attributes = new_meta_attributes_raw
         project.site_basic_info = request.data.get('site_basic_info')
