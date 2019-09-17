@@ -2646,7 +2646,6 @@ def create_site_meta_attribs_ans_history(pk, task_id):
     try:
         sites = Site.objects.filter(project_id=pk)
         for site in sites:
-            time.sleep(1)
             metas = get_site_meta_ans(site.id)
             if metas == site.site_meta_attributes_ans:
                 continue
