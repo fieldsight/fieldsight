@@ -140,7 +140,10 @@ class TeamOwnerAccount(APIView):
             source=request.data['stripeToken'],
         )
 
-        return Response(status=status.HTTP_200_OK, data={"detail": "successfully updated."})
+        stripe_customer = stripe.Customer.retrieve(customer)
+        card = stripe_customer.sources.data[0].last4
+
+        return Response(status=status.HTTP_200_OK, data={"detail": "successfully updated.", 'data': card})
 
 
 @permission_classes([IsAuthenticated])
