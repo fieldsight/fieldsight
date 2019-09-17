@@ -518,8 +518,16 @@ class ProjectDefineSiteMeta(APIView):
             time.sleep(2)
             if task_obj:
                 create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
-        project.save()
+            else:
+                if CeleryTaskProgress.objects.filter(task_type=24, user=request.user,
+                                                     content_object=project
+                                                     ).order_by("-date_added").exists():
+                    task_obj = CeleryTaskProgress.objects.filter(task_type=24, user=request.user,
+                                                     content_object=project
+                                                     ).order_by("-date_added")[0]
+                    create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
 
+        project.save()
 
         return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
 
