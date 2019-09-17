@@ -1,12 +1,13 @@
 from django.conf.urls import url
 
-from onadata.apps.fv3.viewsets.TeamViewSet import TeamDashboardViewSet, TeamProjectsViewSet, StripeSubscriptions
-
+from onadata.apps.fv3.viewsets.TeamViewSet import TeamDashboardViewSet, TeamProjectsViewSet, StripeSubscriptions, \
+    AddTeamProjectViewset
 
 team_dashboard_urlpatterns = [
     url(r'^api/team/(?P<pk>\d+)/$', TeamDashboardViewSet.as_view({'get': 'retrieve'}), name='team'),
     url(r'^api/team-projects/(?P<pk>\d+)/$', TeamProjectsViewSet.as_view({'get': 'list'}), name='team'),
-    url(r'^api/subscriptions/(?P<org_id>\d+)/$', StripeSubscriptions.as_view(), name='subscriptions'),
+    url(r'^api/subscriptions/(?P<pk>\d+)/$', StripeSubscriptions.as_view(), name='subscriptions'),
+    url(r'^api/add-project/(?P<pk>\d+)/$', AddTeamProjectViewset.as_view({'post': 'create'}), name='add_project'),
 
 ]
 
