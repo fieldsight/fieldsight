@@ -46,7 +46,7 @@ class GeneralFormSerializer(serializers.ModelSerializer):
     class Meta:
         model = FieldSightXF
         fields = ('id', 'xf', 'date_created', 'default_submission_status',
-                  'responses_count', 'em', 'is_deployed', 'setting')
+                  'responses_count', 'em', 'is_deployed', 'setting', 'site', 'project')
 
     def get_setting(self, obj):
         try:
@@ -145,7 +145,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
         fields = ('id', 'em', 'xf', 'project', 'site',
                   'is_deployed', 'default_submission_status', 'schedule_level_id', 'schedule_level',
                   'selected_days', 'date_range_start', 'date_range_end', 'responses_count',
-                  'date_created', 'fsxf', 'setting')
+                  'date_created', 'fsxf', 'setting', 'site', 'project')
 
     def get_all_days(self, obj):
         return u"%s" % (", ".join(day.day for day in obj.selected_days.all()))
@@ -222,7 +222,7 @@ class StageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Stage
         fields = ('id', 'name', 'tags', 'regions', 'description',
-                  'order')
+                  'order', 'site', 'project')
 
     # def get_sub_stage_weight(self, obj):
     #     if hasattr(obj, "sub_stage_weight"):
@@ -305,7 +305,7 @@ class SubStageSerializer(serializers.ModelSerializer):
         fields = ('id', 'weight', 'name', 'description', 'order',
                   'date_created', 'em', 'responses_count',
                   'xf', 'is_deployed', 'default_submission_status',
-                  'fsxf', 'setting')
+                  'fsxf', 'setting', 'site', 'project')
 
     def update(self, instance, validated_data):
         xf = self.context['request'].data.get('xf')
