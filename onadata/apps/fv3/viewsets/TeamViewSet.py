@@ -11,9 +11,10 @@ from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
 from onadata.apps.fv3.serializers.TeamSerializer import TeamSerializer, TeamProjectSerializer
+from onadata.apps.fv3.serializer import ProjectUpdateSerializer
 from onadata.apps.fieldsight.models import Organization, Project
 from onadata.apps.fv3.role_api_permissions import TeamDashboardPermissions
 from onadata.apps.subscriptions.models import Customer, Package, Subscription
@@ -56,10 +57,11 @@ class TeamProjectsViewSet(viewsets.ReadOnlyModelViewSet):
 class StripeSubscriptions(APIView):
 
     authentication_classes = (CsrfExemptSessionAuthentication, SessionAuthentication, IsAuthenticated)
+    permission_classes = [TeamDashboardPermissions, ]
 
-    def post(self, request, org_id, format=None):
+    def post(self, request, pk, format=None):
         try:
-            organization = Organization.objects.get(id=org_id)
+            organization = Organization.objects.get(id=pk)
 
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -137,3 +139,9 @@ class StripeSubscriptions(APIView):
                                                               'card': card,
                                                               'plan_name': plan_name,
                                                               })
+
+
+class AddTeamProjectViewset(viewsets.ModelViewSet):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, TeamDashboardPermissions]
+    serializer_class = ProjectUpdateSerializer
