@@ -1,12 +1,15 @@
 from django.conf.urls import url
 from onadata.apps.fv3.viewsets.manage_forms import GeneralFormsVS, \
     GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS, SubStageFormsVS, \
-    DeployForm, DeleteUndeployedForm, FormSettingsVS
+    DeployForm, DeleteUndeployedForm, FormSettingsVS, BreadCrumView
 from onadata.apps.fsforms.viewsets.AssignedXFormListApiViewSet import \
     AssignedXFormListApi
 
 manage_forms_urlpatterns = [
 
+    url(r'^api/manage-forms/breadcrums/$',
+        BreadCrumView.as_view(),
+        name='gfl'),
     url(r'^api/manage-forms/general/$',
         GeneralFormsVS.as_view({'get': 'list', 'post':'create'}),
         name='gfl'),

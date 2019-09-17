@@ -1124,3 +1124,27 @@ class FormSettingsVS(viewsets.ModelViewSet):
             stage.tags = settings.types
             stage.save()
 
+
+class BreadCrumView(APIView):
+    permission_classes = (ManageFormsPermission,)
+
+    def get(self, request):
+        site_id = self.request.query_params.get("site_id")
+        project_id = self.request.query_params.get("project_id")
+        if project_id:
+            project = Project.objects.get(pk=project_id)
+            organization = project.organization
+            return Response({'name': project.name, 'organization': organization.name,
+                             'organization_url': organization.get_absolute_url()}, status=status.HTTP_200_OK)
+        elif site_id:
+            site = Site.objects.filter(pk=site_id).select_related("project", "project__organization")
+            site = site[0]
+            project = site.project
+            organization = site.project.organization
+            return Response({
+                                'name': site.name,  'project': project.name,
+                                'project_url': project.get_absolute_url(),
+                                'organization': organization.name,
+                                'organization_url': organization.get_absolute_url()
+                            }, status=status.HTTP_200_OK)
+
