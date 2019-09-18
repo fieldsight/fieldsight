@@ -477,7 +477,13 @@ class ProjectDefineSiteMeta(APIView):
 
         project = Project.objects.get(pk=pk)
         old_meta = project.site_meta_attributes
-        project.site_meta_attributes = request.data.get('json_questions')
+        new_meta_attributes_raw = request.data.get('json_questions')
+        for i, nm in enumerate(new_meta_attributes_raw):
+            for om in old_meta:
+                if nm['id'] == om['id']:
+                    new_meta_attributes_raw[i]['question_name'] = om['question_name']
+
+        project.site_meta_attributes = new_meta_attributes_raw
         project.site_basic_info = request.data.get('site_basic_info')
         project.site_featured_images = request.data.get('site_featured_images')
 
@@ -510,8 +516,16 @@ class ProjectDefineSiteMeta(APIView):
                                                          task_type=24, content_object=project)
             if task_obj:
                 create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
-        project.save()
+            else:
+                if CeleryTaskProgress.objects.filter(task_type=24, user=request.user,
+                                                     object_id=project.id
+                                                     ).order_by("-date_added").exists():
+                    task_obj = CeleryTaskProgress.objects.filter(task_type=24, user=request.user,
+                                                     object_id=project.id
+                                                     ).order_by("-date_added")[0]
+                    create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
 
+        project.save()
 
         return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})
 

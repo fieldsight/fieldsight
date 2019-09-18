@@ -45,7 +45,7 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                     'project_form_instances')).select_related('xf', 'em').prefetch_related("settings")
         elif site_id:
             site = Site.objects.get(pk=site_id)
-            project_id = get_object_or_404(Site, pk=site_id).project.id
+            project_id = site.project_id
             if site.type and site.region:
 
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False)
@@ -59,7 +59,7 @@ class GeneralFormsVS(viewsets.ModelViewSet):
             elif site.region:
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False)
                                            | Q(project__id=project_id, settings__isnull=True)
-                                           | Q(project__id=project_id, settings__region__contains=[site.region_id]))
+                                           | Q(project__id=project_id, settings__regions__contains=[site.region_id]))
             else:
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
 
@@ -279,10 +279,24 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                 "schedule_forms__project_form_instances")).select_related(
                 'schedule_forms', 'schedule_forms__xf', 'schedule_forms__em')
         elif site_id:
-            project_id = get_object_or_404(Site, pk=site_id).project.id
-            queryset = queryset.filter(
-                Q(site__id=site_id, schedule_forms__from_project=False)
-                | Q(project__id=project_id))
+            site = Site.objects.get(pk=site_id)
+            project_id = site.project_id
+            if site.type and site.region:
+
+                queryset = queryset.filter(Q(site__id=site_id)
+                                           | Q(project__id=project_id, schedule_forms__settings__isnull=True)
+                                           | Q(project__id=project_id, schedule_forms__settings__types__contains=[site.type_id]),
+                                           schedule_forms__settings__regions__contains=[site.region_id])
+            elif site.type:
+                queryset = queryset.filter(Q(site__id=site_id)
+                                           | Q(project__id=project_id, schedule_forms__settings__isnull=True)
+                                           | Q(project__id=project_id, schedule_forms__settings__types__contains=[site.type_id]))
+            elif site.region:
+                queryset = queryset.filter(Q(site__id=site_id,)
+                                           | Q(project__id=project_id, schedule_forms__settings__isnull=True)
+                                           | Q(project__id=project_id, schedule_forms__settings__regions__contains=[site.region_id]))
+            else:
+                queryset = queryset.filter(Q(site__id=site_id) | Q(project__id=project_id))
             return queryset.annotate(
                 site_response_count=Count(
                     "schedule_forms__site_form_instances", ),
@@ -400,7 +414,7 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
 
 
 class StageFormsVS(viewsets.ModelViewSet):
-    queryset = Stage.objects.filter(stage__isnull=True)
+    queryset = Stage.objects.filter(stage__isnull=True).order_by('order', 'date_created')
     serializer_class = StageSerializer
     permission_classes = [ManageFormsPermission]
     authentication_classes = [CsrfExemptSessionAuthentication,
@@ -415,12 +429,22 @@ class StageFormsVS(viewsets.ModelViewSet):
         elif site_id:
             site = get_object_or_404(Site, pk=site_id)
             project_id = site.project_id
+            if site.type and site.region:
+                queryset = queryset.filter(Q(site__id=site_id,
+                                             project_stage_id=0)
+                                           | Q(project__id=project_id, tags__contains=[site.type_id])
+                                           | Q(project__id=project_id, regions__contains=[site.region_id])
+                                           )
             if site.type:
                 queryset = queryset.filter(Q(site__id=site_id,
                                              project_stage_id=0)
-                                           | Q
-                                           (Q(project__id=project_id) &
-                                            Q(tags__contains=[site.type_id]))
+                                           | Q(project__id=project_id, tags__contains=[site.type_id])
+
+                                           )
+            if site.region:
+                queryset = queryset.filter(Q(site__id=site_id,
+                                             project_stage_id=0)
+                                           | Q(project__id=project_id, regions__contains=[site.region_id])
                                            )
             else:
                 queryset = queryset.filter(
@@ -429,8 +453,7 @@ class StageFormsVS(viewsets.ModelViewSet):
         else:
             return []
 
-        return queryset.annotate(sub_stage_weight=Sum(F('parent__weight'))
-                                 ).order_by('order', 'date_created')
+        return queryset
 
     def get_serializer_context(self):
         return self.request.query_params
@@ -456,8 +479,22 @@ class SubStageFormsVS(viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         query_params = self.request.query_params
         stage_id = query_params.get('stage_id')
-        return self.queryset.filter(stage__id=stage_id).select_related(
-        'stage_forms', 'em').order_by('order', 'date_created')
+        queryset = self.queryset.filter(stage__id=stage_id)
+        stage = Stage.objects.get(pk=stage_id)
+        project = stage.project
+        site_id = query_params.get('site_id')
+        if project and site_id:
+            site = Site.objects.get(pk=site_id)
+            if site.type and site.region:
+                queryset = queryset.filter(Q(tags__contains=[site.type_id])
+                                           | Q(regions__contains=[site.region_id])
+                                           )
+            elif site.type:
+                queryset = queryset.filter(tags__contains=[site.type_id])
+            elif site.region:
+                queryset = queryset.filter(regions__contains=[site.region_id])
+
+        return queryset.select_related('stage_forms', 'em').order_by('order', 'date_created')
 
     def get_serializer_context(self):
         return {'request': self.request}
@@ -1086,4 +1123,28 @@ class FormSettingsVS(viewsets.ModelViewSet):
             stage.weight = weight
             stage.tags = settings.types
             stage.save()
+
+
+class BreadCrumView(APIView):
+    permission_classes = (ManageFormsPermission,)
+
+    def get(self, request):
+        site_id = self.request.query_params.get("site_id")
+        project_id = self.request.query_params.get("project_id")
+        if project_id:
+            project = Project.objects.get(pk=project_id)
+            organization = project.organization
+            return Response({'name': project.name, 'organization': organization.name,
+                             'organization_url': organization.get_absolute_url()}, status=status.HTTP_200_OK)
+        elif site_id:
+            site = Site.objects.filter(pk=site_id).select_related("project", "project__organization")
+            site = site[0]
+            project = site.project
+            organization = site.project.organization
+            return Response({
+                                'name': site.name,  'project': project.name,
+                                'project_url': project.get_absolute_url(),
+                                'organization': organization.name,
+                                'organization_url': organization.get_absolute_url()
+                            }, status=status.HTTP_200_OK)
 
