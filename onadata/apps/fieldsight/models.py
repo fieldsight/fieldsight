@@ -841,8 +841,8 @@ def check_deployed(sender, instance, created,  **kwargs):
     if instance.deployed:
         if instance.source == 5:
             return
-        if ProgressSettings.objects.filter(project=instance.project, deployed=False).exists():
-            last_settings = ProgressSettings.objects.filter(project=instance.project, deployed=False)[0]
+        if ProgressSettings.objects.filter(project=instance.project, active=False).exists():
+            last_settings = ProgressSettings.objects.filter(project=instance.project, active=False)[0]
             if last_settings.source == instance.source:
                 if instance.source in [0, 1]:
                     return
