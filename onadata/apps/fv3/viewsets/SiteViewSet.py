@@ -68,7 +68,8 @@ class SiteSubmissionsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         site_id = self.request.query_params.get('site', None)
         site = get_object_or_404(Site, id=int(site_id))
-        return self.queryset.filter(site=site, is_deleted=False).order_by('-date')
+        return self.queryset.filter(site=site, is_deleted=False).filter(Q(site_fxf__is_deleted=False) |
+                                                                        Q(project_fxf__is_deleted=False)).order_by('-date')
 
 
 class SiteForms(APIView):
