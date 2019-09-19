@@ -682,6 +682,8 @@
                 var formStatusValue = ["Pending","Rejected","Flagged","Approved"];
                 var site_type = []; // elements are pushed from apply button click
                 var region = []; // elements are pushed from apply button click
+                //var otherColors = ['#e69109', '#915e0d', '#f0e111', '#a1970d', '#9ff035', '#4f7d14', '#34ede1', '#07aba1', '#63a4ff', '#1d4c8f', '#b685ff', '#491991', '#e553ed', '#610766', '#f2575f', '#6e0208'];
+                var otherColors = ['#e69109', '#f0e111', '#9ff035', '#34ede1', '#63a4ff', '#8629ff', '#e553ed', '#f2575f', '#915e0d', '#a1970d', '#4f7d14', '#07aba1', '#1d4c8f', '#491991', '#610766', '#6e0208'];
 
                 var applyClicked = false; //check if apply clicked or chosen from legend dropdown to check the no. of legend entries to be shown in legend for site types and regions.
 
@@ -697,61 +699,20 @@
                     return gradient;
                 }
                 ['#FF0000', '#FFFF00', '#008000']
-                projectColor = [];
-                if(projectList.length<2){
-                    projectColor = ['#FF0000'];
-                }
-                else if(projectList.length==2){
-                    projectColor = ['#FF0000','#008000'];
-                }
-                else{
-                    var start = '#ff6600';
-                    var medium ='#b76e79';
-                    var end ='#1e90ff';
-
-                    
-                    projectColor =getgradient(start, medium, end, projectList.length);
                 
+                //add more colors if the length is more than 16. For projects, site_types and regions
+                var maxLengthValue = Math.max(projectList.length, site_types.length, regions.length);
+                if(maxLengthValue > 16){
+                        var start = '#09e609';//'#ff6600';
+                        var medium = '#e67f09';//'#b76e79';
+                        var end = '#b207e6';//'#1e90ff';                        
+                        extraColor =getgradient(start, medium, end, maxLengthValue-16+2);
+
+                        for(var x=0; x<extraClolor.length; x++){
+                            otherColors.push(extraColor[x]);
+                        }
                 }
 
-                //get sitetype colors based on no. of sites
-                siteTypeColor = [];
-                if(site_types.length<2){
-                    siteTypeColor = ['#FF0000'];
-                }
-                else if(site_types.length==2){
-                    siteTypeColor = ['#FF0000','#008000'];
-                }
-                else{
-                    var start = '#ff6600';
-                    var medium ='#b76e79';
-                    var end ='#1e90ff';
-
-                    
-                    siteTypeColor =getgradient(start, medium, end, site_types.length);
-                
-                }
-                //console.log(siteTypeColor);
-
-                //get region colors based on no. of sites
-                regionColor = [];
-                if(regions.length<2){
-                    regionColor = ['#FF0000'];
-                }
-                else if(regions.length==2){
-                    regionColor = ['#FF0000','#008000'];
-                }
-                else{
-                    var start = '#ff6600';
-                    var medium ='#b76e79';
-                    var end ='#1e90ff';
-
-                    
-                    regionColor =getgradient(start, medium, end, regions.length);
-                
-                }
-
-                //console.log(regionColor);
 
                 var progressColor = ["#FF0000","#f66565","#f4c08c","#FFFF00","#7FFF00","#00FF00","#069806"];
                 // var start = '#FF0000';
@@ -812,7 +773,7 @@
                         if(status == "Projects"){ 
                             for(var i = 0; i<projectList.length; i++){
                                 if(map_layer_json[key].feature.project == projectList[i].name){
-                                    map_layer_json[key].setStyle({"fillColor":projectColor[i]});
+                                    map_layer_json[key].setStyle({"fillColor":otherColors[i]});
                                 } 
                             }
                         }
@@ -859,7 +820,7 @@
                         else if(status == "Site Type"){
                             for(var x = 0; x< site_types.length; x++){
                                 if(map_layer_json[key].feature.site_type == site_types[x].name){
-                                    map_layer_json[key].setStyle({"fillColor":siteTypeColor[x]});
+                                    map_layer_json[key].setStyle({"fillColor":otherColors[x]});
                                 }
                             }
                             
@@ -869,7 +830,7 @@
                             //console.log("entered site type");
                             for(var y = 0; y< regions.length; y++){
                                 if(map_layer_json[key].feature.region == regions[y].name){
-                                    map_layer_json[key].setStyle({"fillColor":regionColor[y]});
+                                    map_layer_json[key].setStyle({"fillColor":otherColors[y]});
                                 }
                             }
                             
@@ -885,7 +846,7 @@
                     $("#form_legend").html("");
                     if(status == "Projects"){
                         for(var i = 0; i< projectList.length;i++){
-                            $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+projectColor[i]+';"></div><span>'+projectList[i].name+'</span></div><br/>');
+                            $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+otherColors[i]+';"></div><span>'+projectList[i].name+'</span></div><br/>');
                         }
                         changeColor(changeColorOfLayer, status);
                     }
@@ -903,7 +864,7 @@
                         // }
                         for(var x = 0; x<siteT.length;x++){
                             var site_type_value = siteT[x].name || siteT[x];
-                            $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+siteTypeColor[x]+';"></div><span>'+site_type_value+'</span></div><br/>' );
+                            $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+otherColors[x]+';"></div><span>'+site_type_value+'</span></div><br/>' );
                         }
                         
                         changeColor(changeColorOfLayer, status);
@@ -917,7 +878,7 @@
                         //console.log(regn, "reerererer");
                         for(var y = 0; y<regn.length;y++){
                             region_value = regn[y].name || regn[y];
-                            $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+regionColor[y]+';"></div><span>'+region_value+'</span></div><br/>' );
+                            $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+otherColors[y]+';"></div><span>'+region_value+'</span></div><br/>' );
                         }
                         
                         changeColor(changeColorOfLayer, status);
