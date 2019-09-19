@@ -356,16 +356,14 @@
                 const projectLayersUrl = "{% url 'fieldsight:ProjectLayers' obj.id %}";
             {% endif %}
             
-            var projectid = "{{ obj.id }}";
-            
-            $.getJSON("http://localhost:8001/fv3/api/project-regions-types/"+projectid+"/",function(extra_data){
-                //console.log(extra_data);
-                site_types_array = [{}];
-                regions_array = [];
-                
-                site_types = extra_data.site_types;
-                regions = extra_data.regions;
 
+            var projectid = "{{ obj.id }}";
+            site_types_array = [{}];
+            regions_array = [];
+            var site_types = null;
+            var regions = null;
+
+            function regionSiteTypeDropdown(site_types, regions){
                 for (var i = 0; i< site_types.length; i++){
                     site_types_array.push({"id":site_types[i].id , "text": site_types[i].name});
                     //$("#multi-prepend-append3").append('<option value = "'+site_types_array[i].id+'" id="'+site_types_array[i].id+'">'+site_types_array[i].name+'</option>').trigger("change");
@@ -400,8 +398,36 @@
                     theme: "bootstrap",
                     data:regions_array
                 });
+            }
+
+            
+
                 
-            });
+                {% if mapfor == "organization" %}
+                    // $.ajax({
+                    //     async: false,
+                    //     url: "https://fieldsight.naxa.com.np/fv3/api/team-regions-types/"+projectid+"/",
+                    //     success: function(extra_data) {
+                    $.getJSON("https://localhost:8001/fv3/api/team-regions-types/"+projectid+"/",function(extra_data){ 
+                            site_types = extra_data.site_types;
+                            regions = extra_data.regions;
+                            regionSiteTypeDropdown(site_types, regions);
+                        // }
+                    });   
+                {% elif mapfor == "project"%}
+                    $.getJSON("http://localhost:8001/fv3/api/project-regions-types/"+projectid+"/",function(extra_data){ 
+                        site_types = extra_data.site_types;
+                        regions = extra_data.regions;
+                        regionSiteTypeDropdown(site_types, regions);
+                    });
+                {% endif %}
+                
+                
+
+                
+                
+                
+            
 
             
 
@@ -448,7 +474,7 @@
 
 
                 
-                //$('.select2').select2();
+                $('.select2').select2();
                 
               
                 $("#dateslider").dateRangeSlider();
