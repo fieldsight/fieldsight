@@ -96,18 +96,18 @@ def get_site_meta_ans(site_id):
                     selected_metas = meta.get('metas')
                 if meta.get('project_id') == main_project:
                     continue
-                sitenew = Site.objects.filter(identifier=meta_answer.get(meta.get('question_name'), None),
+                referenced_site = Site.objects.filter(identifier=meta_answer.get(meta.get('question_name'), None),
                                               project_id=meta.get('project_id'))
-                if sitenew and str(sitenew[0].project_id) in selected_metas:
+                if referenced_site and str(referenced_site[0].project_id) in selected_metas:
                     answer = meta_answer.get(meta.get('question_name'))
-                    sub_metas = []
+                    sub_metas = {}
                     generate_ans(sub_metas,
-                                 sitenew[0].project_id,
-                                 selected_metas[str(sitenew[0].project_id)],
-                                 sitenew[0].site_meta_attributes_ans,
+                                 referenced_site[0].project_id,
+                                 selected_metas[str(referenced_site[0].project_id)],
+                                 referenced_site[0].site_meta_attributes_ans,
                                  selected_metas,
-                                 sitenew[0].project.site_meta_attributes)
-                    metas[meta.get('question_name')] = answer
+                                 referenced_site[0].project.site_meta_attributes)
+                    metas[meta.get('question_name')] = {"children": sub_metas, "answer": answer}
 
                 else:
                     answer = "No site referenced"
@@ -128,7 +128,7 @@ def get_site_meta_ans(site_id):
 
                 else:
                     answer = meta_answer.get(meta.get('question_name'), "")
-
+                print(metas)
                 metas[meta.get('question_name')] = answer
 
     generate_ans(metas, project.id, project.site_meta_attributes, site.site_meta_attributes_ans, None, None)
