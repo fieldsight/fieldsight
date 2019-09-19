@@ -41,7 +41,7 @@ from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
-    check_site_permission, SuperUserPermissions
+    check_site_permission, SuperUserPermissions, TeamCreationPermission
 from .serializer import TeamSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
@@ -732,11 +732,18 @@ def project_sites_vt(request, pk, zoom, x, y):
     return HttpResponse(tile, content_type="application/x-protobuf")
 
 
-class TeamsViewset(viewsets.ModelViewSet):
+class TeamsViewset(viewsets.ReadOnlyModelViewSet):
+    queryset = Organization.objects.all()
+    serializer_class = TeamSerializer
+    permission_classes = [IsAuthenticated, SuperUserPermissions]
+    pagination_class = TeamsPagination
+
+
+class TeamFormViewset(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = TeamSerializer
     authentication_classes = [CsrfExemptSessionAuthentication, ]
-    permission_classes = [IsAuthenticated, SuperUserPermissions]
+    permission_classes = [IsAuthenticated, TeamCreationPermission]
     pagination_class = TeamsPagination
 
     def create(self, request, *args, **kwargs):
@@ -762,7 +769,7 @@ class TeamsViewset(viewsets.ModelViewSet):
             free_package = Package.objects.get(plan=0)
             customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
             Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer,
-                                        initiated_on=datetime.datetime.now(),
+                                        initiated_on=datetime.now(),
                                         package=free_package, organization=self.object)
             user_id = user_id
             email_after_subscribed_plan.delay(user_id)

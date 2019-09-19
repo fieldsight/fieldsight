@@ -26,7 +26,7 @@ from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
     ProjectSitesListViewSet, SubSitesListViewSet
 
 from onadata.apps.fv3.views import RegionalSites, sub_regions, users
-from onadata.apps.fv3.views import TeamsViewset
+from onadata.apps.fv3.views import TeamsViewset, TeamFormViewset
 
 router = routers.DefaultRouter()
 
@@ -75,7 +75,8 @@ urlpatterns = [
     url(r'^api/regional-sites/$', RegionalSites.as_view({'get' : 'list'}), name='regional_sites'),
     url(r'^api/sub-regions/$', sub_regions, name='sub_regions'),
     url(r'^api/users/$', users, name='users'),
-    url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list', 'post': 'create'}), name='teams'),
+    url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list'}), name='teams'),
+    url(r'^api/team-form/$', TeamFormViewset.as_view({'post': 'create'}), name='team_form'),
     url(r'^api/forms/$', FormsView.as_view(), name='forms'),
 
     url(r'^api/project/sites-vt/(?P<pk>\d+)/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', project_sites_vt, name='project_sites_vt'),
