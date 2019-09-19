@@ -39,7 +39,7 @@ class SubmissionViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, SubmissionDetailPermission]
 
     def get_queryset(self):
-        return self.queryset.select_related("xform","xform__user", "user").prefetch_related(
+        return self.queryset.select_related("xform", "xform__user", "user").prefetch_related(
             Prefetch('fieldsight_instance',
                      queryset=FInstance.objects.all().select_related(
                          'site', 'site_fxf', 'project_fxf').prefetch_related("comments", "edits")

@@ -3,22 +3,24 @@ from django.db.models import Count, Q, Case, When, F, IntegerField, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from onadata.apps.fieldsight.models import Site, Project
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, FormSettings
 from onadata.apps.fsforms.tasks import copy_schedule_to_sites, \
     copy_allstages_to_sites, copy_stage_to_sites, copy_sub_stage_to_sites
 from onadata.apps.fsforms.utils import send_message_un_deploy_project, \
     send_message_un_deploy, send_bulk_message_stages_deployed_site, \
     send_bulk_message_stage_deployed_site, send_sub_stage_deployed_site
 from onadata.apps.fv3.permissions.manage_forms import ManageFormsPermission, \
-    StagePermission, DeployFormsPermission
+    StagePermission, DeployFormsPermission, FormsSettingsPermission
 from onadata.apps.fv3.serializers.manage_forms import GeneralFormSerializer, \
     GeneralProjectFormSerializer, ScheduleSerializer, StageSerializer, \
-    SubStageSerializer
+    SubStageSerializer, FormSettingsSerializer, SettingsSerializerGeneralForm, SettingsSerializerProjectGeneralForm, \
+    SettingsSerializerScheduleForm, SettingsSerializerSubStage
 
 
 class GeneralFormsVS(viewsets.ModelViewSet):
@@ -40,13 +42,29 @@ class GeneralFormsVS(viewsets.ModelViewSet):
             queryset = self.queryset.filter(project__id=project_id)
             return queryset.annotate(
                 response_count=Count(
-                    'project_form_instances')).select_related('xf', 'em')
+                    'project_form_instances')).select_related('xf', 'em').prefetch_related("settings")
         elif site_id:
-            project_id = get_object_or_404(Site, pk=site_id).project.id
-            queryset = queryset.filter(Q(site__id=site_id, from_project=False)
-                                       | Q(project__id=project_id))
+            site = Site.objects.get(pk=site_id)
+            project_id = site.project_id
+            if site.type and site.region:
+
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
+                                           | Q(project__id=project_id, settings__isnull=True)
+                                           | Q(project__id=project_id, settings__types__contains=[site.type_id]),
+                                           settings__regions__contains=[site.region_id])
+            elif site.type:
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
+                                           | Q(project__id=project_id, settings__isnull=True)
+                                           | Q(project__id=project_id, settings__types__contains=[site.type_id]))
+            elif site.region:
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
+                                           | Q(project__id=project_id, settings__isnull=True)
+                                           | Q(project__id=project_id, settings__regions__contains=[site.region_id]))
+            else:
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
+
             return queryset.annotate(
-                site_response_count=Count("site_form_instances", ),
+                site_response_count=Count("site_form_instances"),
                 response_count=Count(Case(
                     When(project__isnull=False,
                          project_form_instances__site__id=site_id,
@@ -54,45 +72,96 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                     output_field=IntegerField(),
                 ), distinct=True)
 
-            ).select_related('xf', 'em')
+            ).select_related('xf', 'em').prefetch_related("settings")
         return []
 
     def get_serializer_context(self):
         return self.request.query_params
 
     def create(self, request, *args, **kwargs):
-        query_params = request.query_params
-        site_id = query_params.get('site_id')
-        project_id = query_params.get('project_id')
-        if not (site_id or project_id):
-            return Response({"error": "Project or Site id required"},
-                            status=status.HTTP_400_BAD_REQUEST)
-        xf = request.data.get('xf')
-        if not xf:
-            return Response({"error": "Xform  id required"},
-                            status=status.HTTP_400_BAD_REQUEST)
-        default_submission_status = request.data.get('default_submission_status')
-        if project_id:
-            fxf = FieldSightXF.objects.create(
-                default_submission_status=default_submission_status,
-                xf_id=xf, project_id=project_id
-            )
-        elif site_id:
-            fxf = FieldSightXF.objects.create(
-                default_submission_status=default_submission_status,
-                xf_id=xf, project_id=project_id
-            )
-        serializer = GeneralFormSerializer(fxf)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED,
-                        headers=headers)
+        with transaction.atomic():
+            query_params = request.query_params
+            site_id = query_params.get('site_id')
+            project_id = query_params.get('project_id')
+            if not (site_id or project_id):
+                return Response({"error": "Project or Site id required"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            xf = request.data.get('xf')
+            if not xf:
+                return Response({"error": "Xform  id required"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            default_submission_status = request.data.get('default_submission_status')
+            if project_id:
+                if FieldSightXF.objects.filter(
+                        xf_id=xf,
+                        project_id=project_id,
+                        is_deleted=False,
+                        is_survey=False,
+                        is_scheduled=False,
+                        is_staged=False
+                ).exists():
+                    return Response({"error": "Form already exists in general form"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                fxf = FieldSightXF.objects.create(
+                    default_submission_status=default_submission_status,
+                    xf_id=xf, project_id=project_id
+                )
+            elif site_id:
+                if FieldSightXF.objects.filter(
+                        xf_id=xf,
+                        is_deleted=False,
+                        is_survey=False,
+                        is_scheduled=False,
+                        is_staged=False
+                ).filter(Q(site_id=site_id,) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
+                    return Response({"error": "Form already exists in general form"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                fxf = FieldSightXF.objects.create(
+                    default_submission_status=default_submission_status,
+                    xf_id=xf, site_id=site_id
+                )
+            settings = request.data.get('setting')
+            if settings:
+                settings.update({"form": fxf.id})
+                settings_serializer = SettingsSerializerGeneralForm(data=settings)
+                if settings_serializer.is_valid():
+                    settings_serializer.save(user=request.user)
+                    serializer = GeneralFormSerializer(fxf)
+                    headers = self.get_success_headers(serializer.data)
+                    return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                    headers=headers)
+                else:
+                    fxf.delete()
+                    return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer = GeneralFormSerializer(fxf)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED,
+                            headers=headers)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.default_submission_status = request.data.get(
             'default_submission_status')
         instance.save()
-        serializer = GeneralFormSerializer(instance)
+        settings = request.data.get('setting')
+        if settings:
+            settings.update({"form": instance.id})
+            if not settings.get('id'):
+                settings_serializer = SettingsSerializerGeneralForm(data=settings)
+            else:
+                settings_serializer = SettingsSerializerGeneralForm(instance.settings, data=settings, partial=True)
+
+            if settings_serializer.is_valid():
+                settings_serializer.save(user=request.user)
+                serializer = GeneralFormSerializer(FieldSightXF.objects.filter(
+                    pk=instance.id).prefetch_related("settings")[0])
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                headers=headers)
+            else:
+                return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = GeneralFormSerializer(FieldSightXF.objects.filter(pk=instance.id).prefetch_related("settings")[0])
         return Response(serializer.data)
 
 
@@ -131,13 +200,32 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
         if not xf:
             return Response({"error": "xf: Xform  id required"},
                             status=status.HTTP_400_BAD_REQUEST)
+        if FieldSightXF.objects.filter(
+                xf_id=xf,
+                project_id=project_id,
+                is_survey=True,
+                is_deleted=False,
+        ).exists():
+            return Response({"error": "Form already exists in Project general form"}, status=status.HTTP_400_BAD_REQUEST)
         default_submission_status = request.data.get('default_submission_status')
-        if project_id:
-            fxf = FieldSightXF.objects.create(is_survey=True,
-                                              default_submission_status=
-                                              default_submission_status,
-                                              xf_id=xf, project_id=project_id
-            )
+        fxf = FieldSightXF.objects.create(
+            is_survey=True,
+            default_submission_status=default_submission_status,
+            xf_id=xf, project_id=project_id
+        )
+        settings = request.data.get('setting')
+        if settings:
+            settings.update({"form": fxf.id})
+            settings_serializer = SettingsSerializerProjectGeneralForm(data=settings)
+            if settings_serializer.is_valid():
+                settings_serializer.save(user=request.user)
+                serializer = GeneralProjectFormSerializer(fxf)
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                headers=headers)
+            else:
+                fxf.delete()
+                return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer = GeneralProjectFormSerializer(fxf)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED,
@@ -148,7 +236,25 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
         instance.default_submission_status = request.data.get(
             'default_submission_status')
         instance.save()
-        serializer = GeneralProjectFormSerializer(instance)
+        settings = request.data.get('setting')
+        if settings:
+            settings.update({"form": instance.id})
+            if not settings.get('id'):
+                settings_serializer = SettingsSerializerProjectGeneralForm(data=settings)
+            else:
+                settings_serializer = SettingsSerializerProjectGeneralForm(instance.settings, data=settings, partial=True)
+
+            if settings_serializer.is_valid():
+                settings_serializer.save(user=request.user)
+                serializer = GeneralProjectFormSerializer(FieldSightXF.objects.filter(
+                    pk=instance.id).prefetch_related("settings")[0])
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                headers=headers)
+            else:
+                return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = GeneralProjectFormSerializer(FieldSightXF.objects.filter(pk=instance.id).prefetch_related("settings")[0])
         return Response(serializer.data)
 
 
@@ -173,10 +279,24 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                 "schedule_forms__project_form_instances")).select_related(
                 'schedule_forms', 'schedule_forms__xf', 'schedule_forms__em')
         elif site_id:
-            project_id = get_object_or_404(Site, pk=site_id).project.id
-            queryset = queryset.filter(
-                Q(site__id=site_id, schedule_forms__from_project=False)
-                | Q(project__id=project_id))
+            site = Site.objects.get(pk=site_id)
+            project_id = site.project_id
+            if site.type and site.region:
+
+                queryset = queryset.filter(Q(site__id=site_id)
+                                           | Q(project__id=project_id, schedule_forms__settings__isnull=True)
+                                           | Q(project__id=project_id, schedule_forms__settings__types__contains=[site.type_id]),
+                                           schedule_forms__settings__regions__contains=[site.region_id])
+            elif site.type:
+                queryset = queryset.filter(Q(site__id=site_id)
+                                           | Q(project__id=project_id, schedule_forms__settings__isnull=True)
+                                           | Q(project__id=project_id, schedule_forms__settings__types__contains=[site.type_id]))
+            elif site.region:
+                queryset = queryset.filter(Q(site__id=site_id,)
+                                           | Q(project__id=project_id, schedule_forms__settings__isnull=True)
+                                           | Q(project__id=project_id, schedule_forms__settings__regions__contains=[site.region_id]))
+            else:
+                queryset = queryset.filter(Q(site__id=site_id) | Q(project__id=project_id))
             return queryset.annotate(
                 site_response_count=Count(
                     "schedule_forms__site_form_instances", ),
@@ -205,13 +325,20 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
         if not xf:
             return Response({"error": "Xform  id required"},
                             status=status.HTTP_400_BAD_REQUEST)
+
         default_submission_status = request.data.get('default_submission_status')
         if project_id:
-            request.data['project_id'] = project_id
+            if FieldSightXF.objects.filter(
+                    xf_id=xf,
+                    project_id=project_id,
+                    is_scheduled=True,
+                    is_deleted=True
+            ).exists():
+                return Response({"error": "Form already exists in Schedule form"}, status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic():
                 serializer = self.get_serializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
-                schedule = serializer.save()
+                schedule = serializer.save(project_id=project_id)
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
                     xf_id=xf, project_id=project_id, schedule_id=schedule.id,
@@ -219,24 +346,75 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                 )
 
         elif site_id:
+            if FieldSightXF.objects.filter(
+                    xf_id=xf,
+                    is_deleted=False,
+                    is_scheduled=True,
+            ).filter(Q(site_id=site_id) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
+                return Response({"error": "Form already exists in Schedule form"},
+                                status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic():
-                request.data['site_id'] = site_id
                 serializer = self.get_serializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
-                schedule = serializer.save()
+                schedule = serializer.save(site_id=site_id)
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
-                    xf_id=xf, project_id=project_id, schedule=schedule,
+                    xf_id=xf, site_id=site_id, schedule=schedule,
                     is_scheduled=True
                 )
+        settings = request.data.get('setting')
+        if settings and fxf and schedule:
+            settings.update({"form": fxf.id})
+            settings_serializer = SettingsSerializerScheduleForm(data=settings)
+            if settings_serializer.is_valid():
+                settings_serializer.save(user=request.user)
+                serializer = ScheduleSerializer(schedule)
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                headers=headers)
+            else:
+                fxf.delete()
+                schedule.delete()
+                return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer = ScheduleSerializer(schedule)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED,
                         headers=headers)
 
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        schedule = serializer.save()
+        ds_status = request.data.get('default_submission_status')
+        if ds_status:
+            form = schedule.schedule_forms
+            form.default_submission_status = ds_status
+            form.save()
+        settings = request.data.get('setting')
+        if settings:
+            settings.update({"form": instance.schedule_forms.id})
+            if not settings.get('id'):
+                settings_serializer = SettingsSerializerScheduleForm(data=settings)
+            else:
+                settings_serializer = SettingsSerializerScheduleForm(instance.schedule_forms.settings,
+                                                                     data=settings, partial=True)
+
+            if settings_serializer.is_valid():
+                settings_serializer.save(user=request.user)
+                serializer = ScheduleSerializer(instance)
+                headers = self.get_success_headers(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED,
+                                headers=headers)
+            else:
+                return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ScheduleSerializer(instance)
+        return Response(serializer.data)
+
 
 class StageFormsVS(viewsets.ModelViewSet):
-    queryset = Stage.objects.filter(stage__isnull=True)
+    queryset = Stage.objects.filter(stage__isnull=True).order_by('order', 'date_created')
     serializer_class = StageSerializer
     permission_classes = [ManageFormsPermission]
     authentication_classes = [CsrfExemptSessionAuthentication,
@@ -251,29 +429,31 @@ class StageFormsVS(viewsets.ModelViewSet):
         elif site_id:
             site = get_object_or_404(Site, pk=site_id)
             project_id = site.project_id
-            # queryset = queryset.filter(
-            #     Q(site__id=site_id, project_stage_id=0) |
-            #     Q(project__id=project_id))
-            if site.type:
-                project_id = site.project.id
+            if site.type and site.region:
                 queryset = queryset.filter(Q(site__id=site_id,
                                              project_stage_id=0)
-                                           | Q
-                                           (Q(project__id=project_id) &
-                                            Q(tags__contains=[site.type_id])) |
-                                           Q(Q(project__id=project_id)
-                                             & Q(tags=[]))
+                                           | Q(project__id=project_id, tags__contains=[site.type_id])
+                                           | Q(project__id=project_id, regions__contains=[site.region_id])
+                                           )
+            if site.type:
+                queryset = queryset.filter(Q(site__id=site_id,
+                                             project_stage_id=0)
+                                           | Q(project__id=project_id, tags__contains=[site.type_id])
+
+                                           )
+            if site.region:
+                queryset = queryset.filter(Q(site__id=site_id,
+                                             project_stage_id=0)
+                                           | Q(project__id=project_id, regions__contains=[site.region_id])
                                            )
             else:
-                project_id = site.project.id
                 queryset = queryset.filter(
                     Q(site__id=site_id, project_stage_id=0)
                     | Q(project__id=project_id))
         else:
             return []
 
-        return queryset.annotate(sub_stage_weight=Sum(F('parent__weight'))
-                                 ).order_by('order', 'date_created')
+        return queryset
 
     def get_serializer_context(self):
         return self.request.query_params
@@ -299,8 +479,22 @@ class SubStageFormsVS(viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         query_params = self.request.query_params
         stage_id = query_params.get('stage_id')
-        return self.queryset.filter(stage__id=stage_id).select_related(
-        'stage_forms', 'em').order_by('order', 'date_created')
+        queryset = self.queryset.filter(stage__id=stage_id)
+        stage = Stage.objects.get(pk=stage_id)
+        project = stage.project
+        site_id = query_params.get('site_id')
+        if project and site_id:
+            site = Site.objects.get(pk=site_id)
+            if site.type and site.region:
+                queryset = queryset.filter(Q(tags__contains=[site.type_id])
+                                           | Q(regions__contains=[site.region_id])
+                                           )
+            elif site.type:
+                queryset = queryset.filter(tags__contains=[site.type_id])
+            elif site.region:
+                queryset = queryset.filter(regions__contains=[site.region_id])
+
+        return queryset.select_related('stage_forms', 'em').order_by('order', 'date_created')
 
     def get_serializer_context(self):
         return {'request': self.request}
@@ -308,6 +502,7 @@ class SubStageFormsVS(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         query_params = self.request.query_params
         xf = self.request.data.get('xf')
+        setting = self.request.data.get('setting')
         if not xf:
             return Response({"error": "Xform  id required"},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -318,11 +513,19 @@ class SubStageFormsVS(viewsets.ModelViewSet):
             stage = Stage.objects.get(pk=stage_id)
             sub_stage = serializer.save(stage=stage, project=stage.project,
                                         site=stage.site)
-            xf = FieldSightXF.objects.create(
+            fxf = FieldSightXF.objects.create(
                 default_submission_status=default_submission_status,
                 xf_id=xf, project=stage.project, site=stage.site,
                 is_staged=True, stage=sub_stage
             )
+            if setting:
+                setting.update({"form": fxf.id})
+                settings_serializer = SettingsSerializerSubStage(data=setting)
+                if settings_serializer.is_valid():
+                    setting_obj = settings_serializer.save(user=self.request.user)
+                    sub_stage.tags = setting_obj.types
+                    sub_stage.regions = setting_obj.regions
+                    sub_stage.save()
 
 
 class DeployForm(APIView):
@@ -873,4 +1076,75 @@ class DeleteUndeployedForm(APIView):
         return Response({"error": "not valid type"},
                         status=status.HTTP_400_BAD_REQUEST)
 
+
+class FormSettingsVS(viewsets.ModelViewSet):
+    serializer_class = FormSettingsSerializer
+    queryset = FormSettings.objects.all()
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+    permission_classes = (IsAuthenticated, FormsSettingsPermission)
+
+    def retrieve(self, request, *args, **kwargs):
+        form_id = self.request.query_params.get("form_id")
+        if form_id:
+            if FormSettings.objects.filter(form_id=form_id).exists():
+                instance = FormSettings.objects.get(form_id=form_id)
+                serializer = self.get_serializer(instance)
+                return Response(serializer.data)
+            else:
+                return Response({"error": "form have no settings"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {
+                "error": "form_id query params not provided"
+            },
+            status=status.HTTP_400_BAD_REQUEST)
+
+    def perform_create(self, serializer):
+        default_submission_status = self.request.data.get('default_submission_status', 0)
+        weight = self.request.data.get('weight', 0)
+        settings = serializer.save(user=self.request.user)
+        form = settings.form
+        form.default_submission_status = default_submission_status
+        form.save()
+        if form.is_staged:
+            stage = form.stage
+            stage.weight = weight
+            stage.tags = settings.types
+            stage.save()
+
+    def perform_update(self, serializer):
+        default_submission_status = self.request.data.get('default_submission_status', 0)
+        weight = self.request.data.get('weight', 0)
+        settings = serializer.save(user=self.request.user)
+        form = settings.form
+        form.default_submission_status = default_submission_status
+        form.save()
+        if form.is_staged:
+            stage = form.stage
+            stage.weight = weight
+            stage.tags = settings.types
+            stage.save()
+
+
+class BreadCrumView(APIView):
+    permission_classes = (ManageFormsPermission,)
+
+    def get(self, request):
+        site_id = self.request.query_params.get("site_id")
+        project_id = self.request.query_params.get("project_id")
+        if project_id:
+            project = Project.objects.get(pk=project_id)
+            organization = project.organization
+            return Response({'name': project.name, 'organization': organization.name,
+                             'organization_url': organization.get_absolute_url()}, status=status.HTTP_200_OK)
+        elif site_id:
+            site = Site.objects.filter(pk=site_id).select_related("project", "project__organization")
+            site = site[0]
+            project = site.project
+            organization = site.project.organization
+            return Response({
+                                'name': site.name,  'project': project.name,
+                                'project_url': project.get_absolute_url(),
+                                'organization': organization.name,
+                                'organization_url': organization.get_absolute_url()
+                            }, status=status.HTTP_200_OK)
 

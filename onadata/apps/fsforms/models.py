@@ -89,6 +89,7 @@ class Stage(models.Model):
     project_stage_id = models.IntegerField(default=0)
     weight = models.IntegerField(default=0)
     tags = ArrayField(models.IntegerField(), default=[])
+    regions = ArrayField(models.IntegerField(), default=[])
     is_deleted = models.BooleanField(default=False)
     objects = ActiveStagesManager()
     logs = GenericRelation('eventlog.FieldSightLog')
@@ -276,7 +277,7 @@ class Schedule(models.Model):
             if self.form_exists() else None
 
     def __unicode__(self):
-        return getattr(self, "name", "")
+        return "--"
 
 
 class DeletedXForm(models.Model):
@@ -438,6 +439,33 @@ class FieldSightXF(models.Model):
 
     def __unicode__(self): 
         return u'{}- {}- {}'.format(self.xf, self.site, self.is_staged)
+
+
+class FormSettings(models.Model):
+    form = models.OneToOneField(FieldSightXF, related_name="settings")
+    types = ArrayField(models.IntegerField(), default=[])
+    regions = ArrayField(models.IntegerField(), default=[])
+    notify_incomplete_schedule = models.BooleanField(default=False)
+    donor_visibility = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User)
+
+    @property
+    def default_submission_status(self):
+        return self.form.default_submission_status
+
+    @property
+    def weight(self):
+        try:
+            return self.form.stage.weight
+        except:
+            return 0
+
+    def __unicode__(self):
+        return getattr(self, "name", "")
+
 
 
 @receiver(post_save, sender=FieldSightXF)

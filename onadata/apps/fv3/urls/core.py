@@ -7,6 +7,7 @@ from onadata.apps.fv3.urls.site_dashboard import site_dashboard_urlpatterns
 from onadata.apps.fv3.urls.manage_forms import manage_forms_urlpatterns
 from onadata.apps.fv3.urls.project_dashboard import project_dashboard_urlpatterns
 from onadata.apps.fv3.urls.team_dashboard import team_dashboard_urlpatterns
+from onadata.apps.fv3.urls.team_settings import team_settings_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
     ProjectDefineSiteMeta, ProjectSitesViewset, check_region, project_sites_vt
 
@@ -74,8 +75,9 @@ urlpatterns = [
     url(r'^api/regional-sites/$', RegionalSites.as_view({'get' : 'list'}), name='regional_sites'),
     url(r'^api/sub-regions/$', sub_regions, name='sub_regions'),
     url(r'^api/users/$', users, name='users'),
-    url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list'}), name='teams'),
+    url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list', 'post': 'create'}), name='teams'),
     url(r'^api/forms/$', FormsView.as_view(), name='forms'),
+
     url(r'^api/project/sites-vt/(?P<pk>\d+)/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', project_sites_vt, name='project_sites_vt'),
 
 ]
@@ -86,3 +88,4 @@ urlpatterns += site_dashboard_urlpatterns
 urlpatterns += manage_forms_urlpatterns
 urlpatterns += project_dashboard_urlpatterns
 urlpatterns += team_dashboard_urlpatterns
+urlpatterns += team_settings_urlpatterns

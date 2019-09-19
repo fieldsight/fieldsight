@@ -450,6 +450,7 @@ class SiteAllManager(models.Manager):
     def get_queryset(self):
         return super(SiteAllManager, self).get_queryset().all()
 
+
 class SiteManager(GeoManager):
     def get_queryset(self):
         return super(SiteManager, self).get_queryset().filter(is_active=True)
@@ -458,7 +459,8 @@ class SiteManager(GeoManager):
 class Site(models.Model):
     identifier = models.CharField("ID", max_length=255)
     name = models.CharField(db_index=True,max_length=255)
-    type = models.ForeignKey(SiteType, verbose_name='Type of Site', related_name="sites", null=True, blank=True, on_delete=models.SET_NULL)
+    type = models.ForeignKey(SiteType, verbose_name='Type of Site', related_name="sites",
+                             null=True, blank=True, on_delete=models.SET_NULL)
     phone = models.CharField(max_length=255, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     public_desc = models.TextField("Public Description", blank=True, null=True)
@@ -837,6 +839,23 @@ class ProjectMetaAttrHistory(models.Model):
 @receiver(post_save, sender=ProgressSettings)
 def check_deployed(sender, instance, created,  **kwargs):
     if instance.deployed:
+        if instance.source == 5:
+            return
+        if ProgressSettings.objects.filter(project=instance.project, active=False).exists():
+            last_settings = ProgressSettings.objects.filter(project=instance.project, active=False).order_by('-date')[0]
+            if last_settings.source == instance.source:
+                if instance.source in [0, 1]:
+                    return
+                elif instance.source == 2:
+                    if (instance.pull_integer_form == last_settings.pull_integer_form) and (instance.pull_integer_form_question == last_settings.pull_integer_form_question):
+                        return
+                elif instance.source == 3:
+                    if instance.no_submissions_total_count == last_settings.no_submissions_total_count:
+                        return
+                elif instance.source == 4:
+                    if (instance.no_submissions_total_count == last_settings.no_submissions_total_count) and (instance.no_submissions_form == last_settings.no_submissions_form):
+                        return
+
         from onadata.apps.fieldsight.tasks import update_sites_progress
         from onadata.apps.eventlog.models import CeleryTaskProgress
         task_obj = CeleryTaskProgress.objects.create(user=instance.user,

@@ -2603,6 +2603,7 @@ def sync_form_controller(sync_type, sync_day, fxf, month_days):
     else:
         sync_form(fxf)
 
+
 @shared_task(time_limit=300, soft_time_limit=300)
 def update_sites_progress(pk, task_id):
     try:
@@ -2616,13 +2617,13 @@ def update_sites_progress(pk, task_id):
         while total_sites > 0:
             sites = project.sites.filter(is_active=True, enable_subsites=False)[
                     page*page_size:(page+1)*page_size]
-            print("updating site progress batch", page*page_size, (page+1)*page_size)
+            print("updating site progress batch in project ", project.id, page*page_size, (page+1)*page_size)
             for site in sites:
                 set_site_progress(site, project, obj)
             total_sites -= page_size
             page += 1
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
-    except:
+    except ProgressSettings.DoesNotExist:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
@@ -2646,7 +2647,6 @@ def create_site_meta_attribs_ans_history(pk, task_id):
     try:
         sites = Site.objects.filter(project_id=pk)
         for site in sites:
-            time.sleep(1)
             metas = get_site_meta_ans(site.id)
             if metas == site.site_meta_attributes_ans:
                 continue

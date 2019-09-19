@@ -2,6 +2,8 @@ import os
 from django.db.models import Q
 
 from fcm.utils import get_device_model
+
+from onadata.apps.fieldsight.models import Project
 from onadata.apps.fieldsight.templatetags.filters import FORM_STATUS
 from onadata.apps.fsforms.notifications import save_notification
 
@@ -10,7 +12,6 @@ from onadata.apps.logger.xform_instance_parser import get_uuid_from_xml, clean_a
 from onadata.settings.local_settings import XML_VERSION_MAX_ITER
 from onadata.apps.userrole.models import UserRole
 from django.core.files.storage import get_storage_class
-from django.conf import settings
 
 from django.utils.translation import ugettext as _
 
@@ -18,8 +19,6 @@ from xml.dom import Node
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
-import requests
-from onadata.libs.utils.viewer_tools import EnketoError
 
 
 FIELDSIGHT_XFORM_ID = u"_fieldsight_xform_id"
@@ -418,3 +417,38 @@ def get_shared_asset_ids(user):
         asset_uids.append(a.uid)
     return asset_uids
 
+
+def has_change_form_permission(request, form, action_type="edit"):
+    from onadata.apps.fsforms.models import FormSettings
+    if FormSettings.objects.filter(form=form).exists():
+        if action_type == "edit":
+            if not form.settings.can_edit:
+                return False
+        else:
+            if not form.settings.can_delete:
+                return False
+
+    if request.is_super_admin:
+        return True
+
+    if form.site is not None:
+        project_id = form.site.project_id
+    else:
+        project_id = form.project_id
+    organization_id = Project.objects.get(pk=project_id).organization.id
+    user_role_asorgadmin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
+    if user_role_asorgadmin:
+        return True
+    if form.site is not None:
+        site_id = form.site_id
+        user_role = request.roles.filter(site_id=site_id, group__name="Reviewer")
+        if user_role:
+            return True
+    else:
+        project_id = form.project.id
+    user_role = request.roles.filter(project_id=project_id, group__name="Project Manager")
+    if user_role:
+        return True
+    if request.roles.filter(project_id=project_id, group__name__in=["Reviewer", "Region Reviewer"]).exists():
+            return True
+    return False

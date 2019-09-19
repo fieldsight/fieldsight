@@ -27,7 +27,7 @@ class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ProjectProgressTableViewSet(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
 
     def get(self, request, *args,  **kwargs):
 
@@ -49,6 +49,25 @@ class ProjectProgressTableViewSet(APIView):
         stages = ProgressStageFormSerializer(stages_queryset, many=True)
 
         return Response({'generals': generals.data, 'schedules': schedules.data, 'stages': stages.data})
+
+
+class ProjectSurveyFormsViewSet(APIView):
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+
+    def get(self, request, *args,  **kwargs):
+
+        project_id = self.kwargs.get('pk', None)
+        try:
+            project_id = get_object_or_404(Project, pk=project_id).id
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+
+        surveys = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False, is_deleted=False,
+                                              project_id=project_id, is_survey=True)
+
+        data = [{'form_name': obj.xf.title, 'new_submission_url': '/forms/new/0/' + str(obj.id)} for obj in surveys]
+
+        return Response(status=status.HTTP_200_OK, data=data)
 
 
 @permission_classes([IsAuthenticated, ])

@@ -7,14 +7,15 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.decorators import api_view, permission_classes
 
 from onadata.apps.fv3.serializers.TeamSerializer import TeamSerializer, TeamProjectSerializer
-from onadata.apps.fieldsight.models import Organization, Project
+from onadata.apps.fv3.serializer import ProjectUpdateSerializer
+from onadata.apps.fieldsight.models import Organization, Project, Region, SiteType
 from onadata.apps.fv3.role_api_permissions import TeamDashboardPermissions
 from onadata.apps.subscriptions.models import Customer, Package, Subscription
 from onadata.apps.subscriptions.views import MONTHLY_PLAN_NAME, YEARLY_PLAN_NAME
@@ -56,10 +57,11 @@ class TeamProjectsViewSet(viewsets.ReadOnlyModelViewSet):
 class StripeSubscriptions(APIView):
 
     authentication_classes = (CsrfExemptSessionAuthentication, SessionAuthentication, IsAuthenticated)
+    permission_classes = [TeamDashboardPermissions, ]
 
-    def post(self, request, org_id, format=None):
+    def post(self, request, pk, format=None):
         try:
-            organization = Organization.objects.get(id=org_id)
+            organization = Organization.objects.get(id=pk)
 
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -137,3 +139,47 @@ class StripeSubscriptions(APIView):
                                                               'card': card,
                                                               'plan_name': plan_name,
                                                               })
+
+
+class AddTeamProjectViewset(viewsets.ModelViewSet):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, TeamDashboardPermissions]
+    serializer_class = ProjectUpdateSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=False)
+        self.object = self.perform_create(serializer)
+
+        noti = self.object.logs.create(source=self.request.user, type=10, title="new Project",
+                                       organization=self.object.organization, content_object=self.object,
+                                       description=u'{0} created new project '
+                                                   u'named {1}'.format(
+                                           self.request.user.get_full_name(), self.object.name))
+
+        headers = self.get_success_headers(serializer.data)
+        print('headerrssss', headers)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        return serializer.save()
+
+
+@permission_classes([IsAuthenticated, ])
+@api_view(['GET'])
+def team_regions_types(request, pk):
+    try:
+        team = Organization.objects.get(id=pk, is_active=True)
+
+    except ObjectDoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND, data="Not found")
+
+    regions = Region.objects.filter(project__organization__id=team.id, is_active=True).select_related('project')
+    regions_data = [{'id': reg.id, 'identifier': reg.identifier, 'name': reg.name, 'project_id': reg.project.id,
+                     'project_name': reg.project.name} for reg in regions]
+    site_types = SiteType.objects.filter(project__organization__id=team.id, deleted=False).select_related('project')
+    site_types_data = [{'id': si_type.id, 'identifier': si_type.identifier, 'name': si_type.name, 'project_id': si_type.project.id,
+                     'project_name': si_type.project.name} for si_type in site_types]
+    data = {'regions': regions_data, 'site_types': site_types_data}
+
+    return Response(status=status.HTTP_200_OK, data=data)
