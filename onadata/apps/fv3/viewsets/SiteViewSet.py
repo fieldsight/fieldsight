@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fieldsight.metaAttribsGenerator import generateSiteMetaAttribs
+from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fv3.serializers.SiteSerializer import SiteSerializer, FInstanceSerializer, StageFormSerializer, \
     SiteCropImageSerializer
@@ -323,4 +324,5 @@ class SiteMetaAttributes(APIView):
 
     def get(self, request, pk):
         metas = generateSiteMetaAttribs(int(pk))
-        return Response(metas, status=status.HTTP_200_OK)
+        metas2 = get_site_meta_ans(int(pk))
+        return Response({'asis': metas, 'sanip': metas2}, status=status.HTTP_200_OK)
