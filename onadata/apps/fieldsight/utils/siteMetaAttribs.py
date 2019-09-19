@@ -128,7 +128,6 @@ def get_site_meta_ans(site_id):
 
                 else:
                     answer = meta_answer.get(meta.get('question_name'), "")
-                print(metas)
                 metas[meta.get('question_name')] = answer
 
     generate_ans(metas, project.id, project.site_meta_attributes, site.site_meta_attributes_ans, None, None)
