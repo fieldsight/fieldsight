@@ -408,7 +408,7 @@
                     //     async: false,
                     //     url: "https://fieldsight.naxa.com.np/fv3/api/team-regions-types/"+projectid+"/",
                     //     success: function(extra_data) {
-                    $.getJSON("https://localhost:8001/fv3/api/team-regions-types/"+projectid+"/",function(extra_data){ 
+                    $.getJSON("http://localhost:8001/fv3/api/team-regions-types/"+projectid+"/",function(extra_data){ 
                             site_types = extra_data.site_types;
                             regions = extra_data.regions;
                             regionSiteTypeDropdown(site_types, regions);
