@@ -534,3 +534,5 @@ class SuperUserPermissions(DjangoObjectPermissions):
         if request.is_super_admin:
             return True
 
+        return False
+

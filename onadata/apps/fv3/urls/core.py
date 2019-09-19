@@ -75,8 +75,9 @@ urlpatterns = [
     url(r'^api/regional-sites/$', RegionalSites.as_view({'get' : 'list'}), name='regional_sites'),
     url(r'^api/sub-regions/$', sub_regions, name='sub_regions'),
     url(r'^api/users/$', users, name='users'),
-    url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list'}), name='teams'),
+    url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list', 'post': 'create'}), name='teams'),
     url(r'^api/forms/$', FormsView.as_view(), name='forms'),
+
     url(r'^api/project/sites-vt/(?P<pk>\d+)/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', project_sites_vt, name='project_sites_vt'),
 
 ]
