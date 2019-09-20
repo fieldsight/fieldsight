@@ -133,3 +133,59 @@ def get_site_meta_ans(site_id):
     generate_ans(metas, project.id, project.site_meta_attributes, site.site_meta_attributes_ans, None, None)
 
     return metas
+
+
+def get_meta_ans(site, meta_attr):
+    data = {}
+
+    def generate_ans(metas, project_id, metas_to_parse, meta_answer, parent_selected_metas, project_metas):
+
+        for meta in metas_to_parse:
+            # if project_metas and meta not in project_metas:
+            #     continue
+            if meta.get('question_type') == "Link":
+                if parent_selected_metas:
+                    selected_metas = parent_selected_metas
+                else:
+                    selected_metas = meta.get('metas')
+                main_project = site.project_id
+                if meta.get('project_id') == main_project:
+                    continue
+                referenced_site = Site.objects.filter(identifier=meta_answer.get(meta.get('question_name'), None),
+                                              project_id=meta.get('project_id'))
+                if referenced_site and str(referenced_site[0].project_id) in selected_metas:
+                    answer = meta_answer.get(meta.get('question_name'))
+                    sub_metas = {}
+                    generate_ans(sub_metas,
+                                 referenced_site[0].project_id,
+                                 selected_metas[str(referenced_site[0].project_id)],
+                                 referenced_site[0].site_meta_attributes_ans,
+                                 selected_metas,
+                                 referenced_site[0].project.site_meta_attributes)
+                    metas[meta.get('question_name')] = {"children": sub_metas, "answer": answer}
+
+                else:
+                    answer = "No site referenced"
+                    metas[meta.get('question_name')] = answer
+
+            else:
+                site_id = site.id
+                if meta.get('question_type') == "Form":
+                    answer = get_form_answer(site_id, meta)
+
+                elif meta.get('question_type') == "FormSubStat":
+                    answer = get_form_sub_status(site_id, meta)
+
+                elif meta.get('question_type') == "FormQuestionAnswerStatus":
+                    answer = get_form_ques_ans_status(site_id, meta)
+
+                elif meta.get('question_type') == "FormSubCountQuestion":
+                    answer = get_form_submission_count(site_id, meta)
+
+                else:
+                    answer = meta_answer.get(meta.get('question_name'), "")
+                metas[meta.get('question_name')] = answer
+
+    generate_ans(data, None, [meta_attr], site.site_meta_attributes_ans, None, None)
+
+    return data
