@@ -32,7 +32,7 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, create_site_meta_attribs_ans_history
+from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
@@ -369,6 +369,7 @@ class ProjectSitesViewset(viewsets.ModelViewSet):
                                         self.request.user.get_full_name(), instance.name))
     #
 
+
 class RegionViewset(generics.RetrieveUpdateDestroyAPIView):
     """
     A simple ViewSet for viewing, editing and deleting region. Allowed methods 'get', 'put', 'delete'.
@@ -488,10 +489,11 @@ class ProjectDefineSiteMeta(APIView):
         project.site_featured_images = request.data.get('site_featured_images')
 
         new_meta = project.site_meta_attributes
-        ProjectMetaAttrHistory.objects.create(old_meta_attributes=old_meta, new_meta_atrributes=new_meta, user=request.user, project=project)
 
         # try:
         if old_meta != new_meta:
+            ProjectMetaAttrHistory.objects.create(old_meta_attributes=old_meta,
+                                                  new_meta_atrributes=new_meta, user=request.user, project=project)
             deleted = []
 
             for meta in old_meta:
@@ -511,20 +513,6 @@ class ProjectDefineSiteMeta(APIView):
                             pass
 
                 other_project.save()
-            task_obj = CeleryTaskProgress.objects.create(user=request.user,
-                                                         description="Update site meta attributes answer and store history",
-                                                         task_type=24, content_object=project)
-            if task_obj:
-                create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
-            else:
-                if CeleryTaskProgress.objects.filter(task_type=24, user=request.user,
-                                                     object_id=project.id
-                                                     ).order_by("-date_added").exists():
-                    task_obj = CeleryTaskProgress.objects.filter(task_type=24, user=request.user,
-                                                     object_id=project.id
-                                                     ).order_by("-date_added")[0]
-                    create_site_meta_attribs_ans_history.delay(project.id, task_obj.id)
-
         project.save()
 
         return Response({'message': "Successfully created", 'status': status.HTTP_201_CREATED})

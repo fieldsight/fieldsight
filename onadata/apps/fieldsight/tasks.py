@@ -2641,6 +2641,7 @@ def scheduled_gsuit_sync():
         project.gsuit_sync
 
 
+#use this task to create site all metas for first time.
 @shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
 def create_site_meta_attribs_ans_history(pk, task_id):
     from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
@@ -2654,12 +2655,12 @@ def create_site_meta_attribs_ans_history(pk, task_id):
             print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
             for site in sites:
                 metas = get_site_meta_ans(site.id)
-                if metas == site.site_meta_attributes_ans:
+                if metas == site.all_ma_ans:
                     continue
                 else:
-                    SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans,
+                    SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.all_ma_ans,
                                                           status=2)
-                    site.site_meta_attributes_ans = metas
+                    site.all_ma_ans = metas
                     site.save()
             total_sites -= page_size
             page += 1
@@ -2744,6 +2745,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         print('Exception occured', e)
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
+
 @shared_task()
 def update_current_progress_site(site_id):
     site = Site.objects.get(pk=site_id)
@@ -2754,3 +2756,25 @@ def update_current_progress_site(site_id):
         status = 0
     site.current_status = status
     site.save()
+
+
+@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
+    from onadata.apps.fieldsight.utils.siteMetaAttribs import update_site_meta_ans
+    total_sites = Site.objects.filter(is_active=True, project=pk).count()
+    page_size = 1000
+    page = 0
+    try:
+        while total_sites > 0:
+            sites = Site.objects.filter(is_active=True, project=pk)[
+                    page * page_size:(page + 1) * page_size]
+            print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
+            for site in sites:
+                update_site_meta_ans(site, deleted_metas, changed_metas)
+                SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.all_ma_ans,
+                                                          status=2)
+            total_sites -= page_size
+            page += 1
+            CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)

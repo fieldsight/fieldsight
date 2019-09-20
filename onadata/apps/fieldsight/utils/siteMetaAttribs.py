@@ -189,3 +189,15 @@ def get_meta_ans(site, meta_attr):
     generate_ans(data, None, [meta_attr], site.site_meta_attributes_ans, None, None)
 
     return data
+
+
+def update_site_meta_ans(site, deleted_metas, changed_metas):
+    if deleted_metas:
+        for m in deleted_metas:
+            site.all_ma_ans.pop(m['question_name'])
+            site.site_meta_attributes_ans.pop(m['question_name'])
+    if changed_metas:
+        for m in changed_metas:
+            meta = get_meta_ans(site, m)
+            site.all_ma_ans.update(meta)
+    site.save()

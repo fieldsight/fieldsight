@@ -477,6 +477,7 @@ class Site(models.Model):
     region = models.ForeignKey(
         Region, related_name='regions', blank=True, null=True)
     site_meta_attributes_ans = JSONField(default=dict)
+    all_ma_ans = JSONField(default=dict)
     site_featured_images = JSONField(default=dict)
     current_progress = models.IntegerField(default=0)
     current_status = models.IntegerField(default=0)
@@ -829,11 +830,33 @@ class ProjectMetaAttrHistory(models.Model):
         #  use filterfalse for python3 as ifilterfalse is not supported by itertools for python3
         return list(itertools.ifilterfalse(lambda x: x in self.old_meta_attributes, self.new_meta_atrributes))
 
-    def get_deleted_attributres(self):
+    def get_deleted_attributes(self):
         """
         return the meta attributes that have been deleted for the old meta attributes
         """
         return list(itertools.ifilterfalse(lambda x: x in self.new_meta_atrributes, self.old_meta_attributes))
+
+
+@receiver(post_save, sender=ProjectMetaAttrHistory)
+def update_meta_attributes_sites(sender, instance, created,  **kwargs):
+    if created:
+        deleted_metas = instance.get_deleted_attributes()
+        changed_metas = instance.get_changed_attributes()
+        if deleted_metas or changed_metas:
+            from onadata.apps.eventlog.models import CeleryTaskProgress
+            from onadata.apps.fieldsight.tasks import update_site_meta_attribs_ans
+            task_obj = CeleryTaskProgress.objects.create(user=instance.user,
+                                                         description="Update site meta attributes",
+                                                         task_type=24, content_object=instance.project)
+            if not task_obj:
+                if CeleryTaskProgress.objects.filter(task_type=24, user=instance.user,
+                                                     object_id=instance.project_id
+                                                     ).order_by("-date_added").exists():
+                    task_obj = CeleryTaskProgress.objects.filter(task_type=24, user=instance.user,
+                                                                 object_id=instance.project_id
+                                                                 ).order_by("-date_added")[0]
+            if task_obj:
+                update_site_meta_attribs_ans.delay(instance.project_id, task_obj.id, deleted_metas, changed_metas)
 
 
 @receiver(post_save, sender=ProgressSettings)
