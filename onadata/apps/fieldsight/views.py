@@ -2757,11 +2757,15 @@ class ProjFullmap(ReadonlyProjectLevelRoleMixin, TemplateView):
     def get_context_data(self, **kwargs):
         obj = Project.objects.get(pk=self.kwargs.get('pk'))
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=obj).exists()
+        regions = Region.objects.filter(project=obj, is_active=True)
+        site_types = SiteType.objects.filter(project=obj, deleted=False)
 
         dashboard_data = {
             'obj': obj,
             'mapfor': "project",
-            'terms_and_labels': terms_and_labels
+            'terms_and_labels': terms_and_labels,
+            'regions': regions,
+            'site_types': site_types
             }
         return dashboard_data
 
