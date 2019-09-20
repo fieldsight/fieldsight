@@ -34,7 +34,6 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.subscriptions.models import Package, Customer, Subscription
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
-from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, \
     create_site_meta_attribs_ans_history, email_after_subscribed_plan
 from onadata.apps.eventlog.models import CeleryTaskProgress

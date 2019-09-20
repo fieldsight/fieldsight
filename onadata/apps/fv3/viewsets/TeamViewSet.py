@@ -158,7 +158,6 @@ class AddTeamProjectViewset(viewsets.ModelViewSet):
                                            self.request.user.get_full_name(), self.object.name))
 
         headers = self.get_success_headers(serializer.data)
-        print('headerrssss', headers)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
