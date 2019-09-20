@@ -2715,7 +2715,8 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 else:
                     answer = instance.json.get(item.get('question').get('name'), '')
                 if item['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
-                    answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fs_proj_xf.xf.user.username + '/attachments/' + answer
+                    answer = 'http://app.fieldsight.org/attachment/medium?media_file=' +\
+                             fs_proj_xf.xf.user.username + '/attachments/' + answer
                 meta_ans[item['question_name']] = answer
 
             elif item.get('question_type') == 'FormSubStat' and fs_proj_xf.id == item.get('form_id', 0):
@@ -2737,7 +2738,8 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
             elif item.get('question_type') == "FormSubCountQuestion":
                 meta_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
         if meta_ans != site.site_meta_attributes_ans:
-            SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
+            SiteMetaAttrAnsHistory.objects.create(site=site,
+                                                  meta_attributes_ans=site.site_meta_attributes_ans,status=1)
             site.site_meta_attributes_ans = meta_ans
             site.save()
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
@@ -2771,8 +2773,7 @@ def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
             print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
             for site in sites:
                 update_site_meta_ans(site, deleted_metas, changed_metas)
-                SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.all_ma_ans,
-                                                          status=2)
+                SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.all_ma_ans, status=2)
             total_sites -= page_size
             page += 1
             CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
