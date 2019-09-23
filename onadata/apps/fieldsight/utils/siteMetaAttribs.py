@@ -159,7 +159,7 @@ def get_meta_ans(site, meta_attr):
                     generate_ans(sub_metas,
                                  referenced_site[0].project_id,
                                  selected_metas[str(referenced_site[0].project_id)],
-                                 referenced_site[0].site_meta_attributes_ans,
+                                 referenced_site[0].all_ma_ans,
                                  selected_metas,
                                  referenced_site[0].project.site_meta_attributes)
                     metas[meta.get('question_name')] = {"children": sub_metas, "answer": answer}
@@ -186,7 +186,7 @@ def get_meta_ans(site, meta_attr):
                     answer = meta_answer.get(meta.get('question_name'), "")
                 metas[meta.get('question_name')] = answer
 
-    generate_ans(data, None, [meta_attr], site.site_meta_attributes_ans, None, None)
+    generate_ans(data, None, [meta_attr], site.all_ma_ans, None, None)
 
     return data
 
