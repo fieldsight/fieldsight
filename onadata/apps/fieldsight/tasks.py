@@ -2752,6 +2752,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
             SiteMetaAttrAnsHistory.objects.create(site=site,
                                                   meta_attributes_ans=site.all_ma_ans, status=1)
             site.site_meta_attributes_ans = meta_ans
+            site.all_ma_ans = all_ma_ans
             site.save()
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception as e:
