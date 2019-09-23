@@ -625,6 +625,7 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                         myanswers[question['question_name']]=site.get(question['question_name'], "")
                 
                 _site.site_meta_attributes_ans = myanswers
+                _site.all_ma_ans.update(myanswers)
                 _site.save()
                 i += 1
                 
