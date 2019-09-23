@@ -31,7 +31,7 @@ def get_form_answer(site_id, meta):
             if meta['question']['type'] == "repeat":
                 answer = ""
             else:
-                find_answer_from_dict(sub_answers, meta.get('question').get('name'))
+                answer = find_answer_from_dict(sub_answers, meta.get('question').get('name'))
 
             if meta['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
                 answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fxf[0].xf.user.username + '/attachments/' + answer
