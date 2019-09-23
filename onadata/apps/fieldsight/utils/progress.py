@@ -173,6 +173,8 @@ def pull_integer_answer(form, xform_question, site):
     if answer:
         int_answer = answer[0].get(xform_question)
         if int_answer:
+            if int_answer > 100:
+                return 100
             return int(int_answer)
     return None
 
