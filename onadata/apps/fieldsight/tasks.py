@@ -2683,7 +2683,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         site = Site.objects.get(id=int(site_id))
         site_picture = site.project.site_basic_info.get('site_picture', None)
         if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
-                                                                                                 0) == fs_proj_xf.id and site_picture.get(
+                                                                                                 0) == str(fs_proj_xf.id) and site_picture.get(
                 'question', {}):
             question_name = site_picture['question'].get('name', '')
             logo_url = instance.json.get(question_name)
@@ -2692,7 +2692,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 site.logo = attachment.media_file
 
         site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
-        if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == fs_proj_xf.id and site_loc.get('question', {}):
+        if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == str(fs_proj_xf.id) and site_loc.get('question', {}):
             question_name = site_loc['question'].get('name', '')
             location = instance.json.get(question_name)
             if location:
@@ -2716,7 +2716,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         meta_ans = copy.deepcopy(site.site_meta_attributes_ans)
         all_ma_ans = copy.deepcopy(site.all_ma_ans)
         for item in fs_proj_xf.project.site_meta_attributes:
-            if item.get('question_type') == 'Form' and fs_proj_xf.id == item.get('form_id', 0):
+            if item.get('question_type') == 'Form' and str(fs_proj_xf.id) == item.get('form_id', 0):
                 if item['question']['type'] == "repeat":
                     answer = ""
                 else:
@@ -2727,7 +2727,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 meta_ans[item['question_name']] = answer
                 all_ma_ans[item['question_name']] = answer
 
-            elif item.get('question_type') == 'FormSubStat' and fs_proj_xf.id == item.get('form_id', 0):
+            elif item.get('question_type') == 'FormSubStat' and str(fs_proj_xf.id) == item.get('form_id', 0):
                 if instance.date_modified:
                     answer = "Last submitted on " + instance.date_modified.strftime("%d %b %Y %I:%M %P")
                 else:
