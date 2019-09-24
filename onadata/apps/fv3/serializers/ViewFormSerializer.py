@@ -8,12 +8,11 @@ class ProjectSiteResponseSerializer(serializers.ModelSerializer):
     title = serializers.SerializerMethodField(read_only=True)
     created_date = serializers.SerializerMethodField(read_only=True)
     last_response = serializers.SerializerMethodField(read_only=True)
-    submissions = serializers.SerializerMethodField(read_only=True)
-    # json = serializers.SerializerMethodField(read_only=True)
+    response_count = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = FieldSightXF
-        fields = ('id', 'name', 'title', 'created_date', 'last_response', 'submissions')
+        fields = ('id', 'name', 'title', 'created_date', 'response_count', 'last_response')
 
     def get_name(self, obj):
         return u"%s" % obj.xf.title
@@ -25,8 +24,13 @@ class ProjectSiteResponseSerializer(serializers.ModelSerializer):
         return obj.date_created
 
     def get_last_response(self, obj):
-        return obj.getlatestsubmittiondate.first.date
+        is_project = self.context.get('is_project', False)
+        if is_project:
+            return obj.project_form_instances.order_by('-pk').values(
+                    'date')[:1]
 
-    def get_submissions(self, obj):
-        submission_count = FInstance.objects.filter(project_fxf=obj.project_fxf)
-        return submission_count
+    def get_response_count(self, obj):
+        is_project = self.context.get('is_project', False)
+        if is_project:
+            count = obj.response_count if hasattr(obj, 'response_count') else 0
+            return count
