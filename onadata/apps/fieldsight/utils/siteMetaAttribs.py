@@ -11,6 +11,14 @@ To be used in the future this module provides site meta attributes answers in a 
 """
 
 
+def find_answer_from_dict(sub_answers={}, question_name=""):
+    answer = sub_answers.get(question_name, '')
+    if not answer:
+        for k, v in sub_answers.items():
+            if isinstance(v, list):
+                return find_answer_from_dict(v[0], question_name)
+    return answer
+
 def get_form_answer(site_id, meta):
     fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
     if fxf:
@@ -23,7 +31,7 @@ def get_form_answer(site_id, meta):
             if meta['question']['type'] == "repeat":
                 answer = ""
             else:
-                answer = sub_answers.get(meta.get('question').get('name'), '')
+                answer = find_answer_from_dict(sub_answers, meta.get('question').get('name'))
 
             if meta['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
                 answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fxf[0].xf.user.username + '/attachments/' + answer
@@ -159,7 +167,7 @@ def get_meta_ans(site, meta_attr):
                     generate_ans(sub_metas,
                                  referenced_site[0].project_id,
                                  selected_metas[str(referenced_site[0].project_id)],
-                                 referenced_site[0].site_meta_attributes_ans,
+                                 referenced_site[0].all_ma_ans,
                                  selected_metas,
                                  referenced_site[0].project.site_meta_attributes)
                     metas[meta.get('question_name')] = {"children": sub_metas, "answer": answer}
@@ -186,6 +194,18 @@ def get_meta_ans(site, meta_attr):
                     answer = meta_answer.get(meta.get('question_name'), "")
                 metas[meta.get('question_name')] = answer
 
-    generate_ans(data, None, [meta_attr], site.site_meta_attributes_ans, None, None)
+    generate_ans(data, None, [meta_attr], site.all_ma_ans, None, None)
 
     return data
+
+
+def update_site_meta_ans(site, deleted_metas, changed_metas):
+    if deleted_metas:
+        for m in deleted_metas:
+            site.all_ma_ans.pop(m['question_name'])
+            site.site_meta_attributes_ans.pop(m['question_name'])
+    if changed_metas:
+        for m in changed_metas:
+            meta = get_meta_ans(site, m)
+            site.all_ma_ans.update(meta)
+    site.save()

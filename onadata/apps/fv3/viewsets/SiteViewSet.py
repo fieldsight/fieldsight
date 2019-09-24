@@ -70,7 +70,8 @@ class SiteSubmissionsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         site_id = self.request.query_params.get('site', None)
         site = get_object_or_404(Site, id=int(site_id))
-        return self.queryset.filter(site=site, is_deleted=False).order_by('-date')
+        return self.queryset.filter(site=site, is_deleted=False).filter(Q(site_fxf__is_deleted=False) |
+                                                                        Q(project_fxf__is_deleted=False)).order_by('-date')
 
 
 class SiteForms(APIView):
@@ -322,6 +323,7 @@ class SiteMetaAttributes(APIView):
     permission_classes = [IsAuthenticated, SitePermissions]
 
     def get(self, request, pk):
-        metas = generateSiteMetaAttribs(int(pk))
+        # metas = generateSiteMetaAttribs(int(pk))
         metas2 = get_site_meta_ans(int(pk))
-        return Response({'asis': metas, 'sanip': metas2}, status=status.HTTP_200_OK)
+        saved = Site.objects.get(pk=pk).all_ma_ans
+        return Response({'saved': saved, 'current': metas2}, status=status.HTTP_200_OK)

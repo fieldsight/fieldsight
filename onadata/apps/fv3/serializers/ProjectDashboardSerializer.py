@@ -12,6 +12,7 @@ from rest_framework import serializers
 from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
 from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site
 from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule
+from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.logger.models import Instance
 from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
@@ -333,3 +334,13 @@ class ProgressScheduledFormSerializer(serializers.ModelSerializer):
                  'approved': obj.schedule_forms.project_form_instances.filter(form_status=3).count(), 'progress': progress}
                 ]
         return data
+
+
+class SiteFormSerializer(serializers.ModelSerializer):
+    logo = Base64ImageField(
+        max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
+    )
+
+    class Meta:
+        model = Site
+        fields = '__all__'

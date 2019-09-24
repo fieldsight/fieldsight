@@ -534,3 +534,20 @@ class SuperUserPermissions(DjangoObjectPermissions):
         if request.is_super_admin:
             return True
 
+        return False
+
+
+class TeamCreationPermission(DjangoObjectPermissions):
+    """
+        Permissions for Team creation.
+    """
+
+    def has_permission(self, request, view):
+
+        if request.roles.filter(group__name="Super Admin").exists():
+            return True
+
+        elif request.user.organizations.all().exists():
+            return False
+
+

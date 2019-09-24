@@ -1,63 +1,71 @@
 {% load static %}
 
+<html>
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+      integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+      crossorigin=""
+    />
 
-   <html>
-   <head>
-     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
-        integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
-        crossorigin=""/>
+    <script
+      src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+      integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+      crossorigin=""
+    ></script>
 
-        <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
-        integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
-        crossorigin=""></script>
+    <script
+      type="text/javascript"
+      src="{% static 'js/fieldsight/Leaflet.VectorGrid.bundled.js' %}"
+    ></script>
 
-        <script  type="text/javascript" src="{% static 'js/fieldsight/Leaflet.VectorGrid.bundled.js' %}"></script>
+    <style>
+      #mapid {
+        height: 700px;
+        width: 1000px;
+      }
+    </style>
+  </head>
 
-        <style>
-        #mapid {
-          height: 700px;
-          width: 1000px;
+  <body>
+    <div id="mapid"></div>
+    <script>
+      var map = L.map("mapid").setView([28.9, 85], 7);
+      var AmapboxTiles = L.tileLayer(
+        "https://api.mapbox.com/styles/v1/upendraoli/cjuvhnbms0ulh1fngemx4xaui/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoidXBlbmRyYW9saSIsImEiOiJjaWYwcnFnNmYwMGY4dGZseWNwOTVtdW1tIn0.uhY72SyqmMJNTKa0bY-Oyw"
+      ).addTo(map);
+
+      vectorTileOptions = {
+        tms: true,
+        vectorTileLayerStyles: {
+          test: function() {
+            return {
+              fillColor: "blue",
+              fillOpacity: 0,
+              weight: 1,
+              opacity: 1,
+              color: "#a3b7e3",
+              fill: true
+            };
+          }
+        },
+        interactive: true, // Make sure that this VectorGrid fires mouse/pointer events
+
+        getFeatureId: function(feature) {
+          return feature.properties.id;
         }
-        </style>
+      };
 
-   </head>
+      var url = "http://localhost:8000/fv3/api/project/sites-vt/5/{z}/{x}/{y}/";
 
-   <body>
-     <div id="mapid"></div>
-     <script>
-     var map = L.map('mapid').setView([28.9, 85], 7);
-     var AmapboxTiles = L.tileLayer('https://api.mapbox.com/styles/v1/upendraoli/cjuvhnbms0ulh1fngemx4xaui/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoidXBlbmRyYW9saSIsImEiOiJjaWYwcnFnNmYwMGY4dGZseWNwOTVtdW1tIn0.uhY72SyqmMJNTKa0bY-Oyw').addTo(map);
-
-     vectorTileOptions = {
-                     tms: true,
-                     vectorTileLayerStyles: {
-                         'test': function () {
-                             return {
-                                 fillColor: "blue",
-                                 fillOpacity: 0,
-                                 weight: 1,
-                                 opacity: 1,
-                                 color: '#a3b7e3',
-                                 fill: true,
-                             }
-                         }
-                     },
-                     interactive: true, // Make sure that this VectorGrid fires mouse/pointer events
-
-                     getFeatureId: function (feature) {
-
-
-                         return feature.properties.id;
-                     }
-                 }
-
-     var url = "https://fieldsight.naxa.com.np/fv3/api/project/sites-vt/5/{z}/{x}/{y}/";
-
-     var districtUrl = 'https://geoserver.naxa.com.np/geoserver/gwc/service/tms/1.0.0/Bipad:District@EPSG%3A900913@pbf/{z}/{x}/{-y}.pbf';
+      var districtUrl =
+        "https://geoserver.naxa.com.np/geoserver/gwc/service/tms/1.0.0/Bipad:District@EPSG%3A900913@pbf/{z}/{x}/{-y}.pbf";
 
       district = L.vectorGrid.protobuf(url).addTo(map, vectorTileOptions);
-
-
-     </script>
-   </body>
-   </html>
+      console.log(district);
+      //district_geojson = district.toGeoJSON(95, 52, 7);
+      //console.log(district_geojSON);
+    </script>
+  </body>
+</html>
