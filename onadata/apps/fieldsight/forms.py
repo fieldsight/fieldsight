@@ -368,7 +368,7 @@ class SiteForm(HTML5BootstrapModelForm, KOModelForm):
     class Meta:
         model = Site
         exclude = ('project', 'is_survey', 'is_active', 'current_status', 'current_progress', 'additional_desc',
-                   'site_featured_images', "site")
+                   'site_featured_images', "site", "all_ma_ans")
        
         project_filters = ['type']
         widgets = {
@@ -394,6 +394,9 @@ class SiteForm(HTML5BootstrapModelForm, KOModelForm):
                 site = Site.objects.get(pk=kwargs.pop('site_id'))
                 photo.site_id = site.id
                 photo.region_id = site.region_id if site.region else None
+            # metas all
+            if photo.site_meta_attributes_ans:
+                photo.all_ma_ans.update(photo.site_meta_attributes_ans)
             photo.save()
 
         photo = super(SiteForm, self).save()

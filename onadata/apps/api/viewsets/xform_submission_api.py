@@ -368,6 +368,12 @@ Here is some example JSON, it would replace `[the JSON]` above:
                         update_meta_details.apply_async(
                             (fs_xf.id, instance.id, task_obj.id, site_id),
                             countdown=1)
+                    else:
+                        from onadata.apps.fieldsight.tasks import \
+                            update_meta_details
+                        update_meta_details.apply_async(
+                            (fs_xf.id, instance.id, 0, site_id),
+                            countdown=1)
 
             noti_type = 16
             title = "new submission"

@@ -1077,6 +1077,7 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
             ))
 
         self.object = form.save(project_id=self.kwargs.get('pk'), new=True)
+
         noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
                                        organization=self.object.project.organization,
                                        project=self.object.project, content_object=self.object, extra_object=self.object.project,

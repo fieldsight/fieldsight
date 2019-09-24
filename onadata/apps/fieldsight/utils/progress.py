@@ -173,6 +173,8 @@ def pull_integer_answer(form, xform_question, site):
     if answer:
         int_answer = answer[0].get(xform_question)
         if int_answer:
+            if int_answer > 100:
+                return 100
             return int(int_answer)
     return None
 
@@ -193,10 +195,7 @@ def update_root_progress(site):
 def set_site_progress(site, project, project_settings=None):
     progress = 0
     if not project_settings:
-        project_settings = project.progress_settings.filter(deployed=True, active=True)
-        if project_settings:
-            project_settings = project_settings[0]
-
+        project_settings = project.progress_settings.filter(deployed=True, active=True).order_by("-date").first()
     if not project_settings or project_settings.source == 0:
         # default progress (stages approved/stages total) weight
         progress = site.progress()
