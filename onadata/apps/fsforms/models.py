@@ -595,6 +595,53 @@ class FInstanceDeletedManager(models.Manager):
         return super(FInstanceDeletedManager, self).get_queryset().filter(is_deleted=True)
 
 
+def update_progress(site, project_fxf):
+    try:
+        project_settings = site.project.progress_settings.filter(
+            deployed=True, active=True).order_by("-date").first()
+        site_saved = False
+        if project_settings:
+            if project_settings.source == 0 and project_fxf.is_staged:
+                progress = site.progress()
+                site.current_progress = progress
+                site.save()
+                site_saved = True
+            elif project_settings.source == 1 and project_fxf.is_staged:
+                from onadata.apps.fieldsight.utils.progress import advance_stage_approved
+                progress = advance_stage_approved(site, site.project)
+                site.current_progress = progress
+                site.save()
+                site_saved = True
+
+            elif project_settings.source == 2 and (
+                    project_settings.pull_integer_form == project_fxf.pk or
+                    project_settings.pull_integer_form == str(project_fxf.pk)):
+                xform_question = project_settings.pull_integer_form_question
+                from onadata.apps.fieldsight.utils.progress import pull_integer_answer
+                progress = pull_integer_answer(project_fxf, xform_question, site)
+                site.current_progress = progress
+                site.save()
+                site_saved = True
+            elif project_settings.source == 4 and (
+                    project_settings.no_submissions_form == project_fxf.pk or
+                    project_settings.no_submissions_form == str(project_fxf.pk)):
+                site.current_progress += 1
+                site.save()
+            elif project_settings.source == 3:
+                site.current_progress += 1
+                site.save()
+                site_saved = True
+        if site_saved:
+            from onadata.apps.fieldsight.models import SiteProgressHistory
+            if not SiteProgressHistory.objects.filter(site=site, progress=progress,
+                                                      setting=project_settings).exists():
+                history = SiteProgressHistory(site=site, progress=progress,
+                                              setting=project_settings)
+                history.save()
+    except Exception as e:
+        print("error progess update in submission", str(e))
+
+
 class FInstance(models.Model):
     instance = models.OneToOneField(Instance,
                                     related_name='fieldsight_instance')
@@ -631,9 +678,11 @@ class FInstance(models.Model):
 
     def save(self, *args, **kwargs):
         self.version = self.get_version
-        if self.project_fxf is not None and self.project_fxf.is_staged and self.site is not None:
-            self.site.update_current_progress()
-        
+        project_fxf = self.project_fxf
+        if project_fxf is not None and self.site is not None:
+            site = self.site
+            update_progress(site, project_fxf)
+
         elif self.site is not None:
             self.site.update_status()
 

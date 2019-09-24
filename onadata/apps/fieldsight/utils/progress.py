@@ -195,10 +195,7 @@ def update_root_progress(site):
 def set_site_progress(site, project, project_settings=None):
     progress = 0
     if not project_settings:
-        project_settings = project.progress_settings.filter(deployed=True, active=True)
-        if project_settings:
-            project_settings = project_settings[0]
-
+        project_settings = project.progress_settings.filter(deployed=True, active=True).order_by("-date").first()
     if not project_settings or project_settings.source == 0:
         # default progress (stages approved/stages total) weight
         progress = site.progress()
