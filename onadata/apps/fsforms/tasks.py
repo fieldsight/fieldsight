@@ -368,6 +368,7 @@ def api_clone_form(form_id, user_id, task_id):
 #
 #
 
+
 @shared_task(max_retries=5)
 def update_progress(site_id, project_fxf_id):
     try:
@@ -385,9 +386,10 @@ def update_progress(site_id, project_fxf_id):
             elif project_settings.source == 1 and project_fxf.is_staged:
                 from onadata.apps.fieldsight.utils.progress import advance_stage_approved
                 progress = advance_stage_approved(site, site.project)
-                site.current_progress = progress
-                site.save()
-                site_saved = True
+                if progress:
+                    site.current_progress = progress
+                    site.save()
+                    site_saved = True
 
             elif project_settings.source == 2 and (
                     project_settings.pull_integer_form == project_fxf.pk or
@@ -395,9 +397,10 @@ def update_progress(site_id, project_fxf_id):
                 xform_question = project_settings.pull_integer_form_question
                 from onadata.apps.fieldsight.utils.progress import pull_integer_answer
                 progress = pull_integer_answer(project_fxf, xform_question, site)
-                site.current_progress = progress
-                site.save()
-                site_saved = True
+                if progress:
+                    site.current_progress = progress
+                    site.save()
+                    site_saved = True
             elif project_settings.source == 4 and (
                     project_settings.no_submissions_form == project_fxf.pk or
                     project_settings.no_submissions_form == str(project_fxf.pk)):
@@ -416,3 +419,5 @@ def update_progress(site_id, project_fxf_id):
                 history.save()
     except Exception as e:
         print("error progess update in submission", str(e))
+
+
