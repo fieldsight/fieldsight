@@ -322,6 +322,7 @@ class SiteMetaAttributes(APIView):
     permission_classes = [IsAuthenticated, SitePermissions]
 
     def get(self, request, pk):
-        metas = generateSiteMetaAttribs(int(pk))
+        # metas = generateSiteMetaAttribs(int(pk))
         metas2 = get_site_meta_ans(int(pk))
-        return Response({'asis': metas, 'sanip': metas2}, status=status.HTTP_200_OK)
+        saved = Site.objects.get(pk=pk).all_ma_ans
+        return Response({'saved': saved, 'current': metas2}, status=status.HTTP_200_OK)
