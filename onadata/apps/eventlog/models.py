@@ -119,6 +119,7 @@ class FieldSightLog(models.Model):
             return None
     def get_event_name(self):
         try:
+            print('content objectcttcttcc', self.content_object.getname())
             return self.content_object.getname()
         except:
             return None

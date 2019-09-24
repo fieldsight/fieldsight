@@ -1,25 +1,33 @@
+import datetime
 import json
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
+from django.http import Http404
+from django.conf import settings
+from django.contrib.gis.geos import Point
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
-from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule
+from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, ProgressGeneralFormSerializer, \
     ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.logger.models import Instance
+from onadata.apps.fieldsight.tasks import UnassignAllSiteRoles
 
 
 class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Project.objects.select_related('type', 'sector', 'sub_sector', 'organization')
     serializer_class = ProjectDashboardSerializer
-    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+    permission_classes = [IsAuthenticated,]
 
     def get_queryset(self):
         return self.queryset
@@ -29,7 +37,7 @@ class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ProjectProgressTableViewSet(APIView):
-    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+    permission_classes = [IsAuthenticated,]
 
     def get(self, request, *args,  **kwargs):
 
@@ -54,7 +62,7 @@ class ProjectProgressTableViewSet(APIView):
 
 
 class ProjectSurveyFormsViewSet(APIView):
-    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+    permission_classes = [IsAuthenticated,]
 
     def get(self, request, *args,  **kwargs):
 
@@ -91,8 +99,9 @@ def project_regions_types(request, project_id):
 
 
 class SiteFormViewSet(viewsets.ModelViewSet):
+    queryset = Site.objects.all()
     serializer_class = SiteFormSerializer
-    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+    permission_classes = [IsAuthenticated, ]
     authentication_classes = [CsrfExemptSessionAuthentication, ]
 
     def get_queryset(self):
@@ -103,7 +112,7 @@ class SiteFormViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         try:
-            project = Project.objects.get(id=self.kwargs.get('pk'))
+            project = Project.objects.get(id=request.query_params.get('project'))
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not Found'})
         json_questions = project.site_meta_attributes
@@ -115,21 +124,109 @@ class SiteFormViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=False)
-        self.object = self.perform_create(serializer)
-        noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
-                                       organization=self.object.project.organization,
-                                       project=self.object.project, content_object=self.object,
-                                       extra_object=self.object.project,
-                                       description=u'{0} created a new site '
-                                                   u'named {1} in {2}'.format(self.request.user.get_full_name(),
-                                                                              self.object.name,
-                                                                              self.object.project.name))
+        serializer.is_valid(raise_exception=True)
+        instance = self.perform_create(serializer)
+        longitude = request.data.get('longitude', None)
+        latitude = request.data.get('latitude', None)
+        site = request.data.get('site', None)
+
+        if latitude and longitude is not None:
+            p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
+            instance.location = p
+            instance.save()
+        if site is not None:
+            instance.logs.create(source=self.request.user, type=110, title="new sub Site", site=instance.site,
+                                 organization=instance.project.organization, project=instance.project,
+                                 content_object=instance, extra_object=instance.site,
+                                 description=u'{0} created a new Sub ' u'site named {1} in {2}'.\
+                                 format(self.request.user.get_full_name(), instance.name, instance.project.name))
+
+        else:
+            instance.logs.create(source=self.request.user, type=11, title="new Site",
+                                 organization=instance.project.organization, project=instance.project,
+                                 content_object=instance, extra_object=instance.project,
+                                 description=u'{0} created a new site ' u'named {1} in {2}'.\
+                                 format(self.request.user.get_full_name(), instance.name, instance.project.name))
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        old_meta = instance.site_meta_attributes_ans
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        longitude = request.data.get('longitude', None)
+        latitude = request.data.get('latitude', None)
+        if latitude and longitude is not None:
+            p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
+            instance.location = p
+            instance.save()
+
+        new_meta = json.loads(instance.site_meta_attributes_ans)
+
+        extra_json = None
+
+        if old_meta != new_meta:
+            updated = {}
+            meta_questions = instance.project.site_meta_attributes
+            for question in meta_questions:
+                key = question['question_name']
+                label = question['question_text']
+                if old_meta.get(key) != new_meta.get(key):
+                    updated[key] = {'label': label, 'data': [old_meta.get(key, 'null'), new_meta.get(key, 'null')]}
+            extra_json = updated
+
+        description = u'{0} changed the details of site named {1}'.format(
+            self.request.user.get_full_name(), instance.name
+        )
+
+        instance.logs.create(
+            source=self.request.user, type=15, title="edit Site",
+            organization=instance.project.organization,
+            project=instance.project, content_object=instance,
+            description=description,
+            extra_json=extra_json,
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def perform_create(self, serializer):
         return serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            site = self.get_object()
+            site.is_active = False
+            site.identifier = site.identifier + str('_' + self.kwargs.get('pk'))
+            site.save()
+
+            instances = site.site_instances.all().values_list('instance', flat=True)
+
+            Instance.objects.filter(id__in=instances).update(deleted_at=datetime.datetime.now())
+
+            # update in mongo
+            settings.MONGO_DB.instances.update({"_id": {"$in": list(instances)}},
+                                                        {"$set": {'_deleted_at': datetime.datetime.now()}}, multi=True)
+
+            FInstance.objects.filter(instance_id__in=instances).update(is_deleted=True)
+
+            task_obj = CeleryTaskProgress.objects.create(user=self.request.user,
+                                                         description="Removal of UserRoles After Site delete",
+                                                         task_type=7, content_object=site)
+
+            if task_obj:
+                task = UnassignAllSiteRoles.delay(task_obj.id, site.id)
+                task_obj.task_id = task.id
+                task_obj.save()
+
+            task_obj.logs.create(source=self.request.user, type=36, title="Delete Site",
+                                 organization=site.project.organization, extra_object=site.project,
+                                 project=site.project, extra_message="site", site=site, content_object=site,
+                                 description=u'{0} deleted of site named {'u'1}'.\
+                                 format(self.request.user.get_full_name(), site.name))
+            return Response(status=status.HTTP_200_OK)
+        except Http404:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 

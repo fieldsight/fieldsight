@@ -343,4 +343,5 @@ class SiteFormSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Site
-        fields = '__all__'
+        exclude = ('date_created', 'additional_desc', 'current_progress', 'current_status', 'is_active', 'date_modified',
+                   'is_survey', 'weight')
