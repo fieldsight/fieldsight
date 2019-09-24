@@ -11,6 +11,14 @@ To be used in the future this module provides site meta attributes answers in a 
 """
 
 
+def find_answer_from_dict(sub_answers={}, question_name=""):
+    answer = sub_answers.get(question_name, '')
+    if not answer:
+        for k, v in sub_answers.items():
+            if isinstance(v, list):
+                return find_answer_from_dict(v[0], question_name)
+    return answer
+
 def get_form_answer(site_id, meta):
     fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
     if fxf:
@@ -23,7 +31,7 @@ def get_form_answer(site_id, meta):
             if meta['question']['type'] == "repeat":
                 answer = ""
             else:
-                answer = sub_answers.get(meta.get('question').get('name'), '')
+                answer = find_answer_from_dict(sub_answers, meta.get('question').get('name'))
 
             if meta['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
                 answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fxf[0].xf.user.username + '/attachments/' + answer
@@ -96,18 +104,18 @@ def get_site_meta_ans(site_id):
                     selected_metas = meta.get('metas')
                 if meta.get('project_id') == main_project:
                     continue
-                sitenew = Site.objects.filter(identifier=meta_answer.get(meta.get('question_name'), None),
+                referenced_site = Site.objects.filter(identifier=meta_answer.get(meta.get('question_name'), None),
                                               project_id=meta.get('project_id'))
-                if sitenew and str(sitenew[0].project_id) in selected_metas:
+                if referenced_site and str(referenced_site[0].project_id) in selected_metas:
                     answer = meta_answer.get(meta.get('question_name'))
-                    sub_metas = []
+                    sub_metas = {}
                     generate_ans(sub_metas,
-                                 sitenew[0].project_id,
-                                 selected_metas[str(sitenew[0].project_id)],
-                                 sitenew[0].site_meta_attributes_ans,
+                                 referenced_site[0].project_id,
+                                 selected_metas[str(referenced_site[0].project_id)],
+                                 referenced_site[0].site_meta_attributes_ans,
                                  selected_metas,
-                                 sitenew[0].project.site_meta_attributes)
-                    metas[meta.get('question_name')] = answer
+                                 referenced_site[0].project.site_meta_attributes)
+                    metas[meta.get('question_name')] = {"children": sub_metas, "answer": answer}
 
                 else:
                     answer = "No site referenced"
@@ -128,9 +136,76 @@ def get_site_meta_ans(site_id):
 
                 else:
                     answer = meta_answer.get(meta.get('question_name'), "")
-
                 metas[meta.get('question_name')] = answer
 
     generate_ans(metas, project.id, project.site_meta_attributes, site.site_meta_attributes_ans, None, None)
 
     return metas
+
+
+def get_meta_ans(site, meta_attr):
+    data = {}
+
+    def generate_ans(metas, project_id, metas_to_parse, meta_answer, parent_selected_metas, project_metas):
+
+        for meta in metas_to_parse:
+            # if project_metas and meta not in project_metas:
+            #     continue
+            if meta.get('question_type') == "Link":
+                if parent_selected_metas:
+                    selected_metas = parent_selected_metas
+                else:
+                    selected_metas = meta.get('metas')
+                main_project = site.project_id
+                if meta.get('project_id') == main_project:
+                    continue
+                referenced_site = Site.objects.filter(identifier=meta_answer.get(meta.get('question_name'), None),
+                                              project_id=meta.get('project_id'))
+                if referenced_site and str(referenced_site[0].project_id) in selected_metas:
+                    answer = meta_answer.get(meta.get('question_name'))
+                    sub_metas = {}
+                    generate_ans(sub_metas,
+                                 referenced_site[0].project_id,
+                                 selected_metas[str(referenced_site[0].project_id)],
+                                 referenced_site[0].all_ma_ans,
+                                 selected_metas,
+                                 referenced_site[0].project.site_meta_attributes)
+                    metas[meta.get('question_name')] = {"children": sub_metas, "answer": answer}
+
+                else:
+                    answer = "No site referenced"
+                    metas[meta.get('question_name')] = answer
+
+            else:
+                site_id = site.id
+                if meta.get('question_type') == "Form":
+                    answer = get_form_answer(site_id, meta)
+
+                elif meta.get('question_type') == "FormSubStat":
+                    answer = get_form_sub_status(site_id, meta)
+
+                elif meta.get('question_type') == "FormQuestionAnswerStatus":
+                    answer = get_form_ques_ans_status(site_id, meta)
+
+                elif meta.get('question_type') == "FormSubCountQuestion":
+                    answer = get_form_submission_count(site_id, meta)
+
+                else:
+                    answer = meta_answer.get(meta.get('question_name'), "")
+                metas[meta.get('question_name')] = answer
+
+    generate_ans(data, None, [meta_attr], site.all_ma_ans, None, None)
+
+    return data
+
+
+def update_site_meta_ans(site, deleted_metas, changed_metas):
+    if deleted_metas:
+        for m in deleted_metas:
+            site.all_ma_ans.pop(m['question_name'])
+            site.site_meta_attributes_ans.pop(m['question_name'])
+    if changed_metas:
+        for m in changed_metas:
+            meta = get_meta_ans(site, m)
+            site.all_ma_ans.update(meta)
+    site.save()
