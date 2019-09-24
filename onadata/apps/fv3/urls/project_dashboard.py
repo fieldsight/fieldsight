@@ -1,7 +1,7 @@
 from django.conf.urls import url, include
 
 from onadata.apps.fv3.viewsets.ProjectDashboardViewSet import ProjectDashboardViewSet, ProjectProgressTableViewSet, \
-    project_regions_types, ProjectSurveyFormsViewSet
+    project_regions_types, ProjectSurveyFormsViewSet, SiteFormViewSet
 
 
 project_dashboard_urlpatterns = [
@@ -11,6 +11,7 @@ project_dashboard_urlpatterns = [
         name='progress_table'),
     url(r'^api/project-survey-forms/(?P<pk>\d+)/$', ProjectSurveyFormsViewSet.as_view(),
         name='project_survey_forms'),
+    url(r'^api/site-form/(?P<pk>\d+)/$', SiteFormViewSet.as_view({'get': 'list', 'post': 'create'}), name='site_form'),
 
 ]
 

@@ -7,6 +7,7 @@ from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.db import connection
+from django.contrib.auth.models import User, Group
 
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
@@ -22,6 +23,7 @@ from django.contrib.gis.geos import Point
 from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels, \
     ProjectMetaAttrHistory, Organization
 from onadata.apps.fsforms.models import FInstance, ProgressSettings
+from onadata.apps.fsforms.tasks import clone_form
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
 from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, ProjectUpdateSerializer, SectorSerializer, \
@@ -29,16 +31,21 @@ from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, Proje
 from onadata.apps.fv3.util import get_user_roles
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectsitesPagination
 from onadata.apps.logger.models import Instance
+from onadata.apps.subscriptions.models import Package, Customer, Subscription
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
+
+from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, \
+    create_site_meta_attribs_ans_history, email_after_subscribed_plan
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
-    check_site_permission, SuperUserPermissions
+    check_site_permission, SuperUserPermissions, TeamCreationPermission
 from .serializer import TeamSerializer
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
 class ProjectSitesPagination(PageNumberPagination):
@@ -720,3 +727,69 @@ class TeamsViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = TeamSerializer
     permission_classes = [IsAuthenticated, SuperUserPermissions]
     pagination_class = TeamsPagination
+
+
+class TeamFormViewset(viewsets.ModelViewSet):
+    queryset = Organization.objects.all()
+    serializer_class = TeamSerializer
+    authentication_classes = [CsrfExemptSessionAuthentication, ]
+    permission_classes = [IsAuthenticated, TeamCreationPermission]
+    pagination_class = TeamsPagination
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=False)
+        self.object = self.perform_create(serializer)
+
+        noti = self.object.logs.create(source=self.request.user, type=9, title="new Organization",
+                                       organization=self.object, content_object=self.object,
+                                       description=u"{0} created a new Team "
+                                                   u"named {1}".
+                                       format(self.request.user, self.object.name))
+
+        user = self.request.user
+        user_id = User.objects.get(username=user).id
+        profile = user.user_profile
+        if not profile.organization:
+            profile.organization = self.object
+            profile.save()
+
+        # subscribed to free plan
+        if not user.is_superuser:
+            free_package = Package.objects.get(plan=0)
+            customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
+            Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer,
+                                        initiated_on=datetime.now(),
+                                        package=free_package, organization=self.object)
+            user_id = user_id
+            email_after_subscribed_plan.delay(user_id)
+
+        project = Project.objects.get(name="Example Project", organization_id=self.object.id)
+        sites = Site.objects.filter(project=project)
+
+        task_obj = CeleryTaskProgress.objects.create(user=user,
+                                                     description="Auto Clone and Deployment of Forms",
+                                                     task_type=15, content_object=self.object)
+        if task_obj:
+            project_id = Project.objects.get(name="Example Project", organization_id=self.object.id).id
+
+            clone_form.delay(user_id, project_id, task_obj.id)
+
+        if self.request.roles.filter(group__name="Unassigned").exists() or self.request.user.organizations.all():
+            previous_group = UserRole.objects.filter(user=self.request.user, group__name="Unassigned").exists()
+            if previous_group:
+                unassigned_group = UserRole.objects.filter(user=self.request.user, group__name="Unassigned")
+                unassigned_group.delete()
+
+            new_group = Group.objects.get(name="Organization Admin")
+            UserRole.objects.create(user=self.request.user, group=new_group, organization=self.object)
+
+            group = Group.objects.get(name='Site Supervisor')
+            for site in sites:
+                UserRole.objects.get_or_create(user=user, group=group, organization=self.object, project_id=project.id,
+                                               site_id=site.id)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        return serializer.save()
+

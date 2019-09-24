@@ -1,5 +1,6 @@
+import json
+
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
@@ -10,8 +11,9 @@ from rest_framework.views import APIView
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, ProgressGeneralFormSerializer, \
-    ProgressScheduledFormSerializer, ProgressStageFormSerializer
+    ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
 class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
@@ -86,6 +88,48 @@ def project_regions_types(request, project_id):
     data = {'regions': regions_data, 'site_types': site_types_data}
 
     return Response(status=status.HTTP_200_OK, data=data)
+
+
+class SiteFormViewSet(viewsets.ModelViewSet):
+    serializer_class = SiteFormSerializer
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+    authentication_classes = [CsrfExemptSessionAuthentication, ]
+
+    def get_queryset(self):
+        return self.queryset
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+
+    def list(self, request, *args, **kwargs):
+        try:
+            project = Project.objects.get(id=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not Found'})
+        json_questions = project.site_meta_attributes
+        site_types = SiteType.objects.filter(project=project, deleted=False).values('id', 'name')
+        regions = Region.objects.filter(is_active=True, project=project).values('id', 'name')
+
+        return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
+                                                         'regions': regions})
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=False)
+        self.object = self.perform_create(serializer)
+        noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
+                                       organization=self.object.project.organization,
+                                       project=self.object.project, content_object=self.object,
+                                       extra_object=self.object.project,
+                                       description=u'{0} created a new site '
+                                                   u'named {1} in {2}'.format(self.request.user.get_full_name(),
+                                                                              self.object.name,
+                                                                              self.object.project.name))
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        return serializer.save()
 
 
 
