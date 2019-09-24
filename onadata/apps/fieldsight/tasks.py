@@ -2750,7 +2750,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 all_ma_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
         if all_ma_ans != site.all_ma_ans:
             SiteMetaAttrAnsHistory.objects.create(site=site,
-                                                  meta_attributes_ans=site.all_ma_ans, status=1)
+                                                  meta_attributes_ans=all_ma_ans, status=1)
             site.site_meta_attributes_ans = meta_ans
             site.all_ma_ans = all_ma_ans
             site.save()
