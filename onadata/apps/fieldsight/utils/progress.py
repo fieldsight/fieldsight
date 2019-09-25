@@ -3,6 +3,15 @@ from django.db.models import Sum, Q
 from onadata.apps.fsforms.models import FieldSightXF, FInstance
 
 
+def get_submission_answer_by_question(sub_answers={}, question_name=""):
+    answer = sub_answers.get(question_name, None)
+    if not answer:
+        for k, v in sub_answers.items():
+            if isinstance(v, list):
+                return get_submission_answer_by_question(v[0], question_name)
+    return answer
+
+
 def default_progress(site, project):
     from onadata.apps.fsforms.models import Stage
     approved_site_forms_weight = site.site_instances.filter(form_status=3,
@@ -162,21 +171,12 @@ def advance_stage_approved(site, project):
     return p
 
 
-def pull_integer_answer(form, xform_question, site):
-    from django.conf import settings
-    if FInstance.objects.filter(project_fxf=form, site=site.id).order_by('-date').first():
-        submission_id = FInstance.objects.filter(project_fxf=form, site=site.id).order_by('-date').first().instance.id
-    else:
-        return None
-    instances = settings.MONGO_DB.instances
-    answer = list(instances.find({'_id': submission_id}, {xform_question: 1}))
-    if answer:
-        int_answer = answer[0].get(xform_question)
-        if int_answer:
-            if int_answer > 100:
-                return 100
-            return int(int_answer)
-    return None
+def pull_integer_answer(form, xform_question, site, submission_answer={}):
+    if not submission_answer:
+        if FInstance.objects.filter(project_fxf=form, site=site.id).order_by('-date').first():
+            submission_answer = FInstance.objects.filter(
+                project_fxf=form, site=site.id).order_by('-date').first().instance.json
+    return get_submission_answer_by_question(submission_answer, xform_question)
 
 
 def update_root_progress(site):

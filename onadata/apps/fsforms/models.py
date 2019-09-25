@@ -678,10 +678,9 @@ class FInstance(models.Model):
 
     def save(self, *args, **kwargs):
         self.version = self.get_version
-        project_fxf = self.project_fxf
-        if project_fxf is not None and self.site is not None:
-            site = self.site
-            update_progress(site, project_fxf)
+        if self.project_fxf is not None and self.site is not None:
+            from onadata.apps.fsforms.tasks import update_progress
+            update_progress.delay(self.site_id, self.project_fxf_id, self.instance.json)
 
         elif self.site is not None:
             self.site.update_status()
