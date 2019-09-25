@@ -2675,6 +2675,15 @@ def create_site_meta_attribs_ans_history(pk, task_id):
         # CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+def get_submission_answer_by_question(sub_answers={}, question_name=""):
+    answer = sub_answers.get(question_name, None)
+    if not answer:
+        for k, v in sub_answers.items():
+            if isinstance(v, list):
+                return get_submission_answer_by_question(v[0], question_name)
+    return answer
+
+
 @shared_task(max_retries=5, time_limit=300, soft_time_limit=300)
 def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
     try:
@@ -2682,11 +2691,12 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         fs_proj_xf = FieldSightXF.objects.get(id=fs_proj_xf_id)
         site = Site.objects.get(id=int(site_id))
         site_picture = site.project.site_basic_info.get('site_picture', None)
-        if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
-                                                                                                 0) == str(fs_proj_xf.id) and site_picture.get(
+        if site_picture and site_picture.get('question_type', '') == 'Form' and \
+                site_picture.get('form_id', 0) == fs_proj_xf.id and site_picture.get(
                 'question', {}):
+            print("has site logo settings and matches form ")
             question_name = site_picture['question'].get('name', '')
-            logo_url = instance.json.get(question_name)
+            logo_url = get_submission_answer_by_question(instance.json, question_name)
             if logo_url:
                 attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
                 site.logo = attachment.media_file
@@ -2694,7 +2704,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
         if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == str(fs_proj_xf.id) and site_loc.get('question', {}):
             question_name = site_loc['question'].get('name', '')
-            location = instance.json.get(question_name)
+            location = get_submission_answer_by_question(instance.json, question_name)
             if location:
                 location_float = list(map(lambda x: float(x), str(location).split(' ')))
                 site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6), srid=4326)
