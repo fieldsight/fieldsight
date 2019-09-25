@@ -402,12 +402,12 @@ def update_progress(site_id, project_fxf_id, submission_answer={}):
             elif project_settings.source == 4 and (
                     project_settings.no_submissions_form == project_fxf.pk or
                     project_settings.no_submissions_form == str(project_fxf.pk)):
-                pprogress = ("%.0f" % (site.site_instances.filter(
-                    project_fxf_id=project_settings.no_submissions_form, form_status=3).count() / (
+                progress = ("%.0f" % (site.site_instances.filter(
+                    project_fxf_id=project_fxf_id, form_status=3).count() / (
                                        project_settings.no_submissions_total_count * 0.01)))
                 progress = int(progress)
                 if progress > 99:
-                    p = 100
+                    progress = 100
                 site.current_progress = progress
                 site.save()
                 site_saved = True
