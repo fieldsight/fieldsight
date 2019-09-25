@@ -369,6 +369,7 @@ def api_clone_form(form_id, user_id, task_id):
 
 @shared_task(max_retries=5)
 def update_progress(site_id, project_fxf_id, submission_answer={}):
+    time.sleep(5)
     try:
         site = Site.objects.get(pk=site_id)
         project_fxf = FieldSightXF.objects.get(pk=project_fxf_id)
