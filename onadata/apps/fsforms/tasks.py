@@ -402,25 +402,26 @@ def update_progress(site_id, project_fxf_id, submission_answer={}):
             elif project_settings.source == 4 and (
                     project_settings.no_submissions_form == project_fxf.pk or
                     project_settings.no_submissions_form == str(project_fxf.pk)):
-                p = ("%.0f" % (site.site_instances.filter(
-                    project_fxf_id=project_settings.no_submissions_form, form_status=3).count() / (
+                progress = ("%.0f" % (site.site_instances.filter(
+                    project_fxf_id=project_fxf_id, form_status=3).count() / (
                                        project_settings.no_submissions_total_count * 0.01)))
-                p = int(p)
-                if p > 99:
-                    p = 100
-                site.current_progress = p
+                progress = int(progress)
+                if progress > 99:
+                    progress = 100
+                site.current_progress = progress
                 site.save()
                 site_saved = True
             elif project_settings.source == 3:
-                p = ("%.0f" % (site.site_instances.filter(form_status=3).count() / (
+                progress = ("%.0f" % (site.site_instances.filter(form_status=3).count() / (
                             project_settings.no_submissions_total_count * 0.01)))
-                p = int(p)
-                if p > 99:
-                    p = 100
-                site.current_progress = p
+                progress = int(progress)
+                if progress > 99:
+                    progress = 100
+                site.current_progress = progress
                 site.save()
                 site_saved = True
         if site_saved:
+            print(progress, site_id, "progress , site id")
             from onadata.apps.fieldsight.models import SiteProgressHistory
             if not SiteProgressHistory.objects.filter(site=site, progress=progress,
                                                       setting=project_settings).exists():
