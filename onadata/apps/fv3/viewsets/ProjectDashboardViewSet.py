@@ -122,9 +122,16 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
                                                          'regions': regions})
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        if instance.site is None:
+            data.pop('weight')
+        return Response(data)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        print('requttttt', request.data)
         serializer.is_valid(raise_exception=True)
         instance = self.perform_create(serializer)
         longitude = request.data.get('longitude', None)
@@ -164,7 +171,7 @@ class SiteFormViewSet(viewsets.ModelViewSet):
             instance.location = p
             instance.save()
 
-        new_meta = json.loads(instance.site_meta_attributes_ans)
+        new_meta = instance.site_meta_attributes_ans
 
         extra_json = None
 
@@ -181,7 +188,6 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         description = u'{0} changed the details of site named {1}'.format(
             self.request.user.get_full_name(), instance.name
         )
-
         instance.logs.create(
             source=self.request.user, type=15, title="edit Site",
             organization=instance.project.organization,
