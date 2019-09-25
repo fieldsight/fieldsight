@@ -467,7 +467,6 @@ class FormSettings(models.Model):
         return getattr(self, "name", "")
 
 
-
 @receiver(post_save, sender=FieldSightXF)
 def create_messages(sender, instance, created,  **kwargs):
     if instance.project is not None and created and not instance.is_staged and not instance.is_scheduled:
@@ -631,12 +630,6 @@ class FInstance(models.Model):
 
     def save(self, *args, **kwargs):
         self.version = self.get_version
-        if self.project_fxf is not None and self.site is not None:
-            from onadata.apps.fsforms.tasks import update_progress
-            update_progress.delay(self.site_id, self.project_fxf_id, self.instance.json)
-        elif self.site is not None:
-            self.site.update_status()
-
         if self.form_status is None:
             if self.site_fxf:
                 self.form_status = self.site_fxf.default_submission_status
@@ -778,6 +771,16 @@ class FInstance(models.Model):
             data.append(submittion_time)
         parse_individual_questions(json_question['children'])
         return data
+
+
+@receiver(post_save, sender=FInstance)
+def submission_saved(sender, instance, created,  **kwargs):
+    if instance.project_fxf is not None and instance.site is not None:
+        from onadata.apps.fsforms.tasks import update_progress
+        update_progress.delay(instance.site_id, instance.project_fxf_id, instance.instance.json)
+    elif instance.site is not None:
+        instance.site.current_status = instance.form_status
+        instance.site.save()
 
 
 class EditedSubmission(models.Model):
