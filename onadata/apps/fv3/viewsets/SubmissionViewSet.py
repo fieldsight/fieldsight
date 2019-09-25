@@ -70,6 +70,7 @@ class AlterSubmissionStatusViewSet(viewsets.ModelViewSet):
             fi = instance_status.finstance
             fi.form_status = instance_status.new_status
             fi.date = datetime.date.today()
+            fi.comment = instance_status.message
             fi.save()
             if fi.site:
                 extra_object = fi.site
