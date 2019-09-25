@@ -7,7 +7,13 @@ from django.db import transaction
 from django.conf import settings
 
 from onadata.apps.fieldsight.models import Project, Site
+<<<<<<< HEAD
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
+=======
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, DeployEvent
+from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer
+from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import StageFormSerializer
+>>>>>>> 65c269a8ea7223d381a7b2bcd21d5c8ff2d888ae
 from onadata.apps.fsforms.utils import send_sub_stage_deployed_project, send_bulk_message_stage_deployed_project, \
     send_bulk_message_stages_deployed_project, send_message_un_deploy_project, notify_koboform_updated
 from onadata.apps.logger.models import XForm
@@ -365,6 +371,7 @@ def api_clone_form(form_id, user_id, task_id):
 #         raise copy_schedule_to_sites.retry(countdown=seconds_to_wait)
 #
 #
+
 
 @shared_task(max_retries=5)
 def update_progress(site_id, project_fxf_id, submission_answer={}):
