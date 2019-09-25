@@ -810,11 +810,6 @@ class InstanceStatusChanged(models.Model):
     def new_status_display(self):
         return dict(FORM_STATUS)[self.new_status]
 
-    def save(self, *args, **kwargs):
-        self.finstance.comment = self.message
-        self.finstance.save()
-        super(InstanceStatusChanged, self).save(*args, **kwargs)
-
 
 class InstanceImages(models.Model):
     instance_status = models.ForeignKey(InstanceStatusChanged,
