@@ -32,7 +32,8 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, create_site_meta_attribs_ans_history
+from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, \
+    create_site_meta_attribs_ans_history, update_sites_info
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
@@ -448,6 +449,48 @@ def check_region(request, project_id):
         return Response({'has_region': False})
 
 
+def check_site_info_changed(pk, old_site_basic_info, site_basic_info):
+    location_changed = False
+    picture_changed = False
+    if site_basic_info:
+        site_location = site_basic_info.get('site_location', {})
+        site_picture = site_basic_info.get('site_picture', {})
+        if old_site_basic_info:
+            old_site_location = old_site_basic_info.get('site_location', {})
+            old_site_picture = old_site_basic_info.get('site_picture', {})
+            if old_site_location:
+                form_id = old_site_location.get("form_id", None)
+                question_name = old_site_location.get("question", {}).get("name")
+                if form_id != site_location.get("form_id", None) or (
+                        question_name != site_location.get("question", {}).get("name")):
+                    location_changed = True
+            else:
+                location_changed = True
+
+            if old_site_picture:
+                form_id = old_site_picture.get("form_id", None)
+                question_name = old_site_picture.get("question", {}).get("name")
+                if form_id != site_picture.get("form_id", None) or (
+                        question_name != site_picture.get("question", {}).get("name")):
+                    picture_changed = True
+            else:
+                picture_changed = True
+        else:
+            location_changed = True
+            picture_changed = True
+    if location_changed or picture_changed:
+        location_form = site_basic_info.get('site_location', {}).get('form_id', 0)
+        location_question = site_basic_info.get('site_location', {}).get("question", {}).get("name")
+        picture_form = site_basic_info.get('site_picture', {}).get('form_id', 0)
+        picture_question = site_basic_info.get('site_picture', {}).get("question", {}).get("name")
+        if not location_form or not location_question:
+            location_changed = False
+        if not picture_form or not picture_question:
+            picture_changed = False
+        update_sites_info.delay(
+            pk, location_changed, picture_changed, location_form, location_question, picture_form, picture_question)
+
+
 class ProjectDefineSiteMeta(APIView):
     """
     A simple view for viewing and adding project site meta. Allowed methods 'get', 'post'.
@@ -484,7 +527,10 @@ class ProjectDefineSiteMeta(APIView):
                     new_meta_attributes_raw[i]['question_name'] = om['question_name']
 
         project.site_meta_attributes = new_meta_attributes_raw
-        project.site_basic_info = request.data.get('site_basic_info')
+        old_site_basic_info = project.site_basic_info
+        site_basic_info = request.data.get('site_basic_info')
+        check_site_info_changed(project.pk, old_site_basic_info, site_basic_info)
+        project.site_basic_info = site_basic_info
         project.site_featured_images = request.data.get('site_featured_images')
 
         new_meta = project.site_meta_attributes
