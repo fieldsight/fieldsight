@@ -143,8 +143,8 @@ class ScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Schedule
         fields = ('id', 'em', 'xf', 'project', 'site',
-                  'is_deployed', 'default_submission_status', 'schedule_level_id', 'schedule_level',
-                  'selected_days', 'date_range_start', 'date_range_end', 'responses_count',
+                  'is_deployed', 'default_submission_status', 'schedule_level_id', 'frequency',
+                  'schedule_level', 'selected_days', 'date_range_start', 'date_range_end', 'responses_count',
                   'date_created', 'fsxf', 'setting', 'site', 'project')
 
     def get_all_days(self, obj):
