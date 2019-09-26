@@ -2002,6 +2002,11 @@ class XformDetailView(LoginRequiredMixin, SuperAdminMixin, XFormView, DetailView
 @authentication_classes([CsrfExemptSessionAuthentication, BasicAuthentication])
 def save_educational_material(request):
     id = request.POST.get('id', False)
+    stage = request.POST.get('stage', False)
+    if stage:
+        if EducationMaterial.objects.filter(Q(stage_id=stage) | Q(fsxf__stage_id=stage)).exists():
+            id = EducationMaterial.objects.filter(Q(stage_id=stage) | Q(fsxf__stage_id=stage))[0].id
+    print(id)
     if id:
         instance = EducationMaterial.objects.get(pk=id)
         form = EducationalmaterialForm(request.POST, request.FILES, instance=instance)
@@ -2016,7 +2021,7 @@ def save_educational_material(request):
                 ei.save()
         serializer = EMSerializer(em)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    return Response({'error': 'Invalid Educational Material Data'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'error': 'Invalid Educational Material Data', 'errors': form.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 @login_required
 @api_view(['POST'])
