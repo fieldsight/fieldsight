@@ -126,6 +126,7 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         data = serializer.data
+        print('datattataa', data)
         if instance.site is None:
             data.pop('weight')
         return Response(data)
