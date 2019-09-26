@@ -2807,3 +2807,47 @@ def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
             CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+
+def update_basic_info_in_site(pk, location_changed, picture_changed, location_form, location_question, picture_form,
+                              picture_question, site):
+    if location_changed:
+        submission = FInstance.objects.filter(
+            site=site, project_fxf__id=location_form).order_by('-date').first()
+        if submission:
+            location = get_submission_answer_by_question(submission.instance.json, location_question)
+            if location:
+                location_float = list(map(lambda x: float(x), str(location).split(' ')))
+                site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6), srid=4326)
+
+    if picture_changed:
+        submission = FInstance.objects.filter(
+            site=site, project_fxf__id=picture_form).order_by('-date').first()
+        if submission:
+            logo_url = get_submission_answer_by_question(submission.instance.json, picture_question)
+            if logo_url:
+                attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
+                site.logo = attachment.media_file
+    site.save()
+
+
+@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+def update_sites_info(pk, location_changed, picture_changed,
+                      location_form, location_question, picture_form, picture_question):
+    total_sites = Site.objects.filter(is_active=True, project=pk).count()
+    page_size = 1000
+    page = 0
+    try:
+        while total_sites > 0:
+            sites = Site.objects.filter(is_active=True, project=pk)[
+                    page * page_size:(page + 1) * page_size]
+            print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
+            for site in sites:
+                update_basic_info_in_site(pk, location_changed,
+                                          picture_changed, location_form,
+                                          location_question, picture_form, picture_question, site)
+
+            total_sites -= page_size
+            page += 1
+    except Exception as e:
+        print(str(e))
