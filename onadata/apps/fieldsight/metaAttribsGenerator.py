@@ -6,7 +6,7 @@ def find_answer_from_dict(sub_answers={}, question_name=""):
     answer = sub_answers.get(question_name, '')
     if not answer:
         for k, v in sub_answers.items():
-            if isinstance(v, list):
+            if isinstance(v, list) and len(v) and isinstance(v[0], dict):
                 return find_answer_from_dict(v[0], question_name)
     return answer
 
