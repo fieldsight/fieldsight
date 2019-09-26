@@ -277,7 +277,7 @@ class FSXFormSerializer(serializers.ModelSerializer):
         return reverse('manifest-url', kwargs=kwargs, request=request)
 
     def get_site_project_id(self, obj):
-        if obj.site and not obj.is_staged:
+        if obj.site:
             return obj.site.project_id
         return None
 
@@ -319,7 +319,7 @@ class SubStageSerializer(serializers.ModelSerializer):
 
 class StageSerializer(serializers.ModelSerializer):
     sub_stages = SubStageSerializer(many=True, source="parent")
-    site_project_id = serializers.SerializerMethodField()
+    # site_project_id = serializers.SerializerMethodField()
     types = serializers.SerializerMethodField()
 
     class Meta:
@@ -337,10 +337,10 @@ class StageSerializer(serializers.ModelSerializer):
     #     serializer = SubStageSerializer(instance=stages, many=True)
     #     return serializer.data
 
-    def get_site_project_id(self, obj):
-        if obj.site:
-            return obj.site.project_id
-        return None
+    # def get_site_project_id(self, obj):
+    #     if obj.site:
+    #         return obj.site.project_id
+    #     return None
 
     def get_types(self, obj):
         return obj.tags
