@@ -1148,3 +1148,39 @@ class BreadCrumView(APIView):
                                 'organization_url': organization.get_absolute_url()
                             }, status=status.HTTP_200_OK)
 
+
+class StageReorder(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+
+    def post(self, request, format=None):
+        try:
+            stages = self.request.data
+            qs_list = []
+            for i, stage in enumerate(stages):
+                obj = Stage.objects.get(pk=stage.get("id"))
+                obj.order = i+1
+                obj.save()
+                qs_list.append(obj.id)
+            data = StageSerializer(Stage.objects.filter(pk__in=qs_list).order_by('order', 'date_created'), many=True).data
+            return Response({'success': True, 'data': data}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SubStageReorder(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+
+    def post(self, request, format=None):
+        try:
+            stages = self.request.data
+            qs = []
+            for i, stage in enumerate(stages):
+                obj = Stage.objects.get(pk=stage.get("id"))
+                obj.order = i+1
+                obj.save()
+                qs.append(obj.id)
+            queryset = Stage.objects.filter(stage__isnull=False, pk__in=qs).select_related('stage_forms', 'em').order_by('order', 'date_created')
+            data = SubStageSerializer(queryset, many=True).data
+            return Response({'success': True, 'data': data}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

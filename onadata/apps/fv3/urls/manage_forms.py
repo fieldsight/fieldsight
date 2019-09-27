@@ -1,6 +1,6 @@
 from django.conf.urls import url
 
-from onadata.apps.fv3.views import StageReorder, SubStageReorder
+from onadata.apps.fv3.viewsets.manage_forms import StageReorder, SubStageReorder
 from onadata.apps.fv3.viewsets.manage_forms import GeneralFormsVS, \
     GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS, SubStageFormsVS, \
     DeployForm, DeleteUndeployedForm, FormSettingsVS, BreadCrumView
