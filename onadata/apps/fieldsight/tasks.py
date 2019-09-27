@@ -2709,7 +2709,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 location_float = list(map(lambda x: float(x), str(location).split(' ')))
                 site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6), srid=4326)
 
-            for featured_img in fs_proj_xf.project.site_featured_images:
+        for featured_img in fs_proj_xf.project.site_featured_images:
             if featured_img.get('question_type', '') == 'Form' and featured_img.get('form_id', '') == str(fs_proj_xf.id) and featured_img.get('question', {}):
 
                 question_name = featured_img['question'].get('name', '')
