@@ -840,35 +840,35 @@ class TeamFormViewset(viewsets.ModelViewSet):
         return serializer.save()
 
 
-@permission_classes([IsAuthenticated])
-@authentication_classes([BasicAuthentication, CsrfExemptSessionAuthentication])
-@api_view(['POST'])
-def stages_reorder(request):
-    try:
-        stages = request.data.get("stages")
-        qs_list = []
-        for i, stage in enumerate(stages):
-            obj = Stage.objects.get(pk=stage.get("id"))
-            obj.order = i+1
-            obj.save()
-            qs_list.append(obj.id)
-        return Response({'success': True}, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+class StageReorder(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+
+    def post(self, request, format=None):
+        try:
+            stages = self.request.data
+            qs_list = []
+            for i, stage in enumerate(stages):
+                obj = Stage.objects.get(pk=stage.get("id"))
+                obj.order = i+1
+                obj.save()
+                qs_list.append(obj.id)
+            return Response({'success': True}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-@permission_classes([IsAuthenticated])
-@authentication_classes([BasicAuthentication, CsrfExemptSessionAuthentication])
-@api_view(['POST'])
-def substages_reorder(request):
-    try:
-        stages = request.data.get("stages")
-        qs = []
-        for i, stage in enumerate(stages):
-            obj = Stage.objects.get(pk=stage.get("id"))
-            obj.order = i+1
-            obj.save()
-            qs.append(obj)
-        return Response({'success': True}, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+class SubStageReorder(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+
+    def post(self, request, format=None):
+        try:
+            stages = self.request.data
+            qs = []
+            for i, stage in enumerate(stages):
+                obj = Stage.objects.get(pk=stage.get("id"))
+                obj.order = i+1
+                obj.save()
+                qs.append(obj)
+            return Response({'success': True}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
