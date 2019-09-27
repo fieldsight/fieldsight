@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.gis.geos import Point
 
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -27,7 +27,7 @@ from onadata.apps.fieldsight.tasks import UnassignAllSiteRoles
 class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Project.objects.select_related('type', 'sector', 'sub_sector', 'organization')
     serializer_class = ProjectDashboardSerializer
-    permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
 
     def get_queryset(self):
         return self.queryset
@@ -37,7 +37,7 @@ class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ProjectProgressTableViewSet(APIView):
-    permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
 
     def get(self, request, *args,  **kwargs):
 
@@ -62,7 +62,7 @@ class ProjectProgressTableViewSet(APIView):
 
 
 class ProjectSurveyFormsViewSet(APIView):
-    permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
 
     def get(self, request, *args,  **kwargs):
 
@@ -80,11 +80,11 @@ class ProjectSurveyFormsViewSet(APIView):
         return Response(status=status.HTTP_200_OK, data=data)
 
 
-@permission_classes([IsAuthenticated, ])
+@permission_classes([IsAuthenticated, ProjectDashboardPermissions])
 @api_view(['GET'])
-def project_regions_types(request, project_id):
+def project_regions_types(request, pk):
     try:
-        project = Project.objects.get(id=project_id, is_active=True)
+        project = Project.objects.get(id=pk, is_active=True)
 
     except ObjectDoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND, data="Not found")
@@ -126,7 +126,6 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         data = serializer.data
-        print('datattataa', data)
         if instance.site is None:
             data.pop('weight')
         return Response(data)
@@ -172,7 +171,7 @@ class SiteFormViewSet(viewsets.ModelViewSet):
             instance.location = p
             instance.save()
 
-        new_meta = instance.site_meta_attributes_ans
+        new_meta = json.loads(instance.site_meta_attributes_ans)
 
         extra_json = None
 
@@ -200,6 +199,10 @@ class SiteFormViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save()
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        return instance
 
     def destroy(self, request, *args, **kwargs):
         try:

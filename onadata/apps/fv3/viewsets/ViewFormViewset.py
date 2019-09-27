@@ -1,3 +1,5 @@
+import datetime
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Q, Case, When, F, IntegerField
 
@@ -8,11 +10,12 @@ from rest_framework.views import APIView
 
 from onadata.apps.fieldsight.models import Project, Site
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
+from onadata.apps.fsforms.reports_util import delete_form_instance
 from onadata.apps.fv3.serializers.ViewFormSerializer import ViewGeneralsAndSurveyFormSerializer, \
     ViewScheduledFormSerializer, ViewStageFormSerializer, ViewSubmissionStatusSerializer, FormSubmissionSerializer
 
 
-class ProjectSiteResponsesViewSet(APIView):
+class ProjectSiteResponsesView(APIView):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request, format=None):
@@ -230,8 +233,11 @@ class ProjectSiteResponsesViewSet(APIView):
             return Response(status=status.HTTP_200_OK, data={'survey_forms': survey_forms,
                                                              'deleted_forms': survey_deleted_forms})
 
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Required params are form_type and project or site'})
 
-class ProjectSiteSubmissionStatusViewSet(APIView):
+
+class ProjectSiteSubmissionStatusView(APIView):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request, format=None):
@@ -340,7 +346,7 @@ class ProjectSiteSubmissionStatusViewSet(APIView):
                 return Response(status=status.HTTP_200_OK, data={'approved_submissions': approved_submissions})
 
 
-class FormSubmissionsViewSet(APIView):
+class FormSubmissionsView(APIView):
 
     def get(self, request, format=None):
         project = request.query_params.get('project', None)
@@ -348,14 +354,79 @@ class FormSubmissionsViewSet(APIView):
         fsxf_id = request.query_params.get('fsxf_id', None)
 
         if project and fsxf_id is not None:
+            is_project = True
             try:
                 fsxf = FieldSightXF.objects.get(pk=fsxf_id)
 
             except ObjectDoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
-            queryset = FInstance.objects.filter(project_fxf=fsxf.id)
-            data = FormSubmissionSerializer(queryset, many=True).data
+            queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf.id)
+            data = FormSubmissionSerializer(queryset, many=True, context={'is_project': is_project}).data
 
-            return Response(status=status.HTTP_200_OK, data=data)
+            return Response(status=status.HTTP_200_OK, data={'data': data, 'form_name': fsxf.xf.title, 'form_id_string':
+                fsxf.xf.id_string})
 
+        elif site and fsxf_id is not None:
+            is_project = False
+            try:
+                fsxf = FieldSightXF.objects.get(pk=fsxf_id)
+
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+
+            if not fsxf.from_project:
+                queryset = FInstance.objects.select_related('site', 'submitted_by').filter(site_fxf=fsxf_id)
+            else:
+                queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf_id,
+                                                                                           site_id=site.id)
+
+            data = FormSubmissionSerializer(queryset, many=True, context={'is_project': is_project}).data
+
+            return Response(status=status.HTTP_200_OK, data={'data': data, 'form_name': fsxf.xf.title, 'form_id_string':
+                fsxf.xf.id_string})
+
+
+class DeleteFInstanceView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        try:
+            finstance = FInstance.objects.get(instance_id=self.kwargs.get('pk'))
+
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        try:
+            finstance.is_deleted = True
+            finstance.save()
+            instance = finstance.instance
+            instance.deleted_at = datetime.datetime.now()
+            instance.save()
+            delete_form_instance(int(self.kwargs.get('pk')))
+
+            if finstance.site:
+                extra_object = finstance.site
+                site_id = extra_object.id
+                project_id = extra_object.project_id
+                organization_id = extra_object.project.organization_id
+                extra_message = "site"
+            else:
+                extra_object = finstance.project
+                site_id = None
+                project_id = extra_object.id
+                organization_id = extra_object.organization_id
+                extra_message = "project"
+            extra_json = {}
+            extra_json['submitted_by'] = finstance.submitted_by.user_profile.getname()
+            noti = finstance.logs.create(source=self.request.user, type=33, title="deleted response" + self.kwargs.get('pk'),
+                                         organization_id=organization_id,
+                                         project_id=project_id,
+                                         site_id=site_id,
+                                         extra_json=extra_json,
+                                         extra_object=extra_object,
+                                         extra_message=extra_message,
+                                         content_object=finstance)
+            return Response(status=status.HTTP_204_NO_CONTENT, data={'detail': 'Response successfully Deleted.'})
+
+        except Exception as e:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Response deleted unsuccessfull ' + str(e)})

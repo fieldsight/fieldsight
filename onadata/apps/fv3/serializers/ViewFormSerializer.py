@@ -227,14 +227,14 @@ class ViewSubmissionStatusSerializer(serializers.ModelSerializer):
 
 
 class FormSubmissionSerializer(serializers.ModelSerializer):
-    submitted_by = serializers.CharField(source='submitted_by.username')
+    submitted_by = serializers.CharField(source='submitted_by.get_full_name')
     profile_url = serializers.SerializerMethodField()
+    site_name = serializers.CharField(source='site.name')
+    site_identifier = serializers.CharField(source='site.identifier')
 
     class Meta:
         model = FInstance
-        fields = ('id', 'name', 'date', 'submitted_by', 'profile_url')
+        fields = ('id', 'date', 'submitted_by', 'profile_url', 'site_name', 'site_identifier')
 
     def get_profile_url(self, obj):
         return '/users/profile/{}/'.format(obj.submitted_by.id)
-
-
