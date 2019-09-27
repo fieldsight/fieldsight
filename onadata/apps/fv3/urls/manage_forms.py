@@ -1,4 +1,6 @@
 from django.conf.urls import url
+
+from onadata.apps.fv3.views import stages_reorder
 from onadata.apps.fv3.viewsets.manage_forms import GeneralFormsVS, \
     GeneralProjectFormsVS, ScheduleFormsVS, StageFormsVS, SubStageFormsVS, \
     DeployForm, DeleteUndeployedForm, FormSettingsVS, BreadCrumView
@@ -57,5 +59,11 @@ manage_forms_urlpatterns = [
     url(r'^api/forms/settings/(?P<pk>\d+)$',
         FormSettingsVS.as_view({'put': 'update'}),
         name='settings-edit'),
+    url(r'^api/forms/reorder/stage/$',
+        stages_reorder,
+        name='stages-_re'),
+    url(r'^api/forms/reorder/substage/$',
+        stages_reorder,
+        name='stages-_re'),
 
 ]
