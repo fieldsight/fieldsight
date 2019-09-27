@@ -2679,7 +2679,7 @@ def get_submission_answer_by_question(sub_answers={}, question_name=""):
     answer = sub_answers.get(question_name, None)
     if not answer:
         for k, v in sub_answers.items():
-            if isinstance(v, list):
+            if isinstance(v, list) and len(v) and isinstance(v[0], dict):
                 return get_submission_answer_by_question(v[0], question_name)
     return answer
 
