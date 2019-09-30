@@ -5,6 +5,7 @@ import os
 import json
 import datetime
 import gc
+import calendar
 from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
@@ -64,6 +65,11 @@ from onadata.apps.fsforms.models import InstanceStatusChanged
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+
+from django.utils import timezone
+from onadata.apps.viewer.tasks import create_async_export
+from django.db.models import Q
+
 
 form_status_map=["Pending", "Rejected", "Flagged", "Approved"]
 
@@ -2582,30 +2588,60 @@ def check_usage_rates():
                     warning_overage_emails_monthly.apply_async(
                         args=[subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email],
                         eta=after_one_month)
-import calendar
-from django.utils import timezone
 
+
+@shared_task()
 def sync_form(fxf):
-    #sync
-    create_async_export(xform, export_type, query, force_xlsx, options, is_project, id, site_id, version, sync_to_gsuit, user)
 
-    pass
+    query = {"fs_project_uuid": str(fxf.id)}
+    
+    force_xlsx = True
 
-def sync_form_controller(sync_type, sync_day, fxf, month_days):
-    date = timezone.date()
-    if sync_type == Project.MONTHLY:
-        if date.day == sync_day or sync_day > month_days:
-            sync_form(fxf)
+    deleted_at_query = {
+        "$or": [{"_deleted_at": {"$exists": False}},
+                {"_deleted_at": None}]}
+    query = {"$and": [query, deleted_at_query]}
+    
+    options = {
+        'group_delimiter': '/',
+        'split_select_multiples': False,
+        'binary_select_multiples': False,
+        'meta': None
+    }
+    # create_async_export(fxf.xf, 'xls', query, force_xlsx, options, id=fxf.id, is_project=1,sync_to_gsuit=True)
+    return True
 
-    elif sync_type == project.FORTNIGHT:
-        pass
+def sync_form_controller( fxf, sync_type, sync_day, end_of_month):
+    date = timezone.now().date()
+    if sync_type == Project.MONTHLY and end_of_month and calendar.monthrange(date.year, date.month)[1] == date.day:
+        sync_form.delay(fxf)
+        # print(fxf.project_id, fxf.xf.title)
+        
 
-    elif sync_type == WEEKLY:
-        if (((date.weekday() + 1) % 7) + 1) == sync_day:
-            sync_form(fxf)
-    else:
-        sync_form(fxf)
+    # elif sync_type == project.FORTNIGHT and :
+    #     pass
 
+    # elif sync_type == WEEKLY:
+    #     if (((date.weekday() + 1) % 7) + 1) == sync_day:
+    #         sync_form(fxf)
+    # else:
+    #     sync_form(fxf)
+    return True
+
+@shared_task()
+def scheduled_gsuit_sync():
+    date = timezone.now().date()
+    projects = Project.objects.filter(is_active=True).exclude(Q(gsuit_sync=Project.MANUAL), Q(gsuit_sync_date__isnull=True) | Q(gsuit_sync_date__gt=date))
+
+    for project in projects:
+        #generate reports
+        for fxf in project.project_forms.exclude(Q(sync_schedule__schedule=Project.MANUAL) | Q(sync_schedule__date__gt=date)):
+            try:
+                sync_form_controller(fxf, fxf.sync_schedule.schedule, fxf.sync_schedule.date, fxf.sync_schedule.end_of_month)
+            except Exception as e:
+                sync_form_controller(fxf, project.gsuit_sync, project.gsuit_sync_date, project.gsuit_sync_end_of_month)
+
+    return True
 
 @shared_task(time_limit=300, soft_time_limit=300)
 def update_sites_progress(pk, task_id):
@@ -2628,20 +2664,6 @@ def update_sites_progress(pk, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except ProgressSettings.DoesNotExist:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
-
-
-def scheduled_gsuit_sync():
-    month_days = calendar.monthrange(now.year, now.month)[1]
-    projects = Project.objects.filter(is_active=True).exclude(gsuit_sync=Project.MANUAL)
-
-    for project in projects:
-        #generate reports
-        for fxf in project.project_forms.exclude(sync_schedule__schedule=Project.MANUAL):
-            if fxf.sync_schedule:
-                sync_form(fxf.sync_schedule.schedule, fxf.sync_schedule.day, fxf, month_days)
-            else:
-                sync_form_controller(project.gsuit_sync, project.gsuit_sync_day, fxf, month_days)
-        project.gsuit_sync
 
 
 @shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
