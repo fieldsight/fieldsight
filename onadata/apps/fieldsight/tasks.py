@@ -2589,7 +2589,7 @@ def check_usage_rates():
                         eta=after_one_month)
 
 
-@shared_task()
+
 def sync_form(fxf):
 
     query = {"fs_project_uuid": str(fxf.id)}
@@ -2609,7 +2609,7 @@ def sync_form(fxf):
     }
     from onadata.apps.viewer.tasks import create_async_export
 
-    # create_async_export(fxf.xf, 'xls', query, force_xlsx, options, id=fxf.id, is_project=1,sync_to_gsuit=True)
+    create_async_export(fxf.xf, 'xls', query, force_xlsx, options, id=fxf.id, is_project=1,sync_to_gsuit=True)
     return True
 
 def sync_form_controller( fxf, sync_type, sync_day, end_of_month):
