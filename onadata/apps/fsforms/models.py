@@ -254,6 +254,7 @@ class Schedule(models.Model):
                                            related_name='days', blank=True)
     shared_level = models.IntegerField(default=2, choices=SHARED_LEVEL)
     schedule_level_id = models.IntegerField(default=0, choices=SCHEDULED_LEVEL)
+    frequency = models.IntegerField(default=0)
     date_created = models.DateTimeField(auto_now_add=True)
     logs = GenericRelation('eventlog.FieldSightLog')
 
@@ -467,7 +468,6 @@ class FormSettings(models.Model):
         return getattr(self, "name", "")
 
 
-
 @receiver(post_save, sender=FieldSightXF)
 def create_messages(sender, instance, created,  **kwargs):
     if instance.project is not None and created and not instance.is_staged and not instance.is_scheduled:
@@ -595,53 +595,6 @@ class FInstanceDeletedManager(models.Manager):
         return super(FInstanceDeletedManager, self).get_queryset().filter(is_deleted=True)
 
 
-def update_progress(site, project_fxf):
-    try:
-        project_settings = site.project.progress_settings.filter(
-            deployed=True, active=True).order_by("-date").first()
-        site_saved = False
-        if project_settings:
-            if project_settings.source == 0 and project_fxf.is_staged:
-                progress = site.progress()
-                site.current_progress = progress
-                site.save()
-                site_saved = True
-            elif project_settings.source == 1 and project_fxf.is_staged:
-                from onadata.apps.fieldsight.utils.progress import advance_stage_approved
-                progress = advance_stage_approved(site, site.project)
-                site.current_progress = progress
-                site.save()
-                site_saved = True
-
-            elif project_settings.source == 2 and (
-                    project_settings.pull_integer_form == project_fxf.pk or
-                    project_settings.pull_integer_form == str(project_fxf.pk)):
-                xform_question = project_settings.pull_integer_form_question
-                from onadata.apps.fieldsight.utils.progress import pull_integer_answer
-                progress = pull_integer_answer(project_fxf, xform_question, site)
-                site.current_progress = progress
-                site.save()
-                site_saved = True
-            elif project_settings.source == 4 and (
-                    project_settings.no_submissions_form == project_fxf.pk or
-                    project_settings.no_submissions_form == str(project_fxf.pk)):
-                site.current_progress += 1
-                site.save()
-            elif project_settings.source == 3:
-                site.current_progress += 1
-                site.save()
-                site_saved = True
-        if site_saved:
-            from onadata.apps.fieldsight.models import SiteProgressHistory
-            if not SiteProgressHistory.objects.filter(site=site, progress=progress,
-                                                      setting=project_settings).exists():
-                history = SiteProgressHistory(site=site, progress=progress,
-                                              setting=project_settings)
-                history.save()
-    except Exception as e:
-        print("error progess update in submission", str(e))
-
-
 class FInstance(models.Model):
     instance = models.OneToOneField(Instance,
                                     related_name='fieldsight_instance')
@@ -678,14 +631,6 @@ class FInstance(models.Model):
 
     def save(self, *args, **kwargs):
         self.version = self.get_version
-        project_fxf = self.project_fxf
-        if project_fxf is not None and self.site is not None:
-            site = self.site
-            update_progress(site, project_fxf)
-
-        elif self.site is not None:
-            self.site.update_status()
-
         if self.form_status is None:
             if self.site_fxf:
                 self.form_status = self.site_fxf.default_submission_status
@@ -829,6 +774,16 @@ class FInstance(models.Model):
         return data
 
 
+@receiver(post_save, sender=FInstance)
+def submission_saved(sender, instance, created,  **kwargs):
+    if instance.project_fxf is not None and instance.site is not None:
+        from onadata.apps.fsforms.tasks import update_progress
+        update_progress.delay(instance.site_id, instance.project_fxf_id, instance.instance.json)
+    elif instance.site is not None:
+        instance.site.current_status = instance.form_status
+        instance.site.save()
+
+
 class EditedSubmission(models.Model):
     old = models.ForeignKey(FInstance, related_name="edits")
     json = JSONField(default={}, null=False)
@@ -858,11 +813,6 @@ class InstanceStatusChanged(models.Model):
 
     def new_status_display(self):
         return dict(FORM_STATUS)[self.new_status]
-
-    def save(self, *args, **kwargs):
-        self.finstance.comment = self.message
-        self.finstance.save()
-        super(InstanceStatusChanged, self).save(*args, **kwargs)
 
 
 class InstanceImages(models.Model):

@@ -2675,6 +2675,18 @@ def create_site_meta_attribs_ans_history(pk, task_id):
         # CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+def get_submission_answer_by_question(sub_answers={}, question_name="", depth=0):
+    answer = sub_answers.get(question_name, None)
+    if not answer:
+        for k, v in sub_answers.items():
+            if isinstance(v, list) and len(v) and isinstance(v[0], dict) and k.split("/")[depth] in question_name:
+                depth += 1
+                return get_submission_answer_by_question(v[0], question_name)
+            else:
+                continue
+    return answer
+
+
 @shared_task(max_retries=5, time_limit=300, soft_time_limit=300)
 def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
     try:
@@ -2682,19 +2694,20 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         fs_proj_xf = FieldSightXF.objects.get(id=fs_proj_xf_id)
         site = Site.objects.get(id=int(site_id))
         site_picture = site.project.site_basic_info.get('site_picture', None)
-        if site_picture and site_picture.get('question_type', '') == 'Form' and site_picture.get('form_id',
-                                                                                                 0) == str(fs_proj_xf.id) and site_picture.get(
+        if site_picture and site_picture.get('question_type', '') == 'Form' and \
+                site_picture.get('form_id', 0) == fs_proj_xf.id and site_picture.get(
                 'question', {}):
+            print("has site logo settings and matches form ")
             question_name = site_picture['question'].get('name', '')
-            logo_url = instance.json.get(question_name)
+            logo_url = get_submission_answer_by_question(instance.json, question_name)
             if logo_url:
                 attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
                 site.logo = attachment.media_file
 
         site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
-        if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == str(fs_proj_xf.id) and site_loc.get('question', {}):
+        if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == fs_proj_xf.id and site_loc.get('question', {}):
             question_name = site_loc['question'].get('name', '')
-            location = instance.json.get(question_name)
+            location = get_submission_answer_by_question(instance.json, question_name)
             if location:
                 location_float = list(map(lambda x: float(x), str(location).split(' ')))
                 site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6), srid=4326)
@@ -2750,7 +2763,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 all_ma_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
         if all_ma_ans != site.all_ma_ans:
             SiteMetaAttrAnsHistory.objects.create(site=site,
-                                                  meta_attributes_ans=site.all_ma_ans, status=1)
+                                                  meta_attributes_ans=all_ma_ans, status=1)
             site.site_meta_attributes_ans = meta_ans
             site.all_ma_ans = all_ma_ans
             site.save()
@@ -2797,3 +2810,47 @@ def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
             CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+
+def update_basic_info_in_site(pk, location_changed, picture_changed, location_form, location_question, picture_form,
+                              picture_question, site):
+    if location_changed:
+        submission = FInstance.objects.filter(
+            site=site, project_fxf__id=location_form).order_by('-date').first()
+        if submission:
+            location = get_submission_answer_by_question(submission.instance.json, location_question)
+            if location:
+                location_float = list(map(lambda x: float(x), str(location).split(' ')))
+                site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6), srid=4326)
+
+    if picture_changed:
+        submission = FInstance.objects.filter(
+            site=site, project_fxf__id=picture_form).order_by('-date').first()
+        if submission:
+            logo_url = get_submission_answer_by_question(submission.instance.json, picture_question)
+            if logo_url:
+                attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
+                site.logo = attachment.media_file
+    site.save()
+
+
+@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+def update_sites_info(pk, location_changed, picture_changed,
+                      location_form, location_question, picture_form, picture_question):
+    total_sites = Site.objects.filter(is_active=True, project=pk).count()
+    page_size = 1000
+    page = 0
+    try:
+        while total_sites > 0:
+            sites = Site.objects.filter(is_active=True, project=pk)[
+                    page * page_size:(page + 1) * page_size]
+            print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
+            for site in sites:
+                update_basic_info_in_site(pk, location_changed,
+                                          picture_changed, location_form,
+                                          location_question, picture_form, picture_question, site)
+
+            total_sites -= page_size
+            page += 1
+    except Exception as e:
+        print(str(e))

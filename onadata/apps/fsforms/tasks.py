@@ -6,10 +6,8 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.conf import settings
 
-from onadata.apps.fieldsight.models import  Project
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, DeployEvent
-from onadata.apps.fsforms.serializers.ConfigureStagesSerializer import StageSerializer
-from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import StageFormSerializer
+from onadata.apps.fieldsight.models import Project, Site
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
 from onadata.apps.fsforms.utils import send_sub_stage_deployed_project, send_bulk_message_stage_deployed_project, \
     send_bulk_message_stages_deployed_project, send_message_un_deploy_project, notify_koboform_updated
 from onadata.apps.logger.models import XForm
@@ -368,3 +366,68 @@ def api_clone_form(form_id, user_id, task_id):
 #
 #
 
+
+@shared_task(max_retries=5)
+def update_progress(site_id, project_fxf_id, submission_answer={}):
+    time.sleep(5)
+    try:
+        site = Site.objects.get(pk=site_id)
+        project_fxf = FieldSightXF.objects.get(pk=project_fxf_id)
+        project_settings = site.project.progress_settings.filter(
+            deployed=True, active=True).order_by("-date").first()
+        site_saved = False
+        if project_settings:
+            if project_settings.source == 0 and project_fxf.is_staged:
+                progress = site.progress()
+                site.current_progress = progress
+                site.save()
+                site_saved = True
+            elif project_settings.source == 1 and project_fxf.is_staged:
+                from onadata.apps.fieldsight.utils.progress import advance_stage_approved
+                progress = advance_stage_approved(site, site.project)
+                if progress:
+                    site.current_progress = progress
+                    site.save()
+                    site_saved = True
+
+            elif project_settings.source == 2 and (
+                    project_settings.pull_integer_form == project_fxf.pk or
+                    project_settings.pull_integer_form == str(project_fxf.pk)):
+                xform_question = project_settings.pull_integer_form_question
+                from onadata.apps.fieldsight.utils.progress import pull_integer_answer
+                progress = pull_integer_answer(project_fxf, xform_question, site, submission_answer)
+                if progress:
+                    site.current_progress = progress
+                    site.save()
+                    site_saved = True
+            elif project_settings.source == 4 and (
+                    project_settings.no_submissions_form == project_fxf.pk or
+                    project_settings.no_submissions_form == str(project_fxf.pk)):
+                progress = ("%.0f" % (site.site_instances.filter(
+                    project_fxf_id=project_fxf_id, form_status=3).count() / (
+                                       project_settings.no_submissions_total_count * 0.01)))
+                progress = int(progress)
+                if progress > 99:
+                    progress = 100
+                site.current_progress = progress
+                site.save()
+                site_saved = True
+            elif project_settings.source == 3:
+                progress = ("%.0f" % (site.site_instances.filter(form_status=3).count() / (
+                            project_settings.no_submissions_total_count * 0.01)))
+                progress = int(progress)
+                if progress > 99:
+                    progress = 100
+                site.current_progress = progress
+                site.save()
+                site_saved = True
+        if site_saved:
+            print(progress, site_id, "progress , site id")
+            from onadata.apps.fieldsight.models import SiteProgressHistory
+            if not SiteProgressHistory.objects.filter(site=site, progress=progress,
+                                                      setting=project_settings).exists():
+                history = SiteProgressHistory(site=site, progress=progress,
+                                              setting=project_settings)
+                history.save()
+    except Exception as e:
+        print("error progess update in submission", str(e))
