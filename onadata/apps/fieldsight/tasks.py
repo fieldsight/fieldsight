@@ -2616,7 +2616,7 @@ def sync_form_controller( fxf, sync_type, sync_day, end_of_month):
     
     date = timezone.now().date()
     if sync_type == Project.MONTHLY and end_of_month and calendar.monthrange(date.year, date.month)[1] == date.day:
-        sync_form.delay(fxf)
+        sync_form(fxf)
 
         # print(fxf.project_id, fxf.xf.title)
         
