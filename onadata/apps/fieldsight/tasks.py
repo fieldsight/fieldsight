@@ -138,7 +138,10 @@ def upload_to_drive(file_path, title, folder_title, project, user):
         _project.save()
         permissions = file.GetPermissions()
 
-        user_emails = _project.project_roles.filter(group__name__in=["Project Manager", "Project Donor"], ended_at__isnull = True, site=None).distinct('user').values_list('user__email', flat=True)
+        user_emails = UserRole.objects.filter(
+            Q(Q(group__name="Organization Admin", project__isnull=True) | Q(group__name__in=["Project Manager", "Project Donor"], project_id=_project.id)),
+            organization_id=_project.organization_id
+        ).distinct().values_list('user__email', flat=True)    
         
         all_users = set(user_emails)
 
