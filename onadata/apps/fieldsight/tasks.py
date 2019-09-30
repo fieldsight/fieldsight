@@ -67,7 +67,6 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
 from django.utils import timezone
-from onadata.apps.viewer.tasks import create_async_export
 from django.db.models import Q
 
 
@@ -2608,13 +2607,17 @@ def sync_form(fxf):
         'binary_select_multiples': False,
         'meta': None
     }
+    from onadata.apps.viewer.tasks import create_async_export
+
     # create_async_export(fxf.xf, 'xls', query, force_xlsx, options, id=fxf.id, is_project=1,sync_to_gsuit=True)
     return True
 
 def sync_form_controller( fxf, sync_type, sync_day, end_of_month):
+    
     date = timezone.now().date()
     if sync_type == Project.MONTHLY and end_of_month and calendar.monthrange(date.year, date.month)[1] == date.day:
         sync_form.delay(fxf)
+
         # print(fxf.project_id, fxf.xf.title)
         
 
