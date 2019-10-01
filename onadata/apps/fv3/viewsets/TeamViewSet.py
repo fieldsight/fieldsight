@@ -5,6 +5,7 @@ import stripe
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.gis.geos import Point
 
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -148,14 +149,21 @@ class AddTeamProjectViewset(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=False)
-        self.object = self.perform_create(serializer)
+        serializer.is_valid(raise_exception=True)
+        instance = self.perform_create(serializer)
+        longitude = request.data.get('longitude', None)
+        latitude = request.data.get('latitude', None)
 
-        noti = self.object.logs.create(source=self.request.user, type=10, title="new Project",
-                                       organization=self.object.organization, content_object=self.object,
+        if latitude and longitude is not None:
+            p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
+            instance.location = p
+            instance.save()
+
+        noti = instance.logs.create(source=self.request.user, type=10, title="new Project",
+                                       organization=instance.organization, content_object=instance,
                                        description=u'{0} created new project '
                                                    u'named {1}'.format(
-                                           self.request.user.get_full_name(), self.object.name))
+                                           self.request.user.get_full_name(), instance.name))
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
