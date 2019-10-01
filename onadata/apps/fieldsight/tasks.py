@@ -82,21 +82,22 @@ class DriveException(Exception):
 
 @shared_task()
 def gsuit_assign_perm(title, emails):
-    time.sleep(5)
-    try:
-        gauth = GoogleAuth()
-        drive = GoogleDrive(gauth)
-        file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()[0]
-        for perm in emails:
-            time.sleep(1)
+    time.sleep(3)
+    gauth = GoogleAuth()
+    drive = GoogleDrive(gauth)
+    file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()[0]
+    for perm in emails:
+        time.sleep(1)
+        try:
             file.InsertPermission({
                 'type':'user',
                 'value':perm,
                 'role': 'writer'
             })
-    except:
-        pass
+        except:
+            pass
 
+    return True
 
 def upload_to_drive(file_path, title, folder_title, project, user):
     # pass
@@ -164,17 +165,26 @@ def upload_to_drive(file_path, title, folder_title, project, user):
             if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "exports.fieldsight@gmail.com":
                 file.DeletePermission(permission['id'])
 
-        try:
-            index = 0
-            for perm in perm_to_add:
+        
+        retry_emails = []
+        index = 0
+        for perm in perm_to_add:
+            try:
                 file.InsertPermission({
-                            'type':'user',
-                            'value':perm,
-                            'role': 'writer'
-                        })
-                index += 1
-        except:
-            gsuit_assign_perm.delay(title, perm[index:])
+                    'type':'user',
+                    'value':perm,
+                    'role': 'writer'
+                })
+        
+            except Exception as e:
+                if "Since there is no Google account associated with this email address" not in str(e):
+                    retry_emails.append(perm)
+
+            index += 1
+
+        if retry_emails:
+            print "retrying again for ", retry_emails
+            gsuit_assign_perm.delay(title, retry_emails)
 
     except Exception as e:
         raise DriveException({"message":e})
