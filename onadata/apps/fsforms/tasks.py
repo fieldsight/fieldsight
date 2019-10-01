@@ -397,6 +397,8 @@ def update_progress(site_id, project_fxf_id, submission_answer={}):
                 from onadata.apps.fieldsight.utils.progress import pull_integer_answer
                 progress = pull_integer_answer(project_fxf, xform_question, site, submission_answer)
                 if progress:
+                    if progress > 99:
+                        progress = 100
                     site.current_progress = progress
                     site.save()
                     site_saved = True
