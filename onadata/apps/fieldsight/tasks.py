@@ -2681,7 +2681,7 @@ def get_submission_answer_by_question(sub_answers={}, question_name="", depth=0)
         for k, v in sub_answers.items():
             if isinstance(v, list) and len(v) and isinstance(v[0], dict) and k.split("/")[depth] in question_name:
                 depth += 1
-                return get_submission_answer_by_question(v[0], question_name)
+                return get_submission_answer_by_question(v[0], question_name, depth)
             else:
                 continue
     return answer
