@@ -176,7 +176,7 @@ def advance_stage_approved(site, project):
 
 def pull_integer_answer(form, xform_question, site, submission_answer={}):
     if not submission_answer:
-        if FInstance.objects.filter(project_fxf=form, site=site.id).order_by('-date').first():
+        if FInstance.objects.filter(project_fxf=form, site=site.id, form_status=3).order_by('-date').first():
             submission_answer = FInstance.objects.filter(
                 project_fxf=form, site=site.id).order_by('-date').first().instance.json
     return get_submission_answer_by_question(submission_answer, xform_question)
