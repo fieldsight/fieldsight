@@ -1772,25 +1772,6 @@ def auto_generate_stage_status_report():
                 print e.__dict__
                 
 
-def sendNotification(notification, recipient):
-    result={}
-    result['id']= noti.id,
-    result['source_uid']= source_user.id,
-    result['source_name']= source_user.username,
-    result['source_img']= source_user.user_profile.profile_picture.url,
-    result['get_source_url']= noti.get_source_url(),
-    result['get_event_name']= project.name,
-    result['get_event_url']= noti.get_event_url(),
-    result['get_extraobj_name']= None,
-    result['get_extraobj_url']= None,
-    result['get_absolute_url']= noti.get_absolute_url(),
-    result['type']= 412,
-    result['date']= str(noti.date),
-    result['extra_message']= str(count) + " Sites @error " + u'{}'.format(e.message),
-    result['seen_by']= [],
-    ChannelGroup("notif-user-{}".format(recipient.id)).send({"text": json.dumps(result)})
-
-
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date, end_date):
     time.sleep(3)
@@ -2706,12 +2687,15 @@ def create_site_meta_attribs_ans_history(pk, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
-def get_submission_answer_by_question(sub_answers={}, question_name=""):
+def get_submission_answer_by_question(sub_answers={}, question_name="", depth=0):
     answer = sub_answers.get(question_name, None)
     if not answer:
         for k, v in sub_answers.items():
-            if isinstance(v, list):
-                return get_submission_answer_by_question(v[0], question_name)
+            if isinstance(v, list) and len(v) and isinstance(v[0], dict) and k.split("/")[depth] in question_name:
+                depth += 1
+                return get_submission_answer_by_question(v[0], question_name, depth)
+            else:
+                continue
     return answer
 
 
