@@ -1104,9 +1104,9 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
 
             
             if filterRegion or filterSiteTypes:
-                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, date__range=[new_startdate, new_enddate])
+                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, instance__date_created__range=[new_startdate, new_enddate])
             else:
-                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, date__range=[new_startdate, new_enddate])
+                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, instance__date_created__range=[new_startdate, new_enddate])
 
             for formresponse in formresponses.iterator():
                 
