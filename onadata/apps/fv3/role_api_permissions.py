@@ -110,7 +110,12 @@ class ProjectDashboardPermissions(permissions.BasePermission):
 
         if request.is_super_admin:
             return True
-        project_id = view.kwargs.get('pk', None)
+
+        if request.query_params.get('project', None) is not None:
+            project_id = request.query_params.get('project')
+
+        else:
+            project_id = view.kwargs.get('pk', None)
 
         try:
             project = Project.objects.get(id=project_id)

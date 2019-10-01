@@ -340,7 +340,14 @@ class SiteFormSerializer(serializers.ModelSerializer):
     logo = Base64ImageField(
         max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
     )
+    site_meta_attributes_answers = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
-        fields = '__all__'
+        fields = ('id', 'name', 'identifier', 'site_meta_attributes_ans', 'weight', 'logo', 'type', 'phone', 'address',
+                  'public_desc', 'project', 'region', 'enable_subsites', 'site', 'site_meta_attributes_answers')
+
+    def get_site_meta_attributes_answers(self, obj):
+        metas = obj.site_meta_attributes_ans
+
+        return metas

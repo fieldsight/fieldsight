@@ -3417,7 +3417,6 @@ class DefineProjectSiteMeta(RegionSupervisorReviewerMixin, TemplateView):
         new_meta = json.loads(project.site_meta_attributes)
         # print new_meta
         updated_json = None
-
         if old_meta != new_meta:
             deleted = []
 
