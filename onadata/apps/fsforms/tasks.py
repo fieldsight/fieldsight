@@ -376,6 +376,7 @@ def update_progress(site_id, project_fxf_id, submission_answer={}):
         project_settings = site.project.progress_settings.filter(
             deployed=True, active=True).order_by("-date").first()
         site_saved = False
+        progress = 0
         if project_settings:
             if project_settings.source == 0 and project_fxf.is_staged:
                 progress = site.progress()
@@ -400,6 +401,9 @@ def update_progress(site_id, project_fxf_id, submission_answer={}):
                     progress = int(progress)
                     if progress and progress > 99:
                         progress = 100
+                    site.current_progress = progress
+                    site.save()
+                    site_saved = True
                 except Exception as e:
                     progress = 0
                     print("progress error", str(e))
