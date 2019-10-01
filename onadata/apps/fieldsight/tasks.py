@@ -1762,25 +1762,6 @@ def auto_generate_stage_status_report():
                 print e.__dict__
                 
 
-def sendNotification(notification, recipient):
-    result={}
-    result['id']= noti.id,
-    result['source_uid']= source_user.id,
-    result['source_name']= source_user.username,
-    result['source_img']= source_user.user_profile.profile_picture.url,
-    result['get_source_url']= noti.get_source_url(),
-    result['get_event_name']= project.name,
-    result['get_event_url']= noti.get_event_url(),
-    result['get_extraobj_name']= None,
-    result['get_extraobj_url']= None,
-    result['get_absolute_url']= noti.get_absolute_url(),
-    result['type']= 412,
-    result['date']= str(noti.date),
-    result['extra_message']= str(count) + " Sites @error " + u'{}'.format(e.message),
-    result['seen_by']= [],
-    ChannelGroup("notif-user-{}".format(recipient.id)).send({"text": json.dumps(result)})
-
-
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date, end_date):
     time.sleep(3)

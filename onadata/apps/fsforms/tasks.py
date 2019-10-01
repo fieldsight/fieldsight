@@ -396,12 +396,13 @@ def update_progress(site_id, project_fxf_id, submission_answer={}):
                 xform_question = project_settings.pull_integer_form_question
                 from onadata.apps.fieldsight.utils.progress import pull_integer_answer
                 progress = pull_integer_answer(project_fxf, xform_question, site, submission_answer)
-                if progress:
-                    if progress > 99:
+                try:
+                    progress = int(progress)
+                    if progress and progress > 99:
                         progress = 100
-                    site.current_progress = progress
-                    site.save()
-                    site_saved = True
+                except Exception as e:
+                    progress = 0
+                    print("progress error", str(e))
             elif project_settings.source == 4 and (
                     project_settings.no_submissions_form == project_fxf.pk or
                     project_settings.no_submissions_form == str(project_fxf.pk)):
