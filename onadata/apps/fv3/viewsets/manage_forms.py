@@ -453,7 +453,11 @@ class StageFormsVS(viewsets.ModelViewSet):
         else:
             return []
 
-        return queryset
+        return queryset.annotate(
+                undeployed=Count(Case(
+                    When(parent__stage_forms__isnull=False, parent__stage_forms__is_deployed=True, then=1),
+                    output_field=IntegerField()),
+                )).prefetch_related('parent', 'parent__stage_forms')
 
     def get_serializer_context(self):
         return self.request.query_params

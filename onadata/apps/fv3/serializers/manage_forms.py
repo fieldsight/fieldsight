@@ -218,17 +218,22 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
 class StageSerializer(serializers.ModelSerializer):
     # sub_stage_weight = serializers.SerializerMethodField()
+    undeployed_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Stage
         fields = ('id', 'name', 'tags', 'regions', 'description',
-                  'order', 'site', 'project')
+                  'order', 'site', 'project', 'undeployed_count')
 
     # def get_sub_stage_weight(self, obj):
     #     if hasattr(obj, "sub_stage_weight"):
     #         return obj.sub_stage_weight
     #     return 0
 
+    def get_undeployed_count(self, obj):
+        if hasattr(obj, "undeployed"):
+            return obj.undeployed
+        return 100
 
 class SubStageSerializer(serializers.ModelSerializer):
     xf = serializers.SerializerMethodField('get_assigned_form',
