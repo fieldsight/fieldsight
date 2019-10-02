@@ -143,7 +143,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Schedule
         fields = ('id', 'em', 'xf', 'project', 'site',
-                  'is_deployed', 'default_submission_status', 'schedule_level_id', 'frequency',
+                  'is_deployed', 'default_submission_status', 'schedule_level_id', 'frequency', 'month_day',
                   'schedule_level', 'selected_days', 'date_range_start', 'date_range_end', 'responses_count',
                   'date_created', 'fsxf', 'setting', 'site', 'project')
 
@@ -218,16 +218,22 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
 class StageSerializer(serializers.ModelSerializer):
     # sub_stage_weight = serializers.SerializerMethodField()
+    undeployed_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Stage
         fields = ('id', 'name', 'tags', 'regions', 'description',
-                  'order', 'site', 'project')
+                  'order', 'site', 'project', 'undeployed_count')
 
     # def get_sub_stage_weight(self, obj):
     #     if hasattr(obj, "sub_stage_weight"):
     #         return obj.sub_stage_weight
     #     return 0
+
+    def get_undeployed_count(self, obj):
+        if hasattr(obj, "undeployed"):
+            return obj.undeployed
+        return 1
 
 
 class SubStageSerializer(serializers.ModelSerializer):
