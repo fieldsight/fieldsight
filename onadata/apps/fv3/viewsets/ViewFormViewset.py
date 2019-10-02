@@ -4,6 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Q, Case, When, F, IntegerField
 
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,6 +16,10 @@ from onadata.apps.fv3.serializers.ViewFormSerializer import ViewGeneralsAndSurve
     ViewScheduledFormSerializer, ViewStageFormSerializer, ViewSubmissionStatusSerializer, FormSubmissionSerializer
 
 
+class SubmissionStatusPagination(PageNumberPagination):
+    page_size = 100
+
+
 class ProjectSiteResponsesView(APIView):
     permission_classes = (IsAuthenticated, )
 
@@ -24,8 +29,7 @@ class ProjectSiteResponsesView(APIView):
         form_type = request.query_params.get('form_type', None)
 
         if form_type == 'general':
-            base_queryset = FieldSightXF.objects.select_related('xf').filter(is_staged=False, is_scheduled=False,
-                                                                             is_deleted=False, is_survey=False)
+            base_queryset = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False, is_deleted=False, is_survey=False)
             if project is not None:
                 try:
                     project = Project.objects.get(id=project, is_active=True)
@@ -34,12 +38,12 @@ class ProjectSiteResponsesView(APIView):
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 is_project = True
-                generals_queryset = base_queryset.filter(project=project).annotate(response_count=
+                generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory', 'project_form_instances').filter(project=project).annotate(response_count=
                                                                                    Count('project_form_instances'))
                 generals = ViewGeneralsAndSurveyFormSerializer(generals_queryset, context={'is_project': is_project},
                                                      many=True).data
 
-                general_deleted_qs = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False,
+                general_deleted_qs = FieldSightXF.objects.select_related('xf').prefetch_related('project_form_instances', 'xf__fshistory').filter(is_staged=False, is_scheduled=False,
                                                                     is_survey=False, is_deleted=True, project=project).\
                     annotate(response_count=Count('project_form_instances'))
                 general_deleted_forms = ViewGeneralsAndSurveyFormSerializer(general_deleted_qs, context={'is_project':
@@ -53,25 +57,26 @@ class ProjectSiteResponsesView(APIView):
                     site = Site.objects.get(id=site, is_active=True)
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+
                 project_id = site.project_id
 
                 if site.type and site.region:
 
-                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
+                    generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').filter(Q(site__id=site.id, from_project=False)
                                                | Q(project__id=project_id, settings__isnull=True)
-                                               | Q(project__id=project_id, settings__types__contains=[site.type_id]),
-                                               settings__regions__contains=[site.region_id])
+                                               | Q(project__id=project_id, settings__types__contains=[site.type_id])
+                                               | Q(project__id=project_id, settings__regions__contains=[site.region_id]))
                 elif site.type:
-                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
+                    generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').filter(Q(site__id=site.id, from_project=False)
                                                | Q(project__id=project_id, settings__isnull=True)
                                                | Q(project__id=project_id, settings__types__contains=[site.type_id]))
                 elif site.region:
-                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
+                    generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').filter(Q(site__id=site.id, from_project=False)
                                                | Q(project__id=project_id, settings__isnull=True)
                                                | Q(project__id=project_id,
                                                    settings__regions__contains=[site.region_id]))
                 else:
-                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False) |
+                    generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').filter(Q(site__id=site.id, from_project=False) |
                                                              Q(project__id=project_id))
                 generals_queryset = generals_queryset.annotate(site_response_count=Count("site_form_instances"),
                                                                response_count=Count(Case(When(project__isnull=False,
@@ -80,7 +85,7 @@ class ProjectSiteResponsesView(APIView):
                                                                                          output_field=IntegerField(),),
                                                                                     distinct=True))
                 generals = ViewGeneralsAndSurveyFormSerializer(generals_queryset, many=True).data
-                general_deleted_qs = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False,
+                general_deleted_qs = FieldSightXF.objects.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').filter(is_staged=False, is_scheduled=False,
                                                                  is_survey=False, is_deleted=True, project=project).\
                     annotate(site_response_count=Count("site_form_instances"))
                 general_deleted_forms = ViewGeneralsAndSurveyFormSerializer(general_deleted_qs,
@@ -122,21 +127,26 @@ class ProjectSiteResponsesView(APIView):
                 if site.type and site.region:
 
                     scheduled_queryset = base_queryset.filter(Q(site__id=site.id)
-                                               | Q(project__id=project_id, schedule_forms__settings__isnull=True)
-                                               | Q(project__id=project_id,
-                                                   schedule_forms__settings__types__contains=[site.type_id]),
-                                               schedule_forms__settings__regions__contains=[site.region_id])
+                                                              | Q(project__id=project_id,
+                                                                  schedule_forms__settings__isnull=True)
+                                                              | Q(project__id=project_id,
+                                                                  schedule_forms__settings__types__contains=[site.type_id])
+                                                              |Q(project__id=project_id,
+                                                                 schedule_forms__settings__regions__contains=[site.region_id]))
                 elif site.type:
+
                     scheduled_queryset = base_queryset.filter(Q(site__id=site.id)
                                                | Q(project__id=project_id, schedule_forms__settings__isnull=True)
                                                | Q(project__id=project_id,
                                                    schedule_forms__settings__types__contains=[site.type_id]))
                 elif site.region:
+
                     scheduled_queryset = base_queryset.filter(Q(site__id=site.id, )
                                                | Q(project__id=project_id, schedule_forms__settings__isnull=True)
                                                | Q(project__id=project_id,
                                                    schedule_forms__settings__regions__contains=[site.region_id]))
                 else:
+
                     scheduled_queryset = base_queryset.filter(Q(site__id=site.id) | Q(project__id=project_id))
 
                 scheduled_queryset = scheduled_queryset.annotate(
@@ -151,14 +161,15 @@ class ProjectSiteResponsesView(APIView):
 
                 ).select_related('schedule_forms', 'schedule_forms__xf',
                                  'schedule_forms__em')
-                scheduled = ViewScheduledFormSerializer(scheduled_queryset, many=True).data
+                scheduled = ViewScheduledFormSerializer(scheduled_queryset, context={'site': site.id},
+                                                        many=True).data
                 scheduled_deleted_qs = Schedule.objects.filter(schedule_forms__isnull=False,
                                                                schedule_forms__is_deleted=True, project=project). \
                     annotate(site_response_count=Count("schedule_forms__site_form_instances"))
-                general_deleted_forms = ViewGeneralsAndSurveyFormSerializer(scheduled_deleted_qs,
+                scheduled_deleted_forms = ViewGeneralsAndSurveyFormSerializer(scheduled_deleted_qs,
                                                                    many=True).data
                 return Response(status=status.HTTP_200_OK, data={'scheduled_forms': scheduled,
-                                                                 'deleted_forms': general_deleted_forms})
+                                                                 'deleted_forms': scheduled_deleted_forms})
 
         elif form_type == 'stage':
             base_queryset = Stage.objects.filter(stage__isnull=True).order_by('order', 'date_created')
@@ -169,9 +180,10 @@ class ProjectSiteResponsesView(APIView):
 
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+                is_project = True
 
                 stage_queryset = base_queryset.filter(project=project)
-                stage = ViewStageFormSerializer(stage_queryset, many=True).data
+                stage = ViewStageFormSerializer(stage_queryset, context={'is_project': is_project}, many=True).data
 
                 # stage_deleted_qs = FieldSightXF.objects.filter(is_staged=True,  is_scheduled=False,
                 #                                                is_survey=False, is_deleted=True, project=project)
@@ -202,7 +214,7 @@ class ProjectSiteResponsesView(APIView):
                     stage_queryset = base_queryset.filter(
                         Q(site__id=site.id, project_stage_id=0)
                         | Q(project__id=project_id))
-                stage = ViewStageFormSerializer(stage_queryset, many=True).data
+                stage = ViewStageFormSerializer(stage_queryset, context={'site': site.id}, many=True).data
                 # stage_deleted_qs = FieldSightXF.objects.filter(is_staged=True, is_scheduled=False, is_survey=False,
                 #                                                is_deleted=True).filter(Q(site__id=site.id,
                 #                                                                          from_project=False)
@@ -239,6 +251,15 @@ class ProjectSiteResponsesView(APIView):
 
 class ProjectSiteSubmissionStatusView(APIView):
     permission_classes = (IsAuthenticated, )
+    pagination_class = SubmissionStatusPagination
+
+    def response_paginated_data(self, queryset):
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = ViewSubmissionStatusSerializer(page, many=True)
+
+            return self.get_paginated_response(serializer.data)
 
     def get(self, request, format=None):
         project = request.query_params.get('project', None)
@@ -246,7 +267,7 @@ class ProjectSiteSubmissionStatusView(APIView):
         submission_status = request.query_params.get('submission_status', None)
 
         if submission_status == 'rejected':
-            base_queryset = FInstance.objects.select_related('project_fxf__xf', 'site_fxf__xf', 'submitted_by').\
+            base_queryset = FInstance.objects.\
                 filter(form_status='1').order_by('-date')
             if project is not None:
                 try:
@@ -255,10 +276,9 @@ class ProjectSiteSubmissionStatusView(APIView):
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
-                rejected_queryset = base_queryset.filter(project=project, project_fxf_id__isnull=False)
-                rejected_submissions = ViewSubmissionStatusSerializer(rejected_queryset, many=True).data
+                rejected_queryset = base_queryset.select_related('project_fxf__xf', 'submitted_by').filter(project=project, project_fxf_id__isnull=False)
 
-                return Response(status=status.HTTP_200_OK, data={'rejected_submissions': rejected_submissions})
+                return self.response_paginated_data(rejected_queryset)
             elif site is not None:
                 try:
                     site = Site.objects.get(id=site, is_active=True)
@@ -266,9 +286,7 @@ class ProjectSiteSubmissionStatusView(APIView):
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 rejected_queryset = base_queryset.filter(site=site)
-                rejected_submissions = ViewSubmissionStatusSerializer(rejected_queryset, many=True).data
-
-                return Response(status=status.HTTP_200_OK, data={'rejected_submissions': rejected_submissions})
+                return self.response_paginated_data(rejected_queryset)
 
         if submission_status == 'flagged':
             base_queryset = FInstance.objects.select_related('project_fxf__xf', 'site_fxf__xf', 'submitted_by').\
@@ -281,9 +299,7 @@ class ProjectSiteSubmissionStatusView(APIView):
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 flagged_queryset = base_queryset.filter(project=project, project_fxf_id__isnull=False)
-                flagged_submissions = ViewSubmissionStatusSerializer(flagged_queryset, many=True).data
-
-                return Response(status=status.HTTP_200_OK, data={'flagged_submissions': flagged_submissions})
+                return self.response_paginated_data(flagged_queryset)
             elif site is not None:
                 try:
                     site = Site.objects.get(id=site, is_active=True)
@@ -291,9 +307,7 @@ class ProjectSiteSubmissionStatusView(APIView):
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 flagged_queryset = base_queryset.filter(site=site)
-                flagged_submissions = ViewSubmissionStatusSerializer(flagged_queryset, many=True).data
-
-                return Response(status=status.HTTP_200_OK, data={'flagged_submissions': flagged_submissions})
+                return self.response_paginated_data(flagged_queryset)
 
         if submission_status == 'pending':
             base_queryset = FInstance.objects.select_related('project_fxf__xf', 'site_fxf__xf', 'submitted_by').\
@@ -306,9 +320,8 @@ class ProjectSiteSubmissionStatusView(APIView):
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 pending_queryset = base_queryset.filter(project=project, project_fxf_id__isnull=False)
-                pending_submissions = ViewSubmissionStatusSerializer(pending_queryset, many=True).data
+                return self.response_paginated_data(pending_queryset)
 
-                return Response(status=status.HTTP_200_OK, data={'pending_submissions': pending_submissions})
             elif site is not None:
                 try:
                     site = Site.objects.get(id=site, is_active=True)
@@ -316,12 +329,10 @@ class ProjectSiteSubmissionStatusView(APIView):
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 pending_queryset = base_queryset.filter(site=site)
-                pending_submissions = ViewSubmissionStatusSerializer(pending_queryset, many=True).data
-
-                return Response(status=status.HTTP_200_OK, data={'pending_submissions': pending_submissions})
+                return self.response_paginated_data(pending_queryset)
 
         if submission_status == 'approved':
-            base_queryset = FInstance.objects.select_related('project_fxf__xf', 'site_fxf__xf', 'submitted_by').\
+            base_queryset = FInstance.objects.\
                 filter(form_status='3').order_by('-date')
             if project is not None:
                 try:
@@ -330,10 +341,9 @@ class ProjectSiteSubmissionStatusView(APIView):
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
-                approved_queryset = base_queryset.filter(project=project, project_fxf_id__isnull=False)
-                approved_submissions = ViewSubmissionStatusSerializer(approved_queryset, many=True).data
+                approved_queryset = base_queryset.select_related('project_fxf__xf', 'submitted_by').filter(project=project, project_fxf_id__isnull=False)
+                return self.response_paginated_data(approved_queryset)
 
-                return Response(status=status.HTTP_200_OK, data={'approved_submissions': approved_submissions})
             elif site is not None:
                 try:
                     site = Site.objects.get(id=site, is_active=True)
@@ -341,9 +351,34 @@ class ProjectSiteSubmissionStatusView(APIView):
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 approved_queryset = base_queryset.filter(site=site)
-                approved_submissions = ViewSubmissionStatusSerializer(approved_queryset, many=True).data
+                return self.response_paginated_data(approved_queryset)
 
-                return Response(status=status.HTTP_200_OK, data={'approved_submissions': approved_submissions})
+    @property
+    def paginator(self):
+        """
+        The paginator instance associated with the view, or `None`.
+        """
+        if not hasattr(self, '_paginator'):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(self, queryset):
+        """
+        Return a single page of results, or `None` if pagination is disabled.
+        """
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset, self.request, view=self)
+
+    def get_paginated_response(self, data):
+        """
+        Return a paginated style `Response` object for the given output data.
+        """
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
 
 
 class FormSubmissionsView(APIView):
