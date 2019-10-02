@@ -17,7 +17,7 @@ from onadata.apps.fv3.serializers.ViewFormSerializer import ViewGeneralsAndSurve
 
 
 class SubmissionStatusPagination(PageNumberPagination):
-    page_size = 100
+    page_size = 200
 
 
 class ProjectSiteResponsesView(APIView):
