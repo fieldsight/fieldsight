@@ -324,7 +324,8 @@ class StageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Stage
-        exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created', 'tags', 'regions')
+        exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created',
+                   'tags', 'regions', 'types', 'regions')
 
     # def get_substages(self, stage):
     #     stages = Stage.objects.filter(stage=stage, is_deleted=False,
