@@ -455,7 +455,11 @@ class StageFormsVS(viewsets.ModelViewSet):
 
         return queryset.annotate(
                 undeployed=Count(Case(
-                    When(parent__stage_forms__isnull=False, parent__stage_forms__is_deployed=False, then=1),
+                    When(parent__is_deleted=False,
+                         parent__stage_forms__isnull=False,
+                         parent__stage_forms__is_deployed=False,
+                         parent__stage_forms__is_deleted=False,
+                         then=1),
                     output_field=IntegerField()),
                 )).prefetch_related('parent', 'parent__stage_forms')
 
