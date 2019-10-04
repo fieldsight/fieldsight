@@ -52,7 +52,10 @@ class TeamSerializer(serializers.ModelSerializer):
         return contact
 
     def get_projects(self, obj):
-        projects = obj.projects.filter(is_active=True).values('id', 'name', 'logo', 'address')
+        qs = obj.projects.filter(is_active=True)
+        projects = []
+        for obj in qs:
+            projects.append([obj.id, obj.name, obj.logo.url, obj.address])
 
         return projects
 
