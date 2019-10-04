@@ -55,7 +55,7 @@ class TeamSerializer(serializers.ModelSerializer):
         qs = obj.projects.filter(is_active=True)
         projects = []
         for obj in qs:
-            projects.append([obj.id, obj.name, obj.logo.url, obj.address])
+            projects.append({'id': obj.id, 'name': obj.name, 'logo': obj.logo.url, 'address': obj.address})
 
         return projects
 
