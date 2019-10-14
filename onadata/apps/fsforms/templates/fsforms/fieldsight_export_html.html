@@ -89,7 +89,7 @@
           <td>{{ sub.site.identifier }}</td>
           <td><a href="{% url 'fieldsight:application' %}?submission={{sub.instance.id|stringformat:'d'}}#/submission-details">{{ sub.instance.id }}</a></td>
           <td>{{ sub.submitted_by.user_profile.getname }}</td>
-          <td>{{ sub.date }}</td>
+          <td>{{ sub.instance.date_created }}</td>
             <td>
             <a class="badge badge-primary" href="{% url 'forms:view_data' sub.project_fxf.xf.id_string sub.instance.id %}" target="_blank">View
                 <i class="la la-eye"></i></a>
@@ -110,7 +110,7 @@
         </tr>
         <div class="modal fade" id="modal-delete{{ forloop.counter }}" role="dialog">
             <div class="modal-dialog">
-  
+
               <!-- Modal content-->
               <div class="modal-content">
                 <div class="modal-header">
@@ -127,13 +127,13 @@
                         <button type="button" class="btn btn-danger " data-toggle="modal" data-target="#modal-delete{{ sub.instance.id }}"><i class="la la-trash"></i>{% trans 'Delete' %}</button></a>
                     {% endif %}
                   <button type="button" class="btn btn-default" data-dismiss="modal"><i class="la la-times"></i>{% trans 'Cancel' %}</button>
-  
+
                 </div>
               </div>
-  
+
             </div>
           </div>
-                
+
     {% endfor %}
     </tbody>
   </table>
@@ -166,7 +166,7 @@
             <td><a href="{% url 'forms:instance' sub.fsxfid  %}#/{{ sub.instance.id|stringformat:'d'}}">{{ sub.instance.id }}</a> </td>
          {% endif %}
         <td>{{ sub.submitted_by.user_profile.getname }}</td>
-        <td>{{ sub.date }}</td>
+        <td>{{ sub.instance.date_created }}</td>
         {% if sub.project_fxf %}
         <td>
           <a class="badge badge-primary" href="{% url 'forms:view_data' sub.project_fxf.xf.id_string sub.instance.id %}" target="_blank">View
