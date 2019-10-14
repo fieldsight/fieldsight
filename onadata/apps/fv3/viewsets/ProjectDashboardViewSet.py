@@ -18,7 +18,7 @@ from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, ProgressGeneralFormSerializer, \
     ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer
-from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions
+from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import Instance
 from onadata.apps.fieldsight.tasks import UnassignAllSiteRoles
@@ -101,7 +101,7 @@ def project_regions_types(request, pk):
 class SiteFormViewSet(viewsets.ModelViewSet):
     queryset = Site.objects.all()
     serializer_class = SiteFormSerializer
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, SiteFormPermissions]
     authentication_classes = [CsrfExemptSessionAuthentication, ]
 
     def get_queryset(self):

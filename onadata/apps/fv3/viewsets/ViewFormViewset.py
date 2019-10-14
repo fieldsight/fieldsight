@@ -14,6 +14,7 @@ from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fsforms.reports_util import delete_form_instance
 from onadata.apps.fv3.serializers.ViewFormSerializer import ViewGeneralsAndSurveyFormSerializer, \
     ViewScheduledFormSerializer, ViewStageFormSerializer, ViewSubmissionStatusSerializer, FormSubmissionSerializer
+from onadata.apps.fv3.permissions.view_by_forms_status_perm import ViewDataPermission, DeleteFInstancePermission
 
 
 class SubmissionStatusPagination(PageNumberPagination):
@@ -21,7 +22,7 @@ class SubmissionStatusPagination(PageNumberPagination):
 
 
 class ProjectSiteResponsesView(APIView):
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated, ViewDataPermission)
 
     def get(self, request, format=None):
         project = request.query_params.get('project', None)
@@ -250,7 +251,7 @@ class ProjectSiteResponsesView(APIView):
 
 
 class ProjectSiteSubmissionStatusView(APIView):
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated, ViewDataPermission)
     pagination_class = SubmissionStatusPagination
 
     def response_paginated_data(self, queryset):
@@ -259,7 +260,7 @@ class ProjectSiteSubmissionStatusView(APIView):
         if page is not None:
             serializer = ViewSubmissionStatusSerializer(page, many=True)
 
-            return self.get_paginated_response(serializer.data)
+            return self.get_paginated_response({'data': serializer.data})
 
     def get(self, request, format=None):
         project = request.query_params.get('project', None)
@@ -382,6 +383,8 @@ class ProjectSiteSubmissionStatusView(APIView):
 
 
 class FormSubmissionsView(APIView):
+    permission_classes = (IsAuthenticated, ViewDataPermission)
+    pagination_class = SubmissionStatusPagination
 
     def get(self, request, format=None):
         project = request.query_params.get('project', None)
@@ -397,10 +400,13 @@ class FormSubmissionsView(APIView):
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
             queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf.id)
-            data = FormSubmissionSerializer(queryset, many=True, context={'is_project': is_project}).data
+            page = self.paginate_queryset(queryset)
 
-            return Response(status=status.HTTP_200_OK, data={'data': data, 'form_name': fsxf.xf.title, 'form_id_string':
-                fsxf.xf.id_string})
+            if page is not None:
+                serializer = FormSubmissionSerializer(page, many=True, context={'is_project': is_project})
+
+                return self.get_paginated_response({'data': serializer.data, 'form_name': fsxf.xf.title,
+                                                    'form_id_string':fsxf.xf.id_string})
 
         elif site and fsxf_id is not None:
             is_project = False
@@ -415,14 +421,44 @@ class FormSubmissionsView(APIView):
             else:
                 queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf_id,
                                                                                            site_id=site.id)
+            page = self.paginate_queryset(queryset)
 
-            data = FormSubmissionSerializer(queryset, many=True, context={'is_project': is_project}).data
+            if page is not None:
+                serializer = FormSubmissionSerializer(page, many=True, context={'is_project': is_project})
 
-            return Response(status=status.HTTP_200_OK, data={'data': data, 'form_name': fsxf.xf.title, 'form_id_string':
-                fsxf.xf.id_string})
+                return self.get_paginated_response({'data': serializer.data, 'form_name': fsxf.xf.title,
+                                                    'form_id_string': fsxf.xf.id_string})
+
+    @property
+    def paginator(self):
+        """
+        The paginator instance associated with the view, or `None`.
+        """
+        if not hasattr(self, '_paginator'):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(self, queryset):
+        """
+        Return a single page of results, or `None` if pagination is disabled.
+        """
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset, self.request, view=self)
+
+    def get_paginated_response(self, data):
+        """
+        Return a paginated style `Response` object for the given output data.
+        """
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
 
 
 class DeleteFInstanceView(APIView):
+    permission_classes = (IsAuthenticated, DeleteFInstancePermission)
 
     def get(self, request, *args, **kwargs):
         try:

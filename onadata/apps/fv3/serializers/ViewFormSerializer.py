@@ -176,7 +176,7 @@ class ViewSubStageFormSerializer(serializers.ModelSerializer):
 
     def get_download_url(self, obj):
         if self.get_response_count(obj) > 0:
-            return '/{}/exports/{}/xls/1/{}/0/0/'.format(obj.stage_forms.xf.user.username, obj.schedule_forms.xf.id_string,
+            return '/{}/exports/{}/xls/1/{}/0/0/'.format(obj.stage_forms.xf.user.username, obj.stage_forms.xf.id_string,
                                                          obj.stage_forms.id)
 
     def get_versions_url(self, obj):

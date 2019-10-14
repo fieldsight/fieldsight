@@ -556,3 +556,189 @@ class TeamCreationPermission(DjangoObjectPermissions):
             return False
 
 
+class SiteFormPermissions(DjangoObjectPermissions):
+
+    def has_permission(self, request, view):
+
+        if view.action == 'list':
+            return True
+
+        elif view.action == 'create':
+            level = request.query_params.get('level')
+
+            if request.is_super_admin:
+                return True
+
+            if level == 'project':
+                project_id = request.data.get('project')
+
+                try:
+                    project = Project.objects.get(id=project_id)
+                except ObjectDoesNotExist:
+                    return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+
+                if project is not None:
+                    organization_id = project.organization_id
+                    user_role_org_admin = request.roles.filter(organization_id=organization_id,
+                                                               group__name="Organization Admin")
+
+                    if user_role_org_admin:
+                        return True
+
+                    user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+
+                    if user_role_as_manager:
+                        return True
+
+                return False
+            elif level == 'region':
+                region_id = request.data.get('region', None)
+                return check_regional_perm(request, region_id)
+
+            elif level == 'site':
+                site_id = request.data.get('site', None)
+                return check_site_permission(request, site_id)
+
+        elif view.action == 'retrieve':
+            if request.is_super_admin:
+                return True
+
+            site_id = view.kwargs.get('pk')
+            try:
+                site = Site.objects.get(id=site_id)
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+
+            if site is not None:
+                organization_id = site.project.organization_id
+                user_role_org_admin = request.roles.filter(organization_id=organization_id,
+                                                           group__name="Organization Admin")
+
+                if user_role_org_admin:
+                    return True
+
+                project = site.project
+                user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                    "Project Donor"])
+
+                if user_role_as_manager:
+                    return True
+
+                region = site.region
+                if region is not None:
+
+                    user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                    "Region Supervisor"],
+                                                                                   region_id__in=region.get_parent_regions())
+
+                    if user_role_as_region_reviewer_supervisor:
+                        return True
+
+                if region is None:
+                    user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                    "Region Supervisor"],
+                                                                                   region=region)
+
+                    if user_role_as_region_reviewer_supervisor:
+                        return True
+
+                if site.site is not None:
+                    user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                     site_id__in=site.get_parent_sites())
+                    if user_role:
+                        return True
+
+                if site.site is None:
+                    user_role = request.roles.filter(group__name__in=["Site Supervisor", "Reviewer"],
+                                                     site=site)
+                    if user_role:
+                        return True
+
+                return False
+            return False
+
+        elif view.action == 'update':
+            if request.is_super_admin:
+                return True
+
+            site_id = view.kwargs.get('pk')
+            try:
+                site = Site.objects.get(id=site_id)
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+
+            if site is not None:
+                organization_id = site.project.organization_id
+                user_role_org_admin = request.roles.filter(organization_id=organization_id,
+                                                           group__name="Organization Admin")
+
+                if user_role_org_admin:
+                    return True
+
+                project = site.project
+                user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                    "Project Donor"])
+
+                if user_role_as_manager:
+                    return True
+
+                region = site.region
+                if region is not None:
+
+                    user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                    "Region Supervisor"],
+                                                                                   region_id__in=region.get_parent_regions())
+
+                    if user_role_as_region_reviewer_supervisor:
+                        return True
+
+                if region is None:
+                    user_role_as_region_reviewer_supervisor = request.roles.filter(group__name__in=["Region Reviewer",
+                                                                                                    "Region Supervisor"],
+                                                                                   region=region)
+
+                    if user_role_as_region_reviewer_supervisor:
+                        return True
+
+                if site.site is not None:
+                    user_role = request.roles.filter(group__name="Reviewer", site_id__in=site.get_parent_sites())
+                    if user_role:
+                        return True
+
+                if site.site is None:
+                    user_role = request.roles.filter(group__name="Reviewer", site=site)
+                    if user_role:
+                        return True
+
+                return False
+            return False
+
+        elif view.action == 'destroy':
+
+            site_id = view.kwargs.get('pk')
+            site = Site.objects.get(id=site_id)
+            project_id = site.project.id
+
+            if request.is_super_admin:
+                return True
+
+            try:
+                project = Project.objects.get(id=project_id)
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+
+            if project is not None:
+                organization_id = project.organization_id
+                user_role_org_admin = request.roles.filter(organization_id=organization_id,
+                                                           group__name="Organization Admin")
+
+                if user_role_org_admin:
+                    return True
+
+                user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+
+                if user_role_as_manager:
+                    return True
+
+            return False
+
