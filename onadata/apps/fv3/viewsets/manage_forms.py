@@ -113,12 +113,13 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                         is_survey=False,
                         is_scheduled=False,
                         is_staged=False
-                ).filter(Q(site_id=site_id,) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
+                ).filter(Q(site_id=site_id, from_project=False) |
+                         Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
                     return Response({"error": "Form already exists in general form"},
                                     status=status.HTTP_400_BAD_REQUEST)
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
-                    xf_id=xf, site_id=site_id
+                    xf_id=xf, site_id=site_id, from_project=False
                 )
             settings = request.data.get('setting')
             if settings:
@@ -350,7 +351,7 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                     xf_id=xf,
                     is_deleted=False,
                     is_scheduled=True,
-            ).filter(Q(site_id=site_id) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
+            ).filter(Q(site_id=site_id, from_project=False) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
                 return Response({"error": "Form already exists in Schedule form"},
                                 status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic():
@@ -360,7 +361,7 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
                     xf_id=xf, site_id=site_id, schedule=schedule,
-                    is_scheduled=True
+                    is_scheduled=True, from_project=False
                 )
         settings = request.data.get('setting')
         if settings and fxf and schedule:
@@ -455,7 +456,11 @@ class StageFormsVS(viewsets.ModelViewSet):
 
         return queryset.annotate(
                 undeployed=Count(Case(
-                    When(parent__stage_forms__isnull=False, parent__stage_forms__is_deployed=False, then=1),
+                    When(parent__is_deleted=False,
+                         parent__stage_forms__isnull=False,
+                         parent__stage_forms__is_deployed=False,
+                         parent__stage_forms__is_deleted=False,
+                         then=1),
                     output_field=IntegerField()),
                 )).prefetch_related('parent', 'parent__stage_forms')
 
