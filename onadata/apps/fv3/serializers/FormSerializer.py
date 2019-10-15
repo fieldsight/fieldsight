@@ -288,7 +288,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Schedule
         fields = ('id', 'name', 'date_range_start', 'date_range_end',
-                  'selected_days', 'frequency',
+                  'selected_days', 'frequency', 'month_day',
                   'type')
 
 
