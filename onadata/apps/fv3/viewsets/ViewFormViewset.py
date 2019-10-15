@@ -451,7 +451,7 @@ class FormSubmissionsView(APIView):
                     )
                 else:
                     queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf_id,
-                                                                                           site_id=site.id).order_by('-id')
+                                                                                           site_id=site).order_by('-id')
             page = self.paginate_queryset(queryset)
 
             if page is not None:

@@ -276,10 +276,15 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
     profile_url = serializers.SerializerMethodField()
     site_name = serializers.CharField(source='site.name')
     site_identifier = serializers.CharField(source='site.identifier')
+    submission_id = serializers.SerializerMethodField()
 
     class Meta:
         model = FInstance
-        fields = ('id', 'date', 'submitted_by', 'profile_url', 'site_name', 'site_identifier')
+        fields = ('id', 'submission_id', 'date', 'submitted_by', 'profile_url', 'site_name', 'site_identifier')
 
     def get_profile_url(self, obj):
         return '/users/profile/{}/'.format(obj.submitted_by.id)
+
+    def get_submission_id(self, obj):
+        return obj.instance.id
+
