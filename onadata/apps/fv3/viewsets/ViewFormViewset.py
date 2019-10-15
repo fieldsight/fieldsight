@@ -390,6 +390,7 @@ class FormSubmissionsView(APIView):
         project = request.query_params.get('project', None)
         site = request.query_params.get('site', None)
         fsxf_id = request.query_params.get('fsxf_id', None)
+        search_param = request.query_params.get('q', None)
 
         if project and fsxf_id is not None:
             is_project = True
@@ -398,15 +399,27 @@ class FormSubmissionsView(APIView):
 
             except ObjectDoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+            if search_param:
+                queryset = FInstance.objects.select_related('site', 'submitted_by').filter(
+                    Q(project_fxf=fsxf.id) &
+                    (
+                            Q(site__name__icontains=search_param) |
+                            Q(site__identifier__icontains=search_param) |
+                            Q(submitted_by__first_name__icontains=search_param) |
+                            Q(submitted_by__last_name__icontains=search_param)
+                    )
+                )
+            else:
+                queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf.id).\
+                    order_by('-id')
 
-            queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf.id)
             page = self.paginate_queryset(queryset)
 
             if page is not None:
                 serializer = FormSubmissionSerializer(page, many=True, context={'is_project': is_project})
 
                 return self.get_paginated_response({'data': serializer.data, 'form_name': fsxf.xf.title,
-                                                    'form_id_string':fsxf.xf.id_string})
+                                                    'form_id_string':fsxf.xf.id_string, 'query': search_param})
 
         elif site and fsxf_id is not None:
             is_project = False
@@ -417,17 +430,35 @@ class FormSubmissionsView(APIView):
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
             if not fsxf.from_project:
-                queryset = FInstance.objects.select_related('site', 'submitted_by').filter(site_fxf=fsxf_id)
+                if search_param:
+                    queryset = FInstance.objects.select_related('site', 'submitted_by').filter(
+                        Q(site_fxf=fsxf.id) &
+                        (
+                                Q(submitted_by__first_name__icontains=search_param) |
+                                Q(submitted_by__last_name__icontains=search_param)
+                        )
+                    )
+                else:
+                    queryset = FInstance.objects.select_related('site', 'submitted_by').filter(site_fxf=fsxf_id).order_by('-id')
             else:
-                queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf_id,
-                                                                                           site_id=site.id)
+                if search_param:
+                    queryset = FInstance.objects.select_related('site', 'submitted_by').filter(
+                        Q(project_fxf=fsxf_id) &
+                        (
+                                Q(submitted_by__first_name__icontains=search_param) |
+                                Q(submitted_by__last_name__icontains=search_param)
+                        )
+                    )
+                else:
+                    queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf_id,
+                                                                                           site_id=site.id).order_by('-id')
             page = self.paginate_queryset(queryset)
 
             if page is not None:
                 serializer = FormSubmissionSerializer(page, many=True, context={'is_project': is_project})
 
                 return self.get_paginated_response({'data': serializer.data, 'form_name': fsxf.xf.title,
-                                                    'form_id_string': fsxf.xf.id_string})
+                                                    'form_id_string': fsxf.xf.id_string, 'query': search_param})
 
     @property
     def paginator(self):

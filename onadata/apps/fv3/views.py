@@ -786,6 +786,8 @@ class TeamFormViewset(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=False)
         self.object = self.perform_create(serializer)
+        self.object.owner = self.request.user
+        self.object.save()
 
         noti = self.object.logs.create(source=self.request.user, type=9, title="new Organization",
                                        organization=self.object, content_object=self.object,

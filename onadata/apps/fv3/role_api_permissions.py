@@ -552,7 +552,10 @@ class TeamCreationPermission(DjangoObjectPermissions):
         if request.roles.filter(group__name="Super Admin").exists():
             return True
 
-        elif request.user.organizations.all().exists():
+        elif not request.user.organizations.all().exists():
+            return True
+
+        else:
             return False
 
 
@@ -564,13 +567,23 @@ class SiteFormPermissions(DjangoObjectPermissions):
             return True
 
         elif view.action == 'create':
-            level = request.query_params.get('level')
+            project = request.query_params.get('project', None)
+            site = request.query_params.get('site', None)
+            region = request.query_params.get('region', None)
 
             if request.is_super_admin:
                 return True
 
-            if level == 'project':
-                project_id = request.data.get('project')
+            if None not in (project, region):
+                region_id = region
+                return check_regional_perm(request, region_id)
+
+            elif None not in (project, site):
+                site_id = site
+                return check_site_permission(request, site_id)
+
+            elif project is not None:
+                project_id = project
 
                 try:
                     project = Project.objects.get(id=project_id)
@@ -591,13 +604,7 @@ class SiteFormPermissions(DjangoObjectPermissions):
                         return True
 
                 return False
-            elif level == 'region':
-                region_id = request.data.get('region', None)
-                return check_regional_perm(request, region_id)
 
-            elif level == 'site':
-                site_id = request.data.get('site', None)
-                return check_site_permission(request, site_id)
 
         elif view.action == 'retrieve':
             if request.is_super_admin:
