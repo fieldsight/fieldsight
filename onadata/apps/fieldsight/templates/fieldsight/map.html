@@ -701,7 +701,15 @@
                 ['#FF0000', '#FFFF00', '#008000']
                 
                 //add more colors if the length is more than 16. For projects, site_types and regions
-                var maxLengthValue = Math.max(projectList.length, site_types.length, regions.length);
+                var slength = 0;
+                var rlength = 0;
+                if(site_types != null){
+                    slength = site_types.length;
+                }
+                if(regions != null){
+                    rlength = regions.length;
+                }
+                var maxLengthValue = Math.max(projectList.length, slength, rlength);
                 if(maxLengthValue > 16){
                         var start = '#09e609';//'#ff6600';
                         var medium = '#e67f09';//'#b76e79';
