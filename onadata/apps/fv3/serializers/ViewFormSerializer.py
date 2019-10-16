@@ -53,8 +53,13 @@ class ViewGeneralsAndSurveyFormSerializer(serializers.ModelSerializer):
     def get_download_url(self, obj):
         if self.get_response_count(obj) > 0:
             is_project = self.context.get('is_project', False)
+            site = self.context.get('site', None)
+
             if is_project:
                 return '/{}/exports/{}/xls/1/{}/0/0/'.format(obj.xf.user.username, obj.xf.id_string, obj.id)
+            elif site is not None:
+                return '/{}/exports/{}/xls/0/{}/{}/0/'.format(obj.xf.user.username, obj.xf.id_string, obj.id, site)
+
             else:
                 return ''
 
@@ -110,9 +115,20 @@ class ViewScheduledFormSerializer(serializers.ModelSerializer):
             return count
 
     def get_download_url(self, obj):
+
         if self.get_response_count(obj) > 0:
-            return '/{}/exports/{}/xls/1/{}/0/0/'.format(obj.schedule_forms.xf.user.username, obj.schedule_forms.xf.id_string,
-                                                         obj.schedule_forms.id)
+            is_project = self.context.get('is_project', False)
+            site = self.context.get('site', None)
+
+            if is_project:
+                return '/{}/exports/{}/xls/1/{}/0/0/'.format(obj.schedule_forms.xf.user.username,
+                                                             obj.schedule_forms.xf.id_string,  obj.schedule_forms.id)
+            elif site is not None:
+                return '/{}/exports/{}/xls/0/{}/{}/0/'.format(obj.schedule_forms.xf.user.username,
+                                                              obj.schedule_forms.xf.id_string, obj.schedule_forms.id,
+                                                              site)
+            else:
+                return ''
 
     def get_versions_url(self, obj):
         is_project = self.context.get('is_project', False)
@@ -159,9 +175,20 @@ class ViewSubStageFormSerializer(serializers.ModelSerializer):
                     'date', flat=True)[:1]
 
     def get_download_url(self, obj):
+       
         if self.get_response_count(obj) > 0:
-            return '/{}/exports/{}/xls/1/{}/0/0/'.format(obj.stage_forms.xf.user.username, obj.stage_forms.xf.id_string,
-                                                         obj.stage_forms.id)
+            is_project = self.context.get('is_project', False)
+            site = self.context.get('site', None)
+
+            if is_project:
+                return '/{}/exports/{}/xls/1/{}/0/0/'.format(obj.stage_forms.xf.user.username,
+                                                             obj.stage_forms.xf.id_string,  obj.stage_forms.id)
+            elif site is not None:
+                return '/{}/exports/{}/xls/0/{}/{}/0/'.format(obj.stage_forms.xf.user.username,
+                                                              obj.stage_forms.xf.id_string, obj.stage_forms.id,
+                                                              site)
+            else:
+                return ''
 
     def get_versions_url(self, obj):
         is_project = self.context.get('is_project', False)
@@ -271,4 +298,12 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
 
     def get_submission_id(self, obj):
         return obj.instance.id
+
+    def to_representation(self, obj):
+        data = super(FormSubmissionSerializer, self).to_representation(obj)
+        is_project = self.context.get('is_project', False)
+        if not is_project:
+            data.pop('site_identifier')
+            data.pop('site_name')
+        return data
 
