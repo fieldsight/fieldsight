@@ -408,14 +408,14 @@
                     //     async: false,
                     //     url: "https://fieldsight.naxa.com.np/fv3/api/team-regions-types/"+projectid+"/",
                     //     success: function(extra_data) {
-                    $.getJSON("http://localhost:8001/fv3/api/team-regions-types/"+projectid+"/",function(extra_data){ 
+                    $.getJSON("/fv3/api/team-regions-types/"+projectid+"/",function(extra_data){ 
                             site_types = extra_data.site_types;
                             regions = extra_data.regions;
                             regionSiteTypeDropdown(site_types, regions);
                         // }
                     });   
                 {% elif mapfor == "project"%}
-                    $.getJSON("http://localhost:8001/fv3/api/project-regions-types/"+projectid+"/",function(extra_data){ 
+                    $.getJSON("/fv3/api/project-regions-types/"+projectid+"/",function(extra_data){ 
                         site_types = extra_data.site_types;
                         regions = extra_data.regions;
                         regionSiteTypeDropdown(site_types, regions);
@@ -701,14 +701,22 @@
                 ['#FF0000', '#FFFF00', '#008000']
                 
                 //add more colors if the length is more than 16. For projects, site_types and regions
-                var maxLengthValue = Math.max(projectList.length, site_types.length, regions.length);
+                var slength = 0;
+                var rlength = 0;
+                if(site_types != null){
+                    slength = site_types.length;
+                }
+                if(regions != null){
+                    rlength = regions.length;
+                }
+                var maxLengthValue = Math.max(projectList.length, slength, rlength);
                 if(maxLengthValue > 16){
                         var start = '#09e609';//'#ff6600';
                         var medium = '#e67f09';//'#b76e79';
                         var end = '#b207e6';//'#1e90ff';                        
                         extraColor =getgradient(start, medium, end, maxLengthValue-16+2);
 
-                        for(var x=0; x<extraClolor.length; x++){
+                        for(var x=0; x<extraColor.length; x++){
                             otherColors.push(extraColor[x]);
                         }
                 }
