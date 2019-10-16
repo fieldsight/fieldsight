@@ -32,20 +32,14 @@ class ProjectSiteResponsesView(APIView):
         if form_type == 'general':
             base_queryset = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False, is_deleted=False, is_survey=False)
             if project is not None:
-                try:
-                    project = Project.objects.get(id=project, is_active=True)
-
-                except ObjectDoesNotExist:
-                    return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
-
                 is_project = True
-                generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory', 'project_form_instances').filter(project=project).annotate(response_count=
+                generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory', 'project_form_instances').filter(project_id=project).annotate(response_count=
                                                                                    Count('project_form_instances'))
                 generals = ViewGeneralsAndSurveyFormSerializer(generals_queryset, context={'is_project': is_project},
                                                      many=True).data
 
                 general_deleted_qs = FieldSightXF.objects.select_related('xf').prefetch_related('project_form_instances', 'xf__fshistory').filter(is_staged=False, is_scheduled=False,
-                                                                    is_survey=False, is_deleted=True, project=project).\
+                                                                    is_survey=False, is_deleted=True, project_id=project).\
                     annotate(response_count=Count('project_form_instances'))
                 general_deleted_forms = ViewGeneralsAndSurveyFormSerializer(general_deleted_qs, context={'is_project':
                                                                                                           is_project},
@@ -55,7 +49,7 @@ class ProjectSiteResponsesView(APIView):
 
             elif site is not None:
                 try:
-                    site = Site.objects.get(id=site, is_active=True)
+                    site = Site.objects.get(id=site)
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
@@ -98,20 +92,15 @@ class ProjectSiteResponsesView(APIView):
             base_queryset = Schedule.objects.filter(schedule_forms__isnull=False, schedule_forms__is_deleted=False)
 
             if project is not None:
-                try:
-                    project = Project.objects.get(id=project, is_active=True)
-
-                except ObjectDoesNotExist:
-                    return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 is_project = True
-                schedule_queryset = base_queryset.filter(project=project).annotate(response_count=
+                schedule_queryset = base_queryset.filter(project_id=project).annotate(response_count=
                                                                                    Count('schedule_forms__project_form_instances'))
                 scheduled = ViewScheduledFormSerializer(schedule_queryset, context={'is_project': is_project},
                                                          many=True).data
 
                 scheduled_deleted_qs = Schedule.objects.filter(schedule_forms__isnull=False,
-                                                             schedule_forms__is_deleted=True, project=project). \
+                                                             schedule_forms__is_deleted=True, project_id=project). \
                     annotate(response_count=Count('schedule_forms__project_form_instances'))
                 general_deleted_forms = ViewScheduledFormSerializer(scheduled_deleted_qs, context={'is_project':
                                                                                                        is_project},
@@ -120,7 +109,7 @@ class ProjectSiteResponsesView(APIView):
                                                                  'deleted_forms': general_deleted_forms})
             elif site is not None:
                 try:
-                    site = Site.objects.get(id=site, is_active=True)
+                    site = Site.objects.get(id=site)
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
                 project_id = site.project_id
@@ -176,14 +165,9 @@ class ProjectSiteResponsesView(APIView):
             base_queryset = Stage.objects.filter(stage__isnull=True).order_by('order', 'date_created')
 
             if project is not None:
-                try:
-                    project = Project.objects.get(id=project, is_active=True)
-
-                except ObjectDoesNotExist:
-                    return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
                 is_project = True
 
-                stage_queryset = base_queryset.filter(project=project)
+                stage_queryset = base_queryset.filter(project_id=project)
                 stage = ViewStageFormSerializer(stage_queryset, context={'is_project': is_project}, many=True).data
 
                 # stage_deleted_qs = FieldSightXF.objects.filter(is_staged=True,  is_scheduled=False,
@@ -193,7 +177,7 @@ class ProjectSiteResponsesView(APIView):
                                                                  # 'deleted_forms': stage_deleted_forms})
             elif site is not None:
                 try:
-                    site = Site.objects.get(id=site, is_active=True)
+                    site = Site.objects.get(id=site)
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
                 project_id = site.project_id
@@ -225,14 +209,8 @@ class ProjectSiteResponsesView(APIView):
                                                                  # 'deleted_forms': stage_deleted_forms})
 
         elif form_type == 'survey':
-            try:
-                project = Project.objects.get(id=project, is_active=True)
-
-            except ObjectDoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
-
             is_project = True
-            base_queryset = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False, project=project,
+            base_queryset = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False, project_id=project,
                                                         is_survey=True)
 
             survey_qs = base_queryset.filter(is_deleted=False).annotate(response_count=Count('project_form_instances'))
@@ -272,7 +250,7 @@ class ProjectSiteSubmissionStatusView(APIView):
                 filter(form_status='1').order_by('-date')
             if project is not None:
                 try:
-                    project = Project.objects.get(id=project, is_active=True)
+                    project = Project.objects.get(id=project)
 
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
@@ -282,7 +260,7 @@ class ProjectSiteSubmissionStatusView(APIView):
                 return self.response_paginated_data(rejected_queryset)
             elif site is not None:
                 try:
-                    site = Site.objects.get(id=site, is_active=True)
+                    site = Site.objects.get(id=site)
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
@@ -303,7 +281,7 @@ class ProjectSiteSubmissionStatusView(APIView):
                 return self.response_paginated_data(flagged_queryset)
             elif site is not None:
                 try:
-                    site = Site.objects.get(id=site, is_active=True)
+                    site = Site.objects.get(id=site)
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
@@ -315,7 +293,7 @@ class ProjectSiteSubmissionStatusView(APIView):
                 filter(form_status='0').order_by('-date')
             if project is not None:
                 try:
-                    project = Project.objects.get(id=project, is_active=True)
+                    project = Project.objects.get(id=project)
 
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
@@ -325,7 +303,7 @@ class ProjectSiteSubmissionStatusView(APIView):
 
             elif site is not None:
                 try:
-                    site = Site.objects.get(id=site, is_active=True)
+                    site = Site.objects.get(id=site)
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
@@ -337,7 +315,7 @@ class ProjectSiteSubmissionStatusView(APIView):
                 filter(form_status='3').order_by('-date')
             if project is not None:
                 try:
-                    project = Project.objects.get(id=project, is_active=True)
+                    project = Project.objects.get(id=project)
 
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
@@ -347,7 +325,7 @@ class ProjectSiteSubmissionStatusView(APIView):
 
             elif site is not None:
                 try:
-                    site = Site.objects.get(id=site, is_active=True)
+                    site = Site.objects.get(id=site)
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 

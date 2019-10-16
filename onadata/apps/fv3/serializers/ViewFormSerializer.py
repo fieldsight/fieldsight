@@ -13,14 +13,13 @@ class ViewGeneralsAndSurveyFormSerializer(serializers.ModelSerializer):
     created_date = serializers.SerializerMethodField(read_only=True)
     last_response = serializers.SerializerMethodField(read_only=True)
     response_count = serializers.SerializerMethodField(read_only=True)
-    view_submission_url = serializers.SerializerMethodField(read_only=True)
     download_url = serializers.SerializerMethodField(read_only=True)
     versions_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = FieldSightXF
-        fields = ('id', 'name', 'title', 'created_date', 'response_count', 'last_response', 'view_submission_url',
-                  'download_url', 'versions_url')
+        fields = ('id', 'name', 'title', 'created_date', 'response_count', 'last_response', 'download_url',
+                  'versions_url')
 
     def get_name(self, obj):
         return u"%s" % obj.xf.title
@@ -40,6 +39,7 @@ class ViewGeneralsAndSurveyFormSerializer(serializers.ModelSerializer):
         elif obj.site:
             return obj.site_form_instances.order_by('-pk').values_list(
                     'date', flat=True)[:1]
+        return []
 
     def get_response_count(self, obj):
         is_project = self.context.get('is_project', False)
@@ -49,13 +49,6 @@ class ViewGeneralsAndSurveyFormSerializer(serializers.ModelSerializer):
         elif obj.site:
             count = obj.site_response_count if hasattr(obj, 'site_response_count') else 0
             return count
-
-    def get_view_submission_url(self, obj):
-        is_project = self.context.get('is_project', False)
-        if is_project:
-            return '/forms/project-submissions/{}'.format(obj.id)
-        else:
-            return '/forms/site-submissions/{}/{}'.format(obj.id, 149)
 
     def get_download_url(self, obj):
         if self.get_response_count(obj) > 0:
@@ -77,14 +70,13 @@ class ViewScheduledFormSerializer(serializers.ModelSerializer):
     created_date = serializers.SerializerMethodField(read_only=True)
     last_response = serializers.SerializerMethodField(read_only=True)
     response_count = serializers.SerializerMethodField(read_only=True)
-    view_submission_url = serializers.SerializerMethodField(read_only=True)
     download_url = serializers.SerializerMethodField(read_only=True)
     versions_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Schedule
-        fields = ('id', 'name', 'form_name', 'title', 'created_date', 'response_count', 'last_response',
-                  'view_submission_url', 'download_url', 'versions_url')
+        fields = ('id', 'name', 'form_name', 'title', 'created_date', 'response_count', 'last_response', 'download_url',
+                  'versions_url')
 
     def get_name(self, obj):
         return u"%s" % obj.name
@@ -116,14 +108,6 @@ class ViewScheduledFormSerializer(serializers.ModelSerializer):
         elif obj.site:
             count = obj.site_response_count if hasattr(obj, 'site_response_count') else 0
             return count
-
-    def get_view_submission_url(self, obj):
-        is_project = self.context.get('is_project', False)
-        site = self.context.get('site', False)
-        if is_project:
-            return '/forms/project-submissions/{}'.format(obj.schedule_forms.id)
-        elif site:
-            return '/forms/site-submissions/{}/{}'.format(obj.schedule_forms.id, site)
 
     def get_download_url(self, obj):
         if self.get_response_count(obj) > 0:
