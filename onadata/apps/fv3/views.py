@@ -185,8 +185,8 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
 
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-        long = request.POST.get('longitude', None)
-        lat = request.POST.get('latitude', None)
+        long = request.data.get('longitude', None)
+        lat = request.data.get('latitude', None)
         if lat and long is not None:
             p = Point(round(float(long), 6), round(float(lat), 6), srid=4326)
             instance.location = p
