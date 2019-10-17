@@ -43,12 +43,14 @@ class ProjectSiteResponsesView(APIView):
             base_queryset = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False, is_deleted=False, is_survey=False)
             if project is not None:
                 is_project = True
-                generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory', 'project_form_instances').filter(project_id=project).annotate(response_count=
-                                                                                   Count('project_form_instances'))
+                generals_queryset = base_queryset.filter(project_id=project).\
+                    annotate(response_count=Count('project_form_instances')).select_related('xf', 'xf__user').\
+                    prefetch_related('xf__fshistory', 'project_form_instances')
                 generals = ViewGeneralsAndSurveyFormSerializer(generals_queryset, context={'is_project': is_project},
                                                      many=True).data
 
-                general_deleted_qs = FieldSightXF.objects.select_related('xf').prefetch_related('project_form_instances', 'xf__fshistory').filter(is_staged=False, is_scheduled=False,
+                general_deleted_qs = FieldSightXF.objects.select_related('xf', 'xf__user').\
+                    prefetch_related('xf__fshistory', 'project_form_instances').filter(is_staged=False, is_scheduled=False,
                                                                     is_survey=False, is_deleted=True, project_id=project).\
                     annotate(response_count=Count('project_form_instances'))
                 general_deleted_forms = ViewGeneralsAndSurveyFormSerializer(general_deleted_qs, context={'is_project':
@@ -71,28 +73,23 @@ class ProjectSiteResponsesView(APIView):
 
                 if site.type and site.region:
 
-                    generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').filter(Q(site__id=site.id, from_project=False)
+                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
                                                | Q(project__id=project_id, settings__isnull=True)
                                                | Q(project__id=project_id, settings__types__contains=[site.type_id])
                                                | Q(project__id=project_id, settings__regions__contains=[site.region_id]))
                 elif site.type:
-                    generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').filter(Q(site__id=site.id, from_project=False)
+                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
                                                | Q(project__id=project_id, settings__isnull=True)
                                                | Q(project__id=project_id, settings__types__contains=[site.type_id]))
                 elif site.region:
-                    generals_queryset = base_queryset.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').filter(Q(site__id=site.id, from_project=False)
+                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
                                                | Q(project__id=project_id, settings__isnull=True)
                                                | Q(project__id=project_id,
                                                    settings__regions__contains=[site.region_id]))
                 else:
                     generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False) |
                                                              Q(project__id=project_id))
-                generals_queryset = generals_queryset.annotate(site_response_count=Count("site_form_instances"),
-                                                               response_count=Count(Case(When(project__isnull=False,
-                                                                                              project_form_instances__site__id=site.id,
-                                                                                              then=F('project_form_instances')),
-                                                                                         output_field=IntegerField(),),
-                                                                                    distinct=True)).\
+                generals_queryset = generals_queryset.annotate(site_response_count=Count("site_form_instances")).\
                     select_related('xf', 'xf__user').prefetch_related('xf__fshistory')
                 generals = ViewGeneralsAndSurveyFormSerializer(generals_queryset, many=True,
                                                                context={'site': site.id}).data
@@ -165,13 +162,7 @@ class ProjectSiteResponsesView(APIView):
 
                 scheduled_queryset = scheduled_queryset.annotate(
                     site_response_count=Count(
-                        "schedule_forms__site_form_instances", ),
-                    response_count=Count(Case(
-                        When(project__isnull=False,
-                             schedule_forms__project_form_instances__site__id=site.id,
-                             then=F('schedule_forms__project_form_instances')),
-                        output_field=IntegerField(),
-                    ), distinct=True)
+                        "schedule_forms__site_form_instances", )
 
                 ).select_related('schedule_forms', 'schedule_forms__xf',
                                  'schedule_forms__em')
@@ -179,7 +170,8 @@ class ProjectSiteResponsesView(APIView):
                                                         many=True).data
                 scheduled_deleted_qs = Schedule.objects.filter(schedule_forms__isnull=False,
                                                                schedule_forms__is_deleted=True, project=project). \
-                    annotate(site_response_count=Count("schedule_forms__site_form_instances"))
+                    annotate(site_response_count=Count("schedule_forms__site_form_instances")).\
+                    select_related('schedule_forms', 'schedule_forms__xf', 'schedule_forms__em')
                 scheduled_deleted_forms = ViewScheduledFormSerializer(scheduled_deleted_qs,
                                                                    many=True).data
                 return Response(status=status.HTTP_200_OK, data={'scheduled_forms': scheduled,

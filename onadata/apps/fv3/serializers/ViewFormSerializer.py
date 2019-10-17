@@ -44,11 +44,18 @@ class ViewGeneralsAndSurveyFormSerializer(serializers.ModelSerializer):
 
     def get_response_count(self, obj):
         is_project = self.context.get('is_project', False)
-        if is_project or obj.project:
+        site = self.context.get('site', None)
+
+        if is_project:
             count = obj.response_count if hasattr(obj, 'response_count') else 0
             return count
+
         elif obj.site:
             count = obj.site_response_count if hasattr(obj, 'site_response_count') else 0
+            return count
+
+        elif obj.project and site:
+            count = obj.project_form_instances.filter(site__id=site).count()
             return count
 
     def get_download_url(self, obj):
@@ -114,11 +121,18 @@ class ViewScheduledFormSerializer(serializers.ModelSerializer):
 
     def get_response_count(self, obj):
         is_project = self.context.get('is_project', False)
-        if is_project or obj.project:
+        site = self.context.get('site', None)
+
+        if is_project:
             count = obj.response_count if hasattr(obj, 'response_count') else 0
             return count
+
         elif obj.site:
             count = obj.site_response_count if hasattr(obj, 'site_response_count') else 0
+            return count
+
+        elif obj.project and site:
+            count = obj.schedule_forms.project_form_instances.filter(site__id=site).count()
             return count
 
     def get_download_url(self, obj):
@@ -166,12 +180,18 @@ class ViewSubStageFormSerializer(serializers.ModelSerializer):
 
     def get_response_count(self, obj):
         is_project = self.context.get('is_project', False)
+        site = self.context.get('site', False)
+
         if is_project or obj.project:
 
             count = obj.response_count if hasattr(obj, 'response_count') else 0
             return count
         elif obj.site:
             count = obj.site_response_count if hasattr(obj, 'site_response_count') else 0
+            return count
+
+        elif obj.project and site:
+            count = obj.stage_forms.project_form_instances.filter(site__id=site).count()
             return count
 
     def get_last_response(self, obj):
