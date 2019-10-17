@@ -779,6 +779,7 @@
                     $.each(map_layer_json,function(key){ //console.log(status);
                         //console.log(map_layer_json[key]);
                         if(status == "Projects"){ 
+                            //console.log(projectList.length);
                             for(var i = 0; i<projectList.length; i++){
                                 if(map_layer_json[key].feature.project == projectList[i].name){
                                     map_layer_json[key].setStyle({"fillColor":otherColors[i]});
@@ -827,9 +828,13 @@
 
                         else if(status == "Site Type"){
                             for(var x = 0; x< site_types.length; x++){
-                                if(map_layer_json[key].feature.site_type == site_types[x].name){
+                                if(map_layer_json[key].feature.site_type == null){
+                                    map_layer_json[key].setStyle({"fillColor":"white"});
+                                }
+                                else if(map_layer_json[key].feature.site_type.trim().toLowerCase() == site_types[x].name.trim().toLowerCase()){
                                     map_layer_json[key].setStyle({"fillColor":otherColors[x]});
                                 }
+                                
                             }
                             
                         }
@@ -837,7 +842,10 @@
                         else if(status == "Region"){
                             //console.log("entered site type");
                             for(var y = 0; y< regions.length; y++){
-                                if(map_layer_json[key].feature.region == regions[y].name){
+                                if(map_layer_json[key].feature.region == null){
+                                    map_layer_json[key].setStyle({"fillColor":"white"});
+                                }
+                                else if(map_layer_json[key].feature.region.trim().toLowerCase() == regions[y].name.trim().toLowerCase()){
                                     map_layer_json[key].setStyle({"fillColor":otherColors[y]});
                                 }
                             }
@@ -851,6 +859,8 @@
                 //console.log(projectColor);
                 changeColorOf = null;
                 function changeLegend(changeColorOfLayer,status){
+                    //console.log(changeColorOfLayer,"name");
+                    //console.log(status,"status");
                     $("#form_legend").html("");
                     if(status == "Projects"){
                         for(var i = 0; i< projectList.length;i++){
@@ -866,6 +876,7 @@
                         changeColor(changeColorOfLayer, status);
                     }
                     else if(status == "Site Type"){
+                        console.log(site_types);
                         var siteT = site_types;
                         // if(applyClicked == true){ //check if apply clicked or chosen from legend dropdown to check the no. of legend entries to be shown in legend for site types and regions.
                         //     siteT = site_type;
@@ -874,10 +885,12 @@
                             var site_type_value = siteT[x].name || siteT[x];
                             $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+otherColors[x]+';"></div><span>'+site_type_value+'</span></div><br/>' );
                         }
+                        $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:white;"></div><span>Unallocated</span></div><br/>' );
                         
                         changeColor(changeColorOfLayer, status);
                     }
                     else if(status == "Region"){
+                       
                         var regn = regions;
                         // console.log(applyClicked);
                         // if(applyClicked == true){
@@ -888,7 +901,7 @@
                             region_value = regn[y].name || regn[y];
                             $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+otherColors[y]+';"></div><span>'+region_value+'</span></div><br/>' );
                         }
-                        
+                        $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:white;"></div><span>Unallocated</span></div><br/>' );
                         changeColor(changeColorOfLayer, status);
                     }
                     else{
@@ -997,11 +1010,14 @@
                                     }
 
                                     if(site_type!=null && site_type.length>0){
-                                        //console.log(form_status);
+                                        console.log(site_type);
                                         var site_type_matched = 1;
                                         for(var x = 0; x<site_type.length; x++){//console.log(form_status[i]);
                                             if(siteListArray.features[i] != undefined){
-                                                if(siteListArray.features[i].site_type == site_type[x]){ //console.log("status_entered");
+                                                if(siteListArray.features[i].site_type == null){
+                                                    site_type_matched++;
+                                                }
+                                                else if(siteListArray.features[i].site_type.trim().toLowerCase() == site_type[x]){ //console.log("status_entered");
                                                     site_type_matched = 0;
                                                     //break;
                                                     //console.log(progress[k]);
@@ -1018,11 +1034,14 @@
                                     }
 
                                     if(region!=null && region.length>0){
-                                        //console.log(form_status);
+                                        console.log(region);
                                         var region_matched = 1;
                                         for(var y = 0; y<region.length; y++){//console.log(form_status[i]);
                                             if(siteListArray.features[i] != undefined){
-                                                if(siteListArray.features[i].region == region[y]){ //console.log("status_entered");
+                                                if(siteListArray.features[i].region==null){
+                                                    region_matched++;
+                                                }
+                                                else if(siteListArray.features[i].region.trim().toLowerCase() == region[y]){ //console.log("status_entered");
                                                     region_matched = 0;
                                                     //break;
                                                     //console.log(progress[k]);
