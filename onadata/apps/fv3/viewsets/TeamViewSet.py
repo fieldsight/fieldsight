@@ -147,6 +147,14 @@ class AddTeamProjectViewset(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, TeamDashboardPermissions]
     serializer_class = ProjectUpdateSerializer
 
+    def list(self, request, *args, **kwargs):
+        team_id = self.kwargs.get('pk')
+        team = Organization.objects.get(id=team_id)
+        location = team.location
+        data = {'location': str(location)}
+
+        return Response(data)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

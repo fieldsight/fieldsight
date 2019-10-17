@@ -790,6 +790,14 @@ class TeamFormViewset(viewsets.ModelViewSet):
         self.object.owner = self.request.user
         self.object.save()
 
+        longitude = request.data.get('longitude', None)
+        latitude = request.data.get('latitude', None)
+
+        if latitude and longitude is not None:
+            p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
+            self.object.location = p
+            self.object.save()
+
         noti = self.object.logs.create(source=self.request.user, type=9, title="new Organization",
                                        organization=self.object, content_object=self.object,
                                        description=u"{0} created a new Team "

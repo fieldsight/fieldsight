@@ -116,11 +116,13 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not Found'})
         json_questions = project.site_meta_attributes
+        location = project.location
+
         site_types = SiteType.objects.filter(project=project, deleted=False).values('id', 'name')
         regions = Region.objects.filter(is_active=True, project=project).values('id', 'name')
 
         return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
-                                                         'regions': regions})
+                                                         'regions': regions, 'location': location})
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

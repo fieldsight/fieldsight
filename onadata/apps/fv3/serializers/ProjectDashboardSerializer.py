@@ -347,8 +347,9 @@ class SiteFormSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Site
-        fields = ('id', 'name', 'identifier', 'site_meta_attributes_ans', 'weight', 'logo', 'type', 'phone', 'address',
-                  'public_desc', 'project', 'region', 'enable_subsites', 'site', 'site_meta_attributes_answers', 'delete_perm')
+        fields = ('id', 'name', 'location', 'identifier', 'site_meta_attributes_ans', 'weight', 'logo', 'type',
+                  'phone', 'address', 'public_desc', 'project', 'region', 'enable_subsites', 'site',
+                  'site_meta_attributes_answers', 'delete_perm')
 
     def get_site_meta_attributes_answers(self, obj):
         metas = obj.site_meta_attributes_ans
