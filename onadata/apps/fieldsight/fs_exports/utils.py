@@ -20,11 +20,11 @@ def site_report():
     df_submissions_reviewed.rename(columns={'finstance__site': 'site'}, inplace=True)
 
     df_submission_per_site = df_submissions.groupby(['site']).size().to_frame('site_visited').reset_index()
-    df_site_with_site_visited = pd.merge(df_sites, df_submission_per_site, left_on='site', right_on='site')
+    df_site_with_site_visited = pd.merge(df_sites, df_submission_per_site, on='site', how="left", sort=False)
 
     df_reviewed_per_site = df_submissions_reviewed.groupby(['site']).size().to_frame(
         'site_reviewed').reset_index()
     df_site_with_site_visited_reviewed = pd.merge(
-        df_site_with_site_visited, df_reviewed_per_site, left_on='site', right_on='site')
+        df_site_with_site_visited, df_reviewed_per_site, on='site', how="left", sort=False)
     return df_site_with_site_visited_reviewed
 
