@@ -122,7 +122,7 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         regions = Region.objects.filter(is_active=True, project=project).values('id', 'name')
 
         return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
-                                                         'regions': regions, 'location': location})
+                                                         'regions': regions, 'location': str(location)})
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
