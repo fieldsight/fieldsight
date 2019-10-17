@@ -664,7 +664,7 @@ class SiteFormPermissions(DjangoObjectPermissions):
             return False
 
         # elif view.action == 'update':
-        # 
+        #
         #     if request.is_super_admin:
         #         return True
         #
