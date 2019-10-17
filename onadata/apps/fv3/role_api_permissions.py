@@ -663,10 +663,11 @@ class SiteFormPermissions(DjangoObjectPermissions):
                 return False
             return False
 
-        # elif view.action == 'update':
-        #
-        #     if request.is_super_admin:
-        #         return True
+        elif view.action == 'update':
+            return True
+            #
+            # if request.is_super_admin:
+            #     return True
         #
         #     site_id = view.kwargs.get('pk')
         #     try:
