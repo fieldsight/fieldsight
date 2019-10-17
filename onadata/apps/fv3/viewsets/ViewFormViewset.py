@@ -95,7 +95,8 @@ class ProjectSiteResponsesView(APIView):
                                                                                     distinct=True))
                 generals = ViewGeneralsAndSurveyFormSerializer(generals_queryset, many=True,
                                                                context={'site': site.id}).data
-                general_deleted_qs = FieldSightXF.objects.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').filter(is_staged=False, is_scheduled=False,
+                general_deleted_qs = FieldSightXF.objects.select_related('xf', 'xf__user').prefetch_related('xf__fshistory').\
+                    filter(is_staged=False, is_scheduled=False,
                                                                  is_survey=False, is_deleted=True, project=project).\
                     annotate(site_response_count=Count("site_form_instances"))
                 general_deleted_forms = ViewGeneralsAndSurveyFormSerializer(general_deleted_qs,
