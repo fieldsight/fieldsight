@@ -154,13 +154,12 @@ class ViewSubStageFormSerializer(serializers.ModelSerializer):
     last_response = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField(read_only=True)
     versions_url = serializers.SerializerMethodField(read_only=True)
-    new_submission_url = serializers.SerializerMethodField(read_only=True)
     fsxf_id = serializers.IntegerField(source='stage_forms.id')
 
     class Meta:
         model = Stage
         fields = ('id', 'name', 'order', 'form_name', 'response_count', 'last_response', 'download_url', 'versions_url',
-                  'new_submission_url', 'fsxf_id')
+                  'fsxf_id')
 
     def get_form_name(self, obj):
         return obj.stage_forms.xf.title
@@ -212,19 +211,6 @@ class ViewSubStageFormSerializer(serializers.ModelSerializer):
             elif site:
                 return '/forms/submissions/versions/0/{}/{}'.format(obj.stage_forms.id, site)
 
-    def get_new_submission_url(self, obj):
-        site = self.context.get('site', None)
-
-        if site is not None:
-            return '/forms/new/{}/{}'.format(site, obj.stage_forms.id)
-
-    def to_representation(self, obj):
-        data = super(ViewSubStageFormSerializer, self).to_representation(obj)
-        site = self.context.get('site', None)
-        if site is None:
-            data.pop('new_submission_url')
-        return data
-
 
 class ViewStageFormSerializer(serializers.ModelSerializer):
     sub_stages = serializers.SerializerMethodField()
@@ -240,8 +226,9 @@ class ViewStageFormSerializer(serializers.ModelSerializer):
         if obj.project or is_project:
             is_project = True
             queryset = Stage.objects.filter(stage__isnull=False, stage=obj, project=obj.project)
-            queryset = queryset.select_related('stage_forms', 'em', 'stage_forms__xf').order_by('order', 'date_created').\
-                annotate(response_count=Count('stage_forms__project_form_instances'))
+            queryset = queryset.order_by('order', 'date_created').\
+                annotate(response_count=Count('stage_forms__project_form_instances')).\
+                select_related('stage_forms', 'em', 'stage_forms__xf').prefetch_related('stage_forms__xf__fshistory')
             data = ViewSubStageFormSerializer(queryset, many=True, context={'is_project': is_project}).data
 
             return data
@@ -271,9 +258,9 @@ class ViewStageFormSerializer(serializers.ModelSerializer):
                     Q(site__id=site.id, project_stage_id=0)
                     | Q(project__id=project_id))
 
-            queryset = queryset.select_related('stage_forms', 'em', 'stage_forms__xf').\
-                order_by('order', 'date_created').\
-                annotate(site_response_count=Count('stage_forms__site_form_instances'))
+            queryset = queryset.order_by('order', 'date_created').\
+                annotate(site_response_count=Count('stage_forms__site_form_instances'))\
+                .select_related('stage_forms', 'em', 'stage_forms__xf').prefetch_related('stage_forms__xf__fshistory')
             data = ViewSubStageFormSerializer(queryset, many=True,  context={'site': site_id}).data
             return data
 

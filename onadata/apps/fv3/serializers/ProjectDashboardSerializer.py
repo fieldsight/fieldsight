@@ -2,6 +2,7 @@ import datetime
 import json
 
 from collections import OrderedDict
+
 from django.db.models import Q
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -12,6 +13,7 @@ from rest_framework import serializers
 from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
 from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site
 from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule
+from onadata.apps.fv3.role_api_permissions import check_del_site_perm
 from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.logger.models import Instance
 from onadata.apps.eventlog.models import FieldSightLog
@@ -341,13 +343,21 @@ class SiteFormSerializer(serializers.ModelSerializer):
         max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
     )
     site_meta_attributes_answers = serializers.SerializerMethodField()
+    delete_perm = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Site
         fields = ('id', 'name', 'identifier', 'site_meta_attributes_ans', 'weight', 'logo', 'type', 'phone', 'address',
-                  'public_desc', 'project', 'region', 'enable_subsites', 'site', 'site_meta_attributes_answers')
+                  'public_desc', 'project', 'region', 'enable_subsites', 'site', 'site_meta_attributes_answers', 'delete_perm')
 
     def get_site_meta_attributes_answers(self, obj):
         metas = obj.site_meta_attributes_ans
 
         return metas
+
+    def get_delete_perm(self, obj):
+        request = self.context.get('request')
+        if check_del_site_perm(request, obj.id):
+            return True
+        else:
+            return False

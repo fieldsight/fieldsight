@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.serializers import serialize
 from django.db.models import Prefetch, Q
 from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
@@ -841,4 +842,18 @@ class TeamFormViewset(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         return serializer.save()
 
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def project_full_map(request, pk):
+    project = Project.objects.get(id=pk)
+    organization_location = project.organization.location
+    sites_with_no_location = Site.objects.filter(project=project, location=None).update(location=organization_location)
+    if not project.location:
+        project.location = organization_location
+        project.save()
+
+    sites = Site.objects.filter(project=project).exclude(location=None)[:100]
+    data = serialize('custom_geojson', sites, geometry_field='location', fields=('location', 'id', 'name'))
+    return Response(status=status.HTTP_200_OK, data=json.loads(data))
 
