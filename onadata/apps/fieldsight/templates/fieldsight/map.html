@@ -1017,7 +1017,7 @@
                                                 if(siteListArray.features[i].site_type == null){
                                                     site_type_matched++;
                                                 }
-                                                else if(siteListArray.features[i].site_type.trim().toLowerCase() == site_type[x]){ //console.log("status_entered");
+                                                else if(siteListArray.features[i].site_type.trim().toLowerCase() == site_type[x].trim().toLowerCase()){ //console.log("status_entered");
                                                     site_type_matched = 0;
                                                     //break;
                                                     //console.log(progress[k]);
@@ -1041,7 +1041,7 @@
                                                 if(siteListArray.features[i].region==null){
                                                     region_matched++;
                                                 }
-                                                else if(siteListArray.features[i].region.trim().toLowerCase() == region[y]){ //console.log("status_entered");
+                                                else if(siteListArray.features[i].region.trim().toLowerCase() == region[y].trim().toLowerCase()){ //console.log("status_entered");
                                                     region_matched = 0;
                                                     //break;
                                                     //console.log(progress[k]);
