@@ -81,16 +81,7 @@ def copy_schedule_to_sites(schedule_id, fxf_status, pk=None):
     try:
         schedule = Schedule.objects.get(pk=schedule_id)
         fxf = schedule.schedule_forms
-        with transaction.atomic():
-            if not fxf_status:
-                # deployed case
-                fxf.is_deployed = True
-                fxf.save()
-            else:
-                # undeploy
-                fxf.is_deployed = False
-                fxf.save()
-            send_message_un_deploy_project(fxf)
+        send_message_un_deploy_project(fxf)
     except Exception as e:
         print(str(e))
         num_retries = copy_schedule_to_sites.request.retries
