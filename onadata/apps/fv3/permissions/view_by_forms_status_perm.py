@@ -21,7 +21,7 @@ class ViewDataPermission(permissions.BasePermission):
 
         if project is not None:
             try:
-                project = Project.objects.get(id=project)
+                project = Project.objects.select_related('organization').get(id=project)
             except ObjectDoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 

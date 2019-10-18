@@ -299,7 +299,7 @@ def check_site_permission(request, pk):
     site_id = int(pk)
     if site_id:
         try:
-            site = Site.objects.select_related('project', 'project__organization').get(id=site_id)
+            site = Site.objects.select_related('project__organization', 'region').get(id=site_id)
         except ObjectDoesNotExist:
             return Response({"message": "Site Id does not exist."}, status=status.HTTP_204_NO_CONTENT)
 
@@ -310,8 +310,8 @@ def check_site_permission(request, pk):
         if user_role_org_admin:
             return True
 
-        project = site.project
-        user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+        project = site.project_id
+        user_role_as_manager = request.roles.filter(project_id=project, group__name__in=["Project Manager",
                                                                                             "Project Donor"])
 
         if user_role_as_manager:
