@@ -415,7 +415,7 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
 
 
 class StageFormsVS(viewsets.ModelViewSet):
-    queryset = Stage.objects.filter(stage__isnull=True).order_by('order', 'date_created')
+    queryset = Stage.objects.filter(stage__isnull=True).order_by('-project', 'order', 'date_created')
     serializer_class = StageSerializer
     permission_classes = [ManageFormsPermission]
     authentication_classes = [CsrfExemptSessionAuthentication,
@@ -627,7 +627,7 @@ class DeployForm(APIView):
                                                          is_deployed},
                                                     countdown=2)
                 else:
-                    site = Site.objects.get(pk=id)
+                    site = Site.objects.get(pk=site_id)
                     main_stage = Stage.objects.get(pk=id)
                     FieldSightXF.objects.filter(stage__stage__id=main_stage.pk,
                                                 is_deleted=False).update(
