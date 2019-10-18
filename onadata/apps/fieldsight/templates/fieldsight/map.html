@@ -824,6 +824,9 @@
                             else if(map_layer_json[key].feature.status == 3){
                                 map_layer_json[key].setStyle({"fillColor":formStatusColor[3]});
                             }
+                            else {
+                                map_layer_json[key].setStyle({"fillColor":"white"});
+                            }
                         }
 
                         else if(status == "Site Type"){
