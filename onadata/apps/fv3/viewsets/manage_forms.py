@@ -415,7 +415,7 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
 
 
 class StageFormsVS(viewsets.ModelViewSet):
-    queryset = Stage.objects.filter(stage__isnull=True).order_by('order', 'date_created')
+    queryset = Stage.objects.filter(stage__isnull=True).order_by('-project', 'order', 'date_created')
     serializer_class = StageSerializer
     permission_classes = [ManageFormsPermission]
     authentication_classes = [CsrfExemptSessionAuthentication,
