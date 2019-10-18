@@ -627,7 +627,7 @@ class DeployForm(APIView):
                                                          is_deployed},
                                                     countdown=2)
                 else:
-                    site = Site.objects.get(pk=id)
+                    site = Site.objects.get(pk=site_id)
                     main_stage = Stage.objects.get(pk=id)
                     FieldSightXF.objects.filter(stage__stage__id=main_stage.pk,
                                                 is_deleted=False).update(
