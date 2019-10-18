@@ -828,7 +828,7 @@
 
                         else if(status == "Site Type"){
                             for(var x = 0; x< site_types.length; x++){
-                                if(map_layer_json[key].feature.site_type == null){
+                                if(map_layer_json[key].feature.site_type == null || site_types[x].name == null || site_types[x].name.trim() == "" ){
                                     map_layer_json[key].setStyle({"fillColor":"white"});
                                 }
                                 else if(map_layer_json[key].feature.site_type.trim().toLowerCase() == site_types[x].name.trim().toLowerCase()){
@@ -842,7 +842,7 @@
                         else if(status == "Region"){
                             //console.log("entered site type");
                             for(var y = 0; y< regions.length; y++){
-                                if(map_layer_json[key].feature.region == null){
+                                if(map_layer_json[key].feature.region == null || regions[y].name == null || regions[y].name.trim() == ""){
                                     map_layer_json[key].setStyle({"fillColor":"white"});
                                 }
                                 else if(map_layer_json[key].feature.region.trim().toLowerCase() == regions[y].name.trim().toLowerCase()){
@@ -890,7 +890,7 @@
                         changeColor(changeColorOfLayer, status);
                     }
                     else if(status == "Region"){
-                       
+                       console.log(site_types);
                         var regn = regions;
                         // console.log(applyClicked);
                         // if(applyClicked == true){
@@ -947,7 +947,7 @@
                                     //console.log(siteListArray.features[i].project);
                                     //console.log(multi_project[j]);
                                     //console.log(i);
-                                    if(siteListArray.features[i].project.trim() == multi_project[j].trim()){ 
+                                    if(siteListArray.features[i].project.trim().toLowerCase() == multi_project[j].trim().toLowerCase()){ 
                                         //console.log("entered");
                                         match = 0;
                                         
@@ -993,7 +993,7 @@
                                         var status_matched = 1;
                                         for(var l = 0; l<form_status.length; l++){//console.log(form_status[i]);
                                             if(siteListArray.features[i] != undefined){
-                                                if(siteListArray.features[i].status == form_status[l]){ //console.log("status_entered");
+                                                if(siteListArray.features[i].status.trim().toLowerCase() == form_status[l].trim().toLowerCase()){ //console.log("status_entered");
                                                     status_matched = 0;
                                                     //break;
                                                     //console.log(progress[k]);
@@ -1014,7 +1014,7 @@
                                         var site_type_matched = 1;
                                         for(var x = 0; x<site_type.length; x++){//console.log(form_status[i]);
                                             if(siteListArray.features[i] != undefined){
-                                                if(siteListArray.features[i].site_type == null){
+                                                if(siteListArray.features[i].site_type == null || site_type[x] == null || site_type[x].trim() == ""){
                                                     site_type_matched++;
                                                 }
                                                 else if(siteListArray.features[i].site_type.trim().toLowerCase() == site_type[x].trim().toLowerCase()){ //console.log("status_entered");
@@ -1038,7 +1038,7 @@
                                         var region_matched = 1;
                                         for(var y = 0; y<region.length; y++){//console.log(form_status[i]);
                                             if(siteListArray.features[i] != undefined){
-                                                if(siteListArray.features[i].region==null){
+                                                if(siteListArray.features[i].region==null || region[y] == null || region[y].trim() == ""){
                                                     region_matched++;
                                                 }
                                                 else if(siteListArray.features[i].region.trim().toLowerCase() == region[y].trim().toLowerCase()){ //console.log("status_entered");
