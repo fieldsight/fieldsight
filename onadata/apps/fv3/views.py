@@ -861,7 +861,7 @@ def project_full_map(request, pk):
         project.location = organization_location
         project.save()
 
-    sites = Site.objects.filter(project=project).exclude(location=None)[:100]
+    sites = Site.objects.filter(project=project).exclude(location=None)
     data = serialize('custom_geojson', sites, geometry_field='location', fields=('location', 'id', 'name'))
     return Response(status=status.HTTP_200_OK, data=json.loads(data))
 

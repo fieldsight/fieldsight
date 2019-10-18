@@ -91,10 +91,11 @@ class ViewScheduledFormSerializer(serializers.ModelSerializer):
     response_count = serializers.SerializerMethodField(read_only=True)
     download_url = serializers.SerializerMethodField(read_only=True)
     versions_url = serializers.SerializerMethodField(read_only=True)
+    fsxf_id = serializers.IntegerField(source='schedule_forms.id')
 
     class Meta:
         model = Schedule
-        fields = ('id', 'name', 'form_name', 'title', 'created_date', 'response_count', 'last_response', 'download_url',
+        fields = ('id', 'name', 'fsxf_id', 'form_name', 'title', 'created_date', 'response_count', 'last_response', 'download_url',
                   'versions_url')
 
     def get_name(self, obj):
@@ -256,7 +257,7 @@ class ViewStageFormSerializer(serializers.ModelSerializer):
 
         elif site_id:
             queryset = Stage.objects.filter(stage__isnull=False, stage=obj)
-            site = Site.objects.get(id=site_id)
+            site = Site.objects.select_related('region', 'type').get(id=site_id)
             project_id = site.project_id
             if site.type and site.region:
                 queryset = queryset.filter(Q(site__id=site.id, project_stage_id=0)

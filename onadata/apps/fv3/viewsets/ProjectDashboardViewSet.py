@@ -139,7 +139,9 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         longitude = request.data.get('longitude', None)
         latitude = request.data.get('latitude', None)
         site = request.data.get('site', None)
-
+        if instance.site_meta_attributes_ans:
+            instance.all_ma_ans.update(json.loads(instance.site_meta_attributes_ans))
+            instance.save()
         if latitude and longitude is not None:
             p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
             instance.location = p
@@ -168,12 +170,17 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
         longitude = request.data.get('longitude', None)
         latitude = request.data.get('latitude', None)
+
         if latitude and longitude is not None:
             p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
             instance.location = p
             instance.save()
 
         new_meta = json.loads(instance.site_meta_attributes_ans)
+
+        if instance.site_meta_attributes_ans:
+            instance.all_ma_ans.update(new_meta)
+            instance.save()
 
         extra_json = None
 

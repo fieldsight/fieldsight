@@ -13,7 +13,8 @@ from onadata.apps.fieldsight.models import Project, Site
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fsforms.reports_util import delete_form_instance
 from onadata.apps.fv3.serializers.ViewFormSerializer import ViewGeneralsAndSurveyFormSerializer, \
-    ViewScheduledFormSerializer, ViewStageFormSerializer, ViewSubmissionStatusSerializer, FormSubmissionSerializer
+    ViewScheduledFormSerializer, ViewStageFormSerializer, ViewSubmissionStatusSerializer, FormSubmissionSerializer, \
+    ViewSubStageFormSerializer
 from onadata.apps.fv3.permissions.view_by_forms_status_perm import ViewDataPermission, DeleteFInstancePermission
 
 
@@ -96,8 +97,9 @@ class ProjectSiteResponsesView(APIView):
                 generals = ViewGeneralsAndSurveyFormSerializer(generals_queryset, many=True,
                                                                context={'site': site.id}).data
                 general_deleted_qs = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False,
-                                                                 is_survey=False, is_deleted=True, project=project).\
-                    select_related('xf', 'xf__user', 'site', 'project').prefetch_related('xf__fshistory',
+                                                                 is_survey=False, is_deleted=True)\
+                    .filter(Q(site__id=site.id, from_project=False) | Q(project__id=project_id))\
+                            .select_related('xf', 'xf__user', 'site', 'project').prefetch_related('xf__fshistory',
                                                                                          'site_form_instances')
                 general_deleted_forms = ViewGeneralsAndSurveyFormSerializer(general_deleted_qs,
                                                                       many=True, context={'site': site.id}).data
@@ -122,14 +124,15 @@ class ProjectSiteResponsesView(APIView):
                 scheduled_deleted_qs = Schedule.objects.select_related('schedule_forms', 'schedule_forms__xf',
                                                                  'schedule_forms__xf__user').\
                     prefetch_related('schedule_forms__project_form_instances', 'schedule_forms__xf__fshistory')\
-                    .filter(schedule_forms__isnull=False, schedule_forms__is_deleted=True, project_id=project)
-                general_deleted_forms = ViewScheduledFormSerializer(scheduled_deleted_qs, context={'is_project':
+                    .filter(schedule_forms__is_staged=False, schedule_forms__is_scheduled=True,
+                            schedule_forms__is_survey=False, schedule_forms__is_deleted=True, project_id=project)
+                scheduled_deleted_forms = ViewScheduledFormSerializer(scheduled_deleted_qs, context={'is_project':
                                                                                                        is_project},
                                                                       many=True).data
                 project = Project.objects.get(id=project)
 
                 return Response(status=status.HTTP_200_OK, data={'scheduled_forms': scheduled,
-                                                                 'deleted_forms': general_deleted_forms,
+                                                                 'deleted_forms': scheduled_deleted_forms,
                                                                  'breadcrumbs': self.get_breadcrumbs(True, project)
 
                                                                  })
@@ -174,7 +177,9 @@ class ProjectSiteResponsesView(APIView):
                                                                        'schedule_forms__xf__user', 'project',
                                                                        'site'). \
                     prefetch_related('schedule_forms__site_form_instances', 'schedule_forms__xf__fshistory').\
-                    filter(schedule_forms__isnull=False, schedule_forms__is_deleted=True, project=project)
+                    filter(schedule_forms__is_staged=False, schedule_forms__is_scheduled=True,
+                           schedule_forms__is_survey=False, schedule_forms__is_deleted=True, project_id=project).\
+                    filter(Q(schedule_forms__site__id=site.id, schedule_forms__from_project=False) | Q(project__id=project_id))
 
                 scheduled_deleted_forms = ViewScheduledFormSerializer(scheduled_deleted_qs,
                                                                    many=True).data
@@ -193,16 +198,22 @@ class ProjectSiteResponsesView(APIView):
                 stage_queryset = base_queryset.filter(project_id=project)
                 stage = ViewStageFormSerializer(stage_queryset, context={'is_project': is_project}, many=True).data
 
-                # stage_deleted_qs = FieldSightXF.objects.filter(is_staged=True,  is_scheduled=False,
-                #                                                is_survey=False, is_deleted=True, project=project)
-                # stage_deleted_forms = ViewStageFormSerializer(stage_deleted_qs, many=True).data
+                stage_deleted_qs = Stage.objects.order_by('order', 'date_created').select_related('stage_forms',
+                                                                                                  'stage_forms__xf',
+                                                                                                  'stage_forms__xf__user').\
+                    prefetch_related('stage_forms__project_form_instances', 'stage_forms__xf__fshistory')\
+                    .filter(stage_forms__is_staged=True, stage_forms__is_scheduled=False,
+                            stage_forms__is_survey=False, stage_forms__is_deleted=True, stage_forms__project_id=project)
+                stage_deleted_forms = ViewSubStageFormSerializer(stage_deleted_qs, context={'is_project': is_project},
+                                                              many=True).data
                 project = Project.objects.get(id=project)
 
                 return Response(status=status.HTTP_200_OK, data={'stage_forms': stage,
+                                                                 'deleted_forms': stage_deleted_forms,
                                                                  'breadcrumbs': self.get_breadcrumbs(True, project)
 
                                                                  })
-                                                                 # 'deleted_forms': stage_deleted_forms})
+
             elif site is not None:
                 try:
                     site = Site.objects.get(id=site)
@@ -228,16 +239,19 @@ class ProjectSiteResponsesView(APIView):
                         Q(site__id=site.id, project_stage_id=0)
                         | Q(project__id=project_id))
                 stage = ViewStageFormSerializer(stage_queryset, context={'site': site.id}, many=True).data
-                # stage_deleted_qs = FieldSightXF.objects.filter(is_staged=True, is_scheduled=False, is_survey=False,
-                #                                                is_deleted=True).filter(Q(site__id=site.id,
-                #                                                                          from_project=False)
-                #                                                                        | Q(project__id=project_id))
-                # stage_deleted_forms = ViewStageFormSerializer(stage_deleted_qs, many=True).data
+                stage_deleted_qs = Stage.objects.order_by('order', 'date_created').select_related('stage_forms',
+                                                                                                  'stage_forms__xf',
+                                                                                                  'stage_forms__xf__user'). \
+                    prefetch_related('stage_forms__project_form_instances', 'stage_forms__xf__fshistory') \
+                    .filter(stage_forms__is_staged=True, stage_forms__is_scheduled=False,
+                            stage_forms__is_survey=False, stage_forms__is_deleted=True, project_id=project)
+                stage_deleted_forms = ViewSubStageFormSerializer(stage_deleted_qs, context={'site': site.id},
+                                                                 many=True).data
                 return Response(status=status.HTTP_200_OK, data={'stage_forms': stage,
+                                                                 'deleted_forms': stage_deleted_forms,
                                                                  'breadcrumbs': self.get_breadcrumbs(False, site)
 
                                                                  })
-                                                                 # 'deleted_forms': stage_deleted_forms})
 
         elif form_type == 'survey':
             is_project = True
