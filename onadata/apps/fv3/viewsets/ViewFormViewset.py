@@ -10,11 +10,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from onadata.apps.fieldsight.models import Project, Site
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, XformHistory
 from onadata.apps.fsforms.reports_util import delete_form_instance
 from onadata.apps.fv3.serializers.ViewFormSerializer import ViewGeneralsAndSurveyFormSerializer, \
     ViewScheduledFormSerializer, ViewStageFormSerializer, ViewSubmissionStatusSerializer, FormSubmissionSerializer, \
-    ViewSubStageFormSerializer
+    ViewSubStageFormSerializer, SubmissionsVersionSerializer
 from onadata.apps.fv3.permissions.view_by_forms_status_perm import ViewDataPermission, DeleteFInstancePermission
 
 
@@ -585,3 +585,18 @@ class DeleteFInstanceView(APIView):
 
         except Exception as e:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Response deleted unsuccessfull ' + str(e)})
+
+
+class SubmissionsVersions(APIView):
+    permission_classes = (IsAuthenticated, ViewDataPermission)
+
+    def get(self, request, pk, fsxf_id, format=None):
+
+        if None not in (pk, fsxf_id):
+            fsf = FieldSightXF.objects.get(pk=fsxf_id)
+            project = fsf.project
+            versions = XformHistory.objects.filter(xform=fsf.xf).order_by('-date')
+
+            serializer = SubmissionsVersionSerializer(versions, many=True)
+            return Response(status=status.HTTP_200_OK, data={'data': serializer.data})
+

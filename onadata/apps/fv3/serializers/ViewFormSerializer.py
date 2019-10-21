@@ -3,7 +3,7 @@ from django.db.models import Q, Count
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, XformHistory
 from django.contrib.humanize.templatetags.humanize import naturaltime
 
 
@@ -345,4 +345,11 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
 
     def get_date(self, obj):
         return obj.instance.date_created.strftime("%b %d, %Y at %I:%M %p")
+
+
+class SubmissionsVersionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = XformHistory
+        fields = ('id',)
 

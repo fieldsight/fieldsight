@@ -236,7 +236,7 @@
 								<span>{% trans 'Dashboard' %}</span>
 							</a>
 						</li>
-						{% if request.group.name == "Super Admin" %}
+						{% if request.user.is_superuser %}
 						<li class="sub-menu">
 							<a href="{% url 'fieldsight:organizations-list' %}">
 								<i class="la la-building"></i>
