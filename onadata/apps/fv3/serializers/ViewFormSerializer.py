@@ -6,6 +6,9 @@ from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, XformHistory
 from django.contrib.humanize.templatetags.humanize import naturaltime
 
+from onadata.apps.fsforms.templatetags.fs_filters import get_xform_version
+from onadata.apps.logger.models import XForm
+
 
 class ViewGeneralsAndSurveyFormSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField(read_only=True)
@@ -347,9 +350,61 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
         return obj.instance.date_created.strftime("%b %d, %Y at %I:%M %p")
 
 
+def versions_submission(fsf, xform_or_history, is_project):
+
+    form_version = xform_or_history.version
+
+    if is_project:
+        latest = FInstance.objects.filter(project_fxf=fsf, version=form_version).last()
+        if latest:
+            date = latest.date
+        count = FInstance.objects.filter(project_fxf=fsf, version=form_version).count()
+
+
 class SubmissionsVersionSerializer(serializers.ModelSerializer):
+    last_response = serializers.SerializerMethodField()
+    total_submissions = serializers.SerializerMethodField()
+    overriden_date = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
 
     class Meta:
         model = XformHistory
-        fields = ('id',)
+        fields = ('id', 'title', 'version', 'overriden_date', 'total_submissions', 'last_response', 'download_url')
+
+    def get_overriden_date(self, obj):
+        return obj.date.strftime("%b %d, %Y at %I:%M %p")
+
+    def get_total_submissions(self, obj):
+        is_project = self.context.get('is_project', False)
+        fsf = self.context.get('fsf', None)
+
+        form_version = obj.version
+
+        if is_project:
+            count = FInstance.objects.filter(project_fxf=fsf, version=form_version).count()
+
+            return count
+
+    def get_last_response(self, obj):
+        is_project = self.context.get('is_project', False)
+        fsf = self.context.get('fsf', None)
+        date = ''
+        form_version = obj.version
+
+        if is_project:
+            latest = FInstance.objects.filter(project_fxf=fsf, version=form_version).last()
+            if latest:
+                date = latest.date.strftime("%b %d, %Y at %I:%M %p")
+
+            return date
+
+    def get_download_url(self, obj):
+        is_project = self.context.get('is_project', False)
+        fsf = self.context.get('fsf', None)
+        form_version = obj.version
+
+        if is_project:
+            url = '/{}/exports/{}/xls/1/{}/0/{}/'.format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)
+
+            return url
 

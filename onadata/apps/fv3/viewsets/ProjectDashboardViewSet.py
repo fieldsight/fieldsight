@@ -44,16 +44,17 @@ class ProjectProgressTableViewSet(APIView):
         project_id = self.kwargs.get('pk', None)
         project_id = get_object_or_404(Project, pk=project_id).id
 
-        generals_queryset = FieldSightXF.objects.select_related('xf').filter(is_staged=False, is_scheduled=False, is_deleted=False,
+        generals_queryset = FieldSightXF.objects.select_related('xf', 'project')\
+            .filter(is_staged=False, is_scheduled=False, is_deleted=False,
                                                         project_id=project_id, is_survey=False)
         generals = ProgressGeneralFormSerializer(generals_queryset, many=True)
 
-        schedules_queryset = Schedule.objects.filter(project_id=project_id, schedule_forms__is_deleted=False,
-                                                     site__isnull=True, schedule_forms__isnull=False,
-                                                     schedule_forms__xf__isnull=False)
+        schedules_queryset = Schedule.objects.select_related('project').prefetch_related('schedule_forms')\
+            .filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
+                    schedule_forms__isnull=False, schedule_forms__xf__isnull=False)
         schedules = ProgressScheduledFormSerializer(schedules_queryset, many=True)
 
-        stages_queryset = Stage.objects.filter(stage__isnull=True, project_id=project_id, stage_forms__isnull=True).\
+        stages_queryset = Stage.objects.select_related('project').filter(stage__isnull=True, project_id=project_id, stage_forms__isnull=True).\
             order_by('order')
 
         stages = ProgressStageFormSerializer(stages_queryset, many=True)
@@ -120,9 +121,12 @@ class SiteFormViewSet(viewsets.ModelViewSet):
 
         site_types = SiteType.objects.filter(project=project, deleted=False).values('id', 'name')
         regions = Region.objects.filter(is_active=True, project=project).values('id', 'name')
-
-        return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
+        if project.cluster_sites:
+            return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
                                                          'regions': regions, 'location': str(location)})
+        else:
+            return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
+                                                             'location': str(location)})
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -130,6 +134,9 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         data = serializer.data
         if instance.site is None:
             data.pop('weight')
+
+        if instance.project.cluster_sites is False:
+            data.pop('region')
         return Response(data)
 
     def create(self, request, *args, **kwargs):

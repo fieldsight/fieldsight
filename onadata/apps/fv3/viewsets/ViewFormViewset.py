@@ -12,10 +12,12 @@ from rest_framework.views import APIView
 from onadata.apps.fieldsight.models import Project, Site
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, XformHistory
 from onadata.apps.fsforms.reports_util import delete_form_instance
+from onadata.apps.fsforms.templatetags.fs_filters import get_xform_version
 from onadata.apps.fv3.serializers.ViewFormSerializer import ViewGeneralsAndSurveyFormSerializer, \
     ViewScheduledFormSerializer, ViewStageFormSerializer, ViewSubmissionStatusSerializer, FormSubmissionSerializer, \
     ViewSubStageFormSerializer, SubmissionsVersionSerializer
 from onadata.apps.fv3.permissions.view_by_forms_status_perm import ViewDataPermission, DeleteFInstancePermission
+from onadata.apps.logger.models import XForm
 
 
 class SubmissionStatusPagination(PageNumberPagination):
@@ -590,13 +592,48 @@ class DeleteFInstanceView(APIView):
 class SubmissionsVersions(APIView):
     permission_classes = (IsAuthenticated, ViewDataPermission)
 
-    def get(self, request, pk, fsxf_id, format=None):
+    def get_breadcrumbs(self, is_project, object, fsf):
+        if is_project:
 
-        if None not in (pk, fsxf_id):
-            fsf = FieldSightXF.objects.get(pk=fsxf_id)
+            breadcrumbs = {'project_name': object.name,
+                           'project_url': object.get_absolute_url(),
+                           'responses': 'Responses',
+                           'responses_url': '/fieldsight/application/#/project-responses/{}/general/'.format(object.id),
+                           'current_page': 'Versions of {}'.format(fsf.xf.title)
+                           }
+        else:
+            breadcrumbs = {'site_name': object.name,
+                           'site_url': object.get_absolute_url(),
+                           'responses': 'Responses',
+                           'responses_url': '/fieldsight/application/#/site-responses/{}/general/'.format(object.id),
+                           'current_page': 'Versions of {}'.format(fsf.xf.title)
+                           }
+
+        return breadcrumbs
+
+    def get(self, request, is_project, pk, fsxf_id, format=None):
+
+        if is_project == '1' and fsxf_id is not None:
+            fsf = FieldSightXF.objects.select_related('xf__user').get(pk=fsxf_id)
             project = fsf.project
+
+            form_version = get_xform_version(fsf.xf)
+            latest = FInstance.objects.filter(project_fxf=fsf, version=form_version).last()
+            if latest:
+                date = latest.date.strftime("%b %d, %Y at %I:%M %p")
+            else:
+                date = ''
+            count = FInstance.objects.filter(project_fxf=fsf, version=form_version).count()
             versions = XformHistory.objects.filter(xform=fsf.xf).order_by('-date')
 
-            serializer = SubmissionsVersionSerializer(versions, many=True)
-            return Response(status=status.HTTP_200_OK, data={'data': serializer.data})
+            serializer = SubmissionsVersionSerializer(versions, many=True, context={'is_project': True, 'fsf': fsf})
+            latest = {'title': fsf.xf.title, 'version': 'Latest', 'overridden_date': 'Latest', 'last_response': date,
+                      'total_submissions': count, 'download_url': '/{}/exports/{}/xls/1/{}/0/{}/'.\
+                    format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)}
+            return Response(status=status.HTTP_200_OK, data={'data': {'latest': latest, 'versions': serializer.data,
+                                                                      'breadcrumbs':
+                                                                          self.get_breadcrumbs(True, project, fsf)}})
+
+        elif is_project == '0':
+            pass
 
