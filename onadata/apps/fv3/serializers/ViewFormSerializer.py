@@ -323,6 +323,7 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
     site_name = serializers.CharField(source='site.name')
     site_identifier = serializers.CharField(source='site.identifier')
     submission_id = serializers.SerializerMethodField()
+    date = serializers.SerializerMethodField()
 
     class Meta:
         model = FInstance
@@ -341,4 +342,7 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
             data.pop('site_identifier')
             data.pop('site_name')
         return data
+
+    def get_date(self, obj):
+        return obj.instance.date_created.strftime("%b %d, %Y at %I:%M %p")
 

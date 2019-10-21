@@ -445,7 +445,7 @@ class FormSubmissionsView(APIView):
             except ObjectDoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
             if search_param:
-                queryset = FInstance.objects.select_related('site', 'submitted_by').filter(
+                queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').filter(
                     Q(project_fxf=fsxf.id) &
                     (
                             Q(site__name__icontains=search_param) |
@@ -455,8 +455,8 @@ class FormSubmissionsView(APIView):
                     )
                 )
             else:
-                queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf.id).\
-                    order_by('-id')
+                queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').filter(
+                    project_fxf=fsxf.id).order_by('-id')
 
             page = self.paginate_queryset(queryset)
 
@@ -479,7 +479,7 @@ class FormSubmissionsView(APIView):
 
             if not fsxf.from_project:
                 if search_param:
-                    queryset = FInstance.objects.select_related('site', 'submitted_by').filter(
+                    queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').filter(
                         Q(site_fxf=fsxf.id) &
                         (
                                 Q(submitted_by__first_name__icontains=search_param) |
@@ -487,10 +487,11 @@ class FormSubmissionsView(APIView):
                         )
                     )
                 else:
-                    queryset = FInstance.objects.select_related('site', 'submitted_by').filter(site_fxf=fsxf_id).order_by('-id')
+                    queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').filter(
+                        site_fxf=fsxf_id).order_by('-id')
             else:
                 if search_param:
-                    queryset = FInstance.objects.select_related('site', 'submitted_by').filter(
+                    queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').filter(
                         Q(project_fxf=fsxf_id) &
                         (
                                 Q(submitted_by__first_name__icontains=search_param) |
@@ -498,8 +499,8 @@ class FormSubmissionsView(APIView):
                         )
                     )
                 else:
-                    queryset = FInstance.objects.select_related('site', 'submitted_by').filter(project_fxf=fsxf_id,
-                                                                                           site_id=site).order_by('-id')
+                    queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').filter(
+                        project_fxf=fsxf_id, site_id=site).order_by('-id')
             page = self.paginate_queryset(queryset)
 
             if page is not None:
