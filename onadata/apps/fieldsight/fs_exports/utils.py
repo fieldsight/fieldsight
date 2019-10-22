@@ -120,6 +120,6 @@ def project_map_data():
     project_site_7days_approved_pending = project_site_7days_approved.merge(pending_count, how='left', left_on='pk', right_on='site__project')
     del project_site_7days_approved_pending['site__project']
     project_site_7days_approved_pending.fillna(0)
-    project_site_7days_approved_pending.head()
+    print(project_site_7days_approved_pending.head())
 
 
