@@ -1,7 +1,9 @@
+from datetime import date, timedelta
+
 import pandas as pd
 import numpy as np
 
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.fieldsight.models import Site, Project
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
 
 
@@ -85,4 +87,39 @@ def site_report():
 
 
     return df_sites
+
+
+def project_map_data():
+    query_project = Project.objects.select_related("organization").values("pk", "name", "location", "address", "organization__name")
+    df_project = pd.DataFrame(list(query_project), columns=["pk", "name", "location", "address", "organization__name"])
+
+    query_site = Site.objects.values("pk", "project")
+    df_site = pd.DataFrame(list(query_site), columns=["pk", "project"])
+
+    query_submission = FInstance.objects.select_related("site", "instance").values("pk", "site__project", "form_status", "instance__date_created")
+    df_submissions = pd.DataFrame(list(query_submission), columns=["pk", "site__project", "form_status", "instance__date_created"])
+
+    df_project_site_count = df_site.groupby("project").size().to_frame("sites_count").reset_index()
+    project_with_sites_count = pd.merge(df_project, df_project_site_count, how="left", left_on='pk', right_on="project",
+                                        sort=False)
+    del project_with_sites_count['project']
+    last_wek = (date.today() - timedelta(days=7)).strftime("%Y-%m-%d")
+    today = date.today().strftime("%Y-%m-%d")
+    last_seven_days_submissions = df_submissions[(df_submissions['instance__date_created'] > last_wek) & (
+                df_submissions['instance__date_created'] < today)].head()
+    last_7_days_count = last_seven_days_submissions.groupby('site__project').size().to_frame(
+        "submissions_in_last_7days").reset_index()
+    project_site_7days = project_with_sites_count.merge(last_7_days_count, left_on="pk", right_on="site__project", how="left")
+    del project_site_7days['site__project']
+    approved_count = df_submissions[df_submissions['form_status'] == 3].groupby(
+        'site__project').size().to_frame('approved_count').reset_index()
+    pending_count = df_submissions[df_submissions['form_status'] == 0].groupby(
+        'site__project').size().to_frame('pending_count').reset_index()
+    project_site_7days_approved = project_site_7days.merge(approved_count, how='left', left_on='pk', right_on='site__project')
+    del project_site_7days_approved['site__project']
+    project_site_7days_approved_pending = project_site_7days_approved.merge(pending_count, how='left', left_on='pk', right_on='site__project')
+    del project_site_7days_approved_pending['site__project']
+    project_site_7days_approved_pending.fillna(0)
+    project_site_7days_approved_pending.head()
+
 
