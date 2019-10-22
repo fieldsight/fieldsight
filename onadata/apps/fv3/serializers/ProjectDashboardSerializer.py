@@ -257,7 +257,7 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
 
         try:
 
-            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}/{}'\
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/fieldsight/application/#/submission-data/{}/{}'\
                 .format(project.id, form.stage_forms.id),
                      'pending': form.stage_forms.project_form_instances.filter(form_status=0).count(),
                      'rejected': form.stage_forms.project_form_instances.filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
@@ -268,7 +268,7 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
 
                     ]
         except ZeroDivisionError:
-            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}/{}'
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/fieldsight/application/#/submission-data/{}/{}'
                 .format(project.id, form.stage_forms.id), 'pending': form.stage_forms.project_form_instances. \
                 filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances. \
                 filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances. \
@@ -294,7 +294,7 @@ class ProgressGeneralFormSerializer(serializers.ModelSerializer):
         return obj.xf.title
 
     def get_form_url(self, obj):
-        return '/forms/project-submissions/{}/{}' .format(obj.project_id, obj.id)
+        return '/fieldsight/application/#/submission-data/{}/{}' .format(obj.project_id, obj.id)
 
     def get_progress_data(self, obj):
         project = obj.project
@@ -322,7 +322,7 @@ class ProgressScheduledFormSerializer(serializers.ModelSerializer):
         fields = ('name', 'form_url', 'progress_data')
 
     def get_form_url(self, obj):
-        return '/forms/project-submissions/{}/{}' .format(obj.id, obj.schedule_forms.id)
+        return '/fieldsight/application/#/submission-data/{}/{}' .format(obj.id, obj.schedule_forms.id)
 
     def get_progress_data(self, obj):
         project = obj.project

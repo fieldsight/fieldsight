@@ -172,8 +172,10 @@ class SiteFormViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         old_meta = instance.site_meta_attributes_ans
+
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
+
         self.perform_update(serializer)
         longitude = request.data.get('longitude', None)
         latitude = request.data.get('latitude', None)

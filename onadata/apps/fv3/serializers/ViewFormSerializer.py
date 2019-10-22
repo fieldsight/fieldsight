@@ -350,15 +350,33 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
         return obj.instance.date_created.strftime("%b %d, %Y at %I:%M %p")
 
 
-def versions_submission(fsf, xform_or_history, is_project):
-
-    form_version = xform_or_history.version
-
-    if is_project:
+def get_version_submission_data(fsf, is_project, site, xform_or_history):
+    date = ""
+    count = 0
+    if isinstance(xform_or_history,  XForm):
+        form_version = get_xform_version(xform_or_history)
+    else:
+        form_version = xform_or_history.version
+    if is_project == 1:
         latest = FInstance.objects.filter(project_fxf=fsf, version=form_version).last()
         if latest:
             date = latest.date
         count = FInstance.objects.filter(project_fxf=fsf, version=form_version).count()
+    elif is_project == 0:
+        if fsf.project:
+            latest = FInstance.objects.filter(project_fxf=fsf, version=form_version, site=site).last()
+            if latest:
+                date = latest.date
+            count = FInstance.objects.filter(project_fxf=fsf, version=form_version, site=site).count()
+
+        elif fsf.site:
+            latest = FInstance.objects.filter(site_fxf=fsf, version=form_version, site=site).last()
+            if latest:
+                date = latest.date
+            count = FInstance.objects.filter(site_fxf=fsf, version=form_version, site=site).count()
+
+    has_submissions = True if count > 0 else False
+    return dict(date=date, count=count, has_submissions=has_submissions, version=form_version)
 
 
 class SubmissionsVersionSerializer(serializers.ModelSerializer):
@@ -376,35 +394,53 @@ class SubmissionsVersionSerializer(serializers.ModelSerializer):
 
     def get_total_submissions(self, obj):
         is_project = self.context.get('is_project', False)
-        fsf = self.context.get('fsf', None)
+        fsf = self.context.get('fsf', False)
+        site = self.context.get('site', False)
 
-        form_version = obj.version
+        if is_project == 1:
+            data = get_version_submission_data(fsf, 1, None, obj)
+            count = data['count']
 
-        if is_project:
-            count = FInstance.objects.filter(project_fxf=fsf, version=form_version).count()
+        elif is_project == 0:
+            data = get_version_submission_data(fsf, 0, site, obj)
+            count = data['count']
 
-            return count
+        else:
+            count = 0
+
+        return count
 
     def get_last_response(self, obj):
         is_project = self.context.get('is_project', False)
-        fsf = self.context.get('fsf', None)
-        date = ''
-        form_version = obj.version
+        fsf = self.context.get('fsf', False)
+        site = self.context.get('site', False)
 
-        if is_project:
-            latest = FInstance.objects.filter(project_fxf=fsf, version=form_version).last()
-            if latest:
-                date = latest.date.strftime("%b %d, %Y at %I:%M %p")
+        if is_project == 1:
+            data = get_version_submission_data(fsf, 1, None, obj)
+            date = data['date']
 
-            return date
+        elif is_project == 0:
+            data = get_version_submission_data(fsf, 0, site, obj)
+            date = data['date']
+
+        else:
+            date = ''
+
+        return date
 
     def get_download_url(self, obj):
-        is_project = self.context.get('is_project', False)
-        fsf = self.context.get('fsf', None)
-        form_version = obj.version
+            is_project = self.context.get('is_project', False)
+            fsf = self.context.get('fsf', None)
+            site = self.context.get('site', None)
 
-        if is_project:
-            url = '/{}/exports/{}/xls/1/{}/0/{}/'.format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)
+            form_version = obj.version
+
+            if is_project:
+                url = '/{}/exports/{}/xls/1/{}/0/{}/'.format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)
+
+            else:
+                url = '/{}/exports/{}/xls/0/{}/{}/{}/'.format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, site,
+                                                              form_version)
 
             return url
 

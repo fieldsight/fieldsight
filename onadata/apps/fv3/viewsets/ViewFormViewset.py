@@ -626,7 +626,7 @@ class SubmissionsVersions(APIView):
             count = FInstance.objects.filter(project_fxf=fsf, version=form_version).count()
             versions = XformHistory.objects.filter(xform=fsf.xf).order_by('-date')
 
-            serializer = SubmissionsVersionSerializer(versions, many=True, context={'is_project': True, 'fsf': fsf})
+            serializer = SubmissionsVersionSerializer(versions, many=True, context={'is_project': 1, 'fsf': fsf})
             latest = {'title': fsf.xf.title, 'version': 'Latest', 'overridden_date': 'Latest', 'last_response': date,
                       'total_submissions': count, 'download_url': '/{}/exports/{}/xls/1/{}/0/{}/'.\
                     format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)}
@@ -634,6 +634,43 @@ class SubmissionsVersions(APIView):
                                                                       'breadcrumbs':
                                                                           self.get_breadcrumbs(True, project, fsf)}})
 
-        elif is_project == '0':
-            pass
+        elif is_project == '0' and fsxf_id is not None:
+            site_obj = Site.objects.get(pk=pk)
+            project = site_obj.project
+            fsf = FieldSightXF.objects.select_related('xf__user').get(pk=fsxf_id)
+            versions = XformHistory.objects.filter(xform=fsf.xf).order_by('-date')
+            latest = fsf.xf
+
+            form_version = get_xform_version(fsf.xf)
+            if fsf.project:
+                latest = FInstance.objects.filter(project_fxf=fsf, version=form_version, site=site_obj).last()
+                if latest:
+                    date = latest.date.strftime("%b %d, %Y at %I:%M %p")
+                else:
+                    date = ''
+                count = FInstance.objects.filter(project_fxf=fsf, version=form_version, site=site_obj).count()
+
+            elif fsf.site:
+                latest = FInstance.objects.filter(site_fxf=fsf, version=form_version, site=site_obj).last()
+                if latest:
+                    date = latest.date.strftime("%b %d, %Y at %I:%M %p")
+                else:
+                    date = ''
+                count = FInstance.objects.filter(site_fxf=fsf, version=form_version, site=site_obj).count()
+
+            else:
+                count = 0
+                date = ''
+            versions = XformHistory.objects.filter(xform=fsf.xf).order_by('-date')
+
+            serializer = SubmissionsVersionSerializer(versions, many=True, context={'is_project': 0, 'fsf': fsf,
+                                                                                    'site': pk})
+            latest = {'title': fsf.xf.title, 'version': 'Latest', 'overridden_date': 'Latest', 'last_response': date,
+                      'total_submissions': count, 'download_url': '/{}/exports/{}/xls/1/{}/0/{}/'. \
+                    format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)}
+            return Response(status=status.HTTP_200_OK, data={'data': {'latest': latest, 'versions': serializer.data,
+                                                                      'breadcrumbs':
+                                                                          self.get_breadcrumbs(False, site_obj, fsf)}})
+
+
 
