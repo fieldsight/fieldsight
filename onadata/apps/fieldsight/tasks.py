@@ -868,27 +868,56 @@ def siteDetailsGenerator(project, sites, ws):
                     
         for meta in get_answer_questions:
             form_owner = None
-            query = settings.MONGO_DB.instances.aggregate([
-                {"$sort":{"_id":1}},
-                {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
-                "_id" : "$fs_site",
-                "answer": { '$last': "$"+meta['question']['name'] }
-               }
-             }])
+            if "/" in meta['question']['name']:
+                group_name = meta['question']['name'].split("/")[0]
+                query = settings.MONGO_DB.instances.aggregate([
+                    {"$sort": {"_id": 1}},
+                    {"$match": {"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}}, {
+                        "$group": {
+                            "_id": "$fs_site",
+                            "answer": {'$last': "$" + group_name}
+                        }
+                    }])
 
-            for submission in query['result']:
-                try:    
-                    if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
-                        if not form_owner:
-                            form_owner = FieldSightXF.objects.select_related('xf__user').get(pk=meta['form_id']).xf.user.username
-                        site_list[int(submission['_id'])][meta['question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file='+  +'/attachments/'+submission['answer']
-                    
-                    if meta['question']['type'] == 'repeat':
-                        site_list[int(submission['_id'])][meta['question_name']] = ""
+                for submission in query['result']:
+                    try:
+                        if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
+                            if not form_owner:
+                                form_owner = FieldSightXF.objects.select_related('xf__user').get(
+                                    pk=meta['form_id']).xf.user.username
+                            site_list[int(submission['_id'])][meta[
+                                'question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file=' + +'/attachments/' + \
+                                                    submission['answer'][0][meta['question']['name']]
 
-                    site_list[int(submission['_id'])][meta['question_name']] = submission['answer']
-                except:
-                    pass
+
+                        if meta['question']['type'] == 'repeat':
+                            site_list[int(submission['_id'])][meta['question_name']] = ""
+
+                        site_list[int(submission['_id'])][meta['question_name']] = submission['answer'][0][meta['question']['name']]
+                    except:
+                        pass
+            else:
+                query = settings.MONGO_DB.instances.aggregate([
+                    {"$sort":{"_id":1}},
+                    {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
+                    "_id" : "$fs_site",
+                    "answer": { '$last': "$"+meta['question']['name'] }
+                   }
+                 }])
+
+                for submission in query['result']:
+                    try:
+                        if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
+                            if not form_owner:
+                                form_owner = FieldSightXF.objects.select_related('xf__user').get(pk=meta['form_id']).xf.user.username
+                            site_list[int(submission['_id'])][meta['question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file='+  +'/attachments/'+submission['answer']
+
+                        if meta['question']['type'] == 'repeat':
+                            site_list[int(submission['_id'])][meta['question_name']] = ""
+
+                        site_list[int(submission['_id'])][meta['question_name']] = submission['answer']
+                    except:
+                        pass
 
         for meta in get_answer_status_questions:
         
