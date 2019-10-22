@@ -868,7 +868,7 @@ def siteDetailsGenerator(project, sites, ws):
                     
         for meta in get_answer_questions:
             form_owner = None
-            if "/" in meta['question_name']:
+            if "/" in meta['question']['name']:
                 group_name = meta['question']['name'].split("/")[0]
                 query = settings.MONGO_DB.instances.aggregate([
                     {"$sort": {"_id": 1}},
