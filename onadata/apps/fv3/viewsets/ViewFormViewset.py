@@ -590,7 +590,7 @@ class DeleteFInstanceView(APIView):
 
 
 class SubmissionsVersions(APIView):
-    permission_classes = (IsAuthenticated, ViewDataPermission)
+    permission_classes = (IsAuthenticated,)
 
     def get_breadcrumbs(self, is_project, object, fsf):
         if is_project:
