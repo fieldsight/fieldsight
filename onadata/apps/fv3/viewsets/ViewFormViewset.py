@@ -74,25 +74,34 @@ class ProjectSiteResponsesView(APIView):
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 project_id = site.project_id
+                project = site.project
+                types_count = project.types.count()
 
-                if site.type and site.region:
-
+                if project.cluster_sites and types_count:
+                    if not site.type:
+                        site.type_id = 0
+                    if not site.region:
+                        site.region_id = 0
                     generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
                                                | Q(project__id=project_id, settings__isnull=True)
-                                               | Q(project__id=project_id, settings__types__contains=[site.type_id])
-                                               | Q(project__id=project_id, settings__regions__contains=[site.region_id]))
-                elif site.type:
-                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
-                                               | Q(project__id=project_id, settings__isnull=True)
-                                               | Q(project__id=project_id, settings__types__contains=[site.type_id]))
-                elif site.region:
+                                               | Q(project__id=project_id, settings__types__contains=[site.type_id]),
+                                               settings__regions__contains=[site.region_id])
+                elif project.cluster_sites:
+                    if not site.region:
+                        site.region_id = 0
                     generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
                                                | Q(project__id=project_id, settings__isnull=True)
                                                | Q(project__id=project_id,
                                                    settings__regions__contains=[site.region_id]))
+                elif types_count > 0:
+                    if not site.type:
+                        site.type_id = 0
+                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
+                                               | Q(project__id=project_id, settings__isnull=True)
+                                               | Q(project__id=project_id, settings__types__contains=[site.type_id]))
                 else:
-                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False) |
-                                                             Q(project__id=project_id))
+                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False) | Q(project__id=project_id))
+
                 generals_queryset = generals_queryset.\
                     select_related('xf', 'xf__user', 'site', 'project').prefetch_related('xf__fshistory',
                                                                                          'site_form_instances')
@@ -144,30 +153,34 @@ class ProjectSiteResponsesView(APIView):
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
                 project_id = site.project_id
+                project = site.project
+                types_count = project.types.count()
 
-                if site.type and site.region:
-
+                if project.cluster_sites and types_count:
+                    if not site.type:
+                        site.type_id = 0
+                    if not site.region:
+                        site.region_id = 0
                     scheduled_queryset = base_queryset.filter(Q(site__id=site.id)
-                                                              | Q(project__id=project_id,
-                                                                  schedule_forms__settings__isnull=True)
-                                                              | Q(project__id=project_id,
-                                                                  schedule_forms__settings__types__contains=[site.type_id])
-                                                              |Q(project__id=project_id,
-                                                                 schedule_forms__settings__regions__contains=[site.region_id]))
-                elif site.type:
-
+                                               | Q(project__id=project_id, schedule_forms__settings__isnull=True)
+                                               | Q(project__id=project_id,
+                                                   schedule_forms__settings__types__contains=[site.type_id]),
+                                               schedule_forms__settings__regions__contains=[site.region_id])
+                elif types_count > 0:
+                    if not site.type_id:
+                        site.type_id = 0
                     scheduled_queryset = base_queryset.filter(Q(site__id=site.id)
                                                | Q(project__id=project_id, schedule_forms__settings__isnull=True)
                                                | Q(project__id=project_id,
                                                    schedule_forms__settings__types__contains=[site.type_id]))
-                elif site.region:
-
-                    scheduled_queryset = base_queryset.filter(Q(site__id=site.id, )
+                elif project.cluster_sites:
+                    if not site.region:
+                        site.region_id = 0
+                    scheduled_queryset = base_queryset.filter(Q(site__id=site.id)
                                                | Q(project__id=project_id, schedule_forms__settings__isnull=True)
                                                | Q(project__id=project_id,
                                                    schedule_forms__settings__regions__contains=[site.region_id]))
                 else:
-
                     scheduled_queryset = base_queryset.filter(Q(site__id=site.id) | Q(project__id=project_id))
 
                 scheduled_queryset = scheduled_queryset.select_related('schedule_forms', 'schedule_forms__xf',
@@ -222,22 +235,36 @@ class ProjectSiteResponsesView(APIView):
                 except ObjectDoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
                 project_id = site.project_id
+                project = site.project
 
-                if site.type and site.region:
-                    stage_queryset = base_queryset.filter(Q(site__id=site.id, project_stage_id=0)
-                                                    | Q(project__id=project_id, tags__contains=[site.type_id])
-                                                    | Q(project__id=project_id, regions__contains=[site.region_id])
-                                                    )
-                elif site.type:
-                    stage_queryset = base_queryset.filter(Q(site__id=site.id, project_stage_id=0)
-                                                    | Q(project__id=project_id, tags__contains=[site.type_id])
-                                                    )
-                elif site.region:
-                    stage_queryset = base_queryset.filter(Q(site__id=site.id, project_stage_id=0)
-                                                    | Q(project__id=project_id, regions__contains=[site.region_id])
-                                                    )
+                types_count = project.types.count()
+                if project.cluster_sites and types_count:
+                    if not site.type:
+                        site.type_id = 0
+                    if not site.region:
+                        site.region_id = 0
+                    stage_queryset = base_queryset.filter(Q(site__id=site.id,
+                                                 project_stage_id=0)
+                                               | Q(project__id=project_id, tags__contains=[site.type_id])
+                                               | Q(project__id=project_id, regions__contains=[site.region_id])
+                                               )
+                if types_count:
+                    if not site.type:
+                        site.type_id = 0
+                    stage_queryset = base_queryset.filter(Q(site__id=site.id,
+                                                 project_stage_id=0)
+                                               | Q(project__id=project_id, tags__contains=[site.type_id])
+
+                                               )
+                if project.cluster_sites:
+                    if not site.region:
+                        site.region_id = 0
+                    stage_queryset = base_queryset.filter(Q(site__id=site.id,
+                                                 project_stage_id=0)
+                                               | Q(project__id=project_id, regions__contains=[site.region_id])
+                                               )
                 else:
-                    stage_queryset = base_queryset.select_related('project').filter(
+                    stage_queryset = base_queryset.filter(
                         Q(site__id=site.id, project_stage_id=0)
                         | Q(project__id=project_id))
                 stage = ViewStageFormSerializer(stage_queryset, context={'site': site.id}, many=True).data
@@ -627,7 +654,7 @@ class SubmissionsVersions(APIView):
             versions = XformHistory.objects.filter(xform=fsf.xf).order_by('-date')
 
             serializer = SubmissionsVersionSerializer(versions, many=True, context={'is_project': 1, 'fsf': fsf})
-            latest = {'title': fsf.xf.title, 'version': 'Latest', 'overridden_date': 'Latest', 'last_response': date,
+            latest = {'title': fsf.xf.title, 'version': 'Latest', 'overidden_date': 'Latest', 'last_response': date,
                       'total_submissions': count, 'download_url': '/{}/exports/{}/xls/1/{}/0/{}/'.\
                     format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)}
             return Response(status=status.HTTP_200_OK, data={'data': {'latest': latest, 'versions': serializer.data,
@@ -665,7 +692,7 @@ class SubmissionsVersions(APIView):
 
             serializer = SubmissionsVersionSerializer(versions, many=True, context={'is_project': 0, 'fsf': fsf,
                                                                                     'site': pk})
-            latest = {'title': fsf.xf.title, 'version': 'Latest', 'overridden_date': 'Latest', 'last_response': date,
+            latest = {'title': fsf.xf.title, 'version': 'Latest', 'overidden_date': 'Latest', 'last_response': date,
                       'total_submissions': count, 'download_url': '/{}/exports/{}/xls/1/{}/0/{}/'. \
                     format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)}
             return Response(status=status.HTTP_200_OK, data={'data': {'latest': latest, 'versions': serializer.data,
