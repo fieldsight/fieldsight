@@ -601,7 +601,7 @@ class PDFReport:
         new_enddate = end + datetime.timedelta(days=1)
 
         forms = FieldSightXF.objects.select_related('xf').filter(pk__in=fs_ids, is_survey=False, is_deleted=False
-                                                                 ).order_by('project', 'is_staged', 'is_scheduled', 'stage__order', 'stage__date_created'
+                                                                 ).order_by('project', 'is_staged', 'is_scheduled', 'stage__stage__order', 'stage__order', 'stage__date_created', 'date_created'
                                                                  ).prefetch_related(Prefetch('site_form_instances',
                                                                                              queryset=FInstance.objects.select_related('instance').filter(date__range=[new_startdate, new_enddate])), Prefetch('project_form_instances', queryset=FInstance.objects.select_related('instance').filter(site_id=site.id, date__range=[new_startdate, new_enddate])))
         
