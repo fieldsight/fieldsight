@@ -54,7 +54,13 @@ class ProjectTermsLabelsViewset(viewsets.ModelViewSet):
         if project_id:
             project = get_object_or_404(Project, id=project_id)
 
-            return self.queryset.filter(project=project)
+            queryset = self.queryset.filter(project=project)
+
+            if not ProjectLevelTermsAndLabels.objects.filter(project=project).exists():
+
+               ProjectLevelTermsAndLabels.objects.create(project=project)
+
+            return queryset
         else:
             return self.queryset
 

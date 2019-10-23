@@ -81,7 +81,8 @@ def my_roles(request):
                                                                          and request.user.user_roles.all().count() == 1) else False
 
     can_create_team = True
-    if request.user.organizations.all():
+
+    if request.user.organizations.all().exists():
         can_create_team = False
 
     if user_id is not None:

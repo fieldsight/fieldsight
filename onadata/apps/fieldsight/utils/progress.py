@@ -15,6 +15,7 @@ def get_submission_answer_by_question(sub_answers={}, question_name="", depth=0)
     return answer
 
 
+
 def default_progress(site, project):
     from onadata.apps.fsforms.models import Stage
     approved_site_forms_weight = site.site_instances.filter(form_status=3,

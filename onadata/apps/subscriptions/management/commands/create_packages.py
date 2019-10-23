@@ -50,7 +50,7 @@ class Command(BaseCommand):
              ,
             8:
                  {'Scale Yearly Plan':
-                      {'submission': 40, 'extra_submissions_charge': 0.15, 'total_charge': 800, 'period_type': 2}
+                      {'submission': 180000, 'extra_submissions_charge': 0.15, 'total_charge': 30000, 'period_type': 2}
                   }
             ,
             9:

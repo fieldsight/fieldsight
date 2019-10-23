@@ -1077,6 +1077,7 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
             ))
 
         self.object = form.save(project_id=self.kwargs.get('pk'), new=True)
+
         noti = self.object.logs.create(source=self.request.user, type=11, title="new Site",
                                        organization=self.object.project.organization,
                                        project=self.object.project, content_object=self.object, extra_object=self.object.project,
@@ -2757,11 +2758,15 @@ class ProjFullmap(ReadonlyProjectLevelRoleMixin, TemplateView):
     def get_context_data(self, **kwargs):
         obj = Project.objects.get(pk=self.kwargs.get('pk'))
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=obj).exists()
+        regions = Region.objects.filter(project=obj, is_active=True)
+        site_types = SiteType.objects.filter(project=obj, deleted=False)
 
         dashboard_data = {
             'obj': obj,
             'mapfor': "project",
-            'terms_and_labels': terms_and_labels
+            'terms_and_labels': terms_and_labels,
+            'regions': regions,
+            'site_types': site_types
             }
         return dashboard_data
 
@@ -3412,7 +3417,6 @@ class DefineProjectSiteMeta(RegionSupervisorReviewerMixin, TemplateView):
         new_meta = json.loads(project.site_meta_attributes)
         # print new_meta
         updated_json = None
-
         if old_meta != new_meta:
             deleted = []
 
@@ -4852,9 +4856,10 @@ def attachment_url(request, instance_id, size='medium'):
     media_file = request.GET.get('media_file')
     media_folder = request.GET.get('media_folder')
     # search for media_file with exact matching name
-    attachment = Attachment.objects.filter(instance_id=instance_id, media_file_basename=media_file).first() or Attachment.objects.filter(instance_id=instance_id, media_file__contains=media_file).first() or Attachment.objects.filter(media_file__contains=media_file).filter(media_file__contains=media_folder).first()
+    try:
+        attachment = Attachment.objects.filter(instance_id=instance_id, media_file_basename=media_file).first() or Attachment.objects.filter(instance_id=instance_id, media_file__contains=media_file).first() or Attachment.objects.filter(media_file__contains=media_file).filter(media_file__contains=media_folder).first()
 
-    if not attachment:
+    except ValueError:
         return HttpResponseNotFound('Attachment not found')
 
     media_url = image_url(attachment, size)

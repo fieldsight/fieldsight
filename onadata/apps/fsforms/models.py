@@ -254,6 +254,8 @@ class Schedule(models.Model):
                                            related_name='days', blank=True)
     shared_level = models.IntegerField(default=2, choices=SHARED_LEVEL)
     schedule_level_id = models.IntegerField(default=0, choices=SCHEDULED_LEVEL)
+    frequency = models.IntegerField(default=0)
+    month_day = models.IntegerField(default=0)
     date_created = models.DateTimeField(auto_now_add=True)
     logs = GenericRelation('eventlog.FieldSightLog')
 

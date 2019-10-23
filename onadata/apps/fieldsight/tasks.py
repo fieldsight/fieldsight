@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+
+import copy
 import time
 import re 
 import os
@@ -12,6 +14,7 @@ from django.contrib.gis.geos import Point
 from celery import shared_task
 from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings, SiteMetaAttrAnsHistory
 from onadata.apps.fieldsight.utils.progress import set_site_progress
+from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
 from channels import Group as ChannelGroup
@@ -22,7 +25,7 @@ from django.shortcuts import get_object_or_404
 from onadata.apps.fsforms.models import FieldSightXF, FInstance, Stage
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from django.db.models import Prefetch
+from django.db.models import Prefetch, F
 from .generatereport import PDFReport
 import os, tempfile, zipfile, dateutil
 from django.conf import settings
@@ -641,6 +644,7 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                         myanswers[question['question_name']]=site.get(question['question_name'], "")
                 
                 _site.site_meta_attributes_ans = myanswers
+                _site.all_ma_ans.update(myanswers)
                 _site.save()
                 i += 1
                 
@@ -882,27 +886,56 @@ def siteDetailsGenerator(project, sites, ws):
                     
         for meta in get_answer_questions:
             form_owner = None
-            query = settings.MONGO_DB.instances.aggregate([
-                {"$sort":{"_id":1}},
-                {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
-                "_id" : "$fs_site",
-                "answer": { '$last': "$"+meta['question']['name'] }
-               }
-             }])
+            if "/" in meta['question']['name']:
+                group_name = meta['question']['name'].split("/")[0]
+                query = settings.MONGO_DB.instances.aggregate([
+                    {"$sort": {"_id": 1}},
+                    {"$match": {"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}}, {
+                        "$group": {
+                            "_id": "$fs_site",
+                            "answer": {'$last': "$" + group_name}
+                        }
+                    }])
 
-            for submission in query['result']:
-                try:    
-                    if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
-                        if not form_owner:
-                            form_owner = FieldSightXF.objects.select_related('xf__user').get(pk=meta['form_id']).xf.user.username
-                        site_list[int(submission['_id'])][meta['question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file='+  +'/attachments/'+submission['answer']
-                    
-                    if meta['question']['type'] == 'repeat':
-                        site_list[int(submission['_id'])][meta['question_name']] = ""
+                for submission in query['result']:
+                    try:
+                        if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
+                            if not form_owner:
+                                form_owner = FieldSightXF.objects.select_related('xf__user').get(
+                                    pk=meta['form_id']).xf.user.username
+                            site_list[int(submission['_id'])][meta[
+                                'question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file=' + +'/attachments/' + \
+                                                    submission['answer'][0][meta['question']['name']]
 
-                    site_list[int(submission['_id'])][meta['question_name']] = submission['answer']
-                except:
-                    pass
+
+                        if meta['question']['type'] == 'repeat':
+                            site_list[int(submission['_id'])][meta['question_name']] = ""
+
+                        site_list[int(submission['_id'])][meta['question_name']] = submission['answer'][0][meta['question']['name']]
+                    except:
+                        pass
+            else:
+                query = settings.MONGO_DB.instances.aggregate([
+                    {"$sort":{"_id":1}},
+                    {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
+                    "_id" : "$fs_site",
+                    "answer": { '$last': "$"+meta['question']['name'] }
+                   }
+                 }])
+
+                for submission in query['result']:
+                    try:
+                        if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
+                            if not form_owner:
+                                form_owner = FieldSightXF.objects.select_related('xf__user').get(pk=meta['form_id']).xf.user.username
+                            site_list[int(submission['_id'])][meta['question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file='+  +'/attachments/'+submission['answer']
+
+                        if meta['question']['type'] == 'repeat':
+                            site_list[int(submission['_id'])][meta['question_name']] = ""
+
+                        site_list[int(submission['_id'])][meta['question_name']] = submission['answer']
+                    except:
+                        pass
 
         for meta in get_answer_status_questions:
         
@@ -2660,6 +2693,8 @@ def update_sites_progress(pk, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
+#use this task to create site all metas for first time.
+
 @shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
 def create_site_meta_attribs_ans_history(pk, task_id):
     from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
@@ -2672,19 +2707,21 @@ def create_site_meta_attribs_ans_history(pk, task_id):
                     page * page_size:(page + 1) * page_size]
             print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
             for site in sites:
+                old_all_ma_ans = copy.deepcopy(site.all_ma_ans)
                 metas = get_site_meta_ans(site.id)
-                if metas == site.site_meta_attributes_ans:
+                if metas == old_all_ma_ans:
                     continue
                 else:
-                    SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans,
-                                                          status=2)
-                    site.site_meta_attributes_ans = metas
+                    # SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.all_ma_ans,
+                    #                                       status=2)
+                    site.all_ma_ans = metas
                     site.save()
             total_sites -= page_size
             page += 1
-            CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+            # CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception:
-        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+        print("failed")
+        # CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
 def get_submission_answer_by_question(sub_answers={}, question_name="", depth=0):
@@ -2738,24 +2775,28 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         site.save()
 
         # change site meta attributes answer
-        meta_ans = site.site_meta_attributes_ans
+        meta_ans = copy.deepcopy(site.site_meta_attributes_ans)
+        all_ma_ans = copy.deepcopy(site.all_ma_ans)
         for item in fs_proj_xf.project.site_meta_attributes:
-            if item.get('question_type') == 'Form' and fs_proj_xf.id == item.get('form_id', 0):
+            if item.get('question_type') == 'Form' and str(fs_proj_xf.id) == item.get('form_id', 0):
                 if item['question']['type'] == "repeat":
                     answer = ""
                 else:
-                    answer = instance.json.get(item.get('question').get('name'), '')
+                    answer = find_answer_from_dict(instance.json, item.get('question').get('name'))
                 if item['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
-                    answer = 'http://app.fieldsight.org/attachment/medium?media_file=' + fs_proj_xf.xf.user.username + '/attachments/' + answer
+                    answer = 'http://app.fieldsight.org/attachment/medium?media_file=' +\
+                             fs_proj_xf.xf.user.username + '/attachments/' + answer
                 meta_ans[item['question_name']] = answer
+                all_ma_ans[item['question_name']] = answer
 
-            elif item.get('question_type') == 'FormSubStat' and fs_proj_xf.id == item.get('form_id', 0):
+            elif item.get('question_type') == 'FormSubStat' and str(fs_proj_xf.id) == item.get('form_id', 0):
                 if instance.date_modified:
                     answer = "Last submitted on " + instance.date_modified.strftime("%d %b %Y %I:%M %P")
                 else:
                     answer = "Last submitted on " + instance.date_created.strftime("%d %b %Y %I:%M %P")
 
                 meta_ans[item['question_name']] = answer
+                all_ma_ans[item['question_name']] = answer
 
             elif item.get('question_type') == "FormQuestionAnswerStatus":
                 get_answer = instance.json.get(item.get('question').get('name'), None)
@@ -2764,17 +2805,28 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 else:
                     answer = ""
                 meta_ans[item['question_name']] = answer
+                all_ma_ans[item['question_name']] = answer
 
             elif item.get('question_type') == "FormSubCountQuestion":
                 meta_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
-        if meta_ans != site.site_meta_attributes_ans:
-            SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.site_meta_attributes_ans, status=1)
+                all_ma_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
+        if all_ma_ans != site.all_ma_ans:
+            SiteMetaAttrAnsHistory.objects.create(site=site,
+                                                  meta_attributes_ans=all_ma_ans, status=1)
             site.site_meta_attributes_ans = meta_ans
+            site.all_ma_ans = all_ma_ans
             site.save()
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception as e:
         print('Exception occured', e)
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
+
+
+@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+def copy_meta_to_all_meta():
+    projects = Project.objects.exclude(site_meta_attributes__contains=[]).values_list('pk', flat=True)
+    Site.objects.filter(project__id__in=projects).update(all_ma_ans=F('site_meta_attributes_ans'))
+
 
 @shared_task()
 def update_current_progress_site(site_id):
@@ -2786,6 +2838,27 @@ def update_current_progress_site(site_id):
         status = 0
     site.current_status = status
     site.save()
+
+
+@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
+    from onadata.apps.fieldsight.utils.siteMetaAttribs import update_site_meta_ans
+    total_sites = Site.objects.filter(is_active=True, project=pk).count()
+    page_size = 1000
+    page = 0
+    try:
+        while total_sites > 0:
+            sites = Site.objects.filter(is_active=True, project=pk)[
+                    page * page_size:(page + 1) * page_size]
+            print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
+            for site in sites:
+                update_site_meta_ans(site, deleted_metas, changed_metas)
+                SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.all_ma_ans, status=2)
+            total_sites -= page_size
+            page += 1
+            CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
 def update_basic_info_in_site(pk, location_changed, picture_changed, location_form, location_question, picture_form,

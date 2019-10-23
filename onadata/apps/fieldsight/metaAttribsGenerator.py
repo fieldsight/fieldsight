@@ -1,6 +1,16 @@
 from .models import Project, Site
 from onadata.apps.fsforms.models import FieldSightXF
 
+
+def find_answer_from_dict(sub_answers={}, question_name=""):
+    answer = sub_answers.get(question_name, '')
+    if not answer:
+        for k, v in sub_answers.items():
+            if isinstance(v, list) and len(v) and isinstance(v[0], dict):
+                return find_answer_from_dict(v[0], question_name)
+    return answer
+
+
 def get_form_answer(site_id, meta):
     fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
     if fxf:
@@ -13,8 +23,7 @@ def get_form_answer(site_id, meta):
             if meta['question']['type']  == "repeat":
                 answer = ""
             else:
-                answer = sub_answers.get(meta.get('question').get('name') ,'')
-            
+                answer = find_answer_from_dict(sub_answers, meta.get('question').get('name'))
             if meta['question']['type'] in ['photo', 'video', 'audio'] and answer is not "":
                 question_type = "Media"
                 answer = 'http://app.fieldsight.org/attachment/medium?media_file='+ fxf[0].xf.user.username +'/attachments/'+answer

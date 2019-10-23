@@ -1,4 +1,6 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
+from django.db.models import Q, Prefetch, Count
 
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
@@ -426,11 +428,17 @@ class FormsView(APIView):
         survey_form_data = FSXFormSerializer(survey_forms, many=True).data
         stages = Stage.objects.filter(is_deleted=False, stage__isnull=True).filter(
             Q(project__id__in=project_ids) | Q(
-                site__project__id__in=project_ids, project_stage_id=0))\
-            .select_related("site").prefetch_related(
-            "parent", "parent__stage_forms", "parent__stage_forms__xf", "parent__stage_forms__settings",
-            "parent__stage_forms__site",
-            "parent__stage_forms__em", "parent__stage_forms__em__em_images", "parent__stage_forms__xf__user")
+                site__project__id__in=project_ids, project_stage_id=0)).select_related("site").prefetch_related(
+            Prefetch(
+                'parent',
+                queryset=Stage.objects.filter(stage__isnull=False, is_deleted=False,stage_forms__isnull=False,
+                                       stage_forms__is_deleted=False,
+                                       stage_forms__is_deployed=True).select_related(
+                    "stage_forms", "stage_forms__xf", "stage_forms__settings", "stage_forms__site",
+                    "stage_forms__em",  "stage_forms__xf__user")  #.prefetch_related("stage_forms__em__em_images")
+            ),
+
+            )
         stage_data = StageSerializer(stages, many=True).data
         return Response({"general": general_form_data,
                          "survey": survey_form_data,

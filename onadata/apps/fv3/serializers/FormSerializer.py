@@ -277,7 +277,7 @@ class FSXFormSerializer(serializers.ModelSerializer):
         return reverse('manifest-url', kwargs=kwargs, request=request)
 
     def get_site_project_id(self, obj):
-        if obj.site and not obj.is_staged:
+        if obj.site:
             return obj.site.project_id
         return None
 
@@ -288,7 +288,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Schedule
         fields = ('id', 'name', 'date_range_start', 'date_range_end',
-                  'selected_days',
+                  'selected_days', 'frequency', 'month_day',
                   'type')
 
 
@@ -319,12 +319,13 @@ class SubStageSerializer(serializers.ModelSerializer):
 
 class StageSerializer(serializers.ModelSerializer):
     sub_stages = SubStageSerializer(many=True, source="parent")
-    site_project_id = serializers.SerializerMethodField()
+    # site_project_id = serializers.SerializerMethodField()
     types = serializers.SerializerMethodField()
 
     class Meta:
         model = Stage
-        exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created', 'tags', 'regions')
+        exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created',
+                   'tags',)
 
     # def get_substages(self, stage):
     #     stages = Stage.objects.filter(stage=stage, is_deleted=False,
@@ -337,10 +338,10 @@ class StageSerializer(serializers.ModelSerializer):
     #     serializer = SubStageSerializer(instance=stages, many=True)
     #     return serializer.data
 
-    def get_site_project_id(self, obj):
-        if obj.site:
-            return obj.site.project_id
-        return None
+    # def get_site_project_id(self, obj):
+    #     if obj.site:
+    #         return obj.site.project_id
+    #     return None
 
     def get_types(self, obj):
         return obj.tags

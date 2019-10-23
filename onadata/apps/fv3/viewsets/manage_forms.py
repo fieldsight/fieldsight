@@ -45,21 +45,30 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                     'project_form_instances')).select_related('xf', 'em').prefetch_related("settings")
         elif site_id:
             site = Site.objects.get(pk=site_id)
-            project_id = site.project_id
-            if site.type and site.region:
-
+            project = site.project
+            project_id = project.id
+            types_count = project.types.count()
+            if project.cluster_sites and types_count:
+                if not site.type:
+                    site.type_id = 0
+                if not site.region:
+                    site.region_id = 0
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False)
                                            | Q(project__id=project_id, settings__isnull=True)
                                            | Q(project__id=project_id, settings__types__contains=[site.type_id]),
                                            settings__regions__contains=[site.region_id])
-            elif site.type:
-                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
-                                           | Q(project__id=project_id, settings__isnull=True)
-                                           | Q(project__id=project_id, settings__types__contains=[site.type_id]))
-            elif site.region:
+            elif project.cluster_sites:
+                if not site.region:
+                    site.region_id = 0
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False)
                                            | Q(project__id=project_id, settings__isnull=True)
                                            | Q(project__id=project_id, settings__regions__contains=[site.region_id]))
+            elif types_count > 0:
+                if not site.type:
+                    site.type_id = 0
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
+                                           | Q(project__id=project_id, settings__isnull=True)
+                                           | Q(project__id=project_id, settings__types__contains=[site.type_id]))
             else:
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
 
@@ -113,12 +122,13 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                         is_survey=False,
                         is_scheduled=False,
                         is_staged=False
-                ).filter(Q(site_id=site_id,) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
+                ).filter(Q(site_id=site_id, from_project=False) |
+                         Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
                     return Response({"error": "Form already exists in general form"},
                                     status=status.HTTP_400_BAD_REQUEST)
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
-                    xf_id=xf, site_id=site_id
+                    xf_id=xf, site_id=site_id, from_project=False
                 )
             settings = request.data.get('setting')
             if settings:
@@ -280,19 +290,28 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                 'schedule_forms', 'schedule_forms__xf', 'schedule_forms__em')
         elif site_id:
             site = Site.objects.get(pk=site_id)
-            project_id = site.project_id
-            if site.type and site.region:
-
+            project = site.project
+            project_id = project.id
+            types_count = project.types.count()
+            if project.cluster_sites and types_count:
+                if not site.type:
+                    site.type_id = 0
+                if not site.region:
+                    site.region_id = 0
                 queryset = queryset.filter(Q(site__id=site_id)
                                            | Q(project__id=project_id, schedule_forms__settings__isnull=True)
                                            | Q(project__id=project_id, schedule_forms__settings__types__contains=[site.type_id]),
                                            schedule_forms__settings__regions__contains=[site.region_id])
-            elif site.type:
+            elif types_count > 0:
+                if not site.type_id:
+                    site.type_id = 0
                 queryset = queryset.filter(Q(site__id=site_id)
                                            | Q(project__id=project_id, schedule_forms__settings__isnull=True)
                                            | Q(project__id=project_id, schedule_forms__settings__types__contains=[site.type_id]))
-            elif site.region:
-                queryset = queryset.filter(Q(site__id=site_id,)
+            elif project.cluster_sites:
+                if not site.region:
+                    site.region_id = 0
+                queryset = queryset.filter(Q(site__id=site_id)
                                            | Q(project__id=project_id, schedule_forms__settings__isnull=True)
                                            | Q(project__id=project_id, schedule_forms__settings__regions__contains=[site.region_id]))
             else:
@@ -350,7 +369,7 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                     xf_id=xf,
                     is_deleted=False,
                     is_scheduled=True,
-            ).filter(Q(site_id=site_id) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
+            ).filter(Q(site_id=site_id, from_project=False) | Q(project_id=Site.objects.get(pk=site_id).project_id)).exists():
                 return Response({"error": "Form already exists in Schedule form"},
                                 status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic():
@@ -360,7 +379,7 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                 fxf = FieldSightXF.objects.create(
                     default_submission_status=default_submission_status,
                     xf_id=xf, site_id=site_id, schedule=schedule,
-                    is_scheduled=True
+                    is_scheduled=True, from_project=False
                 )
         settings = request.data.get('setting')
         if settings and fxf and schedule:
@@ -414,7 +433,7 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
 
 
 class StageFormsVS(viewsets.ModelViewSet):
-    queryset = Stage.objects.filter(stage__isnull=True).order_by('order', 'date_created')
+    queryset = Stage.objects.filter(stage__isnull=True).order_by('-project', 'order', 'date_created')
     serializer_class = StageSerializer
     permission_classes = [ManageFormsPermission]
     authentication_classes = [CsrfExemptSessionAuthentication,
@@ -427,21 +446,31 @@ class StageFormsVS(viewsets.ModelViewSet):
         if project_id:
             queryset = queryset.filter(project__id=project_id)
         elif site_id:
-            site = get_object_or_404(Site, pk=site_id)
-            project_id = site.project_id
-            if site.type and site.region:
+            site = Site.objects.get(pk=site_id)
+            project = site.project
+            project_id = project.id
+            types_count = project.types.count()
+            if project.cluster_sites and types_count:
+                if not site.type:
+                    site.type_id = 0
+                if not site.region:
+                    site.region_id = 0
                 queryset = queryset.filter(Q(site__id=site_id,
                                              project_stage_id=0)
                                            | Q(project__id=project_id, tags__contains=[site.type_id])
                                            | Q(project__id=project_id, regions__contains=[site.region_id])
                                            )
-            if site.type:
+            if types_count:
+                if not site.type:
+                    site.type_id = 0
                 queryset = queryset.filter(Q(site__id=site_id,
                                              project_stage_id=0)
                                            | Q(project__id=project_id, tags__contains=[site.type_id])
 
                                            )
-            if site.region:
+            if project.cluster_sites:
+                if not site.region:
+                    site.region_id = 0
                 queryset = queryset.filter(Q(site__id=site_id,
                                              project_stage_id=0)
                                            | Q(project__id=project_id, regions__contains=[site.region_id])
@@ -453,7 +482,15 @@ class StageFormsVS(viewsets.ModelViewSet):
         else:
             return []
 
-        return queryset
+        return queryset.annotate(
+                undeployed=Count(Case(
+                    When(parent__is_deleted=False,
+                         parent__stage_forms__isnull=False,
+                         parent__stage_forms__is_deployed=False,
+                         parent__stage_forms__is_deleted=False,
+                         then=1),
+                    output_field=IntegerField()),
+                )).prefetch_related('parent', 'parent__stage_forms')
 
     def get_serializer_context(self):
         return self.request.query_params
@@ -485,13 +522,22 @@ class SubStageFormsVS(viewsets.ModelViewSet):
         site_id = query_params.get('site_id')
         if project and site_id:
             site = Site.objects.get(pk=site_id)
-            if site.type and site.region:
+            types_count = project.types.count()
+            if project.cluster_sites and types_count:
+                if not site.type:
+                    site.type_id = 0
+                if not site.region:
+                    site.region_id = 0
                 queryset = queryset.filter(Q(tags__contains=[site.type_id])
                                            | Q(regions__contains=[site.region_id])
                                            )
-            elif site.type:
+            elif types_count:
+                if not site.type:
+                    site.type_id = 0
                 queryset = queryset.filter(tags__contains=[site.type_id])
-            elif site.region:
+            elif project.cluster_sites:
+                if not site.region:
+                    site.region_id = 0
                 queryset = queryset.filter(regions__contains=[site.region_id])
 
         return queryset.select_related('stage_forms', 'em').order_by('order', 'date_created')
@@ -618,7 +664,7 @@ class DeployForm(APIView):
                                                          is_deployed},
                                                     countdown=2)
                 else:
-                    site = Site.objects.get(pk=id)
+                    site = Site.objects.get(pk=site_id)
                     main_stage = Stage.objects.get(pk=id)
                     FieldSightXF.objects.filter(stage__stage__id=main_stage.pk,
                                                 is_deleted=False).update(
@@ -1148,3 +1194,39 @@ class BreadCrumView(APIView):
                                 'organization_url': organization.get_absolute_url()
                             }, status=status.HTTP_200_OK)
 
+
+class StageReorder(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+
+    def post(self, request, format=None):
+        try:
+            stages = self.request.data
+            qs_list = []
+            for i, stage in enumerate(stages):
+                obj = Stage.objects.get(pk=stage.get("id"))
+                obj.order = i+1
+                obj.save()
+                qs_list.append(obj.id)
+            data = StageSerializer(Stage.objects.filter(pk__in=qs_list).order_by('order', 'date_created'), many=True).data
+            return Response({'success': True, 'data': data}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SubStageReorder(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+
+    def post(self, request, format=None):
+        try:
+            stages = self.request.data
+            qs = []
+            for i, stage in enumerate(stages):
+                obj = Stage.objects.get(pk=stage.get("id"))
+                obj.order = i+1
+                obj.save()
+                qs.append(obj.id)
+            queryset = Stage.objects.filter(stage__isnull=False, pk__in=qs).select_related('stage_forms', 'em').order_by('order', 'date_created')
+            data = SubStageSerializer(queryset, many=True).data
+            return Response({'success': True, 'data': data}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

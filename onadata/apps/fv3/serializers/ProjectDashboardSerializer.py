@@ -2,6 +2,7 @@ import datetime
 import json
 
 from collections import OrderedDict
+
 from django.db.models import Q
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -12,6 +13,8 @@ from rest_framework import serializers
 from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
 from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site
 from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule
+from onadata.apps.fv3.role_api_permissions import check_del_site_perm
+from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.logger.models import Instance
 from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
@@ -254,7 +257,8 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
 
         try:
 
-            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}'.format(form.stage_forms.id),
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/fieldsight/application/#/submission-data/{}/{}'\
+                .format(project.id, form.stage_forms.id),
                      'pending': form.stage_forms.project_form_instances.filter(form_status=0).count(),
                      'rejected': form.stage_forms.project_form_instances.filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances.\
                 filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances.\
@@ -264,7 +268,8 @@ class ProgressStageFormSerializer(serializers.ModelSerializer):
 
                     ]
         except ZeroDivisionError:
-            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/forms/project-submissions/{}'.format(form.stage_forms.id), 'pending': form.stage_forms.project_form_instances. \
+            data = [{'form_name': form.stage_forms.xf.title, 'form_url':  '/fieldsight/application/#/submission-data/{}/{}'
+                .format(project.id, form.stage_forms.id), 'pending': form.stage_forms.project_form_instances. \
                 filter(form_status=0).count(), 'rejected': form.stage_forms.project_form_instances. \
                 filter(form_status=1).count(), 'flagged': form.stage_forms.project_form_instances. \
                 filter(form_status=2).count(), 'approved': form.stage_forms.project_form_instances. \
@@ -289,7 +294,7 @@ class ProgressGeneralFormSerializer(serializers.ModelSerializer):
         return obj.xf.title
 
     def get_form_url(self, obj):
-        return '/forms/project-submissions/{}' .format(obj.id)
+        return '/fieldsight/application/#/submission-data/{}/{}' .format(obj.project_id, obj.id)
 
     def get_progress_data(self, obj):
         project = obj.project
@@ -317,7 +322,7 @@ class ProgressScheduledFormSerializer(serializers.ModelSerializer):
         fields = ('name', 'form_url', 'progress_data')
 
     def get_form_url(self, obj):
-        return '/forms/project-submissions/{}' .format(obj.schedule_forms.id)
+        return '/fieldsight/application/#/submission-data/{}/{}' .format(obj.id, obj.schedule_forms.id)
 
     def get_progress_data(self, obj):
         project = obj.project
@@ -333,3 +338,29 @@ class ProgressScheduledFormSerializer(serializers.ModelSerializer):
                  'approved': obj.schedule_forms.project_form_instances.filter(form_status=3).count(), 'progress': progress}
                 ]
         return data
+
+
+class SiteFormSerializer(serializers.ModelSerializer):
+    logo = Base64ImageField(
+        max_length=None, use_url=True, allow_empty_file=True, allow_null=True, required=False
+    )
+    site_meta_attributes_answers = serializers.SerializerMethodField()
+    delete_perm = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Site
+        fields = ('id', 'name', 'location', 'identifier', 'site_meta_attributes_ans', 'weight', 'logo', 'type',
+                  'phone', 'address', 'public_desc', 'project', 'region', 'enable_subsites', 'site',
+                  'site_meta_attributes_answers', 'delete_perm')
+
+    def get_site_meta_attributes_answers(self, obj):
+        metas = obj.site_meta_attributes_ans
+
+        return metas
+
+    def get_delete_perm(self, obj):
+        request = self.context.get('request')
+        if check_del_site_perm(request, obj.id):
+            return True
+        else:
+            return False

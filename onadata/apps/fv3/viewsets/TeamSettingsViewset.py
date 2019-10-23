@@ -16,6 +16,7 @@ from onadata.apps.fv3.serializers.TeamSerializer import TeamUpdateSerializer, Te
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.subscriptions.models import Customer, Subscription
+from onadata.apps.fv3.role_api_permissions import TeamDashboardPermissions
 
 
 class TeamViewset(viewsets.ModelViewSet):
@@ -25,7 +26,7 @@ class TeamViewset(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = TeamUpdateSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, TeamDashboardPermissions]
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -54,7 +55,7 @@ class TeamGeoLayerViewset(viewsets.ModelViewSet):
     queryset = GeoLayer.objects.all()
     serializer_class = TeamGeoLayer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, TeamDashboardPermissions]
 
     def filter_queryset(self, queryset):
         team = self.request.query_params.get('team', None)
@@ -84,7 +85,7 @@ class TeamGeoLayerViewset(viewsets.ModelViewSet):
 class TeamOwnerAccount(APIView):
 
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated, TeamDashboardPermissions]
 
     def get(self, request, *args,  **kwargs):
 

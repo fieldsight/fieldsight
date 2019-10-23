@@ -8,6 +8,7 @@ from onadata.apps.fv3.urls.manage_forms import manage_forms_urlpatterns
 from onadata.apps.fv3.urls.project_dashboard import project_dashboard_urlpatterns
 from onadata.apps.fv3.urls.team_dashboard import team_dashboard_urlpatterns
 from onadata.apps.fv3.urls.team_settings import team_settings_urlpatterns
+from onadata.apps.fv3.urls.view_by_forms_status import view_by_forms_status_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
     ProjectDefineSiteMeta, ProjectSitesViewset, check_region, project_sites_vt
 
@@ -25,8 +26,8 @@ from onadata.apps.fv3.viewsets.SubmissionViewSet import AlterSubmissionStatusVie
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
     ProjectSitesListViewSet, SubSitesListViewSet
 
-from onadata.apps.fv3.views import RegionalSites, sub_regions, users
-from onadata.apps.fv3.views import TeamsViewset
+from onadata.apps.fv3.views import RegionalSites, sub_regions, users, project_full_map
+from onadata.apps.fv3.views import TeamsViewset, TeamFormViewset
 
 router = routers.DefaultRouter()
 
@@ -37,6 +38,8 @@ urlpatterns = [
 
     url(r'^api/', include(router.urls)),
     url(r'^api/projects/', supervisor_projects, name='supervisor_projects'),
+    url(r'^api/project-full-map/(?P<pk>\d+)/$', project_full_map, name='project_full_map'),
+
     url(r'^api/sites/', MySuperviseSitesViewset.as_view({'get': 'list'}),  name='supervisor_sites'),
     url(r'^api/site/blueprint/', site_blueprints, name='site_blueprints'),
     url(r'^api/user/logs/', supervisor_logs, name='supervisor_logs'),
@@ -76,7 +79,9 @@ urlpatterns = [
     url(r'^api/sub-regions/$', sub_regions, name='sub_regions'),
     url(r'^api/users/$', users, name='users'),
     url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list'}), name='teams'),
+    url(r'^api/team-form/$', TeamFormViewset.as_view({'post': 'create'}), name='team_form'),
     url(r'^api/forms/$', FormsView.as_view(), name='forms'),
+
     url(r'^api/project/sites-vt/(?P<pk>\d+)/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', project_sites_vt, name='project_sites_vt'),
 
 ]
@@ -88,3 +93,4 @@ urlpatterns += manage_forms_urlpatterns
 urlpatterns += project_dashboard_urlpatterns
 urlpatterns += team_dashboard_urlpatterns
 urlpatterns += team_settings_urlpatterns
+urlpatterns += view_by_forms_status_urlpatterns
