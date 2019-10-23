@@ -299,8 +299,8 @@ class SubStageSerializer(serializers.ModelSerializer):
             return SettingsSerializerSubStage(obj.stage_forms.settings).data
         except:
             return {
-                "types": [],
-                "regions": [],
+                "types": obj.tags,
+                "regions": obj.regions,
                 "donor_visibility": False,
                 "can_edit": False,
                 "can_delete": False,
