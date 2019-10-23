@@ -119,7 +119,9 @@ def project_map_data():
     del project_site_7days_approved['site__project']
     project_site_7days_approved_pending = project_site_7days_approved.merge(pending_count, how='left', left_on='pk', right_on='site__project')
     del project_site_7days_approved_pending['site__project']
-    project_site_7days_approved_pending.fillna(0)
-    print(project_site_7days_approved_pending.head())
+    project_site_7days_approved_pending['latlng'] = project_site_7days_approved_pending.location.apply(lambda x: [x.y, x.x])
+    del project_site_7days_approved_pending['location']
+    project_site_7days_approved_pending.fillna(0, inplace=True)
+    return project_site_7days_approved_pending
 
 
