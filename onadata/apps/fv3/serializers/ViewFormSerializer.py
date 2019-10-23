@@ -382,14 +382,14 @@ def get_version_submission_data(fsf, is_project, site, xform_or_history):
 class SubmissionsVersionSerializer(serializers.ModelSerializer):
     last_response = serializers.SerializerMethodField()
     total_submissions = serializers.SerializerMethodField()
-    overriden_date = serializers.SerializerMethodField()
+    overidden_date = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 
     class Meta:
         model = XformHistory
-        fields = ('id', 'title', 'version', 'overriden_date', 'total_submissions', 'last_response', 'download_url')
+        fields = ('id', 'title', 'version', 'overidden_date', 'total_submissions', 'last_response', 'download_url')
 
-    def get_overriden_date(self, obj):
+    def get_overidden_date(self, obj):
         return obj.date.strftime("%b %d, %Y at %I:%M %p")
 
     def get_total_submissions(self, obj):
