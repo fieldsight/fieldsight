@@ -91,7 +91,7 @@ class LogsReport(View):
 class ExportProjectFormsForSites(ReadonlyProjectLevelRoleMixin, View):
     def get(self, request, pk, *args, **kwargs):
         mainstage=[]
-        schedule = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = True, is_staged=False, is_survey=False).values('id','schedule__name', 'xf__id_string', 'xf__user__username')
+        schedule = FieldSightXF.objects.select_related('xf').filter(project_id=pk, is_scheduled = True, is_staged=False, is_survey=False).values('id','schedule__name', 'xf__title', 'xf__id_string', 'xf__user__username')
         stages = Stage.objects.filter(project_id=pk)
         for stage in stages:
             if stage.stage_id is None:
