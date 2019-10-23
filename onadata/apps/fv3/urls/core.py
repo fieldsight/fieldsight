@@ -1,6 +1,7 @@
 from django.conf.urls import url, include
 from rest_framework import routers
 
+from onadata.apps.fv3.urls.map import map_urlpatterns
 from onadata.apps.fv3.urls.project_settings import progress_urlpatterns
 from onadata.apps.fv3.urls.myroles import my_roles_urlpatterns
 from onadata.apps.fv3.urls.site_dashboard import site_dashboard_urlpatterns
@@ -94,3 +95,4 @@ urlpatterns += project_dashboard_urlpatterns
 urlpatterns += team_dashboard_urlpatterns
 urlpatterns += team_settings_urlpatterns
 urlpatterns += view_by_forms_status_urlpatterns
+urlpatterns += map_urlpatterns

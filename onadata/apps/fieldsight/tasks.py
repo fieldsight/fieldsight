@@ -7,6 +7,7 @@ import os
 import json
 import datetime
 import gc
+import calendar
 from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
@@ -68,6 +69,10 @@ from onadata.apps.fsforms.models import InstanceStatusChanged
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
+from django.utils import timezone
+from django.db.models import Q
+
+
 form_status_map=["Pending", "Rejected", "Flagged", "Approved"]
 
 def cleanhtml(raw_html):
@@ -80,21 +85,22 @@ class DriveException(Exception):
 
 @shared_task()
 def gsuit_assign_perm(title, emails):
-    time.sleep(5)
-    try:
-        gauth = GoogleAuth()
-        drive = GoogleDrive(gauth)
-        file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()[0]
-        for perm in emails:
-            time.sleep(1)
+    time.sleep(3)
+    gauth = GoogleAuth()
+    drive = GoogleDrive(gauth)
+    file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()[0]
+    for perm in emails:
+        time.sleep(1)
+        try:
             file.InsertPermission({
                 'type':'user',
                 'value':perm,
                 'role': 'writer'
             })
-    except:
-        pass
+        except:
+            pass
 
+    return True
 
 def upload_to_drive(file_path, title, folder_title, project, user):
     # pass
@@ -141,7 +147,10 @@ def upload_to_drive(file_path, title, folder_title, project, user):
         _project.save()
         permissions = file.GetPermissions()
 
-        user_emails = _project.project_roles.filter(group__name__in=["Project Manager", "Project Donor"], ended_at__isnull = True, site=None).distinct('user').values_list('user__email', flat=True)
+        user_emails = UserRole.objects.filter(
+            Q(Q(group__name="Organization Admin", project__isnull=True) | Q(group__name__in=["Project Manager", "Project Donor"], project_id=_project.id)),
+            organization_id=_project.organization_id
+        ).distinct().values_list('user__email', flat=True)    
         
         all_users = set(user_emails)
 
@@ -159,17 +168,26 @@ def upload_to_drive(file_path, title, folder_title, project, user):
             if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "exports.fieldsight@gmail.com":
                 file.DeletePermission(permission['id'])
 
-        try:
-            index = 0
-            for perm in perm_to_add:
+        
+        retry_emails = []
+        index = 0
+        for perm in perm_to_add:
+            try:
                 file.InsertPermission({
-                            'type':'user',
-                            'value':perm,
-                            'role': 'writer'
-                        })
-                index += 1
-        except:
-            gsuit_assign_perm.delay(title, perm[index:])
+                    'type':'user',
+                    'value':perm,
+                    'role': 'writer'
+                })
+        
+            except Exception as e:
+                if "Since there is no Google account associated with this email address" not in str(e):
+                    retry_emails.append(perm)
+
+            index += 1
+
+        if retry_emails:
+            print "retrying again for ", retry_emails
+            gsuit_assign_perm.delay(title, retry_emails)
 
     except Exception as e:
         raise DriveException({"message":e})
@@ -1119,9 +1137,9 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
 
             
             if filterRegion or filterSiteTypes:
-                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, date__range=[new_startdate, new_enddate])
+                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, site_id__in=sites, instance__date_created__range=[new_startdate, new_enddate])
             else:
-                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, date__range=[new_startdate, new_enddate])
+                formresponses = FInstance.objects.select_related('instance', 'site').filter(project_fxf_id=form.id, instance__date_created__range=[new_startdate, new_enddate])
 
             for formresponse in formresponses.iterator():
                 
@@ -1786,25 +1804,6 @@ def auto_generate_stage_status_report():
                 print 'Report Gen Unsuccesfull. %s' % e
                 print e.__dict__
                 
-
-def sendNotification(notification, recipient):
-    result={}
-    result['id']= noti.id,
-    result['source_uid']= source_user.id,
-    result['source_name']= source_user.username,
-    result['source_img']= source_user.user_profile.profile_picture.url,
-    result['get_source_url']= noti.get_source_url(),
-    result['get_event_name']= project.name,
-    result['get_event_url']= noti.get_event_url(),
-    result['get_extraobj_name']= None,
-    result['get_extraobj_url']= None,
-    result['get_absolute_url']= noti.get_absolute_url(),
-    result['type']= 412,
-    result['date']= str(noti.date),
-    result['extra_message']= str(count) + " Sites @error " + u'{}'.format(e.message),
-    result['seen_by']= [],
-    ChannelGroup("notif-user-{}".format(recipient.id)).send({"text": json.dumps(result)})
-
 
 @shared_task(time_limit=120, soft_time_limit=120)
 def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date, end_date):
@@ -2612,30 +2611,64 @@ def check_usage_rates():
                     warning_overage_emails_monthly.apply_async(
                         args=[subscriber, plan_name, total_submissions, extra_submissions_charge, renewal_date, email],
                         eta=after_one_month)
-import calendar
-from django.utils import timezone
+
+
 
 def sync_form(fxf):
-    #sync
-    create_async_export(xform, export_type, query, force_xlsx, options, is_project, id, site_id, version, sync_to_gsuit, user)
 
-    pass
+    query = {"fs_project_uuid": str(fxf.id)}
+    
+    force_xlsx = True
 
-def sync_form_controller(sync_type, sync_day, fxf, month_days):
-    date = timezone.date()
-    if sync_type == Project.MONTHLY:
-        if date.day == sync_day or sync_day > month_days:
-            sync_form(fxf)
+    deleted_at_query = {
+        "$or": [{"_deleted_at": {"$exists": False}},
+                {"_deleted_at": None}]}
+    query = {"$and": [query, deleted_at_query]}
+    
+    options = {
+        'group_delimiter': '/',
+        'split_select_multiples': False,
+        'binary_select_multiples': False,
+        'meta': None
+    }
+    from onadata.apps.viewer.tasks import create_async_export
 
-    elif sync_type == project.FORTNIGHT:
-        pass
+    create_async_export(fxf.xf, 'xls', query, force_xlsx, options, id=fxf.id, is_project=1,sync_to_gsuit=True)
+    return True
 
-    elif sync_type == WEEKLY:
-        if (((date.weekday() + 1) % 7) + 1) == sync_day:
-            sync_form(fxf)
-    else:
+def sync_form_controller( fxf, sync_type, sync_day, end_of_month):
+    
+    date = timezone.now().date()
+    if sync_type == Project.MONTHLY and end_of_month and calendar.monthrange(date.year, date.month)[1] == date.day:
         sync_form(fxf)
 
+        # print(fxf.project_id, fxf.xf.title)
+        
+
+    # elif sync_type == project.FORTNIGHT and :
+    #     pass
+
+    # elif sync_type == WEEKLY:
+    #     if (((date.weekday() + 1) % 7) + 1) == sync_day:
+    #         sync_form(fxf)
+    # else:
+    #     sync_form(fxf)
+    return True
+
+@shared_task()
+def scheduled_gsuit_sync():
+    date = timezone.now().date()
+    projects = Project.objects.filter(is_active=True).exclude(Q(gsuit_sync=Project.MANUAL), Q(gsuit_sync_date__isnull=True) | Q(gsuit_sync_date__gt=date))
+
+    for project in projects:
+        #generate reports
+        for fxf in project.project_forms.exclude(Q(sync_schedule__schedule=Project.MANUAL) | Q(sync_schedule__date__gt=date)):
+            try:
+                sync_form_controller(fxf, fxf.sync_schedule.schedule, fxf.sync_schedule.date, fxf.sync_schedule.end_of_month)
+            except Exception as e:
+                sync_form_controller(fxf, project.gsuit_sync, project.gsuit_sync_date, project.gsuit_sync_end_of_month)
+
+    return True
 
 @shared_task(time_limit=300, soft_time_limit=300)
 def update_sites_progress(pk, task_id):
@@ -2660,21 +2693,8 @@ def update_sites_progress(pk, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
-def scheduled_gsuit_sync():
-    month_days = calendar.monthrange(now.year, now.month)[1]
-    projects = Project.objects.filter(is_active=True).exclude(gsuit_sync=Project.MANUAL)
-
-    for project in projects:
-        #generate reports
-        for fxf in project.project_forms.exclude(sync_schedule__schedule=Project.MANUAL):
-            if fxf.sync_schedule:
-                sync_form(fxf.sync_schedule.schedule, fxf.sync_schedule.day, fxf, month_days)
-            else:
-                sync_form_controller(project.gsuit_sync, project.gsuit_sync_day, fxf, month_days)
-        project.gsuit_sync
-
-
 #use this task to create site all metas for first time.
+
 @shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
 def create_site_meta_attribs_ans_history(pk, task_id):
     from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans

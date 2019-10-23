@@ -777,7 +777,9 @@ class FInstance(models.Model):
 
 @receiver(post_save, sender=FInstance)
 def submission_saved(sender, instance, created,  **kwargs):
-    if instance.project_fxf is not None and instance.site is not None:
+    if instance.project_fxf is not None and instance.site is not None and instance.form_status == 3:
+        instance.site.current_status = instance.form_status
+        instance.site.save()
         from onadata.apps.fsforms.tasks import update_progress
         update_progress.delay(instance.site_id, instance.project_fxf_id, instance.instance.json)
     elif instance.site is not None:

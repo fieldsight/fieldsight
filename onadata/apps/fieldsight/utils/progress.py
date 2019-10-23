@@ -177,7 +177,7 @@ def advance_stage_approved(site, project):
 
 def pull_integer_answer(form, xform_question, site, submission_answer={}):
     if not submission_answer:
-        if FInstance.objects.filter(project_fxf=form, site=site.id).order_by('-date').first():
+        if FInstance.objects.filter(project_fxf=form, site=site.id, form_status=3).order_by('-date').first():
             submission_answer = FInstance.objects.filter(
                 project_fxf=form, site=site.id).order_by('-date').first().instance.json
     return get_submission_answer_by_question(submission_answer, xform_question)
@@ -209,6 +209,13 @@ def set_site_progress(site, project, project_settings=None):
         form = FieldSightXF.objects.get(pk=project_settings.pull_integer_form)
         xform_question = project_settings.pull_integer_form_question
         progress = pull_integer_answer(form, xform_question, site)
+        try:
+            progress = int(progress)
+            if progress and progress > 99:
+                progress = 100
+        except Exception as e:
+            progress = 0
+            print("progress error", str(e))
     elif project_settings.source == 3:
         p = ("%.0f" % (site.site_instances.filter(form_status=3).count() / (project_settings.no_submissions_total_count * 0.01)))
         p = int(p)
