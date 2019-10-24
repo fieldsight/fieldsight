@@ -320,68 +320,70 @@ class SubStageSerializer(serializers.ModelSerializer):
         default_submission_status = self.context['request'].data.get(
             'default_submission_status', 0)
         xform = False
+        fsxf = None
         if xf and xf != '':
             xform = XForm.objects.get(pk=xf)
         stage = super(SubStageSerializer, self).update(instance, validated_data)
         if xform:
-            old_form = stage.stage_forms
-            if old_form.xf.id == xform.id:
-                old_form.default_submission_status =\
-                    default_submission_status
-                old_form.save()
-                setting = self.context['request'].data.get('setting')
-                if setting:
-                    setting.update({"form": stage.stage_forms.id})
-                    if not setting.get('id'):
+            try:
+                old_form = stage.stage_forms
+                if old_form.xf.id == xform.id:
+                    old_form.default_submission_status = \
+                        default_submission_status
+                    old_form.save()
+                    fsxf = old_form
+                    setting = self.context['request'].data.get('setting')
+                    if setting:
+                        setting.update({"form": fsxf.id})
                         settings_serializer = SettingsSerializerSubStage(data=setting)
-                    else:
-                        settings_serializer = SettingsSerializerSubStage(instance.stage_forms.settings,
-                                                                         data=setting, partial=True)
-                    if settings_serializer.is_valid():
-                        setting_obj = settings_serializer.save(user=request.user)
-                        stage.tags = setting_obj.types
-                        stage.regions = setting_obj.regions
-                        stage.save()
-            else:
-                old_form.is_deleted = True
-                old_form.stage = None
-                old_form.save()
+                        if settings_serializer.is_valid():
+                            setting_obj = settings_serializer.save(user=request.user)
+                            stage.tags = setting_obj.types
+                            stage.regions = setting_obj.regions
+                            stage.save()
+                    return stage
+                else:
+                    old_form.is_deleted = True
+                    old_form.stage = None
+                    old_form.save()
+                    fsxf = FieldSightXF.objects.create(xf=xform,
+                                                       site=stage.stage.site,
+                                                       project=stage.stage.project,
+                                                       is_staged=True, stage=stage,
+                                                       default_submission_status=
+                                                       default_submission_status)
+                    setting = self.context['request'].data.get('setting')
+                    if setting:
+                        setting.update({"form": fsxf.id})
+                        if setting.get("id"):
+                            del setting['id']
+                        settings_serializer = SettingsSerializerSubStage(data=setting)
+                        if settings_serializer.is_valid():
+                            setting_obj = settings_serializer.save(user=request.user)
+                            stage.tags = setting_obj.types
+                            stage.regions = setting_obj.regions
+                            stage.save()
+                    return stage
+            except Exception as e:
                 fsxf = FieldSightXF.objects.create(xf=xform,
-                                            site=stage.stage.site,
-                                            project=stage.stage.project,
-                                            is_staged=True, stage=stage,
-                                            default_submission_status=
-                                            default_submission_status)
+                                                   site=stage.stage.site,
+                                                   project=stage.stage.project,
+                                                   is_staged=True, stage=stage,
+                                                   default_submission_status=
+                                                   default_submission_status)
                 setting = self.context['request'].data.get('setting')
                 if setting:
                     setting.update({"form": fsxf.id})
-                    if setting.get("id"):
-                        del setting['id']
                     settings_serializer = SettingsSerializerSubStage(data=setting)
                     if settings_serializer.is_valid():
                         setting_obj = settings_serializer.save(user=request.user)
                         stage.tags = setting_obj.types
                         stage.regions = setting_obj.regions
                         stage.save()
-            # except:
-            #     if xform:
-            #         fsxf = FieldSightXF.objects.create(xf=xform,
-            #                                     site=stage.stage.site,
-            #                                     project=stage.stage.project,
-            #                                     is_staged=True,
-            #                                     stage=stage,
-            #                                     default_submission_status=
-            #                                     default_submission_status)
-            #         setting = self.context['request'].data.get('setting')
-            #         if setting:
-            #             setting.update({"form": fsxf.id})
-            #             del setting['id']
-            #             settings_serializer = SettingsSerializerSubStage(data=setting)
-            #             if settings_serializer.is_valid():
-            #                 setting_obj = settings_serializer.save(user=self.request.user)
-            #                 stage.tags = setting_obj.types
-            #                 stage.regions = setting_obj.regions
-            #                 stage.save()
+                return stage
+        else:
+            #no stages form in edit no form before also
+            pass
         return stage
 
 
