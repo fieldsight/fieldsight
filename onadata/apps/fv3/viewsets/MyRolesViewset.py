@@ -111,11 +111,13 @@ def my_roles(request):
 
     if user_id is not None:
         invitations = []
-        invitations_serializer = UserInvitationSerializer(invitations, many=True)
+        invitations_serializer = UserInvitationSerializer(invitations, many=True, context={'request': request})
 
     else:
-        invitations = UserInvite.objects.select_related('by_user').filter(email__icontains=request.user.email, is_used=False, is_declied=False)
-        invitations_serializer = UserInvitationSerializer(invitations, many=True)
+        invitations = UserInvite.objects.select_related('by_user').filter(email__icontains=request.user.email,
+                                                                          is_used=False, is_declied=False)
+
+        invitations_serializer = UserInvitationSerializer(invitations, many=True, context={'request': request})
 
     return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data})
 
