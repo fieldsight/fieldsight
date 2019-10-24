@@ -332,6 +332,16 @@ class SubStageSerializer(serializers.ModelSerializer):
                         default_submission_status
                     old_form.save()
                     fsxf = old_form
+                    setting = self.context['request'].data.get('setting')
+                    if setting:
+                        setting.update({"form": fsxf.id})
+                        settings_serializer = SettingsSerializerSubStage(data=setting)
+                        if settings_serializer.is_valid():
+                            setting_obj = settings_serializer.save(user=request.user)
+                            stage.tags = setting_obj.types
+                            stage.regions = setting_obj.regions
+                            stage.save()
+                    return stage
                 else:
                     old_form.is_deleted = True
                     old_form.stage = None
@@ -342,6 +352,18 @@ class SubStageSerializer(serializers.ModelSerializer):
                                                        is_staged=True, stage=stage,
                                                        default_submission_status=
                                                        default_submission_status)
+                    setting = self.context['request'].data.get('setting')
+                    if setting:
+                        setting.update({"form": fsxf.id})
+                        if setting.get("id"):
+                            del setting['id']
+                        settings_serializer = SettingsSerializerSubStage(data=setting)
+                        if settings_serializer.is_valid():
+                            setting_obj = settings_serializer.save(user=request.user)
+                            stage.tags = setting_obj.types
+                            stage.regions = setting_obj.regions
+                            stage.save()
+                    return stage
             except Exception as e:
                 fsxf = FieldSightXF.objects.create(xf=xform,
                                                    site=stage.stage.site,
@@ -349,22 +371,19 @@ class SubStageSerializer(serializers.ModelSerializer):
                                                    is_staged=True, stage=stage,
                                                    default_submission_status=
                                                    default_submission_status)
+                setting = self.context['request'].data.get('setting')
+                if setting:
+                    setting.update({"form": fsxf.id})
+                    settings_serializer = SettingsSerializerSubStage(data=setting)
+                    if settings_serializer.is_valid():
+                        setting_obj = settings_serializer.save(user=request.user)
+                        stage.tags = setting_obj.types
+                        stage.regions = setting_obj.regions
+                        stage.save()
+                return stage
         else:
             #no stages form in edit no form before also
             pass
-
-        setting = self.context['request'].data.get('setting')
-        if setting:
-            if fsxf:
-                setting.update({"form": fsxf.id})
-            if setting.get("id"):
-                del setting['id']
-            settings_serializer = SettingsSerializerSubStage(data=setting)
-            if settings_serializer.is_valid():
-                setting_obj = settings_serializer.save(user=request.user)
-                stage.tags = setting_obj.types
-                stage.regions = setting_obj.regions
-                stage.save()
         return stage
 
 
