@@ -42,7 +42,6 @@ class SiteSerializer(ModelSerializer):
         fields = ('pk', 'name', 'latlng', 'region', 'type', 'current_progress')
 
     def get_latlng(self, obj):
-        return []
         if obj.location:
             return [obj.location.y, obj.location.x]
         return None
