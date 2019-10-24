@@ -271,10 +271,8 @@ class UserInvitationSerializer(serializers.ModelSerializer):
         fields = ('id', 'by_user', 'group', 'current_user')
 
     def get_current_user(self, obj):
-
-        user = User.objects.filter(email__icontains=obj.email)[0]
-
-        return user.username
+        request = self.context.get('request')
+        return request.user.username
 
 
 class LatestSubmissionSerializer(serializers.ModelSerializer):
