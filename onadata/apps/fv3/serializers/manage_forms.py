@@ -320,6 +320,7 @@ class SubStageSerializer(serializers.ModelSerializer):
         default_submission_status = self.context['request'].data.get(
             'default_submission_status', 0)
         xform = False
+        fsxf = None
         if xf and xf != '':
             xform = XForm.objects.get(pk=xf)
         stage = super(SubStageSerializer, self).update(instance, validated_data)
