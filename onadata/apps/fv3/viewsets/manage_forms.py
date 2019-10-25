@@ -179,9 +179,7 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
 
         if project_id:
             queryset = self.queryset.filter(project__id=project_id)
-            return queryset.annotate(
-                response_count=Count(
-                    'project_form_instances')).select_related('xf', 'em')
+            return queryset.select_related('xf', 'em')
         return []
 
     def get_serializer_context(self):

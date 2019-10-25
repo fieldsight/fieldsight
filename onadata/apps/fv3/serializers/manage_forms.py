@@ -100,9 +100,7 @@ class GeneralProjectFormSerializer(serializers.ModelSerializer):
     def get_responses_count(self, obj):
         is_project = self.context.get('project_id', False)
         if is_project:
-            # return obj.project_form_instances.count()
-            return obj.responses_count\
-                if hasattr(obj, "responses_count") else 0
+            return obj.project_form_instances.count()
         return 0
 
 
