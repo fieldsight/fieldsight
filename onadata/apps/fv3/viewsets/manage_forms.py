@@ -528,7 +528,7 @@ class SubStageFormsVS(viewsets.ModelViewSet):
         return queryset.select_related('stage_forms', 'em').order_by('order', 'date_created')
 
     def get_serializer_context(self):
-        return {'request': self.request}
+        return {'params': self.request.query_params}
 
     def perform_create(self, serializer):
         query_params = self.request.query_params

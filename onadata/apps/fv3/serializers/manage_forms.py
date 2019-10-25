@@ -246,23 +246,16 @@ class SubStageSerializer(serializers.ModelSerializer):
 
     def get_responses_count(self, obj):
         try:
-            request = self.context.get('request', False)
-            params = {}
-            if request:
-                params = request.query_params
-            site_id = False
-            if params.get("is_project", False):
-                if params.get("is_project") == "0":
-                    site_id = params.get("pk", False)
-
             fsxf = FieldSightXF.objects.get(stage=obj)
-
-            if fsxf.site is None:
-                if site_id:
-                    return fsxf.project_form_instances.filter(site=site_id).count()
+            params = self.context.get('params', {})
+            if params.get("project_id", False):
                 return fsxf.project_form_instances.count()
             else:
-                return fsxf.site_form_instances.count()
+                site_id = params.get("site_id")
+                if fsxf.project:
+                    return fsxf.project_form_instances.filter(site=site_id).count()
+                else:
+                    fsxf.site_form_instances.count()
 
         except FieldSightXF.DoesNotExist:
             return 0
