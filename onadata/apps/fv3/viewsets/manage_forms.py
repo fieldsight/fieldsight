@@ -40,9 +40,7 @@ class GeneralFormsVS(viewsets.ModelViewSet):
 
         if project_id:
             queryset = self.queryset.filter(project__id=project_id)
-            return queryset.annotate(
-                response_count=Count(
-                    'project_form_instances')).select_related('xf', 'em').prefetch_related("settings")
+            return queryset.select_related('xf', 'em').prefetch_related("settings")
         elif site_id:
             site = Site.objects.get(pk=site_id)
             project = site.project
@@ -53,9 +51,7 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                     site.type_id = 0
                 if not site.region:
                     site.region_id = 0
-                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
-                                           | Q(project__id=project_id, settings__isnull=True)
-                                           | Q(project__id=project_id, settings__types__contains=[site.type_id]),
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False)| Q(project__id=project_id, settings__isnull=True)| Q(project__id=project_id, settings__types__contains=[site.type_id]),
                                            settings__regions__contains=[site.region_id])
             elif project.cluster_sites:
                 if not site.region:
@@ -72,16 +68,7 @@ class GeneralFormsVS(viewsets.ModelViewSet):
             else:
                 queryset = queryset.filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
 
-            return queryset.annotate(
-                site_response_count=Count("site_form_instances"),
-                response_count=Count(Case(
-                    When(project__isnull=False,
-                         project_form_instances__site__id=site_id,
-                         then=F('project_form_instances')),
-                    output_field=IntegerField(),
-                ), distinct=True)
-
-            ).select_related('xf', 'em').prefetch_related("settings")
+            return queryset.select_related('xf', 'em').prefetch_related("settings")
         return []
 
     def get_serializer_context(self):
@@ -192,9 +179,7 @@ class GeneralProjectFormsVS(viewsets.ModelViewSet):
 
         if project_id:
             queryset = self.queryset.filter(project__id=project_id)
-            return queryset.annotate(
-                response_count=Count(
-                    'project_form_instances')).select_related('xf', 'em')
+            return queryset.select_related('xf', 'em')
         return []
 
     def get_serializer_context(self):
@@ -543,7 +528,7 @@ class SubStageFormsVS(viewsets.ModelViewSet):
         return queryset.select_related('stage_forms', 'em').order_by('order', 'date_created')
 
     def get_serializer_context(self):
-        return {'request': self.request}
+        return {'params': self.request.query_params}
 
     def perform_create(self, serializer):
         query_params = self.request.query_params
