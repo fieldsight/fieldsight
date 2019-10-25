@@ -770,7 +770,7 @@ def project_sites_vt(request, pk, zoom, x, y):
 
 
 class TeamsViewset(viewsets.ReadOnlyModelViewSet):
-    queryset = Organization.objects.all()
+    queryset = Organization.objects.select_related('owner')
     serializer_class = TeamSerializer
     permission_classes = [IsAuthenticated, SuperUserPermissions]
     pagination_class = TeamsPagination
