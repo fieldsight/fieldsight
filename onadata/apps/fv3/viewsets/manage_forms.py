@@ -51,8 +51,10 @@ class GeneralFormsVS(viewsets.ModelViewSet):
                     site.type_id = 0
                 if not site.region:
                     site.region_id = 0
-                queryset = queryset.filter(Q(site__id=site_id, from_project=False)| Q(project__id=project_id, settings__isnull=True)| Q(project__id=project_id, settings__types__contains=[site.type_id]),
-                                           settings__regions__contains=[site.region_id])
+                queryset = queryset.filter(Q(site__id=site_id, from_project=False)
+                                           | Q(project__id=project_id, settings__isnull=True)
+                                           | Q(project__id=project_id, settings__types__contains=[site.type_id],
+                                           settings__regions__contains=[site.region_id]))
             elif project.cluster_sites:
                 if not site.region:
                     site.region_id = 0
@@ -285,8 +287,8 @@ class ScheduleFormsVS(viewsets.ModelViewSet):
                     site.region_id = 0
                 queryset = queryset.filter(Q(site__id=site_id)
                                            | Q(project__id=project_id, schedule_forms__settings__isnull=True)
-                                           | Q(project__id=project_id, schedule_forms__settings__types__contains=[site.type_id]),
-                                           schedule_forms__settings__regions__contains=[site.region_id])
+                                           | Q(project__id=project_id, schedule_forms__settings__types__contains=[site.type_id],
+                                           schedule_forms__settings__regions__contains=[site.region_id]))
             elif types_count > 0:
                 if not site.type_id:
                     site.type_id = 0
@@ -440,10 +442,8 @@ class StageFormsVS(viewsets.ModelViewSet):
                     site.type_id = 0
                 if not site.region:
                     site.region_id = 0
-                queryset = queryset.filter(Q(site__id=site_id,
-                                             project_stage_id=0)
-                                           | Q(project__id=project_id, tags__contains=[site.type_id])
-                                           | Q(project__id=project_id, regions__contains=[site.region_id])
+                queryset = queryset.filter(Q(site__id=site_id, project_stage_id=0)
+                                           | Q(project__id=project_id, tags__contains=[site.type_id], regions__contains=[site.region_id])
                                            )
             if types_count:
                 if not site.type:
@@ -513,9 +513,7 @@ class SubStageFormsVS(viewsets.ModelViewSet):
                     site.type_id = 0
                 if not site.region:
                     site.region_id = 0
-                queryset = queryset.filter(Q(tags__contains=[site.type_id])
-                                           | Q(regions__contains=[site.region_id])
-                                           )
+                queryset = queryset.filter(tags__contains=[site.type_id], regions__contains=[site.region_id])
             elif types_count:
                 if not site.type:
                     site.type_id = 0
