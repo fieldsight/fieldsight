@@ -22,7 +22,7 @@ class ProgressSettingsSerializer(serializers.ModelSerializer):
             self.initial_data['no_submissions_total_count'] = None
             if not self.initial_data['pull_integer_form']:
                 raise serializers.ValidationError("Fieldsight Form id is Required")
-            if not self.initial_data['pull_integer_form_question']:
+            if not self.initial_data.get('pull_integer_form_question'):
                 raise serializers.ValidationError("Form Question Name is Required")
         elif source in [3, 4]:
             self.initial_data['pull_integer_form'] = None
