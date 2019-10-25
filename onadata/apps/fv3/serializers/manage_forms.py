@@ -62,18 +62,18 @@ class GeneralFormSerializer(serializers.ModelSerializer):
 
     def get_responses_count(self, obj):
         is_project = self.context.get('project_id', False)
+
         if is_project:
-            # return obj.project_form_instances.count()
-            return obj.response_count\
-                if hasattr(obj, "response_count") else 0
+            return obj.project_form_instances.count()
+            # return obj.response_count if hasattr(obj, "response_count") else 0
         elif obj.project:
-            # return obj.project_form_instances.filter(self.context.get(
-            # 'site_id').count()
-            return obj.response_count\
-                if hasattr(obj, "response_count") else 0
+            site_id = self.context.get('site_id', False)
+            if not site_id:
+                return 0
+            return obj.project_form_instances.filter(site__id=site_id)
+            # project form view from site
         elif obj.site:
-            return obj.site_response_count\
-                if hasattr(obj, "site_response_count") else 0
+            return obj.site_form_instances.count()
 
 
 class GeneralProjectFormSerializer(serializers.ModelSerializer):
