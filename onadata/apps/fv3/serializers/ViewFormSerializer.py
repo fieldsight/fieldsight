@@ -311,7 +311,7 @@ class ViewSubmissionStatusSerializer(serializers.ModelSerializer):
             return name
 
     def get_submission_url(self, obj):
-        return '/fieldsight/application/?submission={}#/submission-details'.format(obj.id)
+        return '/fieldsight/application/?submission={}#/submission-details'.format(obj.instance.id)
 
     def get_profile_url(self, obj):
         return '/users/profile/{}/'.format(obj.submitted_by.id)
