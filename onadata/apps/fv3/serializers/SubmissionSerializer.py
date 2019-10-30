@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import XformHistory, FORM_STATUS, InstanceStatusChanged, InstanceImages, \
-    EditedSubmission
+    EditedSubmission, FInstance
 from onadata.apps.fsforms.utils import get_version
 from onadata.apps.logger.models import Instance
 
@@ -625,3 +625,23 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
     def get_download_url(self, obj):
         return {
                 }
+
+
+class MyFinstanceSerializer(serializers.ModelSerializer):
+    form_name = serializers.SerializerMethodField()
+    site_name = serializers.CharField(source='site.name')
+    project_name = serializers.CharField(source='project.name')
+    status_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FInstance
+        fields = ('pk', 'project_fxf', 'site_fxf', 'project', 'site', 'form_status',
+                  'form_name', 'site_name', 'project_name', 'status_display')
+
+    def get_form_name(self, obj):
+        if obj.project_fxf:
+            return obj.project_fxf.xf.title
+        return obj.site_fxf.xf.title
+
+    def get_status_display(self, obj):
+        return obj.get_abr_form_status()

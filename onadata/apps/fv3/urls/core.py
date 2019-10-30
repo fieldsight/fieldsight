@@ -23,7 +23,7 @@ from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, \
 from onadata.apps.fv3.viewsets.ReportViewsets import ReportVs
 
 from onadata.apps.fv3.viewsets.SubmissionViewSet import AlterSubmissionStatusViewSet, SubmissionAnswerViewSet, \
-    SubmissionViewSet
+    SubmissionViewSet, MySubmissions
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
     ProjectSitesListViewSet, SubSitesListViewSet
 
@@ -82,6 +82,7 @@ urlpatterns = [
     url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list'}), name='teams'),
     url(r'^api/team-form/$', TeamFormViewset.as_view({'post': 'create'}), name='team_form'),
     url(r'^api/forms/$', FormsView.as_view(), name='forms'),
+    url(r'^api/my/submissions/$', MySubmissions.as_view({'get': 'list'}), name='mysubs'),
 
     url(r'^api/project/sites-vt/(?P<pk>\d+)/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', project_sites_vt, name='project_sites_vt'),
 
