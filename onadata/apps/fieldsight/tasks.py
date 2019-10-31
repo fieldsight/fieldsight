@@ -331,24 +331,24 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         sites_status = None
         gc.collect()
         
-        # site_visits = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": project.id, "fs_project_uuid": {"$in":form_ids}}},  { "$group" : {
-        #       "_id" :  {
-        #         "fs_site": "$fs_site",
-        #         "date": { "$substr": [ "$start", 0, 10 ] }
-        #       },
-        #    }
-        #  }, { "$group": { "_id": "$_id.fs_site", "visits": {
-        #           "$push": {
-        #               "date":"$_id.date"
-        #           }
-        #      }
-        #  }}])['result']
-        #
-        # for site_visit in site_visits:
-        #     try:
-        #         site_dict[str(site_visit['_id'])]['visits'] = len(site_visit['visits'])
-        #     except:
-        #         pass
+        site_visits = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": project.id, "fs_project_uuid": {"$in":form_ids}}},  { "$group" : {
+              "_id" :  {
+                "fs_site": "$fs_site",
+                "date": { "$substr": [ "$start", 0, 10 ] }
+              },
+           }
+         }, { "$group": { "_id": "$_id.fs_site", "visits": {
+                  "$push": {
+                      "date":"$_id.date"
+                  }
+             }
+         }}])['result']
+
+        for site_visit in site_visits:
+            try:
+                site_dict[str(site_visit['_id'])]['visits'] = len(site_visit['visits'])
+            except:
+                pass
 
         site_visits = None
         gc.collect()
