@@ -629,6 +629,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
 
 class MyFinstanceSerializer(serializers.ModelSerializer):
     form_name = serializers.SerializerMethodField()
+    id_string = serializers.SerializerMethodField()
     site_name = serializers.CharField(source='site.name')
     project_name = serializers.CharField(source='project.name')
     status_display = serializers.SerializerMethodField()
@@ -636,7 +637,7 @@ class MyFinstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = FInstance
         fields = ('pk', 'project_fxf', 'site_fxf', 'project', 'site', 'form_status',
-                  'form_name', 'site_name', 'project_name', 'status_display')
+                  'form_name', 'site_name', 'project_name', 'status_display', 'version', 'id_string')
 
     def get_form_name(self, obj):
         if obj.project_fxf:
@@ -645,3 +646,8 @@ class MyFinstanceSerializer(serializers.ModelSerializer):
 
     def get_status_display(self, obj):
         return obj.get_abr_form_status()
+
+    def get_id_string(self, obj):
+        if obj.project_fxf:
+            return obj.project_fxf.xf.id_string
+        return obj.site_fxf.xf.id_string
