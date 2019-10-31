@@ -490,6 +490,23 @@ class StageFormsVS(viewsets.ModelViewSet):
             site = get_object_or_404(Site, pk=site_id)
             serializer.save(site=site)
 
+    def perform_update(self, serializer):
+        stage = serializer.save()
+        tags = stage.tags
+        regions = stage.regions
+        sub_stages = stage.parent.all()
+        for s in sub_stages:
+            s.tags = [t for t in s.tags if t in tags]
+            s.regions = [t for t in s.regions if t in regions]
+            try:
+                form_settings = s.stage_forms.settings
+                form_settings.types = s.tags
+                form_settings.regions = s.regions
+                form_settings.save()
+            except:
+                pass
+            Stage.objects.filter(id=s.id).update(tags=s.tags, regions=s.regions)
+
 
 class SubStageFormsVS(viewsets.ModelViewSet):
     queryset = Stage.objects.filter(stage__isnull=False)
