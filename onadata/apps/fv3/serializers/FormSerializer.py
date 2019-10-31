@@ -282,6 +282,17 @@ class FSXFormSerializer(serializers.ModelSerializer):
         return None
 
 
+class SurveyFSXFormSerializer(FSXFormSerializer):
+    settings = serializers.SerializerMethodField()
+    class Meta:
+        model = FieldSightXF
+        fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
+                  'name', 'descriptionText', 'formID',
+                  'version', 'hash', 'em', 'settings')
+
+    def get_settings(self, obj):
+        return None
+
 class ScheduleSerializer(serializers.ModelSerializer):
     type = serializers.CharField(source='get_schedule_level_id_display')
 
