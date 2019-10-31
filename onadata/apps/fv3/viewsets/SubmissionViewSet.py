@@ -13,7 +13,7 @@ from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged, Edited
 from onadata.apps.fsforms.utils import send_message_flagged
 from onadata.apps.fv3.permissions.submission import SubmissionDetailPermission, SubmissionChangePermission
 from onadata.apps.fv3.serializers.SubmissionSerializer import SubmissionSerializer, AlterInstanceStatusSerializer, \
-    EditSubmissionAnswerSerializer
+    EditSubmissionAnswerSerializer, MyFinstanceSerializer
 from onadata.apps.logger.models import Instance
 
 
@@ -115,5 +115,17 @@ class AlterSubmissionStatusViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class MySubmissions(viewsets.ReadOnlyModelViewSet):
+    queryset = FInstance.objects.filter(form_status__in=[2, 1])
+    serializer_class = MyFinstanceSerializer
+    authentication_classes = [CsrfExemptSessionAuthentication, BasicAuthentication, ]
 
+    def get_queryset(self):
+        user = self.request.user
+        queryset = self.queryset.filter(submitted_by=user)
+        valid_ids = queryset.values_list('pk', flat=True)
+        invalid_ids = InstanceStatusChanged.objects.filter(finstance__in=valid_ids, new_status=3).values_list('finstance', flat=True)
+        valids = [v for v in valid_ids if v not in invalid_ids]
+        return self.queryset.filter(pk__in=valids).select_related(
+            'site', 'project', 'project_fxf', 'project_fxf__xf', 'site_fxf', 'site_fxf__xf').order_by('-date')
 
