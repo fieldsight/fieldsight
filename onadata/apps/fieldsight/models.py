@@ -724,6 +724,7 @@ class ProjectLevelTermsAndLabels(models.Model):
     project = models.OneToOneField(Project, related_name="terms_and_labels", on_delete=models.CASCADE)
     donor = models.CharField(max_length=255, default="Donor")
     site = models.CharField(max_length=255, default="Site")
+    sub_site = models.CharField(max_length=255, default="Subsite")
     site_supervisor = models.CharField(max_length=255, default="Site Supervisor")
     site_reviewer = models.CharField(max_length=255, default="Site Reviewer")
     region = models.CharField(max_length=255, default="Region")

@@ -858,23 +858,27 @@ class EnableClusterSitesView(APIView):
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
+    def get(self, request, pk, *args, **kwargs):
+
+        try:
+            project = Project.objects.get(id=pk)
+            cluster_sites = project.cluster_sites
+
+            return Response(status=status.HTTP_200_OK, data={'cluster_sites': cluster_sites})
+
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
+
     def post(self, request, pk, format=None):
         try:
             project = Project.objects.get(id=pk)
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
-        cluster_sites = request.data.get('cluster_sites', None)
-        if cluster_sites is not None:
-            if cluster_sites in ['False', 'false']:
-                cluster_sites = False
-            else:
-                cluster_sites = True
+        cluster_sites = request.data.get('cluster_sites')
 
-            project.cluster_sites = cluster_sites
-            project.save()
-            return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'cluster_sites field is required.'})
+        project.cluster_sites = cluster_sites
+        project.save()
+        return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
 
 
 @permission_classes([IsAuthenticated])
