@@ -154,7 +154,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         return project_managers
 
     def get_logs(self, obj):
-        qs = FieldSightLog.objects.select_related('source', 'source__user_profile', 'project__terms_and_labels', 'extra_content_type', 'content_type') \
+        qs = FieldSightLog.objects.select_related('source', 'source__user_profile', 'project__terms_and_labels',
+                                                  'extra_content_type', 'content_type') \
                  .prefetch_related('content_object', 'extra_object', 'seen_by').filter(Q(project=obj) | (
                 Q(content_type=ContentType.objects.get(app_label="fieldsight", model="project")) & Q(
             object_id=obj.id)))[:20]
