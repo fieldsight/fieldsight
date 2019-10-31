@@ -326,7 +326,11 @@ class SubStageSerializer(serializers.ModelSerializer):
                     setting = self.context['request'].data.get('setting')
                     if setting:
                         setting.update({"form": fsxf.id})
-                        settings_serializer = SettingsSerializerSubStage(data=setting)
+                        if not setting.get('id'):
+                            settings_serializer = SettingsSerializerSubStage(data=setting)
+                        else:
+                            settings_serializer = SettingsSerializerSubStage(fsxf.settings, data=setting,
+                                                                                partial=True)
                         if settings_serializer.is_valid():
                             setting_obj = settings_serializer.save(user=request.user)
                             stage.tags = setting_obj.types
@@ -365,6 +369,8 @@ class SubStageSerializer(serializers.ModelSerializer):
                 setting = self.context['request'].data.get('setting')
                 if setting:
                     setting.update({"form": fsxf.id})
+                    if setting.get("id"):
+                        del setting['id']
                     settings_serializer = SettingsSerializerSubStage(data=setting)
                     if settings_serializer.is_valid():
                         setting_obj = settings_serializer.save(user=request.user)
