@@ -1,9 +1,10 @@
 from django.conf.urls import url, include
 from rest_framework import routers
 
-from onadata.apps.fv3.viewsets.project_settings_vs import ProjectSettingsOptions, ProjectProgressSettings, ProjectSiteTypesViewset, \
-    ProjectTermsLabelsViewset, ProjectRegionsViewset
-from onadata.apps.fv3.views import ProjectUpdateViewset, sectors_subsectors, GeoLayerView, organization_geolayer
+from onadata.apps.fv3.viewsets.project_settings_vs import ProjectSettingsOptions, ProjectProgressSettings, \
+    ProjectSiteTypesViewset, ProjectTermsLabelsViewset, ProjectRegionsViewset
+from onadata.apps.fv3.views import ProjectUpdateViewset, sectors_subsectors, GeoLayerView, organization_geolayer, \
+    EnableClusterSitesView
 router = routers.DefaultRouter()
 
 router.register(r'project-terms-labels', ProjectTermsLabelsViewset, base_name='project-terms-labels')
@@ -21,6 +22,8 @@ progress_urlpatterns = [
     url(r'^api/sectors-subsectors/$', sectors_subsectors.as_view({'get': 'list'}), name='sectors_subsectors'),
     url(r'^api/geolayer/$', GeoLayerView.as_view(), name='geolayer'),
     url(r'^api/organization-geolayer/$', organization_geolayer, name='organization_geolayer'),
+    url(r'^api/enable-project-cluster-sites/(?P<pk>\d+)/$', EnableClusterSitesView.as_view(),
+        name='enable_project_cluster_sites'),
 
 ]
 

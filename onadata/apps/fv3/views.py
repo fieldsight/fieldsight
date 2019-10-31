@@ -851,6 +851,32 @@ class TeamFormViewset(viewsets.ModelViewSet):
         return serializer.save()
 
 
+class EnableClusterSitesView(APIView):
+    """
+    A simple view for updating cluster sites from project level.
+    """
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
+
+    def post(self, request, pk, format=None):
+        try:
+            project = Project.objects.get(id=pk)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
+        cluster_sites = request.data.get('cluster_sites', None)
+        if cluster_sites is not None:
+            if cluster_sites in ['False', 'false']:
+                cluster_sites = False
+            else:
+                cluster_sites = True
+
+            project.cluster_sites = cluster_sites
+            project.save()
+            return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'cluster_sites field is required.'})
+
+
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def project_full_map(request, pk):
