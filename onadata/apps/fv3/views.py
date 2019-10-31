@@ -856,7 +856,7 @@ class EnableClusterSitesView(APIView):
     A simple view for updating cluster sites from project level.
     """
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
+    permission_classes = [IsAuthenticated, ]
 
     def get(self, request, pk, *args, **kwargs):
 
