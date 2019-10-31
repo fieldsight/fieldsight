@@ -631,13 +631,14 @@ class MyFinstanceSerializer(serializers.ModelSerializer):
     form_name = serializers.SerializerMethodField()
     id_string = serializers.SerializerMethodField()
     site_name = serializers.CharField(source='site.name')
+    site_identifier = serializers.CharField(source='site.identifier')
     project_name = serializers.CharField(source='project.name')
     status_display = serializers.SerializerMethodField()
 
     class Meta:
         model = FInstance
         fields = ('pk', 'project_fxf', 'site_fxf', 'project', 'site', 'form_status',
-                  'form_name', 'site_name', 'project_name', 'status_display', 'version', 'id_string')
+                  'form_name', 'site_name', 'site_identifier', 'project_name', 'status_display', 'version', 'id_string', 'date')
 
     def get_form_name(self, obj):
         if obj.project_fxf:
