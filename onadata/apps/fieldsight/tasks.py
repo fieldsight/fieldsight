@@ -354,7 +354,7 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         gc.collect()
 
         
-        sites = sites.filter(**sites_filter).values('id','identifier', 'name', 'region__identifier', 'address').annotate(**query)
+        sites = sites.filter(**sites_filter).values('id','identifier', 'name', 'region__identifier', 'address', "current_progress").annotate(**query)
         
         for site in sites:
             # import pdb; pdb.set_trace();
