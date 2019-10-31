@@ -735,8 +735,47 @@ def siteDetailsGenerator(project, sites, ws):
             header_columns += [{'id': question['question_name'], 'name':question['question_name']}]
         
         
+        get_answer_questions = []
+        get_sub_count_questions = []
+        get_sub_status_questions = []   
+        get_answer_status_questions = []
+
         site_list = {}
         meta_ref_sites = {}
+        site_submission_count = {}
+        site_sub_status = {}
+
+        
+        for meta in meta_ques: 
+            if meta['question_type'] == 'FormSubStat':
+                get_sub_status_questions.append(meta)
+
+            elif meta['question_type'] == 'FormSubCountQuestion':
+                get_sub_count_questions.append(meta)
+
+
+        if get_sub_count_questions:
+            query = {}
+            for meta in get_sub_count_questions:
+                query[meta['question_name']] = Sum(
+                                        Case(
+                                            When(site_instances__project_fxf_id=meta['form_id'], then=1),
+                                            default=0, output_field=IntegerField()
+                                        ))
+            results = sites.values('id',).annotate(**query)
+            for submission_count in results:
+                site_submission_count[submission_count['id']] = submission_count
+
+        if get_sub_status_questions:
+            query = {}
+            for meta in get_sub_status_questions:
+                for submission in FInstance.objects.filter(project_id=project.id, project_fxf_id=meta['form_id']).values('site_id', 'date').distinct('site_id').order_by('site_id', '-instance_id'):
+                    try:
+                        site_sub_status[meta['form_id']][submission['site_id']] = "Last submitted on " + submission['date'].strftime("%d %b %Y %I:%M %P")
+                    except:
+                        site_sub_status[meta['form_id']] = {submission['site_id']:"Last submitted on " + submission['date'].strftime("%d %b %Y %I:%M %P")}
+
+        #Optimized query, only one query per link type meta attribute which covers all site's answers.
 
         def generate(project_id, site_map, meta, identifiers, selected_metas):
             project_id = str(project_id)
