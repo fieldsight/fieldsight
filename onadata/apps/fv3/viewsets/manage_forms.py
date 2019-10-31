@@ -528,6 +528,12 @@ class SubStageFormsVS(viewsets.ModelViewSet):
     def get_serializer_context(self):
         return {'params': self.request.query_params, 'request': self.request}
 
+    def create(self, request, *args, **kwargs):
+        xf = self.request.data.get('xf')
+        if not xf:
+            return Response({"error": "Form is required"}, status=status.HTTP_400_BAD_REQUEST)
+        return super(SubStageFormsVS, self).create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         query_params = self.request.query_params
         xf = self.request.data.get('xf')
@@ -555,6 +561,12 @@ class SubStageFormsVS(viewsets.ModelViewSet):
                     sub_stage.tags = setting_obj.types
                     sub_stage.regions = setting_obj.regions
                     sub_stage.save()
+
+    def update(self, request, *args, **kwargs):
+        xf = self.request.data.get('xf')
+        if not xf:
+            return Response({"error": "Form is required"}, status=status.HTTP_400_BAD_REQUEST)
+        return super(SubStageFormsVS, self).update(request, *args, **kwargs)
 
 
 class DeployForm(APIView):
