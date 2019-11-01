@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, Count
 
 from rest_framework import serializers
@@ -183,21 +184,25 @@ class ViewSubStageFormSerializer(serializers.ModelSerializer):
         return obj.stage_forms.xf.title
 
     def get_response_count(self, obj):
-        is_project = self.context.get('is_project', False)
-        site = self.context.get('site', False)
 
-        if is_project:
+        try:
+            fsxf = FieldSightXF.objects.get(stage=obj)
 
-            count = obj.stage_forms.project_form_instances.count()
-            return count
+            is_project = self.context.get('is_project', False)
 
-        elif obj.site:
-            count = obj.stage_forms.site_form_instances.count()
-            return count
+            if is_project:
 
-        elif obj.project and site:
-            count = obj.stage_forms.project_form_instances.filter(site__id=site).count()
-            return count
+                count = fsxf.project_form_instances.count()
+                return count
+
+            else:
+                site_id = self.context.get('site', False)
+                if fsxf.project:
+                    return fsxf.project_form_instances.filter(site=site_id).count()
+                else:
+                    return fsxf.site_form_instances.count()
+        except ObjectDoesNotExist:
+            return 0
 
     def get_last_response(self, obj):
         is_project = self.context.get('is_project', False)
