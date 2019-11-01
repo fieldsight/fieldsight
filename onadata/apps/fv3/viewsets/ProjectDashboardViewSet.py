@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
+from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
 from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermission
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
@@ -149,12 +150,16 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         longitude = request.data.get('longitude', None)
         latitude = request.data.get('latitude', None)
         site = request.data.get('site', None)
-        if instance.site_meta_attributes_ans:
-            instance.all_ma_ans.update(json.loads(instance.site_meta_attributes_ans))
-            instance.save()
+        instance.save()
+
         if latitude and longitude is not None:
             p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
             instance.location = p
+            instance.save()
+
+        if instance.site_meta_attributes_ans:
+            metas = get_site_meta_ans(instance.id)
+            instance.all_ma_ans = metas
             instance.save()
         if site is not None:
             instance.logs.create(source=self.request.user, type=110, title="new sub Site", site=instance.site,
@@ -187,11 +192,13 @@ class SiteFormViewSet(viewsets.ModelViewSet):
             p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
             instance.location = p
             instance.save()
+        instance.save()
 
         new_meta = json.loads(instance.site_meta_attributes_ans)
 
         if instance.site_meta_attributes_ans:
-            instance.all_ma_ans.update(new_meta)
+            metas = get_site_meta_ans(instance.id)
+            instance.all_ma_ans = metas
             instance.save()
 
         extra_json = None
