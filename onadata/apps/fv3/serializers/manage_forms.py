@@ -70,7 +70,7 @@ class GeneralFormSerializer(serializers.ModelSerializer):
             site_id = self.context.get('site_id', False)
             if not site_id:
                 return 0
-            return obj.project_form_instances.filter(site__id=site_id)
+            return obj.project_form_instances.filter(site__id=site_id).count()
             # project form view from site
         elif obj.site:
             return obj.site_form_instances.count()
