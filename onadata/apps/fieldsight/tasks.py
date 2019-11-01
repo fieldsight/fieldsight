@@ -730,7 +730,7 @@ def generateCustomReportPdf(task_prog_obj_id, site_id, base_url, fs_ids, start_d
         buffer.close()        
 
 def siteDetailsGenerator(project, sites, ws):
-    if True:
+    try:
         header_columns = [ {'id': 'identifier' ,'name':'identifier'},
                            {'id': 'name','name':'name'},
                            {'id': 'site_type_identifier','name':'type'}, 
@@ -765,9 +765,7 @@ def siteDetailsGenerator(project, sites, ws):
 
         site_list = {}
         for site in sites.select_related('region').iterator():
-            if not site.id == 63012:
-                continue
-            root_site_identifier= None
+            root_site_identifier = None
             if site.site:
                 root_site_identifier = site.site.identifier
             columns = {'identifier':site.identifier, 'name':site.name, 'site_type_identifier':site.type.identifier if site.type else "", 'phone':site.phone, 'address':site.address, 'public_desc':site.public_desc, 'additional_desc':site.additional_desc, 'latitude':site.latitude,
@@ -827,9 +825,9 @@ def siteDetailsGenerator(project, sites, ws):
         gc.collect()
         return True, 'success'
 
-    # except Exception as e:
-    #     gc.collect()
-    #     return False, e.message
+    except Exception as e:
+        gc.collect()
+        return False, e.message
 
 # project = Project.objects.get(pk=137)
 # sites = project.sites.all()
