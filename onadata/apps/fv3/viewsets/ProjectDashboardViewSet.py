@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.gis.geos import Point
 
 from rest_framework import viewsets, status
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -15,9 +16,11 @@ from rest_framework.views import APIView
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
+from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermission
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
-from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, ProgressGeneralFormSerializer, \
-    ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer
+from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
+    ProgressGeneralFormSerializer, ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer, \
+    SitelistForMetasLinkSerializer
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import Instance
@@ -258,5 +261,11 @@ class SiteFormViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class SitelistForMetasLink(viewsets.ModelViewSet):
+    queryset = Site.objects.all()
+    serializer_class = SitelistForMetasLinkSerializer
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = (SiteUnderProjectPermission,)
 
-
+    def filter_queryset(self, queryset):
+        return queryset.filter(project__id=self.kwargs.get('pk', None))

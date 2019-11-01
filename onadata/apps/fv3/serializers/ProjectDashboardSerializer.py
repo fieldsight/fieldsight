@@ -362,3 +362,17 @@ class SiteFormSerializer(serializers.ModelSerializer):
             return True
         else:
             return False
+
+
+class SitelistForMetasLinkSerializer(serializers.ModelSerializer):
+    label = serializers.ReadOnlyField(source='name', read_only=True)
+    id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Site
+        fields = ('id', 'label', 'identifier',)
+
+    def get_id(self, obj):
+        return obj.identifier
+
+

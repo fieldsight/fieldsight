@@ -289,7 +289,14 @@ class ViewStageFormSerializer(serializers.ModelSerializer):
                 prefetch_related('stage_forms__site_form_instances', 'stage_forms__xf__fshistory')
 
             data = ViewSubStageFormSerializer(queryset, many=True, context={'is_project': is_project}).data
+            return data
+        else:
+            queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf',
+                                                                                 'stage_forms__xf__user', 'site',
+                                                                                 'project'). \
+                prefetch_related('stage_forms__site_form_instances', 'stage_forms__xf__fshistory')
 
+            data = ViewSubStageFormSerializer(queryset, many=True, context={'site': site_id}).data
             return data
 
             # if obj.project or is_project:
