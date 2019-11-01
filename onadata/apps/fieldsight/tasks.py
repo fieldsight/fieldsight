@@ -730,7 +730,7 @@ def generateCustomReportPdf(task_prog_obj_id, site_id, base_url, fs_ids, start_d
         buffer.close()        
 
 def siteDetailsGenerator(project, sites, ws):
-    try:
+    if True:
         header_columns = [ {'id': 'identifier' ,'name':'identifier'},
                            {'id': 'name','name':'name'},
                            {'id': 'site_type_identifier','name':'type'}, 
@@ -739,239 +739,74 @@ def siteDetailsGenerator(project, sites, ws):
                            {'id': 'public_desc','name':'public_desc'},
                            {'id': 'additional_desc','name':'additional_desc'},
                            {'id': 'latitude','name':'latitude'},
-                           {'id': 'longitude','name':'longitude'}, ]
-        
+                           {'id': 'longitude','name':'longitude'},
+                           {'id': 'progress','name':'progress'},
+                           {'id': 'root_site_identifier','name':'root_site_identifier'}, ]
+
         if project.cluster_sites:
             header_columns += [{'id':'region_identifier', 'name':'region_id'}, ]
         
         meta_ques = project.site_meta_attributes
         for question in meta_ques:
-            header_columns += [{'id': question['question_name'], 'name':question['question_name']}]
-        
-        
-        get_answer_questions = []
-        get_sub_count_questions = []
-        get_sub_status_questions = []   
-        get_answer_status_questions = []
+            if not question['question_type'] == 'Link':
+                header_columns += [{'id': question['question_name'], 'name': question['question_name']}]
+            else:
+                question_name = question['question_name']
+                try:
+                    link_metas = question['metas'].values()[0]
+                except:
+                    link_metas = []
+                for link_question in link_metas:
+                    if not link_question['question_type'] == 'Link': # ignore links of links
+                        header_columns += [{
+                            'id': question_name + "/" + link_question['question_name'],
+                            'name': question_name + "/" + link_question['question_name']
+                        }]
 
         site_list = {}
-        meta_ref_sites = {}
-        site_submission_count = {}
-        site_sub_status = {}
-
-        
-        for meta in meta_ques: 
-            if meta['question_type'] == 'FormSubStat':
-                get_sub_status_questions.append(meta)
-
-            elif meta['question_type'] == 'FormSubCountQuestion':
-                get_sub_count_questions.append(meta)
-
-
-        if get_sub_count_questions:
-            query = {}
-            for meta in get_sub_count_questions:
-                query[meta['question_name']] = Sum(
-                                        Case(
-                                            When(site_instances__project_fxf_id=meta['form_id'], then=1),
-                                            default=0, output_field=IntegerField()
-                                        ))
-            results = sites.values('id',).annotate(**query)
-            for submission_count in results:
-                site_submission_count[submission_count['id']] = submission_count
-
-        if get_sub_status_questions:
-            query = {}
-            for meta in get_sub_status_questions:
-                for submission in FInstance.objects.filter(project_id=project.id, project_fxf_id=meta['form_id']).values('site_id', 'date').distinct('site_id').order_by('site_id', '-instance_id'):
-                    try:
-                        site_sub_status[meta['form_id']][submission['site_id']] = "Last submitted on " + submission['date'].strftime("%d %b %Y %I:%M %P")
-                    except:
-                        site_sub_status[meta['form_id']] = {submission['site_id']:"Last submitted on " + submission['date'].strftime("%d %b %Y %I:%M %P")}
-
-        #Optimized query, only one query per link type meta attribute which covers all site's answers.
-
-        def generate(project_id, site_map, meta, identifiers, selected_metas):
-            project_id = str(project_id)
-            sub_meta_ref_sites = {}
-            sub_site_map = {}
-            
-            sitesnew = Site.objects.filter(identifier__in = identifiers, project_id = project_id)
-            
-            for site in sitesnew.iterator():
-                if project_id == str(project.id):
-                    continue
-            
-                identifier = site_map.get(site.identifier)
-                  
-                if not site.site_meta_attributes_ans:
-                    meta_ans = {}
-                else:
-                    meta_ans = site.site_meta_attributes_ans
-
-                for meta in selected_metas.get(project_id, []):
-                    
-                    if meta.get('question_type') == "Link":
-                        link_answer=str(meta_ans.get(meta.get('question_name'), ""))
-                        if link_answer != "":    
-                            if meta['question_name'] in sub_site_map:
-                                if site.identifier in sub_site_map[meta['question_name']]:
-                                    sub_site_map[meta['question_name']][link_answer].append(identifier)
-                                else:
-                                    sub_site_map[meta['question_name']][link_answer] = [identifier]
-                            else:
-                                sub_site_map[meta['question_name']] = {}
-                                sub_site_map[meta['question_name']][link_answer] = [identifier]
-                            
-                            for idf in identifier:
-                                if meta['question_name'] in sub_meta_ref_sites:
-                                    sub_meta_ref_sites[meta['question_name']].append(meta_ans.get(meta['question_name']))
-                                else:
-                                    sub_meta_ref_sites[meta['question_name']] = [meta_ans.get(meta['question_name'])]
-
-                    else:
-                        for idf in identifier:
-                            site_list[idf][project_id+"-"+meta.get('question_name')] = meta_ans.get(meta.get('question_name'), "")
-            
-            del sitesnew
-            gc.collect()
-
-            for meta in selected_metas.get(project_id, []):
-                head = header_columns
-                head += [{'id':project_id+"-"+meta.get('question_name'), 'name':meta.get('question_text')}]
-                if meta.get('question_type') == "Link":
-                    generate(meta['project_id'], sub_site_map.get(meta['question_name'], []), meta, sub_meta_ref_sites.get(meta['question_name'], []), selected_metas)
-
-
         for site in sites.select_related('region').iterator():
-            
+            if not site.id == 63012:
+                continue
+            root_site_identifier= None
+            if site.site:
+                root_site_identifier = site.site.identifier
             columns = {'identifier':site.identifier, 'name':site.name, 'site_type_identifier':site.type.identifier if site.type else "", 'phone':site.phone, 'address':site.address, 'public_desc':site.public_desc, 'additional_desc':site.additional_desc, 'latitude':site.latitude,
-                       'longitude':site.longitude, }
-            
+                       'longitude':site.longitude, 'progress':site.current_progress, 'root_site_identifier':root_site_identifier }
+
             if project.cluster_sites:
                 columns['region_identifier'] = site.region.identifier if site.region else ""
-            
-            meta_ques = project.site_meta_attributes
-            meta_ans = site.site_meta_attributes_ans
+
+            meta_ans = site.all_ma_ans
             for question in meta_ques:
-                if question['question_type'] == 'FormSubCountQuestion':
-                    columns[question['question_name']] = site_submission_count[site.id][question['question_name']]
-                elif question['question_type'] == 'FormSubStat':
-                    columns[question['question_name']] = site_sub_status[question['form_id']].get(site.id, '') if question['form_id'] in site_sub_status else ''
-                elif question['question_type'] in ['Form','FormQuestionAnswerStatus']:
-                    columns[question['question_name']] = ""
-
+                if not question['question_type'] == 'Link':
+                    # question is not draw from another project
+                    question_name = question['question_name']
+                    columns[question_name] = meta_ans.get(question_name, "")
                 else:
-                    if question['question_name'] in meta_ans:
-                        columns[question['question_name']] = meta_ans[question['question_name']]
+                    question_name = question['question_name']
+                    # question is draw from another project
+                    # check answer is dict with children key
+                    linked_answer = meta_ans.get(question_name, "")
+                    if isinstance(linked_answer, dict):
+                        children = linked_answer['children']
+                        for k, v in children.items():
+                            columns[question_name + "/" + k] = v
+                    # else:
+                    #     # no site referenced
+                    #     # default empty answer
+                    #     try:
+                    #         link_metas = question['metas'].values()[0]
+                    #     except:
+                    #         link_metas = []
+                    #     for link_question_of_link_metas in link_metas:
+                    #         if not link_question_of_link_metas['question_type'] == 'Link':
+                    #             columns[question_name + "/" + link_question_of_link_metas['question_name']] = ""
 
-                        if question['question_type'] == "Link" and meta_ans[question['question_name']] != "":
-                            if question.get('question_name') in meta_ref_sites:
-                                meta_ref_sites[question.get('question_name')].append(meta_ans[question['question_name']])
-                            else:
-                                meta_ref_sites[question.get('question_name')] = [meta_ans[question['question_name']]]
-                    
-                    else:
-                        columns[question['question_name']] = '-'
-            
             site_list[site.id] = columns
-        
+
         del sites
         gc.collect()
 
-        for meta in meta_ques:
-            if meta['question_type'] == "Link":
-                site_map = {}
-                for key, value in site_list.items():
-                    if value[meta['question_name']] != "":
-                        identifier = str(value.get(meta['question_name']))
-                        if identifier in site_map:
-                            site_map[identifier].append(key)
-                        else:
-                            site_map[identifier] = [key]
-                
-                generate(meta['project_id'], site_map, meta, meta_ref_sites.get(meta['question_name'], []), meta.get('metas'))
-
-            elif meta['question_type'] == 'Form':
-                get_answer_questions.append(meta)
-
-            elif meta['question_type'] == 'FormQuestionAnswerStatus':
-                get_answer_status_questions.append(meta)
-                    
-        for meta in get_answer_questions:
-            form_owner = None
-            if "/" in meta['question']['name']:
-                group_name = meta['question']['name'].split("/")[0]
-                query = settings.MONGO_DB.instances.aggregate([
-                    {"$sort": {"_id": 1}},
-                    {"$match": {"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}}, {
-                        "$group": {
-                            "_id": "$fs_site",
-                            "answer": {'$last': "$" + group_name}
-                        }
-                    }])
-
-                for submission in query['result']:
-                    try:
-                        if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
-                            if not form_owner:
-                                form_owner = FieldSightXF.objects.select_related('xf__user').get(
-                                    pk=meta['form_id']).xf.user.username
-                            site_list[int(submission['_id'])][meta[
-                                'question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file=' + +'/attachments/' + \
-                                                    submission['answer'][0][meta['question']['name']]
-
-
-                        if meta['question']['type'] == 'repeat':
-                            site_list[int(submission['_id'])][meta['question_name']] = ""
-
-                        site_list[int(submission['_id'])][meta['question_name']] = submission['answer'][0][meta['question']['name']]
-                    except:
-                        pass
-            else:
-                query = settings.MONGO_DB.instances.aggregate([
-                    {"$sort":{"_id":1}},
-                    {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
-                    "_id" : "$fs_site",
-                    "answer": { '$last': "$"+meta['question']['name'] }
-                   }
-                 }])
-
-                for submission in query['result']:
-                    try:
-                        if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
-                            if not form_owner:
-                                form_owner = FieldSightXF.objects.select_related('xf__user').get(pk=meta['form_id']).xf.user.username
-                            site_list[int(submission['_id'])][meta['question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file='+  +'/attachments/'+submission['answer']
-
-                        if meta['question']['type'] == 'repeat':
-                            site_list[int(submission['_id'])][meta['question_name']] = ""
-
-                        site_list[int(submission['_id'])][meta['question_name']] = submission['answer']
-                    except:
-                        pass
-
-        for meta in get_answer_status_questions:
-        
-            query = settings.MONGO_DB.instances.aggregate([
-                {"$sort": {"_id": 1}},
-                {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
-                "_id" : "$fs_site",
-                "answer": { '$last': "$"+meta['question']['name'] }
-               }
-             }])
-
-            for submission in query['result']:
-                try:
-                    if submission['answer'] and submission['answer'] != "":
-                        site_list[int(submission['_id'])][meta['question_name']] = "Answered"
-                    else:
-                        site_list[int(submission['_id'])][meta['question_name']] = "Not Answered"
-                except:
-                    pass
-                    
-        row_num = 0
-        
         header_row=[]
         for col_num in range(len(header_columns)):
             # header_cell=WriteOnlyCell(ws, value=header_columns[col_num]['name'])
@@ -992,9 +827,9 @@ def siteDetailsGenerator(project, sites, ws):
         gc.collect()
         return True, 'success'
 
-    except Exception as e:
-        gc.collect()
-        return False, e.message
+    # except Exception as e:
+    #     gc.collect()
+    #     return False, e.message
 
 # project = Project.objects.get(pk=137)
 # sites = project.sites.all()
@@ -2917,3 +2752,4 @@ def update_sites_info(pk, location_changed, picture_changed,
             page += 1
     except Exception as e:
         print(str(e))
+
