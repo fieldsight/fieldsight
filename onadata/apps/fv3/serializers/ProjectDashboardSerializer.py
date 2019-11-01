@@ -163,10 +163,7 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         return serializers_qs.data
 
     def get_has_region(self, obj):
-        has_region = False
-        if obj.project_region.all():
-            has_region = True
-        return has_region
+        return obj.cluster_sites
 
     def get_form_submissions_chart_data(self, obj):
         line_chart = LineChartGeneratorProject(obj)

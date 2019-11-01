@@ -97,7 +97,7 @@ def my_roles(request):
                'twitter': profile_obj.twitter, 'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype,
                'google_talk': profile_obj.google_talk, 'can_create_team': can_create_team, 'guide_popup': guide_popup}
 
-    teams = UserRole.objects.filter(user=user).select_related('user', 'group', 'site', 'organization',
+    teams = UserRole.objects.filter(user=user, ended_at=None).select_related('user', 'group', 'site', 'organization',
                                                                       'staff_project', 'region').filter(Q(group__name="Organization Admin", organization__is_active=True)|
                                                                    Q(group__name="Project Manager", project__is_active=True)|
                                                                    Q(group__name="Project Donor", project__is_active=True)|

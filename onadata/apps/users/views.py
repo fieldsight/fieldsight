@@ -533,6 +533,11 @@ def web_login(request):
             user, valid_email = web_authenticate(username=username, password=pwd)
             if user is not None:
                 if user.is_active:
+                    group = Group.objects.get(name="Unassigned")
+                    role = user.user_roles.filter(group=group)
+                    if not role:
+                        UserRole.objects.create(user=user, group=group)
+
                     login(request, user)
                     return HttpResponseRedirect(reverse('dashboard'))
                 else:

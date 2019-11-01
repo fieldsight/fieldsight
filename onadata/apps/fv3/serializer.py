@@ -154,7 +154,7 @@ class ProjectLevelTermsAndLabelsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectLevelTermsAndLabels
-        exclude = ()
+        exclude = ('sub_site',)
 
 
 class ProjectSiteSerializer(serializers.ModelSerializer):
