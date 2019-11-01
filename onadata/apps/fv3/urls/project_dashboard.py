@@ -16,7 +16,7 @@ project_dashboard_urlpatterns = [
         name='progress_table'),
     url(r'^api/project-survey-forms/(?P<pk>\d+)/$', ProjectSurveyFormsViewSet.as_view(),
         name='project_survey_forms'),
-    url(r'^api/project-sites-metas/(?P<pk>\d+)/$', SitelistForMetasLink.as_view({'get': 'list'}),
+    url(r'^api/project-sites-for-metas/(?P<pk>\d+)/$', SitelistForMetasLink.as_view({'get': 'list'}),
         name='project_sites_metas'),
 
 ]
