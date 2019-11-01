@@ -982,12 +982,13 @@ class DeleteUndeployedForm(APIView):
                            status=status.HTTP_400_BAD_REQUEST)
                 else:
                     count = len(ids)
-                    Stage.objects.filter(stage_id=id).update(is_deleted=True)
+                    extra_object = Stage.objects.get(pk=id).project
                     FieldSightXF.objects.filter(is_staged=True,
                                                 is_deployed=False,
                                                 stage_id__in=ids).update(
                         is_deleted=True)
-                    extra_object = Stage.objects.get(pk=id).project
+                    Stage.objects.filter(stage_id=id).update(is_deleted=True)
+                    Stage.objects.filter(pk=id).update(is_deleted=True)
                     extra_message = "project"
                     site_id = None
                     organization_id = extra_object.organization_id
@@ -1023,11 +1024,12 @@ class DeleteUndeployedForm(APIView):
                            status=status.HTTP_400_BAD_REQUEST)
                 else:
                     count = Stage.objects.filter(site_id=id).count()
-                    Stage.objects.filter(project_id=id).update(is_deleted=True)
                     FieldSightXF.objects.filter(is_staged=True,
                                                 is_deployed=False,
-                                                site_id=id).update(
+                                                stage_id__in=ids).update(
                         is_deleted=True)
+                    Stage.objects.filter(stage_id=id).update(is_deleted=True)
+                    Stage.objects.filter(pk=id).update(is_deleted=True)
                     extra_object = Site.objects.get(pk=id)
                     extra_message = "site"
                     site_id = None
