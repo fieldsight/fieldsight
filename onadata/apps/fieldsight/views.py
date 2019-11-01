@@ -3498,7 +3498,7 @@ class ExcelBulkSiteSample(ProjectRoleMixin, View):
             font_style = xlwt.XFStyle()
             font_style.font.bold = True
 
-            columns = ['identifier', 'name', 'type', 'phone', 'address', 'public_desc', 'additional_desc', 'latitude', 'longitude',]
+            columns = ['identifier', 'name', 'type', 'phone', 'address', 'public_desc', 'additional_desc', 'latitude', 'longitude', 'root_site_identifier']
             if project.cluster_sites:
                 columns += ['region_id',]
             meta_ques = project.site_meta_attributes
