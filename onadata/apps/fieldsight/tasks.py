@@ -626,6 +626,20 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 
                 if region_idf is not None:
                     region = Region.objects.get(identifier=str(region_idf), project = project)
+
+                root_site_identifier = site.get('root_site_identifier', None)
+                print(root_site_identifier)
+                if root_site_identifier:
+                    root_site = Site.objects.filter(identifier=root_site_identifier, project=project)
+                    # print("root site ", root_site)
+                    if root_site:
+                        root_site = root_site[0]
+                        # print("root enable sub site", root_site.enable_subsites, root_site.id)
+                        if root_site.enable_subsites:
+                            # print("root enable sub site", root_site.enable_subsites)
+                            _site.site = root_site
+                # else:
+                #     _site.site = None
                         
                 _site.region = region
                 _site.name = site.get("name")
