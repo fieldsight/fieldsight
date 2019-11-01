@@ -875,10 +875,10 @@ class EnableClusterSitesView(APIView):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
         cluster_sites = request.data.get('cluster_sites')
-
         project.cluster_sites = cluster_sites
         project.save()
-        return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
+        return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.', 'cluster_sites':
+            project.cluster_sites})
 
 
 @permission_classes([IsAuthenticated])
