@@ -56,7 +56,7 @@ class ProjectProgressTableViewSet(APIView):
         schedules_queryset = Schedule.objects.select_related('project').prefetch_related('schedule_forms')\
             .filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
                     schedule_forms__isnull=False, schedule_forms__xf__isnull=False)
-        schedules = ProgressScheduledFormSerializer(schedules_queryset, many=True)
+        schedules = ProgressScheduledFormSerializer(schedules_queryset, many=True, context={'project_id': project_id})
 
         stages_queryset = Stage.objects.select_related('project').filter(stage__isnull=True, project_id=project_id, stage_forms__isnull=True).\
             order_by('order')

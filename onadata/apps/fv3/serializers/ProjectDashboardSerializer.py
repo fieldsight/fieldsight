@@ -320,7 +320,8 @@ class ProgressScheduledFormSerializer(serializers.ModelSerializer):
         fields = ('name', 'form_url', 'progress_data')
 
     def get_form_url(self, obj):
-        return '/fieldsight/application/#/submission-data/{}/{}' .format(obj.id, obj.schedule_forms.id)
+        project_id =self.context.get('project_id', None)
+        return '/fieldsight/application/#/submission-data/{}/{}' .format(project_id, obj.schedule_forms.id)
 
     def get_progress_data(self, obj):
         project = obj.project
