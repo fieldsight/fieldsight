@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import copy
 import time
 import re 
-import os
 import json
 import datetime
 import gc
@@ -12,12 +11,14 @@ from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings, SiteMetaAttrAnsHistory
+from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType,\
+    ProgressSettings, SiteMetaAttrAnsHistory
 from onadata.apps.fieldsight.utils.progress import set_site_progress
-from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict
+from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos,\
+    bulk_update_sites_all_location
+
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
-from channels import Group as ChannelGroup
 from django.contrib.auth.models import User, Group
 from onadata.apps.fieldsight.fs_exports.formParserForExcelReport import parse_form_response
 from io import BytesIO
@@ -27,23 +28,16 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Prefetch, F
 from .generatereport import PDFReport
-import os, tempfile, zipfile, dateutil
-from django.conf import settings
+import os, dateutil
 
-from django.http import HttpResponse
-from django.core.servers.basehttp import FileWrapper
 from openpyxl import Workbook
 
-from openpyxl.styles import Font
-
 from django.core.files.storage import get_storage_class
-from onadata.libs.utils.viewer_tools import get_path
 from PIL import Image
 import tempfile, zipfile
 
 from onadata.libs.utils.viewer_tools import get_path
 import pyexcel as p
-from .metaAttribsGenerator import get_form_answer, get_form_sub_status, get_form_submission_count, get_form_ques_ans_status
 from django.conf import settings
 from django.db.models import Sum, Case, When, IntegerField, Count
 from django.core.exceptions import MultipleObjectsReturned
@@ -51,14 +45,12 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.utils import timezone
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
 from onadata.apps.logger.models import Instance, Attachment
 from onadata.apps.fieldsight.fs_exports.log_generator import log_types
 
-from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
@@ -243,6 +235,7 @@ def site_download_zipfile(task_prog_obj_id, size):
                                        content_object=task.content_object, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()                                                                      
+
 
 @shared_task(time_limit=300, soft_time_limit=300)
 def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, region_ids, sync_to_drive=False):
@@ -2738,7 +2731,6 @@ def update_sites_info(pk, location_changed, picture_changed,
                         submissions_picture_dict[s.id] = s
 
             for site in sites:
-                changed = False
                 if location_changed and site.id in submissions_location_dict:
                     submission = submissions_location_dict[site.id]
                     location = get_submission_answer_by_question(submission.instance.json, location_question)
@@ -2746,7 +2738,6 @@ def update_sites_info(pk, location_changed, picture_changed,
                         location_float = list(map(lambda x: float(x), str(location).split(' ')))
                         site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6),
                                               srid=4326)
-                        changed = True
 
                 if picture_changed and s.id in submissions_picture_dict:
                     submission = submissions_picture_dict[site.id]
@@ -2754,10 +2745,11 @@ def update_sites_info(pk, location_changed, picture_changed,
                     if logo_url:
                         attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
                         site.logo = attachment.media_file
-                        changed = True
-                if changed:
-                    site.save()
-
+            site_dict = {}
+            for s in sites:
+                site_dict[s.id] = s.logo.url
+            bulk_update_sites_all_logos(site_dict)
+            bulk_update_sites_all_location(sites)
             total_sites -= page_size
             page += 1
     except Exception as e:

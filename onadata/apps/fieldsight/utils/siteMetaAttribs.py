@@ -1,6 +1,7 @@
 import json
 
 from django.db import connection
+from django.db.models import Value
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FieldSightXF
@@ -215,17 +216,17 @@ def update_site_meta_ans(site, deleted_metas, changed_metas):
     site.save()
 
 
-def bulk_update_sites_all_metas(site_dict):
+def bulk_update_sites_all_logos(site_dict):
     from django.db.models import Case, When
 
     Site.objects.filter(
         pk__in=site_dict
     ).update(
-        all_ma_ans=Case(*[When(pk=entry_pk, then=all_ma_ans)
-                        for entry_pk, all_ma_ans in site_dict.items()]))
+        logo=Case(*[When(pk=entry_pk, then=Value(logo))
+                        for entry_pk, logo in site_dict.items()]))
 
 
-def bulk_upload_json(sites):
+def bulk_upload_json_site_all_ma(sites):
     if not sites:
         return
     pk_list = [str(s.id) for s in sites]
@@ -235,6 +236,23 @@ def bulk_upload_json(sites):
         when_statement = "WHEN id={0} THEN CAST('{1}' as json) ".format(s.id, json.dumps(s.all_ma_ans))
         whens += when_statement
     statement = "UPDATE fieldsight_site set all_ma_ans = CASE "
+    where = " END WHERE id IN (" + pk_list_string + ")"
+    query = statement + whens + where
+
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+
+
+def bulk_update_sites_all_location(sites):
+    if not sites:
+        return
+    pk_list = [str(s.id) for s in sites]
+    pk_list_string = ','.join(pk_list)
+    whens = ""
+    for s in sites:
+        when_statement = "WHEN id={0} THEN ST_SetSRID(ST_MakePoint({1},{2}),4326) ".format(s.id, s.location.x, s.location.y)
+        whens += when_statement
+    statement = "UPDATE fieldsight_site set location = CASE "
     where = " END WHERE id IN (" + pk_list_string + ")"
     query = statement + whens + where
 
