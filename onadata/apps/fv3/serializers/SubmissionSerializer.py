@@ -38,9 +38,9 @@ class SiteSerializer(serializers.ModelSerializer):
         fields = ('name', 'identifier', 'id', 'logo', 'site_information', 'project_name', 'latitude', 'longitude')
         
     def get_site_information(self, obj):
-        if not obj.site_meta_attributes_ans:
+        if not obj.all_ma_ans:
             return {}
-        return obj.site_meta_attributes_ans
+        return obj.all_ma_ans
 
     def get_project_name(self, obj):
         if obj.region:

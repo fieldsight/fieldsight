@@ -4394,8 +4394,8 @@ def site_refrenced_metas(request, pk):
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Not Found'}, status=404)
 
-    metas = generateSiteMetaAttribs(int(pk))
-    return JsonResponse(metas, safe=False)
+    # metas = generateSiteMetaAttribs(int(pk))
+    return JsonResponse(site.all_ma_ans, safe=False)
 
 
 def redirectToSite(request, pk):
