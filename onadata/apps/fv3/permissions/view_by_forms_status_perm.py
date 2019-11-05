@@ -32,7 +32,8 @@ class ViewDataPermission(permissions.BasePermission):
             if user_role_org_admin:
                 return True
 
-            user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                "Project Donor"])
 
             if user_role_as_manager:
                 return True
