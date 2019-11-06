@@ -843,6 +843,7 @@ def update_meta_attributes_sites(sender, instance, created,  **kwargs):
     if created:
         deleted_metas = instance.get_deleted_attributes()
         changed_metas = instance.get_changed_attributes()
+
         if deleted_metas or changed_metas:
             from onadata.apps.eventlog.models import CeleryTaskProgress
             from onadata.apps.fieldsight.tasks import update_site_meta_attribs_ans
