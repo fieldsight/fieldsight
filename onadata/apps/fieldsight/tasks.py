@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import copy
 import time
 import re 
-import os
 import json
 import datetime
 import gc
@@ -12,12 +11,14 @@ from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings, SiteMetaAttrAnsHistory
+from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType,\
+    ProgressSettings, SiteMetaAttrAnsHistory
 from onadata.apps.fieldsight.utils.progress import set_site_progress
-from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict
+from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos, \
+    bulk_update_sites_all_location, bulk_upload_json_site_all_ma, update_site_meta_ans
+
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
-from channels import Group as ChannelGroup
 from django.contrib.auth.models import User, Group
 from onadata.apps.fieldsight.fs_exports.formParserForExcelReport import parse_form_response
 from io import BytesIO
@@ -27,23 +28,16 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Prefetch, F
 from .generatereport import PDFReport
-import os, tempfile, zipfile, dateutil
-from django.conf import settings
+import os, dateutil
 
-from django.http import HttpResponse
-from django.core.servers.basehttp import FileWrapper
 from openpyxl import Workbook
 
-from openpyxl.styles import Font
-
 from django.core.files.storage import get_storage_class
-from onadata.libs.utils.viewer_tools import get_path
 from PIL import Image
 import tempfile, zipfile
 
 from onadata.libs.utils.viewer_tools import get_path
 import pyexcel as p
-from .metaAttribsGenerator import get_form_answer, get_form_sub_status, get_form_submission_count, get_form_ques_ans_status
 from django.conf import settings
 from django.db.models import Sum, Case, When, IntegerField, Count
 from django.core.exceptions import MultipleObjectsReturned
@@ -51,14 +45,12 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.utils import timezone
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
 from onadata.apps.logger.models import Instance, Attachment
 from onadata.apps.fieldsight.fs_exports.log_generator import log_types
 
-from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
@@ -243,6 +235,7 @@ def site_download_zipfile(task_prog_obj_id, size):
                                        content_object=task.content_object, recipient=task.user,
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()                                                                      
+
 
 @shared_task(time_limit=300, soft_time_limit=300)
 def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, region_ids, sync_to_drive=False):
@@ -2669,7 +2662,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
-@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+@shared_task(time_limit=300, max_retries=2, soft_time_limit=300)
 def copy_meta_to_all_meta():
     projects = Project.objects.exclude(site_meta_attributes__contains=[]).values_list('pk', flat=True)
     Site.objects.filter(project__id__in=projects).update(all_ma_ans=F('site_meta_attributes_ans'))
@@ -2687,67 +2680,94 @@ def update_current_progress_site(site_id):
     site.save()
 
 
-@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+@shared_task(time_limit=300, max_retries=2, soft_time_limit=300)
 def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
-    from onadata.apps.fieldsight.utils.siteMetaAttribs import update_site_meta_ans
+    forms_dict = {}
+    all_meta_forms = []
+    if changed_metas:
+        for meta in changed_metas:
+            if meta.get('question_type') in ["Form", "FormSubStat", "FormQuestionAnswerStatus", "FormSubCountQuestion"]:
+                form_id = meta.get('form_id', None)
+                if form_id:
+                    all_meta_forms.append(form_id)
+    for fsxf in FieldSightXF.objects.filter(pk__in=all_meta_forms).iterator():
+        distinct_sites = fsxf.project_form_instances.order_by('site').values_list('site', flat=True).distinct()
+        forms_dict[fsxf.id] = {'form': fsxf, 'submissions': distinct_sites}
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
     page_size = 1000
     page = 0
     try:
         while total_sites > 0:
+            print("updating site information meta batch for project ",
+                  pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
-            print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
+            SiteMetaAttrAnsHistory.objects.bulk_create(
+                [SiteMetaAttrAnsHistory(site=site, meta_attributes_ans=site.all_ma_ans, status=2) for site in sites])
             for site in sites:
-                update_site_meta_ans(site, deleted_metas, changed_metas)
-                SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.all_ma_ans, status=2)
+                update_site_meta_ans(site, deleted_metas, changed_metas, forms_dict)
+            bulk_upload_json_site_all_ma(sites)
             total_sites -= page_size
             page += 1
-            CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
-def update_basic_info_in_site(pk, location_changed, picture_changed, location_form, location_question, picture_form,
-                              picture_question, site):
-    if location_changed:
-        submission = FInstance.objects.filter(
-            site=site, project_fxf__id=location_form).order_by('-date').first()
-        if submission:
-            location = get_submission_answer_by_question(submission.instance.json, location_question)
-            if location:
-                location_float = list(map(lambda x: float(x), str(location).split(' ')))
-                site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6), srid=4326)
-
-    if picture_changed:
-        submission = FInstance.objects.filter(
-            site=site, project_fxf__id=picture_form).order_by('-date').first()
-        if submission:
-            logo_url = get_submission_answer_by_question(submission.instance.json, picture_question)
-            if logo_url:
-                attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
-                site.logo = attachment.media_file
-    site.save()
-
-
-@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+@shared_task(time_limit=300, max_retries=2, soft_time_limit=900)
 def update_sites_info(pk, location_changed, picture_changed,
                       location_form, location_question, picture_form, picture_question):
+
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
     page_size = 1000
     page = 0
-    try:
+    if True:
         while total_sites > 0:
+            print("updating site info location and picture batch for project ",
+                  pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
-            print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
-            for site in sites:
-                update_basic_info_in_site(pk, location_changed,
-                                          picture_changed, location_form,
-                                          location_question, picture_form, picture_question, site)
+            submissions_location_dict = {}
+            submissions_picture_dict = {}
+            if location_changed:
+                submissions_location = FInstance.objects.filter(
+                    project_fxf__id=location_form).order_by('-date').select_related('instance')
+                list(submissions_location)
+                for s in submissions_location:
+                    if s.id not in submissions_location_dict:
+                        submissions_location_dict[s.id] = s
+            if picture_changed:
+                submissions_picture = FInstance.objects.filter(
+                    project_fxf__id=picture_form).order_by('-date').select_related('instance')
+                for s in submissions_picture:
+                    if s.id not in submissions_picture_dict:
+                        submissions_picture_dict[s.id] = s
 
+            for site in sites:
+                if location_changed and site.id in submissions_location_dict:
+                    submission = submissions_location_dict[site.id]
+                    location = get_submission_answer_by_question(submission.instance.json, location_question)
+                    if location:
+                        location_float = list(map(lambda x: float(x), str(location).split(' ')))
+                        site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6),
+                                              srid=4326)
+
+                if picture_changed and site.id in submissions_picture_dict:
+                    submission = submissions_picture_dict[site.id]
+                    logo_url = get_submission_answer_by_question(submission.instance.json, picture_question)
+                    if logo_url:
+                        try:
+                            attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
+                            site.logo = attachment.media_file
+                        except Exception as e:
+                            print("Attachement not found  instance {0}, logourl {1}".format(submission, logo_url))
+            site_dict = {}
+            for s in sites:
+                site_dict[s.id] = s.logo.url
+            bulk_update_sites_all_logos(site_dict)
+            bulk_update_sites_all_location(sites)
             total_sites -= page_size
             page += 1
-    except Exception as e:
-        print(str(e))
+    # except Exception as e:
+    #     print(str(e), "errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
 
