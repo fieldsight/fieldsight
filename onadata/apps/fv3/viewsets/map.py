@@ -35,12 +35,12 @@ class ProjectsInCountries(APIView):
         """
         Return a list projects in countries.
         """
-        queryset = Project.objects.all()
-        countries = [c[0] for c in COUNTRIES]
+        all_countries = [c[0] for c in COUNTRIES]
+        countries = Project.objects.all().values_list('organization__country', flat=True)
 
-        data = [{'country': country, 'projects': queryset.filter(organization__country=country).count()}
-                for country in countries]
-
+        data = []
+        for c in all_countries:
+            data.append({'country': c, 'projects': len([k for k in countries if k == c])})
         return Response(status=status.HTTP_200_OK, data=data)
 
 
