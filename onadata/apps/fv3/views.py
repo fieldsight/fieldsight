@@ -768,7 +768,7 @@ def project_sites_vt(request, pk, zoom, x, y):
 
 
 class TeamsViewset(viewsets.ReadOnlyModelViewSet):
-    queryset = Organization.objects.select_related('owner')
+    queryset = Organization.objects.select_related('owner').prefetch_related('projects')
     serializer_class = TeamSerializer
     permission_classes = [IsAuthenticated, SuperUserPermissions]
     pagination_class = TeamsPagination
