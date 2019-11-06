@@ -2763,7 +2763,7 @@ def update_sites_info(pk, location_changed, picture_changed,
                             print("Attachement not found  instance {0}, logourl {1}".format(submission, logo_url))
             site_dict = {}
             for s in sites:
-                site_dict[s.id] = s.logo.url
+                site_dict[s.id] = s.logo.url.split("s3.amazonaws.com")[-1]
             bulk_update_sites_all_logos(site_dict)
             bulk_update_sites_all_location(sites)
             total_sites -= page_size
