@@ -14,8 +14,8 @@ from celery import shared_task
 from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType,\
     ProgressSettings, SiteMetaAttrAnsHistory
 from onadata.apps.fieldsight.utils.progress import set_site_progress
-from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos,\
-    bulk_update_sites_all_location
+from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos, \
+    bulk_update_sites_all_location, bulk_upload_json_site_all_ma, update_site_meta_ans
 
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
@@ -2662,7 +2662,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
-@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+@shared_task(time_limit=300, max_retries=2, soft_time_limit=300)
 def copy_meta_to_all_meta():
     projects = Project.objects.exclude(site_meta_attributes__contains=[]).values_list('pk', flat=True)
     Site.objects.filter(project__id__in=projects).update(all_ma_ans=F('site_meta_attributes_ans'))
@@ -2680,38 +2680,51 @@ def update_current_progress_site(site_id):
     site.save()
 
 
-@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+@shared_task(time_limit=300, max_retries=2, soft_time_limit=300)
 def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
-    from onadata.apps.fieldsight.utils.siteMetaAttribs import update_site_meta_ans
+    forms_dict = {}
+    all_meta_forms = []
+    if changed_metas:
+        for meta in changed_metas:
+            if meta.get('question_type') in ["Form", "FormSubStat", "FormQuestionAnswerStatus", "FormSubCountQuestion"]:
+                form_id = meta.get('form_id', None)
+                if form_id:
+                    all_meta_forms.append(form_id)
+    for fsxf in FieldSightXF.objects.filter(pk__in=all_meta_forms).iterator():
+        distinct_sites = fsxf.project_form_instances.order_by('site').values_list('site', flat=True).distinct()
+        forms_dict[fsxf.id] = {'form': fsxf, 'submissions': distinct_sites}
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
     page_size = 1000
     page = 0
     try:
         while total_sites > 0:
+            print("updating site information meta batch for project ",
+                  pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
-            print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
+            SiteMetaAttrAnsHistory.objects.bulk_create(
+                [SiteMetaAttrAnsHistory(site=site, meta_attributes_ans=site.all_ma_ans, status=2) for site in sites])
             for site in sites:
-                update_site_meta_ans(site, deleted_metas, changed_metas)
-                SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.all_ma_ans, status=2)
+                update_site_meta_ans(site, deleted_metas, changed_metas, forms_dict)
+            bulk_upload_json_site_all_ma(sites)
             total_sites -= page_size
             page += 1
-            CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
-@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+@shared_task(time_limit=300, max_retries=2, soft_time_limit=900)
 def update_sites_info(pk, location_changed, picture_changed,
                       location_form, location_question, picture_form, picture_question):
 
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
     page_size = 1000
     page = 0
-    try:
-        print("updating site info location and picture batch for project ",
-              pk, page * page_size, (page + 1) * page_size)
+    if True:
         while total_sites > 0:
+            print("updating site info location and picture batch for project ",
+                  pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
             submissions_location_dict = {}
@@ -2739,12 +2752,15 @@ def update_sites_info(pk, location_changed, picture_changed,
                         site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6),
                                               srid=4326)
 
-                if picture_changed and s.id in submissions_picture_dict:
+                if picture_changed and site.id in submissions_picture_dict:
                     submission = submissions_picture_dict[site.id]
                     logo_url = get_submission_answer_by_question(submission.instance.json, picture_question)
                     if logo_url:
-                        attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
-                        site.logo = attachment.media_file
+                        try:
+                            attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
+                            site.logo = attachment.media_file
+                        except Exception as e:
+                            print("Attachement not found  instance {0}, logourl {1}".format(submission, logo_url))
             site_dict = {}
             for s in sites:
                 site_dict[s.id] = s.logo.url
@@ -2752,6 +2768,6 @@ def update_sites_info(pk, location_changed, picture_changed,
             bulk_update_sites_all_location(sites)
             total_sites -= page_size
             page += 1
-    except Exception as e:
-        print(str(e))
+    # except Exception as e:
+    #     print(str(e), "errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
 

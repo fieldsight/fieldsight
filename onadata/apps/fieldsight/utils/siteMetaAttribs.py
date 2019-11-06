@@ -24,10 +24,27 @@ def find_answer_from_dict(sub_answers={}, question_name=""):
                 return find_answer_from_dict(v[0], question_name)
     return answer
 
-def get_form_answer(site_id, meta):
-    fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
+
+def get_form_answer(site_id, meta, forms_dict=None):
+    fxf = None
+    if isinstance(forms_dict, dict):
+        form_id = meta.get('form_id', '0')
+        if form_id and int(form_id) in forms_dict:
+            if site_id in forms_dict[int(form_id)]['submissions']:
+                pass
+            else:
+                return ""
+            fxf = forms_dict[int(form_id)]['form']
+        else:
+            return ""
+    if not fxf:
+        fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
+        if fxf:
+            fxf = fxf[0]
+        else:
+            return ""
     if fxf:
-        sub = fxf[0].project_form_instances.filter(site_id=site_id).order_by('-instance_id')[:1]
+        sub = fxf.project_form_instances.filter(site_id=site_id).order_by('-instance_id')[:1]
         if sub:
             if meta['question']['type'] == 'repeat':
                 return ""
@@ -47,10 +64,26 @@ def get_form_answer(site_id, meta):
     return answer
 
 
-def get_form_sub_status(site_id, meta):
-    fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
+def get_form_sub_status(site_id, meta, forms_dict=None):
+    fxf = None
+    if isinstance(forms_dict, dict):
+        form_id = meta.get('form_id', 0)
+        if form_id and int(form_id) in forms_dict:
+            if site_id in forms_dict[int(form_id)]['submissions']:
+                pass
+            else:
+                return ""
+            fxf = forms_dict[int(form_id)]['form']
+        else:
+            return ""
+    if not fxf:
+        fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
+        if fxf:
+            fxf = fxf[0]
+        else:
+            return ""
     if fxf:
-        sub_date = fxf[0].project_form_instances.filter(site_id=site_id).order_by('-instance_id').values('date')[:1]
+        sub_date = fxf.project_form_instances.filter(site_id=site_id).order_by('-instance_id').values('date')[:1]
         if sub_date:
             answer = "Last submitted on " + sub_date[0]['date'].strftime("%d %b %Y %I:%M %P")
         else:
@@ -60,10 +93,26 @@ def get_form_sub_status(site_id, meta):
     return answer
 
 
-def get_form_ques_ans_status(site_id, meta):
-    fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
+def get_form_ques_ans_status(site_id, meta, forms_dict=None):
+    fxf = None
+    if isinstance(forms_dict, dict):
+        form_id = meta.get('form_id', 0)
+        if form_id and int(form_id) in forms_dict:
+            if site_id in forms_dict[int(form_id)]['submissions']:
+                pass
+            else:
+                return ""
+            fxf = forms_dict[int(form_id)]['form']
+        else:
+            return ""
+    if not fxf:
+        fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
+        if fxf:
+            fxf = fxf[0]
+        else:
+            return ""
     if fxf:
-        sub = fxf[0].project_form_instances.filter(site_id=site_id).order_by('-instance_id')[:1]
+        sub = fxf.project_form_instances.filter(site_id=site_id).order_by('-instance_id')[:1]
         if sub:
 
             sub_answers = sub[0].instance.json
@@ -81,10 +130,26 @@ def get_form_ques_ans_status(site_id, meta):
     return answer
 
 
-def get_form_submission_count(site_id, meta):
-    fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
+def get_form_submission_count(site_id, meta, forms_dict=None):
+    fxf = None
+    if isinstance(forms_dict, dict):
+        form_id = meta.get('form_id', 0)
+        if form_id and int(form_id) in forms_dict:
+            if site_id in forms_dict[int(form_id)]['submissions']:
+                pass
+            else:
+                return ""
+            fxf = forms_dict[int(form_id)]['form']
+        else:
+            return ""
+    if not fxf:
+        fxf = FieldSightXF.objects.filter(pk=int(meta.get('form_id', "0")))
+        if fxf:
+            fxf = fxf[0]
+        else:
+            return ""
     if fxf:
-        answer = fxf[0].project_form_instances.filter(site_id=site_id).count()
+        answer = fxf.project_form_instances.filter(site_id=site_id).count()
     else:
         # answer = "No Form"
         answer = ""
@@ -204,16 +269,33 @@ def get_meta_ans(site, meta_attr):
     return data
 
 
-def update_site_meta_ans(site, deleted_metas, changed_metas):
+def update_site_meta_ans(site, deleted_metas, changed_metas, forms_dict):
     if deleted_metas:
         for m in deleted_metas:
-            site.all_ma_ans.pop(m['question_name'])
-            site.site_meta_attributes_ans.pop(m['question_name'])
+            if m['question_name'] in site.all_ma_ans:
+                site.all_ma_ans.pop(m['question_name'])
+            if m['question_name'] in site.site_meta_attributes_ans:
+                site.site_meta_attributes_ans.pop(m['question_name'])
     if changed_metas:
         for m in changed_metas:
-            meta = get_meta_ans(site, m)
-            site.all_ma_ans.update(meta)
-    site.save()
+            if m.get('question_type') == "Link":
+                meta = get_meta_ans(site, m)
+                site.all_ma_ans.update(meta)
+            elif m.get('question_type') == "Form":
+                answer = get_form_answer(site.id, m, forms_dict)
+                site.all_ma_ans[m.get('question_name')] = answer
+
+            elif m.get('question_type') == "FormSubStat":
+                answer = get_form_sub_status(site.id, m, forms_dict)
+                site.all_ma_ans[m.get('question_name')] = answer
+
+            elif m.get('question_type') == "FormQuestionAnswerStatus":
+                answer = get_form_ques_ans_status(site.id, m, forms_dict)
+                site.all_ma_ans[m.get('question_name')] = answer
+
+            elif m.get('question_type') == "FormSubCountQuestion":
+                answer = get_form_submission_count(site.id, m, forms_dict)
+                site.all_ma_ans[m.get('question_name')] = answer
 
 
 def bulk_update_sites_all_logos(site_dict):
