@@ -2719,6 +2719,22 @@ def update_sites_info(pk, location_changed, picture_changed,
                       location_form, location_question, picture_form, picture_question):
 
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
+    submissions_location_dict = {}
+    submissions_picture_dict = {}
+    if location_changed:
+        submissions_location = FInstance.objects.filter(
+            project_fxf__id=location_form).order_by('-date').select_related('instance')
+        list(submissions_location)
+        for s in submissions_location:
+            if s.id not in submissions_location_dict:
+                submissions_location_dict[s.id] = s
+    if picture_changed:
+        submissions_picture = FInstance.objects.filter(
+            project_fxf__id=picture_form).order_by('-date').select_related('instance')
+        list(submissions_picture)
+        for s in submissions_picture:
+            if s.id not in submissions_picture_dict:
+                submissions_picture_dict[s.id] = s
     page_size = 1000
     page = 0
     if True:
@@ -2727,21 +2743,6 @@ def update_sites_info(pk, location_changed, picture_changed,
                   pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
-            submissions_location_dict = {}
-            submissions_picture_dict = {}
-            if location_changed:
-                submissions_location = FInstance.objects.filter(
-                    project_fxf__id=location_form).order_by('-date').select_related('instance')
-                list(submissions_location)
-                for s in submissions_location:
-                    if s.id not in submissions_location_dict:
-                        submissions_location_dict[s.id] = s
-            if picture_changed:
-                submissions_picture = FInstance.objects.filter(
-                    project_fxf__id=picture_form).order_by('-date').select_related('instance')
-                for s in submissions_picture:
-                    if s.id not in submissions_picture_dict:
-                        submissions_picture_dict[s.id] = s
 
             for site in sites:
                 if location_changed and site.id in submissions_location_dict:
@@ -2759,11 +2760,17 @@ def update_sites_info(pk, location_changed, picture_changed,
                         try:
                             attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
                             site.logo = attachment.media_file
+                            site.logo_changed = True
+                            print("logo changed4444444444444444444444")
                         except Exception as e:
-                            print("Attachement not found  instance {0}, logourl {1}".format(submission, logo_url))
+                            pass
+                            # print("Attachement not found  instance {0}, logourl {1} error {2}".
+                            #       format(submission, logo_url, str(e)))
             site_dict = {}
             for s in sites:
-                site_dict[s.id] = s.logo.url.split("s3.amazonaws.com")[-1]
+                if hasattr(s, "logo_changed"):
+                    print("ggggggggggggggg")
+                    site_dict[s.id] = s.logo.url.split("s3.amazonaws.com")[-1]
             bulk_update_sites_all_logos(site_dict)
             bulk_update_sites_all_location(sites)
             total_sites -= page_size
