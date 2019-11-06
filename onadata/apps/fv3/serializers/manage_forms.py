@@ -231,7 +231,7 @@ class StageSerializer(serializers.ModelSerializer):
     def get_undeployed_count(self, obj):
         if hasattr(obj, "undeployed"):
             return obj.undeployed
-        return 1
+        return 0
 
 
 class SubStageSerializer(serializers.ModelSerializer):
