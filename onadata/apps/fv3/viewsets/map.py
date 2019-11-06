@@ -3,9 +3,10 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.response import Response
+from rest_framework import status
 
 from onadata.apps.fieldsight.fs_exports.utils import project_map_data
-from onadata.apps.fieldsight.models import Organization, Site
+from onadata.apps.fieldsight.models import Organization, Site, Project
 from onadata.apps.fieldsight.static_lists import COUNTRIES
 
 
@@ -26,6 +27,21 @@ class CountriesApi(APIView):
         """
         data = [{'pk': c[0], 'name': c[1]} for c in COUNTRIES]
         return Response({'data': data})
+
+
+class ProjectsInCountries(APIView):
+
+    def get(self, request, format=None):
+        """
+        Return a list projects in countries.
+        """
+        all_countries = [c[0] for c in COUNTRIES]
+        countries = Project.objects.all().values_list('organization__country', flat=True)
+
+        data = []
+        for c in all_countries:
+            data.append({'country': c, 'projects': len([k for k in countries if k == c])})
+        return Response(status=status.HTTP_200_OK, data=data)
 
 
 class OrganizationSerializer(ModelSerializer):
