@@ -642,6 +642,9 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 _site.additional_desc = site.get("additional_desc")
                 _site.location = location
                 # _site.logo = "logo/default_site_image.png"
+                progress_value = site.get("current_progress")
+                if progress_value:
+                    _site.current_progress = int(progress_value)
 
                 meta_ques = project.site_meta_attributes
 
@@ -2767,15 +2770,12 @@ def update_sites_info(pk, location_changed, picture_changed,
                             attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
                             site.logo = attachment.media_file
                             site.logo_changed = True
-                            print("logo changed4444444444444444444444")
                         except Exception as e:
-                            pass
                             print("Attachement not found  instance {0}, logourl {1} error {2}".
                                   format(submission, logo_url, str(e)))
             site_dict = {}
             for s in sites:
                 if hasattr(s, "logo_changed"):
-                    print("ggggggggggggggg")
                     site_dict[s.id] = s.logo.url.split("s3.amazonaws.com")[-1]
             bulk_update_sites_all_logos(site_dict)
             bulk_update_sites_all_location(sites)
