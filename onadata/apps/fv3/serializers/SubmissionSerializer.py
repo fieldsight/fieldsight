@@ -394,14 +394,13 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     def get_breadcrumbs(self, obj):
         finstance = obj.fieldsight_instance
-        fsxf = finstance.fsxf
 
-        if fsxf.site:
-            site = fsxf.site.name
+        if finstance.site:
+            site = finstance.site
             breadcrumbs = {'current_page': 'Submission Detail',  'name': site.name,
                            'name_url': site.get_absolute_url()}
-        elif fsxf.project:
-            project = fsxf.project
+        elif finstance.project:
+            project = finstance.project
             breadcrumbs = {'current_page': 'Submission Detail', 'name': project.name,
                            'name_url': project.get_absolute_url()}
         else:
