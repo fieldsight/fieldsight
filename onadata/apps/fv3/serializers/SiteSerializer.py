@@ -68,17 +68,30 @@ class SiteSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'identifier', 'project_id', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
                   'total_users', 'users', 'submissions',
                   'form_submissions_chart_data', 'site_progress_chart_data',
-                  'total_subsites', 'terms_and_labels', 'has_write_permission', 'breadcrumbs')
+                  'total_subsites', 'terms_and_labels', 'has_write_permission', 'breadcrumbs', 'current_progress')
 
     def get_submissions(self, obj):
-        response = obj.get_site_submission_count()
+        queryset = FInstance.objects.order_by('-date')
+        total_sites = list(obj.sub_sites.values_list('id', flat=True))
+        total_sites.append(obj.id)
+        total_submissions = queryset.filter(site__in=total_sites).count()
+        outstanding = queryset.filter(site__in=total_sites, form_status=0).count()
+        flagged = queryset.filter(site__in=total_sites, form_status=2).count()
+        rejected = queryset.filter(site__in=total_sites, form_status=1).count()
+        approved = queryset.filter(site__in=total_sites, form_status=3).count()
 
-        outstanding, flagged, approved, rejected = obj.get_site_submission_count()
-        total_submissions = response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
+        # response = obj.get_site_submission_count()
+        #
+        # outstanding, flagged, approved, rejected = obj.get_site_submission_count()
+        # total_submissions = response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
+        # submissions = {
+        #                 'total_submissions': total_submissions, 'pending': response['outstanding'], flagged:
+        #                 response['flagged'], 'approved': response['approved'], 'rejected': response['rejected']
+        #                }
         submissions = {
-                        'total_submissions': total_submissions, 'pending': response['outstanding'], flagged:
-                        response['flagged'], 'approved': response['approved'], 'rejected': response['rejected']
-                       }
+            'total_submissions': total_submissions, 'pending': outstanding,  'flagged': flagged, 'rejected': rejected,
+            'approved': approved
+        }
 
         return submissions
 
