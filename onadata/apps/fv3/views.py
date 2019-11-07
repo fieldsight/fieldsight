@@ -904,22 +904,25 @@ def forms_breadcrumbs(request):
 
     if team and type == 'create':
         team = Organization.objects.get(id=team)
-        breadcrumbs = {'current_page': 'Create Project', 'team': team.name, 'team_url': team.get_absolute_url()}
+        breadcrumbs = {'current_page': 'Create Project', 'name': team.name, 'name_url': team.get_absolute_url()}
 
     elif project and type == 'edit':
         project = Project.objects.get(id=project)
-        breadcrumbs = {'current_page': 'Edit', 'project': project.name, 'project_url': project.get_absolute_url()}
+        breadcrumbs = {'current_page': 'Edit', 'name': project.name, 'name_url': project.get_absolute_url()}
 
     elif project and type == 'create':
         project = Project.objects.get(id=project)
 
-        breadcrumbs = {'current_page': 'Create Site', 'project': project.name, 'project_url':
-            project.get_absolute_url()}
+        breadcrumbs = {'current_page': 'Create Site', 'name': project.name, 'name_url': project.get_absolute_url()}
 
     elif site and type == 'edit':
         site = Site.objects.get(id=site)
-        breadcrumbs = {'current_page': 'Edit', 'project': site.name, 'project_url':
-                site.get_absolute_url()}
+        breadcrumbs = {'current_page': 'Edit', 'name': site.name, 'name_url': site.get_absolute_url()}
+
+    elif team:
+        team = Organization.objects.get(id=team)
+        breadcrumbs = {'current_page': 'Edit', 'name': team.name, 'name_url': team.get_absolute_url()}
+
     else:
         breadcrumbs = {}
     return Response(status=status.HTTP_200_OK, data=breadcrumbs)
