@@ -2691,17 +2691,6 @@ def update_current_progress_site(site_id):
 
 @shared_task(time_limit=300, max_retries=2, soft_time_limit=300)
 def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
-    forms_dict = {}
-    all_meta_forms = []
-    if changed_metas:
-        for meta in changed_metas:
-            if meta.get('question_type') in ["Form", "FormSubStat", "FormQuestionAnswerStatus", "FormSubCountQuestion"]:
-                form_id = meta.get('form_id', None)
-                if form_id:
-                    all_meta_forms.append(form_id)
-    for fsxf in FieldSightXF.objects.filter(pk__in=all_meta_forms).iterator():
-        distinct_sites = fsxf.project_form_instances.order_by('site').values_list('site', flat=True).distinct()
-        forms_dict[fsxf.id] = {'form': fsxf, 'submissions': distinct_sites}
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
     page_size = 1000
     page = 0
@@ -2711,8 +2700,21 @@ def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
                   pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
+            site_pks = [s.pk for s in sites]
             SiteMetaAttrAnsHistory.objects.bulk_create(
                 [SiteMetaAttrAnsHistory(site=site, meta_attributes_ans=site.all_ma_ans, status=2) for site in sites])
+            forms_dict = {}
+            all_meta_forms = []
+            if changed_metas:
+                for meta in changed_metas:
+                    if meta.get('question_type') in ["Form", "FormSubStat", "FormQuestionAnswerStatus",
+                                                     "FormSubCountQuestion"]:
+                        form_id = meta.get('form_id', None)
+                        if form_id:
+                            all_meta_forms.append(form_id)
+            for fsxf in FieldSightXF.objects.filter(pk__in=all_meta_forms).iterator():
+                distinct_sites = fsxf.project_form_instances.filter(site__in=site_pks).order_by('site').values_list('site', flat=True).distinct()
+                forms_dict[fsxf.id] = {'form': fsxf, 'submissions': distinct_sites}
             for site in sites:
                 update_site_meta_ans(site, deleted_metas, changed_metas, forms_dict)
             bulk_upload_json_site_all_ma(sites)
@@ -2772,11 +2774,13 @@ def update_sites_info(pk, location_changed, picture_changed,
                             site.logo = attachment.media_file
                             site.logo_changed = True
                         except Exception as e:
-                            print("Attachement not found  instance {0}, logourl {1} error {2}".
-                                  format(submission, logo_url, str(e)))
+                            pass
+                            # print("Attachement not found  instance {0}, logourl {1} error {2}".
+                            #       format(submission, logo_url, str(e)))
             site_dict = {}
             for s in sites:
                 if hasattr(s, "logo_changed"):
+                    print("changed logo", s.id)
                     site_dict[s.id] = s.logo.url.split("s3.amazonaws.com")[-1]
             bulk_update_sites_all_logos(site_dict)
             bulk_update_sites_all_location(sites)
