@@ -1193,15 +1193,15 @@ class BreadCrumView(APIView):
         project_id = self.request.query_params.get("project_id")
         if project_id:
             project = Project.objects.get(pk=project_id)
-            return Response({'name': 'Manage Forms', 'project': project.name,
-                             'project_url': project.get_absolute_url()}, status=status.HTTP_200_OK)
+            return Response({'current_page': 'Manage Forms', 'name': project.name,
+                             'name_url': project.get_absolute_url()}, status=status.HTTP_200_OK)
         elif site_id:
             site = Site.objects.filter(pk=site_id).select_related("project", "project__organization")
             site = site[0]
             organization = site.project.organization
             return Response({
-                                'name': 'Manage Forms',  'site': site.name,
-                                'site_url': site.get_absolute_url(),
+                                'current_page': 'Manage Forms',  'name': site.name,
+                                'name_url': site.get_absolute_url(),
                             }, status=status.HTTP_200_OK)
 
 
