@@ -4,7 +4,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from onadata.apps.fieldsight.models import Site
+from onadata.apps.fieldsight.models import Site, Project
 from onadata.apps.fv3.role_api_permissions import ProjectRoleApiPermissions, ProjectDonorApiPermissions
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 
@@ -42,6 +42,7 @@ class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+        project = Project.objects.get(id=self.request.query_params.get('project', None))
 
         try:
             page = self.paginate_queryset(queryset)
@@ -53,8 +54,11 @@ class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
+            breadcrumbs = {'current_page': 'Sites List', 'project_name': project.name, 'project_url':
+                project.get_absolute_url()}
 
-            return self.get_paginated_response({'data': serializer.data, 'query': search_param})
+            return self.get_paginated_response({'data': serializer.data, 'query': search_param,
+                                                'breadcrumbs': breadcrumbs})
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
