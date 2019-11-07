@@ -132,8 +132,12 @@ class MySiteSerializer(serializers.ModelSerializer):
         return group
 
     def get_submissions(self, obj):
-        response = obj.get_site_submission_count()
-        submissions = response['outstanding'] + response['flagged'] + response['approved'] + response['rejected']
+        queryset = FInstance.objects.order_by('-date')
+        total_sites = list(obj.sub_sites.values_list('id', flat=True))
+        total_sites.append(obj.id)
+        submissions = queryset.filter(site__in=total_sites).count()
+        # response = obj.get_site_submission_count()
+        # submissions = response['outstanding'] + response['flagged'] + response['approved'] + response['rejected']
 
         return submissions
 
