@@ -893,3 +893,33 @@ def project_full_map(request, pk):
     data = serialize('custom_geojson', sites, geometry_field='location', fields=('location', 'id', 'name'))
     return Response(status=status.HTTP_200_OK, data=json.loads(data))
 
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def forms_breadcrumbs(request):
+    team = request.GET.get('team')
+    project = request.GET.get('project')
+    site = request.GET.get('site')
+    type = request.GET.get('type')
+
+    if team and type == 'create':
+        team = Organization.objects.get(id=team)
+        breadcrumbs = {'current_page': 'Create Project', 'team': team.name, 'team_url': team.get_absolute_url()}
+
+    elif project and type == 'edit':
+        project = Project.objects.get(id=project)
+        breadcrumbs = {'current_page': 'Edit', 'project': project.name, 'project_url': project.get_absolute_url()}
+
+    elif project and type == 'create':
+        project = Project.objects.get(id=project)
+
+        breadcrumbs = {'current_page': 'Create Site', 'project': project.name, 'project_url':
+            project.get_absolute_url()}
+
+    elif site and type == 'edit':
+        site = Site.objects.get(id=site)
+        breadcrumbs = {'current_page': 'Edit', 'project': site.name, 'project_url':
+                site.get_absolute_url()}
+    else:
+        breadcrumbs = {}
+    return Response(status=status.HTTP_200_OK, data=breadcrumbs)

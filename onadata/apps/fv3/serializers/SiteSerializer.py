@@ -242,6 +242,12 @@ class SiteSerializer(serializers.ModelSerializer):
             'organization_url': organization_url
         }
 
+    def to_representation(self, obj):
+        data = super(SiteSerializer, self).to_representation(obj)
+        if not obj.project.types.all():
+            data.pop('type')
+        return data
+
 
 class FInstanceSerializer(serializers.ModelSerializer):
     form = serializers.SerializerMethodField()
