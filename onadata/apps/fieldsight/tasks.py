@@ -642,7 +642,7 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 _site.additional_desc = site.get("additional_desc")
                 _site.location = location
                 # _site.logo = "logo/default_site_image.png"
-                progress_value = site.get("current_progress")
+                progress_value = site.get("progress")
                 if progress_value:
                     _site.current_progress = int(progress_value)
 
@@ -2728,22 +2728,7 @@ def update_sites_info(pk, location_changed, picture_changed,
                       location_form, location_question, picture_form, picture_question):
 
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
-    submissions_location_dict = {}
-    submissions_picture_dict = {}
-    if location_changed:
-        submissions_location = FInstance.objects.filter(
-            project_fxf__id=location_form).order_by('-date').select_related('instance')
-        list(submissions_location)
-        for s in submissions_location:
-            if s.site_id not in submissions_location_dict:
-                submissions_location_dict[s.site_id] = s
-    if picture_changed:
-        submissions_picture = FInstance.objects.filter(
-            project_fxf__id=picture_form).order_by('-date').select_related('instance')
-        list(submissions_picture)
-        for s in submissions_picture:
-            if s.site_id not in submissions_picture_dict:
-                submissions_picture_dict[s.site_id] = s
+
     page_size = 1000
     page = 0
     if True:
@@ -2752,7 +2737,23 @@ def update_sites_info(pk, location_changed, picture_changed,
                   pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
-
+            sites_pk = [site.pk for site in sites]
+            submissions_location_dict = {}
+            submissions_picture_dict = {}
+            if location_changed:
+                submissions_location = FInstance.objects.filter(
+                    project_fxf__id=location_form, site__in=sites_pk).order_by('-date').select_related('instance')
+                list(submissions_location)
+                for s in submissions_location:
+                    if s.site_id not in submissions_location_dict:
+                        submissions_location_dict[s.site_id] = s
+            if picture_changed:
+                submissions_picture = FInstance.objects.filter(
+                    project_fxf__id=picture_form, sites__in=sites_pk).order_by('-date').select_related('instance')
+                list(submissions_picture)
+                for s in submissions_picture:
+                    if s.site_id not in submissions_picture_dict:
+                        submissions_picture_dict[s.site_id] = s
             for site in sites:
                 if location_changed and site.id in submissions_location_dict:
                     submission = submissions_location_dict[site.id]
