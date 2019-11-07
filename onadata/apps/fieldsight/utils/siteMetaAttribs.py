@@ -296,6 +296,7 @@ def update_site_meta_ans(site, deleted_metas, changed_metas, forms_dict):
             elif m.get('question_type') == "FormSubCountQuestion":
                 answer = get_form_submission_count(site.id, m, forms_dict)
                 site.all_ma_ans[m.get('question_name')] = answer
+    return site
 
 
 def bulk_update_sites_all_logos(site_dict):

@@ -2715,9 +2715,11 @@ def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
             for fsxf in FieldSightXF.objects.filter(pk__in=all_meta_forms).iterator():
                 distinct_sites = fsxf.project_form_instances.filter(site__in=site_pks).order_by('site').values_list('site', flat=True).distinct()
                 forms_dict[fsxf.id] = {'form': fsxf, 'submissions': distinct_sites}
+            sites_updates = []
             for site in sites:
-                update_site_meta_ans(site, deleted_metas, changed_metas, forms_dict)
-            bulk_upload_json_site_all_ma(sites)
+                s = update_site_meta_ans(site, deleted_metas, changed_metas, forms_dict)
+                sites_updates.append(s)
+            bulk_upload_json_site_all_ma(sites_updates)
             total_sites -= page_size
             page += 1
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
