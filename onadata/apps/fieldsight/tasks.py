@@ -2749,7 +2749,7 @@ def update_sites_info(pk, location_changed, picture_changed,
                         submissions_location_dict[s.site_id] = s
             if picture_changed:
                 submissions_picture = FInstance.objects.filter(
-                    project_fxf__id=picture_form, sites__in=sites_pk).order_by('-date').select_related('instance')
+                    project_fxf__id=picture_form, site__in=sites_pk).order_by('-date').select_related('instance')
                 list(submissions_picture)
                 for s in submissions_picture:
                     if s.site_id not in submissions_picture_dict:
