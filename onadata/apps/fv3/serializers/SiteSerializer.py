@@ -62,13 +62,14 @@ class SiteSerializer(serializers.ModelSerializer):
     has_write_permission = serializers.SerializerMethodField()
     project_id = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
+    type = serializers.CharField(source='type.name')
 
     class Meta:
         model = Site
-        fields = ('id', 'name', 'identifier', 'project_id', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
-                  'total_users', 'users', 'submissions',
-                  'form_submissions_chart_data', 'site_progress_chart_data',
-                  'total_subsites', 'terms_and_labels', 'has_write_permission', 'breadcrumbs', 'current_progress')
+        fields = ('id', 'name', 'type', 'identifier', 'project_id', 'address', 'logo', 'public_desc', 'location',
+                  'region', 'enable_subsites', 'site', 'total_users', 'users', 'submissions',
+                  'form_submissions_chart_data', 'site_progress_chart_data', 'total_subsites', 'terms_and_labels',
+                  'has_write_permission', 'breadcrumbs', 'current_progress')
 
     def get_submissions(self, obj):
         queryset = FInstance.objects.order_by('-date')
