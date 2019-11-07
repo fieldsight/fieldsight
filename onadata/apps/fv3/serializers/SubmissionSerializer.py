@@ -398,12 +398,12 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
         if fsxf.site:
             site = fsxf.site.name
-            breadcrumbs = {'current_page': 'Submission Detail',  'site': site.name,
-                           'site_url': site.get_absolute_url()}
+            breadcrumbs = {'current_page': 'Submission Detail',  'name': site.name,
+                           'name_url': site.get_absolute_url()}
         elif fsxf.project:
             project = fsxf.project
-            breadcrumbs = {'current_page': 'Submission Detail', 'project': project.name,
-                           'project_url': project.get_absolute_url()}
+            breadcrumbs = {'current_page': 'Submission Detail', 'name': project.name,
+                           'name_url': project.get_absolute_url()}
         else:
             breadcrumbs = {}
 
