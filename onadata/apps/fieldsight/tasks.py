@@ -642,6 +642,9 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 _site.additional_desc = site.get("additional_desc")
                 _site.location = location
                 # _site.logo = "logo/default_site_image.png"
+                progress_value = site.get("progress")
+                if progress_value:
+                    _site.current_progress = int(progress_value)
 
                 meta_ques = project.site_meta_attributes
 
@@ -2590,8 +2593,11 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
             question_name = site_picture['question'].get('name', '')
             logo_url = get_submission_answer_by_question(instance.json, question_name)
             if logo_url:
-                attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
-                site.logo = attachment.media_file
+                try:
+                    attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                    site.logo = attachment.media_file
+                except:
+                    print("attachemnt not found for site logo",  logo_url)
 
         site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
         if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == fs_proj_xf.id and site_loc.get('question', {}):
@@ -2608,10 +2614,13 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 logo_url = instance.json.get(question_name)
                 if logo_url:
                     attachments = {}
-                    attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
-                    attachments['_attachments'] = attachment.media_file.url
-                    attachments['_id'] = instance.id
-                    site.site_featured_images[question_name] = attachments
+                    try:
+                        attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                        attachments['_attachments'] = attachment.media_file.url
+                        attachments['_id'] = instance.id
+                        site.site_featured_images[question_name] = attachments
+                    except:
+                        pass
         site.save()
 
         # change site meta attributes answer
@@ -2719,6 +2728,7 @@ def update_sites_info(pk, location_changed, picture_changed,
                       location_form, location_question, picture_form, picture_question):
 
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
+
     page_size = 1000
     page = 0
     if True:
@@ -2727,22 +2737,23 @@ def update_sites_info(pk, location_changed, picture_changed,
                   pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
+            sites_pk = [site.pk for site in sites]
             submissions_location_dict = {}
             submissions_picture_dict = {}
             if location_changed:
                 submissions_location = FInstance.objects.filter(
-                    project_fxf__id=location_form).order_by('-date').select_related('instance')
+                    project_fxf__id=location_form, site__in=sites_pk).order_by('-date').select_related('instance')
                 list(submissions_location)
                 for s in submissions_location:
-                    if s.id not in submissions_location_dict:
-                        submissions_location_dict[s.id] = s
+                    if s.site_id not in submissions_location_dict:
+                        submissions_location_dict[s.site_id] = s
             if picture_changed:
                 submissions_picture = FInstance.objects.filter(
-                    project_fxf__id=picture_form).order_by('-date').select_related('instance')
+                    project_fxf__id=picture_form, sites__in=sites_pk).order_by('-date').select_related('instance')
+                list(submissions_picture)
                 for s in submissions_picture:
-                    if s.id not in submissions_picture_dict:
-                        submissions_picture_dict[s.id] = s
-
+                    if s.site_id not in submissions_picture_dict:
+                        submissions_picture_dict[s.site_id] = s
             for site in sites:
                 if location_changed and site.id in submissions_location_dict:
                     submission = submissions_location_dict[site.id]
@@ -2759,11 +2770,14 @@ def update_sites_info(pk, location_changed, picture_changed,
                         try:
                             attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
                             site.logo = attachment.media_file
+                            site.logo_changed = True
                         except Exception as e:
-                            print("Attachement not found  instance {0}, logourl {1}".format(submission, logo_url))
+                            print("Attachement not found  instance {0}, logourl {1} error {2}".
+                                  format(submission, logo_url, str(e)))
             site_dict = {}
             for s in sites:
-                site_dict[s.id] = s.logo.url.split("s3.amazonaws.com")[-1]
+                if hasattr(s, "logo_changed"):
+                    site_dict[s.id] = s.logo.url.split("s3.amazonaws.com")[-1]
             bulk_update_sites_all_logos(site_dict)
             bulk_update_sites_all_location(sites)
             total_sites -= page_size
