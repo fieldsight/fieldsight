@@ -62,7 +62,7 @@ class SiteSerializer(serializers.ModelSerializer):
     has_write_permission = serializers.SerializerMethodField()
     project_id = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
-    type = serializers.CharField(source='type.name')
+    type = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
@@ -109,6 +109,19 @@ class SiteSerializer(serializers.ModelSerializer):
                     }
 
         return data
+
+    def get_type(self, obj):
+
+        project = obj.project
+        if project.types.all():
+            if obj.type:
+                type = obj.type.name
+            else:
+                type = "Not Specified"
+        else:
+            type = None
+
+        return type
 
     def get_total_users(self, obj):
         region = obj.region
