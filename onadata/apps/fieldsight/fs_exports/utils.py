@@ -90,7 +90,8 @@ def site_report():
 
 
 def project_map_data():
-    query_project = Project.objects.select_related("organization").values("pk", "name", "location", "address", "organization", "organization__country")
+    query_project = Project.objects.select_related("organization").exclude(location__isnull=True).\
+        values("pk", "name", "location", "address", "organization", "organization__country")
     df_project = pd.DataFrame(list(query_project), columns=["pk", "name", "location", "address", "organization", "organization__country"])
 
     query_site = Site.objects.values("pk", "project")
