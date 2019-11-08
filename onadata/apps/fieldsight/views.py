@@ -4396,7 +4396,7 @@ def site_refrenced_metas(request, pk):
     all_ma_ans = OrderedDict()
     ans_dict = site.all_ma_ans
     for meta in question_dict:
-        all_ma_ans[meta['question_text']] = ans_dict.get(meta['question_name'])
+        all_ma_ans[meta['question_text']] = ans_dict.get(meta['question_name'], "")
     return JsonResponse(all_ma_ans, safe=False)
 
 
