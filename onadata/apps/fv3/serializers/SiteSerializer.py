@@ -63,6 +63,7 @@ class SiteSerializer(serializers.ModelSerializer):
     project_id = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
+    region = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
@@ -116,6 +117,19 @@ class SiteSerializer(serializers.ModelSerializer):
         if project.types.all():
             if obj.type:
                 type = obj.type.name
+            else:
+                type = "Not Specified"
+        else:
+            type = None
+
+        return type
+
+    def get_region(self, obj):
+
+        project = obj.project
+        if project.project_region.all():
+            if obj.region:
+                type = obj.region.name
             else:
                 type = "Not Specified"
         else:
