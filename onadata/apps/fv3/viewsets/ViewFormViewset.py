@@ -493,8 +493,8 @@ class FormSubmissionsView(APIView):
                 serializer = FormSubmissionSerializer(page, many=True, context={'is_project': is_project})
                 project = Project.objects.filter(id=project).only('name')
                 form_name = fsxf.xf.title
-                return self.get_paginated_response({'data': serializer.data, 'form_name': form_name,
-                                                    'form_id_string': fsxf.xf.id_string, 'query': search_param,
+                return self.get_paginated_response({'data': serializer.data, 'form_name': form_name, 'is_survey':
+                    fsxf.is_survey, 'form_id_string': fsxf.xf.id_string, 'query': search_param,
                                                     'breadcrumbs': self.get_breadcrumbs(True, project, form_name)
                                                     })
 
@@ -536,8 +536,8 @@ class FormSubmissionsView(APIView):
                 serializer = FormSubmissionSerializer(page, many=True, context={'is_project': is_project})
                 site = Site.objects.filter(id=site).only('name')
                 form_name = fsxf.xf.title
-                return self.get_paginated_response({'data': serializer.data, 'form_name': form_name,
-                                                    'form_id_string': fsxf.xf.id_string, 'query': search_param,
+                return self.get_paginated_response({'data': serializer.data, 'form_name': form_name, 'is_survey':
+                    fsxf.is_survey, 'form_id_string': fsxf.xf.id_string, 'query': search_param,
                                                     'breadcrumbs': self.get_breadcrumbs(False, site, form_name)
 
                                                     })
