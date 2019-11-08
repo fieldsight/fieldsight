@@ -127,10 +127,11 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         regions = Region.objects.filter(is_active=True, project=project).values('id', 'name')
         if project.cluster_sites:
             return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
-                                                         'regions': regions, 'location': str(location)})
+                                                         'regions': regions, 'location': str(location),
+                                                             'project_id': project.id})
         else:
             return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
-                                                             'location': str(location)})
+                                                             'location': str(location), 'project_id': project.id})
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

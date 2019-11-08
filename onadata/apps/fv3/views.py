@@ -897,20 +897,11 @@ def project_full_map(request, pk):
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def forms_breadcrumbs(request):
-    team = request.GET.get('team')
     project = request.GET.get('project')
     site = request.GET.get('site')
     type = request.GET.get('type')
 
-    if team and type == 'create':
-        team = Organization.objects.get(id=team)
-        breadcrumbs = {'current_page': 'Create Project', 'name': team.name, 'name_url': team.get_absolute_url()}
-
-    elif project and type == 'edit':
-        project = Project.objects.get(id=project)
-        breadcrumbs = {'current_page': 'Edit', 'name': project.name, 'name_url': project.get_absolute_url()}
-
-    elif project and type == 'create':
+    if project and type == 'create':
         project = Project.objects.get(id=project)
 
         breadcrumbs = {'current_page': 'Create Site', 'name': project.name, 'name_url': project.get_absolute_url()}
@@ -918,10 +909,6 @@ def forms_breadcrumbs(request):
     elif site and type == 'edit':
         site = Site.objects.get(id=site)
         breadcrumbs = {'current_page': 'Edit', 'name': site.name, 'name_url': site.get_absolute_url()}
-
-    elif team:
-        team = Organization.objects.get(id=team)
-        breadcrumbs = {'current_page': 'Edit', 'name': team.name, 'name_url': team.get_absolute_url()}
 
     else:
         breadcrumbs = {}
