@@ -151,7 +151,9 @@ class AddTeamProjectViewset(viewsets.ModelViewSet):
         team_id = self.kwargs.get('pk')
         team = Organization.objects.get(id=team_id)
         location = team.location
-        data = {'location': str(location)}
+        team = Organization.objects.get(id=team_id)
+        breadcrumbs = {'current_page': 'Create Project', 'name': team.name, 'name_url': team.get_absolute_url()}
+        data = {'location': str(location), 'breadcrumbs': breadcrumbs}
 
         return Response(data)
 

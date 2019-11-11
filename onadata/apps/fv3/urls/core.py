@@ -87,7 +87,7 @@ urlpatterns = [
     url(r'^api/project/sites-vt/(?P<pk>\d+)/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', project_sites_vt,
         name='project_sites_vt'),
 
-    url(r'^api/forms-breadcrumbs/$', forms_breadcrumbs, name='forms_breadcrumbs'),
+    url(r'^api/site-forms-breadcrumbs/$', forms_breadcrumbs, name='forms_breadcrumbs'),
 ]
 
 urlpatterns += progress_urlpatterns

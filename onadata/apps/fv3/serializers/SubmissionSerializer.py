@@ -71,12 +71,13 @@ class SubmissionSerializer(serializers.ModelSerializer):
     download_url = serializers.SerializerMethodField()
     has_review_permission = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
+    is_survey = serializers.SerializerMethodField()
 
     class Meta:
         model = Instance
         fields = ('submission_data', 'date_created',  'submitted_by', 'site', 'submission_history',
                   'status_data', 'form_type', 'form_name', 'fieldsight_instance', 'edit_url', 'download_url',
-                  'has_review_permission', 'breadcrumbs')
+                  'has_review_permission', 'breadcrumbs', 'is_survey')
 
     def get_submitted_by(self, obj):
         return obj.user.first_name + ' ' + obj.user.last_name
@@ -412,6 +413,15 @@ class SubmissionSerializer(serializers.ModelSerializer):
             breadcrumbs = {}
 
         return breadcrumbs
+
+    def get_is_survey(self, obj):
+        finstance = obj.fieldsight_instance
+        if finstance.project_fxf:
+            is_survey = finstance.project_fxf.is_survey
+        else:
+            is_survey = finstance.site_fxf.is_survey
+
+        return is_survey
 
 
 class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
