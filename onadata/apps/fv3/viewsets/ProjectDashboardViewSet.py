@@ -146,6 +146,15 @@ class SiteFormViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        existing_identifier = Site.objects.filter(identifier=request.data.get('identifier'),
+                                                  project_id=request.query_params.get('project'))
+        if existing_identifier:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'Your identifier "' +
+                                                                                request.data.get('identifier')
+                                                                                + '" conflict with existing site '
+                                                                                  'please use different identifier '
+                                                                                  'to create site.'})
+
         serializer.is_valid(raise_exception=True)
         instance = self.perform_create(serializer)
         longitude = request.data.get('longitude', None)
@@ -180,6 +189,16 @@ class SiteFormViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        previous_identifier = instance.identifier
+
+        existing_identifier = Site.objects.filter(identifier=request.data.get('identifier'),
+                                                  project_id=instance.project_id)
+        check_identifier = previous_identifier == request.data.get('identifier')
+
+        if not check_identifier and existing_identifier:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'Your identifier "' + request.data.get(
+                'identifier') + '" conflict with existing site please use different identifier to update site'})
+
         old_meta = instance.site_meta_attributes_ans
 
         serializer = self.get_serializer(instance, data=request.data)
