@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
@@ -30,11 +31,11 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
         return submissions
 
     def get_status(self, obj):
-
+        sites_subsite_instances = FInstance.objects.filter(Q(site=obj) | Q(site__site=obj))
         try:
-            if obj.site_instances.all():
 
-                return FORM_STATUS[obj.site_instances.all().order_by('-date')[0].form_status]
+            if sites_subsite_instances.exists():
+                return FORM_STATUS[sites_subsite_instances.order_by('-date')[0].form_status]
         except:
             return None
 

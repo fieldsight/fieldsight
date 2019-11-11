@@ -143,9 +143,11 @@ class MySiteSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
 
+        sites_subsite_instances = FInstance.objects.filter(Q(site=obj) | Q(site__site=obj))
         try:
-            if obj.site_instances.all():
-                return FORM_STATUS[obj.current_status]
+
+            if sites_subsite_instances.exists():
+                return FORM_STATUS[sites_subsite_instances.order_by('-date')[0].form_status]
         except:
             return None
 
