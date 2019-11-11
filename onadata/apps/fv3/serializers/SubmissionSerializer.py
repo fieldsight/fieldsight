@@ -202,6 +202,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                     for first_children in r_object['children']:
                         question_type = first_children['type']
                         question = first_children['name']
+                        # label = first_children.get('label', '')
                         group_answer = json_answer[r_question]
                         answer = ''
                         if r_question + "/" + question in gnr_answer:
@@ -216,13 +217,14 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
                         if 'label' in first_children:
                             question = first_children['label']
-                        row = {'type': question_type, 'question': question, 'answer': answer}
+                        row = {'type': question_type, 'question': question, 'answer': answer, 'label': question}
                         repeat['elements'].append(row)
             elif r_question in json_answer:
                 for gnr_answer in json_answer[r_question]:
                     for first_children in r_object['children']:
                         question_type = first_children['type']
                         question = first_children['name']
+                        label = first_children.get('label', '')
                         group_answer = json_answer[r_question]
                         answer = ''
                         if r_question + "/" + question in gnr_answer:
@@ -237,7 +239,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
                         if 'label' in first_children:
                             question = first_children['label']
-                        row = {'type': question_type, 'question': question, 'answer': answer}
+                        row = {'type': question_type, 'question': question, 'answer': answer, 'label': question}
                         repeat['elements'].append(row)
             else:
                 for first_children in r_object['children']:
@@ -246,7 +248,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                     answer = ''
                     if 'label' in first_children:
                         question = first_children['label']
-                    row = {'type': question_type, 'question': question, 'answer': answer}
+                    row = {'type': question_type, 'question': question, 'answer': answer, 'label':question}
                     repeat['elements'].append(row)
             return repeat
 
@@ -255,6 +257,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
             if g_object['name'] == 'meta':
                 for first_children in g_object['children']:
                     question = first_children['name']
+                    # label = first_children.get('name', '')
                     question_type = first_children['type']
                     if question_type == 'group':
                         parse_group(g_question + "/", first_children)
@@ -271,7 +274,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
                     if 'label' in first_children:
                         question = first_children['label']
-                    row = {'type': question_type, 'question': question, 'answer': answer}
+                    row = {'type': question_type, 'question': question, 'answer': answer, 'label': question}
                     return row
             else:
                 group = dict()
@@ -302,7 +305,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
                     if 'label' in first_children:
                         question = first_children['label']
-                    row = {'type': question_type, 'question': question, 'answer': answer}
+                    row = {'type': question_type, 'question': question, 'answer': answer, 'label': question}
                     group['elements'].append(row)
                 return group
 
@@ -315,6 +318,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                     data.append(group)
                 else:
                     question = first_children['name']
+                    label = first_children.get('label','')
                     question_type = first_children['type']
                     answer = ''
                     if question in json_answer:
@@ -345,13 +349,14 @@ class SubmissionSerializer(serializers.ModelSerializer):
                                 replace_text = json_answer[field]
                                 question = question.replace(m.group(0), replace_text)
 
-                    row = {"type": question_type, "question": question, "answer": answer}
+                    row = {"type": question_type, "question": question, "answer": answer, 'label':label}
                     data.append(row)
 
-            submitted_by = {'type': 'submitted_by', 'question': 'Submitted by', 'answer': json_answer['_submitted_by']}
+            submitted_by = {'type': 'submitted_by', 'question': 'Submitted by', 'answer': json_answer['_submitted_by'], 'label':''}
             submission_time = {
                 'type': 'submission_time', 'question': 'Submission Time',
-                'answer': json_answer['_submission_time']
+                'answer': json_answer['_submission_time'],
+                'label': ''
             }
             data.append(submitted_by)
             data.append(submission_time)

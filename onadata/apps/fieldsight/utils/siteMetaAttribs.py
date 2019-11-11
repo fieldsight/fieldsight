@@ -338,6 +338,7 @@ def bulk_update_sites_all_location(sites):
     statement = "UPDATE fieldsight_site set location = CASE "
     where = " END WHERE id IN (" + pk_list_string + ")"
     query = statement + whens + where
+    print(query)
 
     with connection.cursor() as cursor:
         cursor.execute(query)
