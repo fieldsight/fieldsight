@@ -186,7 +186,10 @@ class SubmissionSerializer(serializers.ModelSerializer):
             else:
                 if XformHistory.objects.filter(xform=instance.xform, version=submission_version).exists():
                     xf_history = XformHistory.objects.get(xform=instance.xform, version=submission_version)
-                    return json.loads(str(xf_history.json))
+                    try:
+                        return json.loads(str(xf_history.json))
+                    except Exception as e:
+                        print("error ", str(e))
 
             return json.loads(json_data)
 
