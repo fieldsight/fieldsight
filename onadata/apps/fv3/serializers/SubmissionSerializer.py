@@ -529,8 +529,10 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
             if r_question in json_answer:
                 for gnr_answer in json_answer[r_question]:
                     for first_children in r_object['children']:
+                        answer_data = None
                         question_type = first_children['type']
                         question = first_children['name']
+                        name = first_children.get('name', '')
                         group_answer = json_answer[r_question]
                         answer = ''
                         if r_question + "/" + question in gnr_answer:
@@ -540,18 +542,25 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                                     first_children['type'] == 'video':
                                 answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                          gnr_answer[r_question + "/" + question]
+                            elif question_type in ['select one', 'select all that apply']:
+                                answer = gnr_answer[r_question + "/" + question]
+                                answer_data = get_answer_data_select(answer, first_children['children'])
                             else:
                                 answer = gnr_answer[r_question + "/" + question]
 
                         if 'label' in first_children:
                             question = first_children['label']
-                        row = {'type': question_type, 'question': question, 'answer': answer}
+                        row = {'type': question_type, 'question': question, 'answer': answer, 'name': name}
+                        if answer_data:
+                            row.update({'selected': answer_data})
                         repeat['elements'].append(row)
             elif r_question in json_answer:
                 for gnr_answer in json_answer[r_question]:
                     for first_children in r_object['children']:
+                        answer_data = None
                         question_type = first_children['type']
                         question = first_children['name']
+                        label = first_children.get('label', '')
                         group_answer = json_answer[r_question]
                         answer = ''
                         if r_question + "/" + question in gnr_answer:
@@ -561,21 +570,27 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                                     first_children['type'] == 'video':
                                 answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                          gnr_answer[r_question + "/" + question]
+                            elif question_type in ['select one', 'select all that apply']:
+                                answer = gnr_answer[r_question + "/" + question]
+                                answer_data = get_answer_data_select(answer, first_children['children'])
                             else:
                                 answer = gnr_answer[r_question + "/" + question]
 
                         if 'label' in first_children:
                             question = first_children['label']
-                        row = {'type': question_type, 'question': question, 'answer': answer}
+                        row = {'type': question_type, 'question': question, 'answer': answer, 'label': question}
+                        if answer_data:
+                            row.update({'selected': answer_data})
                         repeat['elements'].append(row)
             else:
                 for first_children in r_object['children']:
                     question_type = first_children['type']
                     question = first_children['name']
+                    name = first_children['name']
                     answer = ''
                     if 'label' in first_children:
                         question = first_children['label']
-                    row = {'type': question_type, 'question': question, 'answer': answer}
+                    row = {'type': question_type, 'question': question, 'answer': answer, 'name': name}
                     repeat['elements'].append(row)
             return repeat
 
@@ -583,7 +598,9 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
             g_question = prev_groupname + g_object['name']
             if g_object['name'] == 'meta':
                 for first_children in g_object['children']:
+                    answer_data = None
                     question = first_children['name']
+                    name = first_children.get('name', '')
                     question_type = first_children['type']
                     if question_type == 'group':
                         parse_group(g_question + "/", first_children)
@@ -595,12 +612,18 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                         elif question_type == 'photo' or question_type == 'audio' or question_type == 'video':
                             answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[g_question + "/" + question]
+                        elif question_type in ['select one', 'select all that apply']:
+                            answer = json_answer[g_question + "/" + question]
+                            answer_data = get_answer_data_select(answer, first_children['children'])
+
                         else:
                             answer = json_answer[g_question + "/" + question]
 
                     if 'label' in first_children:
                         question = first_children['label']
-                    row = {'type': question_type, 'question': question, 'answer': answer}
+                    row = {'type': question_type, 'question': question, 'answer': answer, 'name': name}
+                    if answer_data:
+                        row.update({'selected': answer_data})
                     return row
             else:
                 group = dict()
@@ -610,7 +633,9 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                 group['elements'] = []
                 # group = {'group_name': g_question, 'type': g_object['type'], 'label': g_object['label']}
                 for first_children in g_object['children']:
+                    answer_data = None
                     question = first_children['name']
+                    name = first_children['name']
                     question_type = first_children['type']
                     if question_type == 'group':
                         group['elements'].append(parse_group(g_question + "/", first_children))
@@ -626,17 +651,24 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                         elif question_type == 'photo' or question_type == 'audio' or question_type == 'video':
                             answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[g_question + "/" + question]
+                        elif question_type in ['select one', 'select all that apply']:
+                            answer = json_answer[g_question + "/" + question]
+                            answer_data = get_answer_data_select(answer, first_children['children'])
+
                         else:
                             answer = json_answer[g_question + "/" + question]
 
                     if 'label' in first_children:
                         question = first_children['label']
-                    row = {'type': question_type, 'question': question, 'answer': answer}
+                    row = {'type': question_type, 'question': question, 'answer': answer, 'name': name}
+                    if answer_data:
+                        row.update({'selected': answer_data})
                     group['elements'].append(row)
                 return group
 
         def parse_individual_questions(parent_object):
             for first_children in parent_object:
+                answer_data = None
                 if first_children['type'] == "repeat":
                     data.append(parse_repeat(first_children))
                 elif first_children['type'] == 'group':
@@ -644,6 +676,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                     data.append(group)
                 else:
                     question = first_children['name']
+                    name = first_children.get('name', '')
                     question_type = first_children['type']
                     answer = ''
                     if question in json_answer:
@@ -653,26 +686,40 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                             'type'] == 'video':
                             answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[question]
-                        elif first_children['type'] == 'select one':
-                            for select_children in first_children['children']:
-                                if json_answer[question] == select_children['name']:
-                                    answer = select_children['label']
-                        elif first_children['type'] == 'select all that apply':
-                            answer = ''
-                            for select_children in first_children['children']:
-                                if select_children['name'] in json_answer[question]:
-                                    answer = answer + select_children['label'] + ' '
+                        elif first_children['type'] in ['select one', 'select all that apply']:
+                            answer = json_answer[question]
+                            answer_data = get_answer_data_select(answer, first_children['children'])
                         else:
                             answer = json_answer[question]
                     if 'label' in first_children:
                         question = first_children['label']
-                    row = {"type": question_type, "question": question, "answer": answer}
+                    if isinstance(question, dict):  # for multi language defined form field
+                        for label, value in question.items():
+                            m = pattern.search(value)  # check if the question field requires the value of the calculated field
+                            if m:
+                                field = m.group(1)  # gives the name of the calculation field
+                                if field in json_answer:
+                                    replace_text = json_answer[field]
+                                    question[label] = value.replace(m.group(0), replace_text)  # replace variable fields in form of ${''} by the value submitted
+
+                    else:  # for string label with value of a calculation field
+                        m = pattern.search(question)
+                        if m:
+                            field = m.group(1)
+                            if field in json_answer:
+                                replace_text = json_answer[field]
+                                question = question.replace(m.group(0), replace_text)
+
+                    row = {"type": question_type, "question": question, "answer": answer, 'name': name}
+                    if answer_data:
+                        row.update({"selected": answer_data})
                     data.append(row)
 
-            submitted_by = {'type': 'submitted_by', 'question': 'Submitted by', 'answer': json_answer['_submitted_by']}
+            submitted_by = {'type': 'submitted_by', 'question': 'Submitted by', 'answer': json_answer['_submitted_by'], 'name':''}
             submission_time = {
                 'type': 'submission_time', 'question': 'Submission Time',
-                'answer': json_answer['_submission_time']
+                'answer': json_answer['_submission_time'],
+                'name': ''
             }
             data.append(submitted_by)
             data.append(submission_time)
@@ -683,16 +730,18 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
         calculated_data = []
         for d in data:
             for k, v in d.items():
-                if "${" in v:
+                if v and "${" in v:
                     calcluate_keys = re.findall(pattern, v)
                     for key in calcluate_keys:
                         for cd in calculations_dict:
                             if cd["question"] == key:
                                 answer = cd['answer']
-                                v = v.replace("${"+key+"}", answer)
+                                v = v.replace("${" + key + "}", answer)
                 d[k] = v
             calculated_data.append(d)
         return calculated_data
+
+
 
     def get_edit_url(self, obj):
         return None
