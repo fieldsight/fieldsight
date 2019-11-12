@@ -25,16 +25,16 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
         total_sites = list(obj.sub_sites.values_list('id', flat=True))
         total_sites.append(obj.id)
         submissions = queryset.filter(site__in=total_sites).count()
-        # response = obj.get_site_submission_count()
-        # submissions = response['outstanding'] + response['flagged'] + response['approved'] + response['rejected']
 
         return submissions
 
     def get_status(self, obj):
-        sites_subsite_instances = FInstance.objects.filter(Q(site=obj) | Q(site__site=obj))
-        try:
 
-            if sites_subsite_instances.exists():
+        total_sites = list(obj.sub_sites.values_list('id', flat=True))
+        total_sites.append(obj.id)
+        sites_subsite_instances = FInstance.objects.filter(site__in=total_sites)
+        try:
+            if sites_subsite_instances:
                 return FORM_STATUS[sites_subsite_instances.order_by('-date')[0].form_status]
         except:
             return None
