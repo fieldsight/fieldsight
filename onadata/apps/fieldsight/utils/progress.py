@@ -33,7 +33,7 @@ def default_progress(site, project):
         Stage.objects.filter(stage__site=site, project_stage_id=0).aggregate(Sum('weight'))[
             'weight__sum']
         site_type = site.type_id
-        if not site_type:
+        if True: #not site_type:
             project_stages_weight = \
             Stage.objects.filter(stage__project=project).aggregate(
                 Sum('weight'))['weight__sum']
@@ -46,7 +46,10 @@ def default_progress(site, project):
         site_stages_weight = site_stages_weight if site_stages_weight else 0
         project_stages_weight = project_stages_weight if project_stages_weight else 0
         total_weight = site_stages_weight + project_stages_weight
-        p = ("%.0f" % (approved_weight / (total_weight * 0.01)))
+        if total_weight:
+            p = ("%.0f" % (approved_weight / (total_weight * 0.01)))
+        else:
+            p = 0
         p = int(p)
         if p > 99:
             return 100
