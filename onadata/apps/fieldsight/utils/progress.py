@@ -15,7 +15,6 @@ def get_submission_answer_by_question(sub_answers={}, question_name="", depth=0)
     return answer
 
 
-
 def default_progress(site, project):
     from onadata.apps.fsforms.models import Stage
     approved_site_forms_weight = site.site_instances.filter(form_status=3,
@@ -202,7 +201,7 @@ def set_site_progress(site, project, project_settings=None):
         project_settings = project.progress_settings.filter(deployed=True, active=True).order_by("-date").first()
     if not project_settings or project_settings.source == 0:
         # default progress (stages approved/stages total) weight
-        progress = site.progress()
+        progress = default_progress(site, site.project)
     elif project_settings.source == 1:
         progress = advance_stage_approved(site, project)
     elif project_settings.source == 2:
