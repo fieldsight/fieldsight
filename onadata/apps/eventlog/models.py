@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import json
-import datetime
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.contrib.auth.models import User
@@ -9,19 +8,13 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from jsonfield import JSONField
 
 
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region
+from onadata.apps.fieldsight.models import Organization, Project, Site
 from onadata.apps.users.models import UserProfile
-from django.http import JsonResponse
 from celery.result import AsyncResult
 from django.contrib.contenttypes.fields import GenericRelation
-# user_type = ContentType.objects.get(app_label="users", model="userprofile")
-
-from channels import Group as ChannelGroup
 
 
 class FieldSightLog(models.Model):
@@ -117,6 +110,7 @@ class FieldSightLog(models.Model):
             return self.content_object.get_absolute_url()
         except:
             return None
+
     def get_event_name(self):
         try:
             return self.content_object.getname()
@@ -130,7 +124,7 @@ class FieldSightLog(models.Model):
         if self.extra_content_type.model == "user":
             if self.extra_object.user_profile:
                 return self.extra_object.user_profile.get_absolute_url()
-            return "#";
+            return "#"
         return self.extra_object.get_absolute_url()
 
     def get_extraobj_name(self):
@@ -183,6 +177,7 @@ class FieldSightLog(models.Model):
 
         super(FieldSightLog, self).save(*args, **kwargs)  # Call the "real" save() method.
 
+
 class FieldSightMessage(models.Model):
     sender = models.ForeignKey(User, related_name="sender")
     receiver = models.ForeignKey(User, related_name="receiver")
@@ -207,13 +202,13 @@ class FieldSightMessage(models.Model):
 
 
 class CeleryTaskProgress(models.Model):
-    Task_Status =(
+    Task_Status = (
         (0, 'Pending'),
         (1, 'In Progress'),
         (2, 'Completed'),
         (3, 'Failed'),
         )
-    Task_Type =(
+    Task_Type = (
         (0, 'Bulk Site Update'),
         (1, 'User Assign to Project'),
         (2, 'User Assign to Site'),
@@ -282,6 +277,7 @@ class CeleryTaskProgress(models.Model):
             return self.content_object.get_absolute_url()
         except:
             return None
+
     def get_event_name(self):
         try:
             return self.content_object.getname()
@@ -299,19 +295,7 @@ class CeleryTaskProgress(models.Model):
         return None
 
     def __str__(self):
-        return str(self.pk) + " (" + str(self.task_type) + ") " + "-->" + str(self.status) + "--->" + str(self.user) + " | Date_last_updated =" + str(self.date_updateded) + " | Added_On ="+str(self.date_added)
+        return str(self.pk) + " (" + str(self.task_type) + ") " + "-->" + str(self.status) +\
+               "--->" + str(self.user) + " | Date_last_updated =" +\
+               str(self.date_updateded) + " | Added_On ="+str(self.date_added)
 
-
-
-
-@receiver(post_save, sender=FieldSightLog)
-def handle_notification(sender, instance, **kwargs):
-    from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
-    data = NotificationSerializer(instance).data
-    # import ipdb
-    # ipdb.set_trace()
-    if instance.project:
-        ChannelGroup("project-notify-{}".format(instance.project.id)).send({"text": json.dumps(data)})
-    if instance.organization:
-        ChannelGroup("org-notify-{}".format(instance.organization.id)).send({"text": json.dumps(data)})
-    ChannelGroup("user-notify-{}".format(1)).send({"text": json.dumps(data)})

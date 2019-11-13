@@ -1919,7 +1919,7 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
     task.content_object = obj
     task.save()
 
-    try: 
+    if True:
         buffer = BytesIO()
         data = []
         index = {}
@@ -1930,7 +1930,12 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
         end = date(int(split_enddate[0]), int(split_enddate[1]), int(split_enddate[2]))
 
         new_enddate = end + datetime.timedelta(days=1)
-        queryset = FieldSightLog.objects.select_related('source__user_profile').filter(recipient=None, date__range=[new_startdate, new_enddate]).exclude(type__in=[23, 29, 30, 32, 35])
+        queryset = FieldSightLog.objects.filter(
+            Q(event_name__isnull=False) |
+            Q(type__in=[16, 17, 18, 19, 31, 33, 34],
+              event_name__isnull=False, event_name__contains='form')
+        ).select_related('source__user_profile').filter(
+            recipient=None, date__range=[new_startdate, new_enddate]).exclude(type__in=[23, 29, 30, 32, 35])
         
         wb = Workbook()
         ws = wb.active
@@ -1967,7 +1972,7 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
                 for item in value:
                     query |= (Q(type=15) & Q(content_type=content_site) & Q(object_id=key) & Q(extra_json__contains='"'+item +'":'))
 
-            logs = queryset.filter(query)            
+            logs = queryset.filter(query)
         
         local_log_types = log_types
 
@@ -2005,18 +2010,16 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
         noti = task.logs.create(source=task.user, type=32, title="Xls "+ reportType +" Logs Report generation",
                                  recipient=task.user, content_object=task, extra_object=obj,
                                  extra_message=" <a href='"+ task.file.url +"'>Xls "+ reportType +" statistics report</a> generation in ")
-# user = User.objects.get(username="fsadmin")
-# exportLogs( 2143, user , 137, "Project", "2018-08-11", "2018-12-12")
-    except Exception as e:
-        task.description = "ERROR: " + str(e.message) 
-        task.status = 3
-        task.save()
-        print 'Report Gen Unsuccesfull. %s' % e
-        print e.__dict__
-        noti = task.logs.create(source=task.user, type=432, title="Xls "+ reportType +" logs report generation in ",
-                                       content_object=obj, recipient=task.user,
-                                       extra_message="@error " + u'{}'.format(e.message))
-        buffer.close()
+    # except Exception as e:
+    #     task.description = "ERROR: " + str(e.message)
+    #     task.status = 3
+    #     task.save()
+    #     print 'Report Gen Unsuccesfull. %s' % e
+    #     print e.__dict__
+    #     noti = task.logs.create(source=task.user, type=432, title="Xls "+ reportType +" logs report generation in ",
+    #                                    content_object=obj, recipient=task.user,
+    #                                    extra_message="@error " + u'{}'.format(e.message))
+    #     buffer.close()
 
 
 @shared_task(time_limit=120, soft_time_limit=120)
