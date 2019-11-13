@@ -79,14 +79,19 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
         project_id = self.request.query_params.get('project', None)
         region_id = self.request.query_params.get('region', None)
 
+        try:
+            project = Project.objects.get(id=project_id)
+        except :
+            return Region.objects.all().none
+
         if project_id and region_id:
 
             region = get_object_or_404(Region, id=region_id)
-            project = get_object_or_404(Project, id=project_id)
+            project = project
             return self.queryset.filter(project=project, parent_id=region.id)
 
         elif project_id:
-            project = get_object_or_404(Project, id=project_id)
+            project = project
             return self.queryset.filter(project=project, parent=None)
 
         else:
@@ -110,7 +115,8 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
 
             if existing_identifier:
                 return Response({'status': status.HTTP_400_BAD_REQUEST,
-                                 'message': 'Your identifier conflict with existing region please use different identifier to create region'})
+                                 'message': 'Your identifier conflict with existing region please use different '
+                                            'identifier to create region'})
 
     def perform_create(self, serializer):
         parent_exists = serializer.validated_data.get('parent', None)
