@@ -1,0 +1,38 @@
+version: '3.7'
+
+services:
+  postgis:
+    image: mdillon/postgis
+    container_name: fieldsight_postgis
+    restart: always
+    ports:
+      - 5432:5432
+
+  redis:
+    image: redis:alpine
+    restart: always
+    container_name: fieldsight_redis
+    command: redis-server --appendonly yes
+    ports:
+      - 6379:6379
+
+  web:
+    image: fieldsight:0.0.1
+    restart: always
+    container_name: fieldsight_web
+    command: python manage.py runserver 0.0.0.0:8015
+    ports:
+      - 8015:8015
+    env_file:
+      - .env
+    depends_on:
+      - postgis
+
+  celery:
+    image: fieldsight:0.0.1
+    container_name: fieldsight_celery
+    restart: always
+    command: celery -A varicon worker -l info
+    depends_on:
+      - redis
+    env_file: .env

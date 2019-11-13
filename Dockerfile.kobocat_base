@@ -21,7 +21,7 @@ RUN apt-get update && \
 
 
 ###########################
-# Install `pip` packages. #
+# Install `pip` packages. #d
 ###########################
 
 COPY ./requirements/ ${KOBOCAT_TMP_DIR}/base_requirements/

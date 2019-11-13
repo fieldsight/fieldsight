@@ -503,7 +503,7 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:
-    from local_settings import *  # nopep8
+    from fieldsight_settings import *  # nopep8
 except ImportError:
     pass
 

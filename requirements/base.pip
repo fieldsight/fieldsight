@@ -9,6 +9,7 @@ django-templated-email==0.4.9
 gdata==2.0.18
 httplib2==0.9
 mock==1.0.1
+
 httmock==1.2.2
 modilabs-python-utils==0.1.5
 Pillow==2.5.3
@@ -19,6 +20,7 @@ lxml==3.4.0
 pyxform==0.13.1
 django-reversion==2.0.8
 xlrd==1.1.0
+#from here check
 xlwt==1.3.0
 openpyxl==2.0.5
 celery==4.2.1
