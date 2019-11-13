@@ -992,11 +992,11 @@
                                     
                                     
                                     if(form_status!=null && form_status.length>0){
-                                        //console.log(form_status);
+                                        console.log(form_status);
                                         var status_matched = 1;
-                                        for(var l = 0; l<form_status.length; l++){//console.log(form_status[i]);
+                                        for(var l = 0; l<form_status.length; l++){//console.log(form_status[l]);
                                             if(siteListArray.features[i] != undefined){
-                                                if(siteListArray.features[i].status.trim().toLowerCase() == form_status[l].trim().toLowerCase()){ //console.log("status_entered");
+                                                if(siteListArray.features[i].status == form_status[l].trim().toLowerCase()){ //console.log("status_entered");
                                                     status_matched = 0;
                                                     //break;
                                                     //console.log(progress[k]);
