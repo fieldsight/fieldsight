@@ -25,9 +25,9 @@ urlpatterns = patterns(
     url('^api/v1/', include(router_with_patch_list.urls)),
     url(r'^service_health/$',
         'onadata.apps.main.service_health.service_health'),
-    url(r'^api-docs/', RedirectView.as_view(url='/api/v1/')),
-    url(r'^api/', RedirectView.as_view(url='/api/v1/')),
-    url(r'^api/v1', RedirectView.as_view(url='/api/v1/')),
+    url(r'^api-docs/', RedirectView.as_view(url='/api/v1/', permanent=True)),
+    url(r'^api/', RedirectView.as_view(url='/api/v1/', permanent=True)),
+    url(r'^api/v1', RedirectView.as_view(url='/api/v1/', permanent=True)),
 
     url(r'^fieldsight-api/docs/', include('rest_framework_docs.urls')),
 
@@ -45,7 +45,7 @@ urlpatterns = patterns(
     # url(r'^admin/', include(admin.site.urls)),
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
-    url(r'^accounts/login/', RedirectView.as_view(url='/users/accounts/login/'), name='login'),
+    url(r'^accounts/login/', RedirectView.as_view(url='/users/accounts/login/', permanent=True), name='login'),
     url(r'^accounts/logout/', 'django.contrib.auth.views.logout',
         {'next_page': '/'}, name='auth_logout'),
     url(r'^accounts/password/change/$', 'django.contrib.auth.views.password_change',
@@ -335,7 +335,7 @@ urlpatterns = patterns(
     #    {'document_root': settings.MEDIA_ROOT}),
 
     url(r'^favicon\.ico',
-        RedirectView.as_view(url='/static/images/favicon.ico')),
+        RedirectView.as_view(url='/static/images/favicon.ico', permanent=True)),
 
     # Statistics for superusers. The username is irrelevant, but leave it as
     # the first part of the path to avoid collisions
