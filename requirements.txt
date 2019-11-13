@@ -67,7 +67,8 @@ enum34==1.1.6
 ExifRead==2.1.2
 Fabric==1.13.2
 flower==0.9.2
-formpack==1.1
+#formpack==1.1
+git+https://github.com/kobotoolbox/formpack@kobocat-requirement
 funcsigs==1.0.2
 futures==3.1.1
 gdata==2.0.18
@@ -138,7 +139,8 @@ redis==2.10.5
 reportlab==3.4.0
 requests==2.4.1
 requests-oauthlib==0.8.0
-savReaderWriter==3.3.0
+#savReaderWriter==3.3.0
+https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.3.0.zip#egg=savreaderwriter
 scandir==1.5
 selenium==3.8.0
 shell-command==0.1
