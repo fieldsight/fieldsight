@@ -23,6 +23,8 @@ services:
     restart: always
     container_name: fieldsight_web
     command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      -./:/usr/src/data/
     ports:
       - 8000:8000
     env_file:
@@ -35,7 +37,9 @@ services:
     image: fieldsight:0.0.1
     container_name: fieldsight_celery
     restart: always
-    command: celery -A varicon worker -l info
+    command: celery -A fieldsight worker -l info
     depends_on:
       - redis
-    env_file: .env
+    env_file:
+      - .env
+      - db.env
