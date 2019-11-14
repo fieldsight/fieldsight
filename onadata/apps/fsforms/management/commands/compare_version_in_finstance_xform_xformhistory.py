@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.fsforms.models import XformHistory, FInstance
-from onadata.settings.local_settings import XML_VERSION_MAX_ITER
+from onadata.settings.fieldsight_settings import XML_VERSION_MAX_ITER
 
 import os
 import re

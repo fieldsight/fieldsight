@@ -9,7 +9,7 @@ from onadata.apps.fsforms.notifications import save_notification
 
 from onadata.apps.logger.xform_instance_parser import get_uuid_from_xml, clean_and_parse_xml
 
-from onadata.settings.local_settings import XML_VERSION_MAX_ITER
+from onadata.settings.fieldsight_settings import XML_VERSION_MAX_ITER
 from onadata.apps.userrole.models import UserRole
 from django.core.files.storage import get_storage_class
 

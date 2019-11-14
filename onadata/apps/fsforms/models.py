@@ -33,7 +33,7 @@ from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models import ParsedInstance
 from onadata.apps.fsforms.fsxform_responses import \
     get_instances_for_field_sight_form
-from onadata.settings.local_settings import XML_VERSION_MAX_ITER
+from onadata.settings.fieldsight_settings import XML_VERSION_MAX_ITER
 from django.db import transaction, IntegrityError
 
 

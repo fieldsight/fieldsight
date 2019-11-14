@@ -5,7 +5,7 @@ from django.template import Library
 from onadata.apps.fieldsight.templatetags.filters import get_site_level
 from onadata.apps.fsforms.models import FieldSightFormLibrary, FInstance, FieldSightXF
 from onadata.apps.logger.models import XForm
-from onadata.settings.local_settings import XML_VERSION_MAX_ITER
+from onadata.settings.fieldsight_settings import XML_VERSION_MAX_ITER
 
 
 FORM_STATUS = {0: 'Outstanding', 1: 'Rejected', 2: 'Flagged', 3: 'Approved'}

@@ -29,7 +29,7 @@ class Command(BaseCommand):
         default_storage = get_storage_class()()
         if default_storage.__class__ != s3.__class__:
             print _(u"You must first set your default storage to s3 in your "
-                    "local_settings.py file.")
+                    ".env file.")
             sys.exit(1)
 
         classes_to_move = [
