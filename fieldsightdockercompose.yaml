@@ -7,6 +7,8 @@ services:
     restart: always
     ports:
       - 5432:5432
+    env_file:
+      - db.env
 
   redis:
     image: redis:alpine
@@ -20,11 +22,12 @@ services:
     image: fieldsight:0.0.1
     restart: always
     container_name: fieldsight_web
-    command: python manage.py runserver 0.0.0.0:8015
+    command: python manage.py runserver 0.0.0.0:8000
     ports:
-      - 8015:8015
+      - 8000:8000
     env_file:
       - .env
+      - db.env
     depends_on:
       - postgis
 

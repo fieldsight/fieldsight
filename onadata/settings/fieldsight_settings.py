@@ -42,11 +42,11 @@ CORS_ORIGIN_WHITELIST = (
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': os.environ.get('POSTGRES_DATABASE_NAME','fieldsight'),
+        'NAME': os.environ.get('POSTGRES_DB','fieldsight'),
         # 'NAME': 'app_backup1',
-        'USER': os.environ.get('POSTGRES_USER_NAME', 'postgres'),
-        'PASSWORD': '',
-        'HOST': 'postgis',
+        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+        'HOST': os.environ.get('POSTGRES_HOST','postgis'),
         'PORT': os.environ.get('POSTGRES_PORT','5432'),
     }
 }
