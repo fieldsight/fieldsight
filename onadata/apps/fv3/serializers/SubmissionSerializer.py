@@ -68,6 +68,7 @@ def get_answer_data_select(answer, options_list):
                 data[selected_answer] = option
     return data
 
+
 class SubmissionSerializer(serializers.ModelSerializer):
     submission_data = serializers.SerializerMethodField()
     submitted_by = serializers.SerializerMethodField()
@@ -228,7 +229,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                                          gnr_answer[r_question + "/" + question]
                             elif question_type in ['select one', 'select all that apply']:
                                 answer = gnr_answer[r_question + "/" + question]
-                                answer_data = get_answer_data_select(answer, first_children['children'])
+                                answer_data = get_answer_data_select(answer, first_children.get('children'), [])
                             else:
                                 answer = gnr_answer[r_question + "/" + question]
 
@@ -256,7 +257,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                                          gnr_answer[r_question + "/" + question]
                             elif question_type in ['select one', 'select all that apply']:
                                 answer = gnr_answer[r_question + "/" + question]
-                                answer_data = get_answer_data_select(answer, first_children['children'])
+                                answer_data = get_answer_data_select(answer, first_children.get('children'), [])
                             else:
                                 answer = gnr_answer[r_question + "/" + question]
 
@@ -298,7 +299,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                                      json_answer[g_question + "/" + question]
                         elif question_type in ['select one', 'select all that apply']:
                             answer = json_answer[g_question + "/" + question]
-                            answer_data = get_answer_data_select(answer, first_children['children'])
+                            answer_data = get_answer_data_select(answer, first_children.get('children'), [])
 
                         else:
                             answer = json_answer[g_question + "/" + question]
@@ -337,7 +338,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                                      json_answer[g_question + "/" + question]
                         elif question_type in ['select one', 'select all that apply']:
                             answer = json_answer[g_question + "/" + question]
-                            answer_data = get_answer_data_select(answer, first_children['children'])
+                            answer_data = get_answer_data_select(answer, first_children.get('children'), [])
 
                         else:
                             answer = json_answer[g_question + "/" + question]
@@ -372,7 +373,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                                      json_answer[question]
                         elif first_children['type'] in ['select one', 'select all that apply']:
                             answer = json_answer[question]
-                            answer_data = get_answer_data_select(answer, first_children['children'])
+                            answer_data = get_answer_data_select(answer, first_children.get('children'), [])
                         else:
                             answer = json_answer[question]
                     if 'label' in first_children:
@@ -547,7 +548,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                                          gnr_answer[r_question + "/" + question]
                             elif question_type in ['select one', 'select all that apply']:
                                 answer = gnr_answer[r_question + "/" + question]
-                                answer_data = get_answer_data_select(answer, first_children['children'])
+                                answer_data = get_answer_data_select(answer, first_children.get('children'), [])
                             else:
                                 answer = gnr_answer[r_question + "/" + question]
 
@@ -575,7 +576,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                                          gnr_answer[r_question + "/" + question]
                             elif question_type in ['select one', 'select all that apply']:
                                 answer = gnr_answer[r_question + "/" + question]
-                                answer_data = get_answer_data_select(answer, first_children['children'])
+                                answer_data = get_answer_data_select(answer, first_children.get('children'), [])
                             else:
                                 answer = gnr_answer[r_question + "/" + question]
 
@@ -617,7 +618,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                                      json_answer[g_question + "/" + question]
                         elif question_type in ['select one', 'select all that apply']:
                             answer = json_answer[g_question + "/" + question]
-                            answer_data = get_answer_data_select(answer, first_children['children'])
+                            answer_data = get_answer_data_select(answer, first_children.get('children'), [])
 
                         else:
                             answer = json_answer[g_question + "/" + question]
@@ -656,7 +657,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                                      json_answer[g_question + "/" + question]
                         elif question_type in ['select one', 'select all that apply']:
                             answer = json_answer[g_question + "/" + question]
-                            answer_data = get_answer_data_select(answer, first_children['children'])
+                            answer_data = get_answer_data_select(answer, first_children.get('children'), [])
 
                         else:
                             answer = json_answer[g_question + "/" + question]
@@ -691,7 +692,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                                      json_answer[question]
                         elif first_children['type'] in ['select one', 'select all that apply']:
                             answer = json_answer[question]
-                            answer_data = get_answer_data_select(answer, first_children['children'])
+                            answer_data = get_answer_data_select(answer, first_children.get('children'), [])
                         else:
                             answer = json_answer[question]
                     if 'label' in first_children:
