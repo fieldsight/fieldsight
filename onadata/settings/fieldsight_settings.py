@@ -43,13 +43,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': os.environ.get('POSTGRES_DB','fieldsight'),
-        # 'NAME': 'app_backup1',
-        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+        'USER': os.environ.get('POSTGRES_USER', 'fieldsight'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'fieldsight'),
         'HOST': os.environ.get('POSTGRES_HOST','postgis'),
         'PORT': os.environ.get('POSTGRES_PORT','5432'),
     }
 }
+print DATABASES
 
 INSTALLED_APPS = list(INSTALLED_APPS)
 INSTALLED_APPS += ['rest_framework_docs', 'social_django', 'onadata.apps.eventlog', 'fcm', #'channels',
