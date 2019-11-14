@@ -1,5 +1,9 @@
 From python:2
 MAINTAINER yubarajpoudel708@gmail.com
+RUN mkdir -p /usr/src/data
+WORKDIR /usr/src/data
+ADD . /usr/src/data/
+
 ENV KOBOCAT_TMP_DIR=/srv/kobocat_tmp \
     # Store editable packages (pulled from VCS repos) in their own directory.
     PIP_EDITABLE_PACKAGES_DIR=/srv/pip_editable_packages \
@@ -53,3 +57,6 @@ RUN mkdir -p ${PIP_EDITABLE_PACKAGES_DIR} && \
     pip install --src ${PIP_EDITABLE_PACKAGES_DIR}/ -r ${KOBOCAT_TMP_DIR}/base_requirements/s3.pip && \
         pip install --src ${PIP_EDITABLE_PACKAGES_DIR}/ -r ${KOBOCAT_TMP_DIR}/base_requirements/fieldsight.pip && \
     rm -rf ~/.cache/pip
+
+#fix the issue with goes 
+RUN cat ./libgeos.py > /usr/local/lib/python2.7/site-packages/django/contrib/gis/geos/libgeos.py
