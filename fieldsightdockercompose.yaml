@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   postgis:
-    image: mdillon/postgis
+    image: mdillon/postgis:9.5
     container_name: fieldsight_postgis
     restart: always
     ports:
