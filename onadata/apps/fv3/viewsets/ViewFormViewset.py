@@ -466,11 +466,12 @@ class FormSubmissionsView(APIView):
         fsxf_id = request.query_params.get('fsxf_id', None)
         search_param = request.query_params.get('q', None)
 
-        try:
-            Project.objects.get(id=project)
-        except Exception as e:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': str(e)})
         if project and fsxf_id is not None:
+            try:
+                Project.objects.get(id=project)
+            except Exception as e:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': str(e)})
+
             is_project = True
             try:
                 fsxf = FieldSightXF.objects.get(pk=fsxf_id)
