@@ -69,7 +69,6 @@ TEMPLATE_CONTEXT_PROCESSORS +=[
 MIDDLEWARE_CLASSES = list(MIDDLEWARE_CLASSES)
 
 MIDDLEWARE_CLASSES += ['linaro_django_pagination.middleware.PaginationMiddleware',
-                       'webstack_django_sorting.middleware.SortingMiddleware',
                        'onadata.apps.users.middleware.RoleMiddleware',
                        'debug_toolbar.middleware.DebugToolbarMiddleware',
                        'social_django.middleware.SocialAuthExceptionMiddleware',
