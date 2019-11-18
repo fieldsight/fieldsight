@@ -1,5 +1,5 @@
 From python:2
-MAINTAINER yubarajpoudel708@gmail.com
+MAINTAINER app.fieldsight.org
 RUN mkdir -p /usr/src/data
 WORKDIR /usr/src/data
 ADD . /usr/src/data/
