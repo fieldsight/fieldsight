@@ -58,9 +58,12 @@ services:
     image: fieldsight/kpi:0.0.1
     restart: on-failure
     container_name: fieldsight_kpi
+    command: python manage.py runserver 0.0.0.0:8000
     env_file:
       - .env
       - db.txt
+    volumes:
+      - ../kpi/:/srv/src/kpi/
     depends_on:
       - postgres
       - redis_main
