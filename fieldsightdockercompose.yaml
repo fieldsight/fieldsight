@@ -1,16 +1,27 @@
 version: '3.7'
 
 services:
-  postgis:
+#  start of backend services
+  postgres:
     image: mdillon/postgis:9.5
     container_name: fieldsight_postgis
     restart: always
     ports:
       - 5432:5432
     env_file:
-      - db.env
+      - db.txt
 
-  redis:
+  mongo:
+    image: mongo:3.4
+    hostname: mongo
+    environment:
+      - MONGO_DATA=/data/db
+    env_file:
+      - .env
+      - db.txt
+    restart: on-failure
+
+  redis_main:
     image: redis:alpine
     restart: always
     container_name: fieldsight_redis
@@ -18,28 +29,56 @@ services:
     ports:
       - 6379:6379
 
-  web:
-    image: fieldsight:0.0.1
+  redis_cache:
+    image: redis:3.2
+    restart: on-failure
+    ports:
+      - 6380:6380
+    sysctls:
+        - net.core.somaxconn=2048
+
+  #end of backend services
+  #start of front end services
+  fieldsight:
+    image: fieldsight/fieldsight:0.0.1
     restart: always
     container_name: fieldsight_web
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8001
     volumes:
-      -./:/usr/src/data/
+      - ./:/usr/src/data/
+    ports:
+      - 8001:8001
+    env_file:
+      - .env
+      - db.txt
+    depends_on:
+      - postgres
+
+  kpi:
+    image: fieldsight/kpi:0.0.1
+    restart: on-failure
+    container_name: fieldsight_kpi
+    env_file:
+      - .env
+      - db.txt
+    depends_on:
+      - postgres
+      - redis_main
+      - redis_cache
     ports:
       - 8000:8000
-    env_file:
-      - .env
-      - db.env
-    depends_on:
-      - postgis
 
-  celery:
-    image: fieldsight:0.0.1
-    container_name: fieldsight_celery
-    restart: always
-    command: celery -A fieldsight worker -l info
-    depends_on:
-      - redis
+  enketo:
+    image: kobotoolbox/enketo-express-extra-widgets:1.77.0-jnm-grunt-workaround
+    restart: on-failure
+    container_name: fieldsight_enketo
     env_file:
       - .env
-      - db.env
+      - db.txt
+    depends_on:
+      - postgres
+      - redis_main
+    ports:
+      - 8005:8005
+
+#end of frontend services
