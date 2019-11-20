@@ -50,7 +50,7 @@ CELERY_BROKER_URL = os.environ.get(
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 try:
-    SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
+    SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 except KeyError:
     raise Exception('DJANGO_SECRET_KEY must be set in the environment.')
 
@@ -106,7 +106,7 @@ TEMPLATE_OVERRIDE_ROOT_DIR = os.environ.get(
 TEMPLATE_DIRS = (os.path.join(TEMPLATE_OVERRIDE_ROOT_DIR, 'templates'), ) + TEMPLATE_DIRS
 STATICFILES_DIRS += (os.path.join(TEMPLATE_OVERRIDE_ROOT_DIR, 'static'), )
 
-KOBOFORM_SERVER = os.environ.get("KOBOFORM_SERVER", "localhost")
+KOBOFORM_SERVER = os.environ.get("KOBOFORM_SERVER", "kpi")
 KOBOFORM_SERVER_PORT = os.environ.get("KOBOFORM_SERVER_PORT", "8000")
 KOBOFORM_SERVER_PROTOCOL = os.environ.get("KOBOFORM_SERVER_PROTOCOL", "http")
 KOBOFORM_LOGIN_AUTOREDIRECT = True
@@ -124,7 +124,7 @@ CSRF_COOKIE_DOMAIN = os.environ.get('CSRF_COOKIE_DOMAIN', None)
 
 if CSRF_COOKIE_DOMAIN:
     SESSION_COOKIE_DOMAIN = CSRF_COOKIE_DOMAIN
-    SESSION_COOKIE_NAME = 'kobonaut'
+    SESSION_COOKIE_NAME = 'my_cookie'
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 

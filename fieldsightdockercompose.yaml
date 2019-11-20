@@ -19,15 +19,18 @@ services:
     env_file:
       - .env
       - db.txt
+    ports:
+      - 27017:27017
     restart: on-failure
 
   redis_main:
-    image: redis:alpine
+    image: redis:3.2
     restart: always
     container_name: fieldsight_redis
-    command: redis-server --appendonly yes
     ports:
       - 6379:6379
+    sysctls:
+      - net.core.somaxconn=2048
 
   redis_cache:
     image: redis:3.2
@@ -62,6 +65,8 @@ services:
     env_file:
       - .env
       - db.txt
+    links:
+      - fieldsight
     volumes:
       - ../kpi/:/srv/src/kpi/
     depends_on:
@@ -72,9 +77,12 @@ services:
       - 8000:8000
 
   enketo:
-    image: kobotoolbox/enketo-express-extra-widgets:1.77.0-jnm-grunt-workaround
+    image: fieldsight/fieldsight_enketo:0.0.1
     restart: on-failure
     container_name: fieldsight_enketo
+    command: npm start
+    volumes:
+      - ../enketo-express/:/srv/src/enketo_express/
     env_file:
       - .env
       - db.txt

@@ -49,7 +49,6 @@ DATABASES = {
         'PORT': os.environ.get('POSTGRES_PORT','5432'),
     }
 }
-print DATABASES
 
 INSTALLED_APPS = list(INSTALLED_APPS)
 INSTALLED_APPS += ['rest_framework_docs', 'social_django', 'onadata.apps.eventlog', 'fcm', #'channels',
