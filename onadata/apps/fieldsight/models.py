@@ -479,7 +479,7 @@ class Site(models.Model):
     site_meta_attributes_ans = JSONField(default=dict)
     all_ma_ans = JSONField(default=dict)
     site_featured_images = JSONField(default=dict)
-    current_progress = models.IntegerField(default=0)
+    current_progress = models.FloatField(default=0.0)
     current_status = models.IntegerField(default=0)
     enable_subsites = models.BooleanField(default=False)
     site = models.ForeignKey('self', blank=True, null=True, related_name="sub_sites")
