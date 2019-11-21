@@ -54,6 +54,7 @@ def default_progress(site, project):
             p = 0.0
         if p > 100:
             return 100
+        p = round(p, 2)
         return p
     approved_forms_site = site.site_instances.filter(form_status=3,
                                                      site_fxf__is_staged=True).values_list(
@@ -73,6 +74,7 @@ def default_progress(site, project):
     p = (float(approved) / (stages * 0.01))
     if p > 100:
         return 100
+    p = round(p, 2)
     return p
 
 
@@ -159,6 +161,7 @@ def advance_stage_approved(site, project):
             p = (float(approved_weight) / (total_weight * 0.01))
             if p > 100:
                 return 100
+            p = round(p, 2)
             return p
         else:
             return 0
@@ -176,6 +179,7 @@ def advance_stage_approved(site, project):
     p = (float(approved) / (stages * 0.01))
     if p > 100:
         return 100
+    p = round(p, 2)
     return p
 
 
