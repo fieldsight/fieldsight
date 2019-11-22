@@ -256,7 +256,7 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         
         stages = project.stages.filter(stage__isnull=True)
         for stage in stages:
-            sub_stages = stage.parent.all()
+            sub_stages = stage.parent.filter(stage_forms__isnull=False)
             if len(sub_stages):
                 head_row.append("Stage :"+stage.name)
                 stages_rows.append("Stage :"+stage.name)
@@ -315,7 +315,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         for site_obj in sites.filter(**sites_filter).iterator():
             site_dict[str(site_obj.id)] = {'visits':0,'site_status':'No Submission', 'latitude':site_obj.latitude,'longitude':site_obj.longitude}
 
-        sites_status=FInstance.objects.filter(**finstance_filter).order_by('site_id','-id').distinct('site_id').values_list('site_id', 'form_status')
+        sites_status=FInstance.objects.filter(project=project_id).order_by('site_id',
+                                                          '-id').distinct('site_id').values_list('site_id', 'form_status')
         
         for site_status in sites_status:
             try:
