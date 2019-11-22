@@ -315,7 +315,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         for site_obj in sites.filter(**sites_filter).iterator():
             site_dict[str(site_obj.id)] = {'visits':0,'site_status':'No Submission', 'latitude':site_obj.latitude,'longitude':site_obj.longitude}
 
-        sites_status=FInstance.objects.filter(project=project_id).order_by('site_id',
+        sites_status=FInstance.objects.filter(
+            project_fxf__project=project_id).order_by('site_id',
                                                           '-id').distinct('site_id').values_list('site_id', 'form_status')
         
         for site_status in sites_status:
