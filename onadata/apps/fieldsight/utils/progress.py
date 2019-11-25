@@ -47,12 +47,14 @@ def default_progress(site, project):
         project_stages_weight = project_stages_weight if project_stages_weight else 0
         total_weight = site_stages_weight + project_stages_weight
         if total_weight:
-            p = ("%.0f" % (approved_weight / (total_weight * 0.01)))
+            total_weight = float(total_weight)
+            approved_weight = float(approved_weight)
+            p = (approved_weight / (total_weight * 0.01))
         else:
-            p = 0
-        p = int(p)
-        if p > 99:
+            p = 0.0
+        if p > 100:
             return 100
+        p = round(p, 2)
         return p
     approved_forms_site = site.site_instances.filter(form_status=3,
                                                      site_fxf__is_staged=True).values_list(
@@ -69,10 +71,10 @@ def default_progress(site, project):
         stage__site=site).count()
     if not stages:
         return 0
-    p = ("%.0f" % (approved / (stages * 0.01)))
-    p = int(p)
-    if p > 99:
+    p = (float(approved) / (stages * 0.01))
+    if p > 100:
         return 100
+    p = round(p, 2)
     return p
 
 
@@ -155,12 +157,16 @@ def advance_stage_approved(site, project):
         site_stages_weight = site_stages_weight if site_stages_weight else 0
         project_stages_weight = project_stages_weight if project_stages_weight else 0
         total_weight = site_stages_weight + project_stages_weight
-        p = ("%.0f" % (approved_weight / (total_weight * 0.01)))
-        p = int(p)
-        if p > 99:
-            return 100
-        return p
+        if total_weight:
+            p = (float(approved_weight) / (total_weight * 0.01))
+            if p > 100:
+                return 100
+            p = round(p, 2)
+            return p
+        else:
+            return 0
     # weight not set
+
     approved_forms_site = Stage.objects.filter(stage__order__lte=max_stage_order, site=site).count()
     approved_forms_project = Stage.objects.filter(stage__order__lte=max_stage_order, project=project).count()
     approved = approved_forms_site + approved_forms_project
@@ -170,10 +176,10 @@ def advance_stage_approved(site, project):
     stages = Stage.objects.filter(stage__project=project).count() + Stage.objects.filter(stage__site=site).count()
     if not stages:
         return 0
-    p = ("%.0f" % (approved / (stages * 0.01)))
-    p = int(p)
-    if p > 99:
+    p = (float(approved) / (stages * 0.01))
+    if p > 100:
         return 100
+    p = round(p, 2)
     return p
 
 
