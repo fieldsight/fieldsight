@@ -1,5 +1,3 @@
-#django-excel
-
 #pyexcel-xl
 #pyexcel-xls
 #pyexcel-io
@@ -23,5 +21,23 @@ drfdocs==0.0.11
 asgi-redis==1.3.0
 
 shortuuid==0.4.3
+#django-fcm==0.1.0
+linaro-django-pagination==2.0.3
+webstack-django-sorting==1.0.1
+django-debug-toolbar==1.8
+python-dateutil==2.6.1
+openpyxl==2.0.5
+channels==1.1.3
+reportlab==3.4.0
+django-image-cropping==1.0.4
+django-fcm==0.1.1
+django==1.8.19
+
+django-excel==0.0.10
+
+
+
+
+
 
 
