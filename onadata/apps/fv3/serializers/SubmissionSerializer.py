@@ -780,3 +780,45 @@ class MyFinstanceSerializer(serializers.ModelSerializer):
         if obj.project_fxf:
             return obj.project_fxf.xf.id_string
         return obj.site_fxf.xf.id_string
+
+
+class MyFinstanceSerializerV2(serializers.ModelSerializer):
+    form_name = serializers.SerializerMethodField()
+    id_string = serializers.SerializerMethodField()
+    form_status = serializers.SerializerMethodField()
+    project_fxf = serializers.CharField(source='finstance.project_fxf')
+    site_fxf = serializers.CharField(source='finstance.site_fxf')
+    project = serializers.CharField(source='finstance.project')
+    site = serializers.CharField(source='finstance.site')
+    site_name = serializers.CharField(source='finstance.site.name')
+    site_identifier = serializers.CharField(source='finstance.site.identifier')
+    project_name = serializers.CharField(source='finstance.project.name')
+    version = serializers.CharField(source='finstance.version')
+    status_display = serializers.SerializerMethodField()
+    reviewer = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InstanceStatusChanged
+        fields = ('finstance', 'project_fxf', 'site_fxf', 'project',
+                  'site', 'form_status', 'reviewer',
+                  'form_name', 'site_name', 'site_identifier', 'project_name',
+                  'status_display', 'version', 'id_string', 'date', 'message')
+
+    def get_form_status(self, obj):
+        return obj.new_status
+
+    def get_form_name(self, obj):
+        if obj.finstance.project_fxf:
+            return obj.finstance.project_fxf.xf.title
+        return obj.finstance.site_fxf.xf.title
+
+    def get_status_display(self, obj):
+        return obj.finstance.get_abr_form_status()
+
+    def get_id_string(self, obj):
+        if obj.finstance.project_fxf:
+            return obj.finstance.project_fxf.xf.id_string
+        return obj.finstance.site_fxf.xf.id_string
+
+    def get_reviewer(self, obj):
+        return obj.user.username
