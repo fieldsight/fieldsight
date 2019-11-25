@@ -218,25 +218,26 @@ def set_site_progress(site, project, project_settings=None):
         xform_question = project_settings.pull_integer_form_question
         progress = pull_integer_answer(form, xform_question, site)
         try:
-            progress = int(progress)
-            if progress and progress > 99:
+            progress = float(progress)
+            if progress and progress > 100:
                 progress = 100
         except Exception as e:
             progress = 0
             print("progress error", str(e))
     elif project_settings.source == 3:
-        p = ("%.0f" % (site.site_instances.filter(form_status=3).count() / (project_settings.no_submissions_total_count * 0.01)))
-        p = int(p)
-        if p > 99:
-            p = 100
+        submissions = site.site_instances.filter(form_status=3).count()
+        p = float(submissions) / (project_settings.no_submissions_total_count *
+                              0.01)
+        p = round(p, 2)
         progress = p
 
     elif project_settings.source == 4:
-        p = ("%.0f" % (site.site_instances.filter(
-            project_fxf_id=project_settings.no_submissions_form, form_status=3).count() / (
-                project_settings.no_submissions_total_count * 0.01)))
-        p = int(p)
-        if p > 99:
+        submissions = site.site_instances.filter(
+            project_fxf_id=project_settings.no_submissions_form,
+            form_status=3).count()
+        p = float(submissions) / (
+                project_settings.no_submissions_total_count * 0.01)
+        if p > 100:
             p = 100
         progress = p
     if not progress:
