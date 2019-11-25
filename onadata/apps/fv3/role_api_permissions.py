@@ -723,7 +723,7 @@ class SiteFormPermissions(permissions.BasePermission):
         elif view.action == 'destroy':
 
             site_id = view.kwargs.get('pk')
-            site = Site.objects.get(id=site_id)
+            site = Site.all_objects.get(id=site_id)
             project_id = site.project.id
 
             if request.is_super_admin:
