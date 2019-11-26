@@ -782,6 +782,12 @@ class MyFinstanceSerializer(serializers.ModelSerializer):
         return obj.site_fxf.xf.id_string
 
 
+class InstanceImagesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InstanceImages
+        fields = ('image',)
+
+
 class MyFinstanceSerializerV2(serializers.ModelSerializer):
     form_name = serializers.SerializerMethodField()
     id_string = serializers.SerializerMethodField()
@@ -796,11 +802,12 @@ class MyFinstanceSerializerV2(serializers.ModelSerializer):
     version = serializers.CharField(source='finstance.version')
     status_display = serializers.SerializerMethodField()
     reviewer = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = InstanceStatusChanged
         fields = ('finstance', 'project_fxf', 'site_fxf', 'project',
-                  'site', 'form_status', 'reviewer',
+                  'site', 'form_status', 'reviewer', 'images',
                   'form_name', 'site_name', 'site_identifier', 'project_name',
                   'status_display', 'version', 'id_string', 'date', 'message')
 
@@ -822,3 +829,7 @@ class MyFinstanceSerializerV2(serializers.ModelSerializer):
 
     def get_reviewer(self, obj):
         return obj.user.username
+
+    def get_images(self, obj):
+        images = obj.images.all()
+        return InstanceImagesSerializer(images, many=True).data
