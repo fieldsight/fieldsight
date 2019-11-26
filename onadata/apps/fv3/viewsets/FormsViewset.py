@@ -402,7 +402,7 @@ class FormsView(APIView):
             is_deleted=False,  is_deployed=True).filter(Q(
             project__id__in=project_ids) | Q(site__project_id__in=project_ids,
                                             from_project=False,
-                                             site__isactive=True)
+                                             site__is_active=True)
             ).select_related("xf", "em", "xf__user", "site", "settings").prefetch_related("em__em_images")
         list(fieldsight_forms)
         general_forms = [f for f in fieldsight_forms if (f.is_staged == False
