@@ -301,3 +301,12 @@ class LatestSubmissionSerializer(serializers.ModelSerializer):
     def get_date(self, obj):
         return datetime.strftime(obj.date, '%Y-%m-%d %H:%M:%S')
 
+
+class ChangePasswordSerializer(serializers.Serializer):
+    model = User
+
+    """
+    Serializer for password change endpoint.
+    """
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)

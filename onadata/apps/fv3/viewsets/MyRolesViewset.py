@@ -7,7 +7,9 @@ from django.contrib.auth.models import User, Permission
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authentication import BasicAuthentication
 
-from rest_framework.decorators import permission_classes, api_view
+from rest_framework.decorators import permission_classes, api_view, \
+    authentication_classes
+from rest_framework.generics import UpdateAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -18,8 +20,9 @@ from onadata.apps.fieldsight.models import UserInvite, Region, Project, Site
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog
-from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, \
-    LatestSubmissionSerializer, MyRegionSerializer, MySiteSerializer
+from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, \
+    UserInvitationSerializer, MyRegionSerializer, MySiteSerializer, \
+    ChangePasswordSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import XForm
 
@@ -637,3 +640,30 @@ def latest_submission(request):
 
     return Response(response_submissions)
 
+
+@authentication_classes([CsrfExemptSessionAuthentication, BasicAuthentication])
+@api_view(['POST'])
+def change_password(self, request, *args, **kwargs):
+    self.object = self.request.user
+    serializer = ChangePasswordSerializer(data=request.data)
+
+    if serializer.is_valid():
+        # Check old password
+        if not self.object.check_password(
+                serializer.data.get("old_password")):
+            return Response({"old_password": ["Wrong password."]},
+                            status=status.HTTP_400_BAD_REQUEST)
+        # set_password also hashes the password that the user will get
+        self.object.set_password(serializer.data.get("new_password"))
+        self.object.save()
+        response = {
+            'status': 'success',
+            'code': status.HTTP_200_OK,
+            'message': 'Password updated successfully',
+            'data': []
+        }
+
+        return Response(response)
+
+    return Response(serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST)
