@@ -2,9 +2,11 @@ from itertools import chain
 
 from django.db.models import Q
 from django.conf import settings
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User, Permission
 from django.core.exceptions import ObjectDoesNotExist
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.authentication import BasicAuthentication
 
 from rest_framework.decorators import permission_classes, api_view, \
@@ -641,21 +643,20 @@ def latest_submission(request):
     return Response(response_submissions)
 
 
-@authentication_classes([CsrfExemptSessionAuthentication, BasicAuthentication])
-@api_view(['POST'])
-def change_password(self, request, *args, **kwargs):
-    self.object = self.request.user
-    serializer = ChangePasswordSerializer(data=request.data)
+@csrf_exempt
+def change_password(request):
+    object = request.user
+    serializer = ChangePasswordSerializer(data=request.POST)
 
     if serializer.is_valid():
         # Check old password
-        if not self.object.check_password(
+        if not object.check_password(
                 serializer.data.get("old_password")):
-            return Response({"old_password": ["Wrong password."]},
+            return JsonResponse({"old_password": ["Wrong password."]},
                             status=status.HTTP_400_BAD_REQUEST)
         # set_password also hashes the password that the user will get
-        self.object.set_password(serializer.data.get("new_password"))
-        self.object.save()
+        object.set_password(serializer.data.get("new_password"))
+        object.save()
         response = {
             'status': 'success',
             'code': status.HTTP_200_OK,
@@ -663,7 +664,6 @@ def change_password(self, request, *args, **kwargs):
             'data': []
         }
 
-        return Response(response)
+        return JsonResponse(response)
 
-    return Response(serializer.errors,
-                    status=status.HTTP_400_BAD_REQUEST)
+    return JsonResponse(serializer.errors)
