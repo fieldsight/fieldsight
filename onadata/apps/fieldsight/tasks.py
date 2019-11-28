@@ -2642,7 +2642,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 meta_ans[item['question_name']] = answer
                 all_ma_ans[item['question_name']] = answer
 
-            elif item.get('question_type') == 'FormSubStat' and str(fs_proj_xf.id) == item.get('form_id', 0):
+            elif item.get('question_type') == 'FormSubStat' and fs_proj_xf.id == item.get('form_id', 0):
                 if instance.date_modified:
                     answer = "Last submitted on " + instance.date_modified.strftime("%d %b %Y %I:%M %P")
                 else:
@@ -2651,7 +2651,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 meta_ans[item['question_name']] = answer
                 all_ma_ans[item['question_name']] = answer
 
-            elif item.get('question_type') == "FormQuestionAnswerStatus" and str(fs_proj_xf.id) == item.get('form_id', 0):
+            elif item.get('question_type') == "FormQuestionAnswerStatus" and fs_proj_xf.id == item.get('form_id', 0):
                 get_answer = instance.json.get(item.get('question').get('name'), None)
                 if get_answer:
                     answer = "Answered"
@@ -2660,7 +2660,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 meta_ans[item['question_name']] = answer
                 all_ma_ans[item['question_name']] = answer
 
-            elif item.get('question_type') == "FormSubCountQuestion" and str(fs_proj_xf.id) == item.get('form_id', 0):
+            elif item.get('question_type') == "FormSubCountQuestion" and fs_proj_xf.id == item.get('form_id', 0):
                 meta_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
                 all_ma_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
         if all_ma_ans != site.all_ma_ans:
