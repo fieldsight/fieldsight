@@ -2651,7 +2651,8 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 meta_ans[item['question_name']] = answer
                 all_ma_ans[item['question_name']] = answer
 
-            elif item.get('question_type') == "FormQuestionAnswerStatus" and fs_proj_xf.id == item.get('form_id', 0):
+            elif item.get('question_type') == "FormQuestionAnswerStatus" and \
+                    str(fs_proj_xf.id) == item.get('form_id', 0):
                 get_answer = instance.json.get(item.get('question').get('name'), None)
                 if get_answer:
                     answer = "Answered"
