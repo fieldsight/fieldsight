@@ -1,8 +1,6 @@
-import os
-
 import pandas as pd
 
-from datetime import datetime
+import datetime
 from django.core.files.temp import NamedTemporaryFile
 
 from django.db.models import Sum, Case, When, IntegerField
@@ -16,6 +14,11 @@ form_status_map = ["Pending", "Rejected", "Flagged", "Approved"]
 
 group_delimiter = '/'
 
+
+def default(o):
+    if isinstance(o, (datetime.date, datetime.datetime)):
+        return o.isoformat()
+    return o
 
 def site_information(project_id):
     project = Project.objects.get(pk=project_id)
@@ -199,7 +202,7 @@ def form_submission(form_id):
     export_builder.BINARY_SELECT_MULTIPLES = False
     export_builder.set_survey(xform.data_dictionary().survey)
 
-    prefix = datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "__" + \
+    prefix = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "__" + \
             xform.id_string
     temp_file = NamedTemporaryFile(prefix=prefix, suffix=(".xls"))
     filter_query = {'$and': [{'fs_project_uuid': str(form_id)}, {'$or': [{
@@ -212,5 +215,12 @@ def form_submission(form_id):
 
     df = pd.read_excel(temp_file)
     values = df.values.tolist()
-    return values
+    clean_values = []
+    for row in values:
+        r = []
+        for v in row:
+            val = default(v)
+            r.append(val)
+        clean_values.append(row)
+    return clean_values
 
