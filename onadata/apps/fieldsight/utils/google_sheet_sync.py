@@ -16,8 +16,8 @@ group_delimiter = '/'
 
 
 def default(o):
-    if isinstance(o, (datetime.date, datetime.datetime)):
-        return o.isoformat()
+    if isinstance(o, (datetime.date, datetime.datetime, pd.Timestamp)):
+        return str(o)
     return o
 
 def site_information(project_id):
@@ -214,13 +214,14 @@ def form_submission(form_id):
                                  xform.id_string, filter_query)
 
     df = pd.read_excel(temp_file)
+    df = df.applymap(str)
     values = df.values.tolist()
-    clean_values = []
-    for row in values:
-        r = []
-        for v in row:
-            val = default(v)
-            r.append(val)
-        clean_values.append(row)
-    return clean_values
+    # clean_values = []
+    # for row in values:
+    #     r = []
+    #     for v in row:
+    #         val = default(v)
+    #         r.append(val)
+    #     clean_values.append(row)
+    return values
 
