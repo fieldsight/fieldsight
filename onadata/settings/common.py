@@ -485,7 +485,7 @@ BINARY_SELECT_MULTIPLES = False
 NA_REP = 'n/a'
 
 # Set wsgi url scheme to HTTPS
-os.environ['wsgi.url_scheme'] = 'https'
+os.environ['wsgi.url_scheme'] = 'http'
 
 SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'image/jpeg',
@@ -503,7 +503,7 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:
-    from fieldsight_settings import *  # nopep8
+    from local_settings import *  # nopep8
 except ImportError:
     pass
 

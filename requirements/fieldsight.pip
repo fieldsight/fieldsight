@@ -34,6 +34,7 @@ django-fcm==0.1.1
 django==1.8.19
 
 django-excel==0.0.10
+python-memcached==1.59
 
 
 
