@@ -66,22 +66,46 @@ class Command(BaseCommand):
 
         if report_type == "site_info":
             values = site_information(project)
+        if len(values) >= 10000:
+            total_sites = len(values)
+            page_size = 10000
+            page = 0
+            while total_sites > 0:
+                chunk = values[page * page_size:(page + 1) * page_size]
+                range = 'range=A{0}:EZ25000'.format((page * page_size) + 1)
+                print(range, "   ==========   range")
+                body = {'data': [{'majorDimension': 'ROWS',
+                                  'range': range,
+                                  'values': chunk
+                                  }],
+                        'valueInputOption': 'RAW'}
 
-        body = {'data': [{'majorDimension': 'ROWS',
-                          'range': range,
-                          'values': values
-                          }],
-                'valueInputOption': 'RAW'}
+                request = service.spreadsheets().values().batchUpdate(
+                    spreadsheetId=spreadsheet_id, body=body)
 
-        request = service.spreadsheets().values().batchUpdate(
-            spreadsheetId=spreadsheet_id, body=body)
+                response = request.execute()
+                pprint(response)
 
-        response = request.execute()
-        pprint(response)
+                self.stderr.write(
+                    '\nFinished {} '.format(page * page_size, )
+                )
+                total_sites -= page_size
+                page += 1
+        else:
+            body = {'data': [{'majorDimension': 'ROWS',
+                              'range': range,
+                              'values': values
+                              }],
+                    'valueInputOption': 'RAW'}
+
+            request = service.spreadsheets().values().batchUpdate(
+                spreadsheetId=spreadsheet_id, body=body)
+
+            response = request.execute()
+            pprint(response)
 
 
-        self.stderr.write(
-            '\nFinished {} '.format(
-                spreadsheet_id,)
-        )
+            self.stderr.write(
+                '\nFinished {} '.format(spreadsheet_id)
+            )
 
