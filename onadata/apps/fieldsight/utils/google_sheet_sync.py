@@ -1,5 +1,11 @@
-from onadata.apps.fieldsight.models import Project, Site
 
+from django.db.models import Sum, Case, When, IntegerField, Count
+from django.conf import settings
+
+from onadata.apps.fieldsight.models import Project, Site
+from onadata.apps.fsforms.models import FInstance
+
+form_status_map=["Pending", "Rejected", "Flagged", "Approved"]
 
 def site_information(project_id):
     project = Project.objects.get(pk=project_id)
@@ -36,3 +42,139 @@ def site_information(project_id):
         values.append(row)
 
     return values
+
+
+def progress_information(project_id):
+    project = Project.objects.get(pk=project_id)
+    data = []
+    ss_index = []
+    form_ids = []
+    stages_rows = []
+    head_row = ["Site ID", "Name", "Region ID", "Address", "Latitude",
+                "longitude", "Status", "Progress"]
+
+    query = {}
+
+    stages = project.stages.filter(stage__isnull=True)
+    for stage in stages:
+        sub_stages = stage.parent.filter(stage_forms__isnull=False)
+        if len(sub_stages):
+            head_row.append("Stage :" + stage.name)
+            stages_rows.append("Stage :" + stage.name)
+            ss_index.append(str(""))
+            for ss in sub_stages:
+                head_row.append("Sub Stage :" + ss.name)
+                ss_index.append(str(ss.stage_forms.id))
+                form_ids.append(str(ss.stage_forms.id))
+                query[str(ss.stage_forms.id)] = Sum(
+                    Case(
+                        When(
+                            site_instances__project_fxf_id=ss.stage_forms.id,
+                            then=1),
+                        default=0, output_field=IntegerField()
+                    ))
+
+    query['flagged'] = Sum(
+        Case(
+            When(site_instances__form_status=2,
+                 site_instances__project_fxf_id__in=form_ids, then=1),
+            default=0, output_field=IntegerField()
+        ))
+
+    query['rejected'] = Sum(
+        Case(
+            When(site_instances__form_status=1,
+                 site_instances__project_fxf_id__in=form_ids, then=1),
+            default=0, output_field=IntegerField()
+        ))
+
+    query['submission'] = Sum(
+        Case(
+            When(site_instances__project_fxf_id__in=form_ids, then=1),
+            default=0, output_field=IntegerField()
+        ))
+
+    head_row.extend(
+        ["Site Visits", "Submission Count", "Flagged Submission",
+         "Rejected Submission"])
+    data.append(head_row)
+
+    sites = Site.objects.filter(is_active=True)
+
+    sites_filter = {'project_id': project.id}
+    finstance_filter = {'project_fxf__in': form_ids}
+    site_dict = {}
+
+    # Redoing query because annotate and lat long did not go well in single query.
+    # Probable only an issue because of old django version.
+
+    for site_obj in sites.filter(**sites_filter).iterator():
+        site_dict[str(site_obj.id)] = {'visits': 0,
+                                       'site_status': 'No Submission',
+                                       'latitude': site_obj.latitude,
+                                       'longitude': site_obj.longitude}
+
+    sites_status = FInstance.objects.filter(
+        **finstance_filter).order_by('site_id', '-id').distinct(
+        'site_id').values_list('site_id', 'form_status')
+
+    for site_status in sites_status:
+        try:
+            site_dict[str(site_status[0])]['site_status'] = \
+            form_status_map[site_status[1]]
+        except:
+            pass
+    sites_status = None
+
+    site_visits = settings.MONGO_DB.instances.aggregate([{"$match": {
+        "fs_project": project.id,
+        "fs_project_uuid": {"$in": form_ids}}}, {"$group": {
+        "_id": {
+            "fs_site": "$fs_site",
+            "date": {"$substr": ["$start", 0, 10]}
+        },
+    }
+                                                         }, {"$group": {
+        "_id": "$_id.fs_site", "visits": {
+            "$push": {
+                "date": "$_id.date"
+            }
+        }
+        }}])['result']
+
+    for site_visit in site_visits:
+        try:
+            site_dict[str(site_visit['_id'])]['visits'] = len(
+                site_visit['visits'])
+        except:
+            pass
+
+    site_visits = None
+
+    sites = sites.filter(**sites_filter).values('id', 'identifier',
+                                                'name',
+                                                'region__identifier',
+                                                'address',
+                                                "current_progress").annotate(
+        **query)
+
+    for site in sites:
+        try:
+            site_row = [site['identifier'], site['name'],
+                        site['region__identifier'], site['address'],
+                        site_dict[str(site.get('id'))]['latitude'],
+                        site_dict[str(site.get('id'))]['longitude'],
+                        site_dict[str(site.get('id'))]['site_status'],
+                        site['current_progress']]
+
+            for stage in ss_index:
+                site_row.append(site.get(stage, ""))
+
+            site_row.extend([site_dict[str(site.get('id'))]['visits'],
+                             site['submission'], site['flagged'],
+                             site['rejected']])
+
+            data.append(site_row)
+        except Exception as e:
+            pass
+    return data

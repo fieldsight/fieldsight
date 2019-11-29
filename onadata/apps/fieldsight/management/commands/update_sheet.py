@@ -3,7 +3,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient import discovery
 from django.core.management.base import BaseCommand, CommandError
 
-from onadata.apps.fieldsight.utils.google_sheet_sync import site_information
+from onadata.apps.fieldsight.utils.google_sheet_sync import site_information, \
+    progress_information
 
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive',
@@ -66,6 +67,8 @@ class Command(BaseCommand):
 
         if report_type == "site_info":
             values = site_information(project)
+        elif report_type == "site_progress":
+            values = progress_information(project)
         if len(values) >= 10000:
             total_sites = len(values)
             page_size = 10000
