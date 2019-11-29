@@ -1,11 +1,21 @@
+import os
 
-from django.db.models import Sum, Case, When, IntegerField, Count
+import pandas as pd
+
+from datetime import datetime
+from django.core.files.temp import NamedTemporaryFile
+
+from django.db.models import Sum, Case, When, IntegerField
 from django.conf import settings
 
 from onadata.apps.fieldsight.models import Project, Site
-from onadata.apps.fsforms.models import FInstance
+from onadata.apps.fsforms.models import FInstance, FieldSightXF
+from onadata.libs.utils.export_tools import ExportBuilder, query_mongo
 
-form_status_map=["Pending", "Rejected", "Flagged", "Approved"]
+form_status_map = ["Pending", "Rejected", "Flagged", "Approved"]
+
+group_delimiter = '/'
+
 
 def site_information(project_id):
     project = Project.objects.get(pk=project_id)
@@ -178,3 +188,29 @@ def progress_information(project_id):
         except Exception as e:
             pass
     return data
+
+
+def form_submission(form_id):
+    fieldsight_xf = FieldSightXF.objects.get(pk=form_id)
+    xform = fieldsight_xf.xf
+    export_builder = ExportBuilder()
+    export_builder.GROUP_DELIMITER = group_delimiter
+    export_builder.SPLIT_SELECT_MULTIPLES = True
+    export_builder.BINARY_SELECT_MULTIPLES = False
+    export_builder.set_survey(xform.data_dictionary().survey)
+
+    prefix = datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "__" + \
+            xform.id_string
+    temp_file = NamedTemporaryFile(prefix=prefix, suffix=(".xls"))
+    filter_query = {'$and': [{'fs_project_uuid': str(form_id)}, {'$or': [{
+        '_deleted_at':{'$exists': False}}, {'_deleted_at': None}]}],
+                    '_deleted_at': {'$exists': False}}
+    # filter_query = {"fs_project_uuid": str(form_id)}
+    records = query_mongo(xform.user.username, xform.id_string, filter_query)
+    export_builder.to_xls_export(temp_file.name, records, xform.user.username,
+                                 xform.id_string, filter_query)
+
+    df = pd.read_excel(temp_file)
+    values = df.values.tolist()
+    return values
+

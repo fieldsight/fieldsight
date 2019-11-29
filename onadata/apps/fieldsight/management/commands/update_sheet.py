@@ -4,7 +4,7 @@ from googleapiclient import discovery
 from django.core.management.base import BaseCommand, CommandError
 
 from onadata.apps.fieldsight.utils.google_sheet_sync import site_information, \
-    progress_information
+    progress_information, form_submission
 
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive',
@@ -54,7 +54,6 @@ class Command(BaseCommand):
         range = options["range"]
         form_id = options["form_id"]
         report_type = options["report_type"]
-        form_id = None
 
         credentials = ServiceAccountCredentials.from_json_keyfile_name(
             'service_account.json', scope)
@@ -62,13 +61,13 @@ class Command(BaseCommand):
         service = discovery.build('sheets', 'v4', credentials=credentials)
 
         values = []
-        if form_id:
-            return
 
         if report_type == "site_info":
             values = site_information(project)
         elif report_type == "site_progress":
             values = progress_information(project)
+        elif report_type == "form":
+            values = form_submission(form_id)
         if len(values) >= 10000:
             total_sites = len(values)
             page_size = 10000
