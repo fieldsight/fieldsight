@@ -64,7 +64,7 @@ def process_delete_submission(xl, to_delete_sheet):
         submission_ids.append(df.values[i][0])
     result = FInstance.objects.filter(instance__id__in=submission_ids).update(is_deleted=True)
 
-    #settings.MONGO_DB.instances.update({"_id": {"$in": submission_ids}}, {"$set": {'_deleted_at':  datetime.datetime.now()}}, multi=True)
+    settings.MONGO_DB.instances.update({"_id": {"$in": submission_ids}}, {"$set": {'_deleted_at':  datetime.datetime.now()}}, multi=True)
     print(result)
 
 

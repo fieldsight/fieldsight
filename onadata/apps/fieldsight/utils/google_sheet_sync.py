@@ -168,7 +168,7 @@ def progress_information(project_id):
                         site['current_progress']]
 
             for stage in ss_index:
-                site_row.append(site.get(stage, ""))
+                site_row.append(site.get(stage, 0))
 
             site_row.extend([site_dict[str(site.get('id'))]['visits'],
                              site['submission'], site['flagged'],
