@@ -485,7 +485,7 @@ BINARY_SELECT_MULTIPLES = False
 NA_REP = 'n/a'
 
 # Set wsgi url scheme to HTTPS
-os.environ['wsgi.url_scheme'] = 'http'
+os.environ['wsgi.url_scheme'] = 'https'
 
 SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'image/jpeg',

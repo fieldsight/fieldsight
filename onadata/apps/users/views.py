@@ -520,7 +520,6 @@ def web_authenticate(username=None, password=None):
             print("username multiple", username)
             return None, False
 
-@csrf_exempt
 def web_login(request):
     reset = request.GET.get('reset')
 
