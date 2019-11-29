@@ -62,18 +62,18 @@ class GeneralFormSerializer(serializers.ModelSerializer):
 
     def get_responses_count(self, obj):
         is_project = self.context.get('project_id', False)
+
         if is_project:
-            # return obj.project_form_instances.count()
-            return obj.response_count\
-                if hasattr(obj, "response_count") else 0
+            return obj.project_form_instances.count()
+            # return obj.response_count if hasattr(obj, "response_count") else 0
         elif obj.project:
-            # return obj.project_form_instances.filter(self.context.get(
-            # 'site_id').count()
-            return obj.response_count\
-                if hasattr(obj, "response_count") else 0
+            site_id = self.context.get('site_id', False)
+            if not site_id:
+                return 0
+            return obj.project_form_instances.filter(site__id=site_id).count()
+            # project form view from site
         elif obj.site:
-            return obj.site_response_count\
-                if hasattr(obj, "site_response_count") else 0
+            return obj.site_form_instances.count()
 
 
 class GeneralProjectFormSerializer(serializers.ModelSerializer):
@@ -100,9 +100,7 @@ class GeneralProjectFormSerializer(serializers.ModelSerializer):
     def get_responses_count(self, obj):
         is_project = self.context.get('project_id', False)
         if is_project:
-            # return obj.project_form_instances.count()
-            return obj.responses_count\
-                if hasattr(obj, "responses_count") else 0
+            return obj.project_form_instances.count()
         return 0
 
 
@@ -233,7 +231,7 @@ class StageSerializer(serializers.ModelSerializer):
     def get_undeployed_count(self, obj):
         if hasattr(obj, "undeployed"):
             return obj.undeployed
-        return 1
+        return 0
 
 
 class SubStageSerializer(serializers.ModelSerializer):
@@ -248,23 +246,16 @@ class SubStageSerializer(serializers.ModelSerializer):
 
     def get_responses_count(self, obj):
         try:
-            request = self.context.get('request', False)
-            params = {}
-            if request:
-                params = request.query_params
-            site_id = False
-            if params.get("is_project", False):
-                if params.get("is_project") == "0":
-                    site_id = params.get("pk", False)
-
             fsxf = FieldSightXF.objects.get(stage=obj)
-
-            if fsxf.site is None:
-                if site_id:
-                    return fsxf.project_form_instances.filter(site=site_id).count()
+            params = self.context.get('params', {})
+            if params.get("project_id", False):
                 return fsxf.project_form_instances.count()
             else:
-                return fsxf.site_form_instances.count()
+                site_id = params.get("site_id")
+                if fsxf.project:
+                    return fsxf.project_form_instances.filter(site=site_id).count()
+                else:
+                    fsxf.site_form_instances.count()
 
         except FieldSightXF.DoesNotExist:
             return 0
@@ -299,8 +290,8 @@ class SubStageSerializer(serializers.ModelSerializer):
             return SettingsSerializerSubStage(obj.stage_forms.settings).data
         except:
             return {
-                "types": [],
-                "regions": [],
+                "types": obj.tags,
+                "regions": obj.regions,
                 "donor_visibility": False,
                 "can_edit": False,
                 "can_delete": False,
@@ -320,38 +311,61 @@ class SubStageSerializer(serializers.ModelSerializer):
         default_submission_status = self.context['request'].data.get(
             'default_submission_status', 0)
         xform = False
+        fsxf = None
         if xf and xf != '':
             xform = XForm.objects.get(pk=xf)
         stage = super(SubStageSerializer, self).update(instance, validated_data)
         if xform:
-            old_form = stage.stage_forms
-            if old_form.xf.id == xform.id:
-                old_form.default_submission_status =\
-                    default_submission_status
-                old_form.save()
-                setting = self.context['request'].data.get('setting')
-                if setting:
-                    setting.update({"form": stage.stage_forms.id})
-                    if not setting.get('id'):
+            try:
+                old_form = stage.stage_forms
+                if old_form.xf.id == xform.id:
+                    old_form.default_submission_status = \
+                        default_submission_status
+                    old_form.save()
+                    fsxf = old_form
+                    setting = self.context['request'].data.get('setting')
+                    if setting:
+                        setting.update({"form": fsxf.id})
+                        if not setting.get('id'):
+                            settings_serializer = SettingsSerializerSubStage(data=setting)
+                        else:
+                            settings_serializer = SettingsSerializerSubStage(fsxf.settings, data=setting,
+                                                                                partial=True)
+                        if settings_serializer.is_valid():
+                            setting_obj = settings_serializer.save(user=request.user)
+                            stage.tags = setting_obj.types
+                            stage.regions = setting_obj.regions
+                            stage.save()
+                    return stage
+                else:
+                    old_form.is_deleted = True
+                    old_form.stage = None
+                    old_form.save()
+                    fsxf = FieldSightXF.objects.create(xf=xform,
+                                                       site=stage.stage.site,
+                                                       project=stage.stage.project,
+                                                       is_staged=True, stage=stage,
+                                                       default_submission_status=
+                                                       default_submission_status)
+                    setting = self.context['request'].data.get('setting')
+                    if setting:
+                        setting.update({"form": fsxf.id})
+                        if setting.get("id"):
+                            del setting['id']
                         settings_serializer = SettingsSerializerSubStage(data=setting)
-                    else:
-                        settings_serializer = SettingsSerializerSubStage(instance.stage_forms.settings,
-                                                                         data=setting, partial=True)
-                    if settings_serializer.is_valid():
-                        setting_obj = settings_serializer.save(user=request.user)
-                        stage.tags = setting_obj.types
-                        stage.regions = setting_obj.regions
-                        stage.save()
-            else:
-                old_form.is_deleted = True
-                old_form.stage = None
-                old_form.save()
+                        if settings_serializer.is_valid():
+                            setting_obj = settings_serializer.save(user=request.user)
+                            stage.tags = setting_obj.types
+                            stage.regions = setting_obj.regions
+                            stage.save()
+                    return stage
+            except Exception as e:
                 fsxf = FieldSightXF.objects.create(xf=xform,
-                                            site=stage.stage.site,
-                                            project=stage.stage.project,
-                                            is_staged=True, stage=stage,
-                                            default_submission_status=
-                                            default_submission_status)
+                                                   site=stage.stage.site,
+                                                   project=stage.stage.project,
+                                                   is_staged=True, stage=stage,
+                                                   default_submission_status=
+                                                   default_submission_status)
                 setting = self.context['request'].data.get('setting')
                 if setting:
                     setting.update({"form": fsxf.id})
@@ -363,25 +377,10 @@ class SubStageSerializer(serializers.ModelSerializer):
                         stage.tags = setting_obj.types
                         stage.regions = setting_obj.regions
                         stage.save()
-            # except:
-            #     if xform:
-            #         fsxf = FieldSightXF.objects.create(xf=xform,
-            #                                     site=stage.stage.site,
-            #                                     project=stage.stage.project,
-            #                                     is_staged=True,
-            #                                     stage=stage,
-            #                                     default_submission_status=
-            #                                     default_submission_status)
-            #         setting = self.context['request'].data.get('setting')
-            #         if setting:
-            #             setting.update({"form": fsxf.id})
-            #             del setting['id']
-            #             settings_serializer = SettingsSerializerSubStage(data=setting)
-            #             if settings_serializer.is_valid():
-            #                 setting_obj = settings_serializer.save(user=self.request.user)
-            #                 stage.tags = setting_obj.types
-            #                 stage.regions = setting_obj.regions
-            #                 stage.save()
+                return stage
+        else:
+            #no stages form in edit no form before also
+            pass
         return stage
 
 

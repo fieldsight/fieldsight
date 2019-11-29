@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.gis.geos import Point
 
 from rest_framework import viewsets, status
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -15,9 +16,12 @@ from rest_framework.views import APIView
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
+from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
+from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermission
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
-from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, ProgressGeneralFormSerializer, \
-    ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer
+from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
+    ProgressGeneralFormSerializer, ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer, \
+    SitelistForMetasLinkSerializer
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import Instance
@@ -52,7 +56,7 @@ class ProjectProgressTableViewSet(APIView):
         schedules_queryset = Schedule.objects.select_related('project').prefetch_related('schedule_forms')\
             .filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
                     schedule_forms__isnull=False, schedule_forms__xf__isnull=False)
-        schedules = ProgressScheduledFormSerializer(schedules_queryset, many=True)
+        schedules = ProgressScheduledFormSerializer(schedules_queryset, many=True, context={'project_id': project_id})
 
         stages_queryset = Stage.objects.select_related('project').filter(stage__isnull=True, project_id=project_id, stage_forms__isnull=True).\
             order_by('order')
@@ -123,10 +127,11 @@ class SiteFormViewSet(viewsets.ModelViewSet):
         regions = Region.objects.filter(is_active=True, project=project).values('id', 'name')
         if project.cluster_sites:
             return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
-                                                         'regions': regions, 'location': str(location)})
+                                                         'regions': regions, 'location': str(location),
+                                                             'project_id': project.id})
         else:
             return Response(status=status.HTTP_200_OK, data={'json_questions': json_questions, 'site_types': site_types,
-                                                             'location': str(location)})
+                                                             'location': str(location), 'project_id': project.id})
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -141,17 +146,30 @@ class SiteFormViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        existing_identifier = Site.objects.filter(identifier=request.data.get('identifier'),
+                                                  project_id=request.query_params.get('project'))
+        if existing_identifier:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'Your identifier "' +
+                                                                                request.data.get('identifier')
+                                                                                + '" conflict with existing site '
+                                                                                  'please use different identifier '
+                                                                                  'to create site.'})
+
         serializer.is_valid(raise_exception=True)
         instance = self.perform_create(serializer)
         longitude = request.data.get('longitude', None)
         latitude = request.data.get('latitude', None)
         site = request.data.get('site', None)
-        if instance.site_meta_attributes_ans:
-            instance.all_ma_ans.update(json.loads(instance.site_meta_attributes_ans))
-            instance.save()
+        instance.save()
+
         if latitude and longitude is not None:
             p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
             instance.location = p
+            instance.save()
+
+        if instance.site_meta_attributes_ans:
+            metas = get_site_meta_ans(instance.id)
+            instance.all_ma_ans = metas
             instance.save()
         if site is not None:
             instance.logs.create(source=self.request.user, type=110, title="new sub Site", site=instance.site,
@@ -171,6 +189,16 @@ class SiteFormViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        previous_identifier = instance.identifier
+
+        existing_identifier = Site.objects.filter(identifier=request.data.get('identifier'),
+                                                  project_id=instance.project_id)
+        check_identifier = previous_identifier == request.data.get('identifier')
+
+        if not check_identifier and existing_identifier:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'Your identifier "' + request.data.get(
+                'identifier') + '" conflict with existing site please use different identifier to update site'})
+
         old_meta = instance.site_meta_attributes_ans
 
         serializer = self.get_serializer(instance, data=request.data)
@@ -184,11 +212,13 @@ class SiteFormViewSet(viewsets.ModelViewSet):
             p = Point(round(float(longitude), 6), round(float(latitude), 6), srid=4326)
             instance.location = p
             instance.save()
+        instance.save()
 
         new_meta = json.loads(instance.site_meta_attributes_ans)
 
         if instance.site_meta_attributes_ans:
-            instance.all_ma_ans.update(new_meta)
+            metas = get_site_meta_ans(instance.id)
+            instance.all_ma_ans = metas
             instance.save()
 
         extra_json = None
@@ -258,5 +288,11 @@ class SiteFormViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class SitelistForMetasLink(viewsets.ModelViewSet):
+    queryset = Site.objects.all()
+    serializer_class = SitelistForMetasLinkSerializer
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = (SiteUnderProjectPermission,)
 
-
+    def filter_queryset(self, queryset):
+        return queryset.filter(project__id=self.kwargs.get('pk', None))

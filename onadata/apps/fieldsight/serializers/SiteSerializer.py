@@ -209,7 +209,7 @@ class SuperMinimalSiteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Site
-        fields = ('id','label', 'identifier',)
+        fields = ('id', 'label', 'identifier',)
 
 class RegionSerializer(serializers.ModelSerializer):
     get_sites_count = serializers.ReadOnlyField()

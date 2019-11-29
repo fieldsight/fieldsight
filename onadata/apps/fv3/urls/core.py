@@ -11,7 +11,7 @@ from onadata.apps.fv3.urls.team_dashboard import team_dashboard_urlpatterns
 from onadata.apps.fv3.urls.team_settings import team_settings_urlpatterns
 from onadata.apps.fv3.urls.view_by_forms_status import view_by_forms_status_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
-    ProjectDefineSiteMeta, ProjectSitesViewset, check_region, project_sites_vt
+    ProjectDefineSiteMeta, ProjectSitesViewset, check_region, project_sites_vt, forms_breadcrumbs
 
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, \
     MyProjectFormsViewSet, ShareFormViewSet, \
@@ -22,8 +22,9 @@ from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, \
 
 from onadata.apps.fv3.viewsets.ReportViewsets import ReportVs
 
-from onadata.apps.fv3.viewsets.SubmissionViewSet import AlterSubmissionStatusViewSet, SubmissionAnswerViewSet, \
-    SubmissionViewSet
+from onadata.apps.fv3.viewsets.SubmissionViewSet import \
+    AlterSubmissionStatusViewSet, SubmissionAnswerViewSet, \
+    SubmissionViewSet, MySubmissions, MySubmissionsV2
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
     ProjectSitesListViewSet, SubSitesListViewSet
 
@@ -82,9 +83,14 @@ urlpatterns = [
     url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list'}), name='teams'),
     url(r'^api/team-form/$', TeamFormViewset.as_view({'post': 'create'}), name='team_form'),
     url(r'^api/forms/$', FormsView.as_view(), name='forms'),
+    url(r'^api/my/submissions/$', MySubmissions.as_view({'get': 'list'}), name='mysubs'),
+    url(r'^api/v2/my/submissions/$', MySubmissionsV2.as_view({'get': 'list'}),
+        name='mysubsv2'),
 
-    url(r'^api/project/sites-vt/(?P<pk>\d+)/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', project_sites_vt, name='project_sites_vt'),
+    url(r'^api/project/sites-vt/(?P<pk>\d+)/(?P<zoom>\d+)/(?P<x>\d+)/(?P<y>\d+)/$', project_sites_vt,
+        name='project_sites_vt'),
 
+    url(r'^api/site-forms-breadcrumbs/$', forms_breadcrumbs, name='forms_breadcrumbs'),
 ]
 
 urlpatterns += progress_urlpatterns

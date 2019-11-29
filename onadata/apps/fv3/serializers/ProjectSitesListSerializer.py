@@ -1,6 +1,8 @@
+from django.db.models import Q
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Site
+from onadata.apps.fsforms.models import FInstance
 
 FORM_STATUS = {0: 'Pending', 1: "Rejected", 2: 'Flagged', 3: 'Approved'}
 
@@ -19,17 +21,21 @@ class ProjectSitesListSerializer(serializers.ModelSerializer):
                   'progress', 'type', 'status', 'weight')
 
     def get_submissions(self, obj):
-        response = obj.get_site_submission_count()
-        submissions = response['outstanding'] + response['flagged'] + response['approved'] + response['rejected']
+        queryset = FInstance.objects.order_by('-date')
+        total_sites = list(obj.sub_sites.values_list('id', flat=True))
+        total_sites.append(obj.id)
+        submissions = queryset.filter(site__in=total_sites).count()
 
         return submissions
 
     def get_status(self, obj):
 
+        total_sites = list(obj.sub_sites.values_list('id', flat=True))
+        total_sites.append(obj.id)
+        sites_subsite_instances = FInstance.objects.filter(site__in=total_sites)
         try:
-            if obj.site_instances.all():
-
-                return FORM_STATUS[obj.site_instances.all().order_by('-date')[0].form_status]
+            if sites_subsite_instances:
+                return FORM_STATUS[sites_subsite_instances.order_by('-date')[0].form_status]
         except:
             return None
 

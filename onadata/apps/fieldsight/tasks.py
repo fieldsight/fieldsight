@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import copy
 import time
 import re 
-import os
 import json
 import datetime
 import gc
@@ -12,12 +11,14 @@ from datetime import date
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, ProjectType, ProgressSettings, SiteMetaAttrAnsHistory
+from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType,\
+    ProgressSettings, SiteMetaAttrAnsHistory
 from onadata.apps.fieldsight.utils.progress import set_site_progress
-from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict
+from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos, \
+    bulk_update_sites_all_location, bulk_upload_json_site_all_ma, update_site_meta_ans
+
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
-from channels import Group as ChannelGroup
 from django.contrib.auth.models import User, Group
 from onadata.apps.fieldsight.fs_exports.formParserForExcelReport import parse_form_response
 from io import BytesIO
@@ -27,23 +28,16 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Prefetch, F
 from .generatereport import PDFReport
-import os, tempfile, zipfile, dateutil
-from django.conf import settings
+import os, dateutil
 
-from django.http import HttpResponse
-from django.core.servers.basehttp import FileWrapper
 from openpyxl import Workbook
 
-from openpyxl.styles import Font
-
 from django.core.files.storage import get_storage_class
-from onadata.libs.utils.viewer_tools import get_path
 from PIL import Image
 import tempfile, zipfile
 
 from onadata.libs.utils.viewer_tools import get_path
 import pyexcel as p
-from .metaAttribsGenerator import get_form_answer, get_form_sub_status, get_form_submission_count, get_form_ques_ans_status
 from django.conf import settings
 from django.db.models import Sum, Case, When, IntegerField, Count
 from django.core.exceptions import MultipleObjectsReturned
@@ -51,14 +45,12 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.utils import timezone
 
 from dateutil.rrule import rrule, MONTHLY, DAILY
 from django.db import connection                                         
 from onadata.apps.logger.models import Instance, Attachment
 from onadata.apps.fieldsight.fs_exports.log_generator import log_types
 
-from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.fsforms.reports_util import get_images_for_site_all
@@ -218,7 +210,8 @@ def site_download_zipfile(task_prog_obj_id, size):
                     img=Image.open(file)
                     img.save(temp, img.format)
                     # filename = '/srv/fieldsight/fieldsight-kobocat'+url['_attachments']['filename'] # Select your files here.                           
-                    archive.write(temp.name, url['_attachments']['filename'].split('/')[2])
+                    archive.write(temp.name, url['_attachments'][
+                        'filename'].split('/')[-1])
                     
         archive.close()
         buffer.seek(0)
@@ -244,6 +237,7 @@ def site_download_zipfile(task_prog_obj_id, size):
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()                                                                      
 
+
 @shared_task(time_limit=300, soft_time_limit=300)
 def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, region_ids, sync_to_drive=False):
     time.sleep(5)
@@ -256,13 +250,13 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         ss_index = []
         form_ids = []
         stages_rows = []
-        head_row = ["Site ID", "Name", "Region ID", "Address", "Latitude", "longitude", "Status"]
+        head_row = ["Site ID", "Name", "Region ID", "Address", "Latitude", "longitude", "Status", "Progress"]
 
-        query={}
+        query = {}
         
         stages = project.stages.filter(stage__isnull=True)
         for stage in stages:
-            sub_stages = stage.parent.all()
+            sub_stages = stage.parent.filter(stage_forms__isnull=False)
             if len(sub_stages):
                 head_row.append("Stage :"+stage.name)
                 stages_rows.append("Stage :"+stage.name)
@@ -331,16 +325,16 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         sites_status = None
         gc.collect()
         
-        site_visits = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": project.id, "fs_project_uuid": {"$in":form_ids}}},  { "$group" : { 
-              "_id" :  { 
+        site_visits = settings.MONGO_DB.instances.aggregate([{"$match":{"fs_project": project.id, "fs_project_uuid": {"$in":form_ids}}},  { "$group" : {
+              "_id" :  {
                 "fs_site": "$fs_site",
                 "date": { "$substr": [ "$start", 0, 10 ] }
               },
            }
-         }, { "$group": { "_id": "$_id.fs_site", "visits": { 
-                  "$push": { 
+         }, { "$group": { "_id": "$_id.fs_site", "visits": {
+                  "$push": {
                       "date":"$_id.date"
-                  }          
+                  }
              }
          }}])['result']
 
@@ -354,12 +348,12 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         gc.collect()
 
         
-        sites = sites.filter(**sites_filter).values('id','identifier', 'name', 'region__identifier', 'address').annotate(**query)
+        sites = sites.filter(**sites_filter).values('id','identifier', 'name', 'region__identifier', 'address', "current_progress").annotate(**query)
         
         for site in sites:
             # import pdb; pdb.set_trace();
             try:
-                site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'], site_dict[str(site.get('id'))]['latitude'], site_dict[str(site.get('id'))]['longitude'], site_dict[str(site.get('id'))]['site_status']]
+                site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'], site_dict[str(site.get('id'))]['latitude'], site_dict[str(site.get('id'))]['longitude'], site_dict[str(site.get('id'))]['site_status'], site['current_progress']]
                 
                 for stage in ss_index:
                     site_row.append(site.get(stage, ""))
@@ -626,6 +620,20 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 
                 if region_idf is not None:
                     region = Region.objects.get(identifier=str(region_idf), project = project)
+
+                root_site_identifier = site.get('root_site_identifier', None)
+                print(root_site_identifier)
+                if root_site_identifier:
+                    root_site = Site.objects.filter(identifier=root_site_identifier, project=project)
+                    # print("root site ", root_site)
+                    if root_site:
+                        root_site = root_site[0]
+                        # print("root enable sub site", root_site.enable_subsites, root_site.id)
+                        if root_site.enable_subsites:
+                            # print("root enable sub site", root_site.enable_subsites)
+                            _site.site = root_site
+                # else:
+                #     _site.site = None
                         
                 _site.region = region
                 _site.name = site.get("name")
@@ -635,6 +643,9 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 _site.additional_desc = site.get("additional_desc")
                 _site.location = location
                 # _site.logo = "logo/default_site_image.png"
+                progress_value = site.get("progress")
+                if progress_value:
+                    _site.current_progress = int(progress_value)
 
                 meta_ques = project.site_meta_attributes
 
@@ -725,239 +736,72 @@ def siteDetailsGenerator(project, sites, ws):
                            {'id': 'public_desc','name':'public_desc'},
                            {'id': 'additional_desc','name':'additional_desc'},
                            {'id': 'latitude','name':'latitude'},
-                           {'id': 'longitude','name':'longitude'}, ]
-        
+                           {'id': 'longitude','name':'longitude'},
+                           {'id': 'progress','name':'progress'},
+                           {'id': 'root_site_identifier','name':'root_site_identifier'}, ]
+
         if project.cluster_sites:
             header_columns += [{'id':'region_identifier', 'name':'region_id'}, ]
         
         meta_ques = project.site_meta_attributes
         for question in meta_ques:
-            header_columns += [{'id': question['question_name'], 'name':question['question_name']}]
-        
-        
-        get_answer_questions = []
-        get_sub_count_questions = []
-        get_sub_status_questions = []   
-        get_answer_status_questions = []
+            if not question['question_type'] == 'Link':
+                header_columns += [{'id': question['question_name'], 'name': question['question_name']}]
+            else:
+                question_name = question['question_name']
+                try:
+                    link_metas = question['metas'].values()[0]
+                except:
+                    link_metas = []
+                for link_question in link_metas:
+                    if not link_question['question_type'] == 'Link': # ignore links of links
+                        header_columns += [{
+                            'id': question_name + "/" + link_question['question_name'],
+                            'name': question_name + "/" + link_question['question_name']
+                        }]
 
         site_list = {}
-        meta_ref_sites = {}
-        site_submission_count = {}
-        site_sub_status = {}
-
-        
-        for meta in meta_ques: 
-            if meta['question_type'] == 'FormSubStat':
-                get_sub_status_questions.append(meta)
-
-            elif meta['question_type'] == 'FormSubCountQuestion':
-                get_sub_count_questions.append(meta)
-
-
-        if get_sub_count_questions:
-            query = {}
-            for meta in get_sub_count_questions:
-                query[meta['question_name']] = Sum(
-                                        Case(
-                                            When(site_instances__project_fxf_id=meta['form_id'], then=1),
-                                            default=0, output_field=IntegerField()
-                                        ))
-            results = sites.values('id',).annotate(**query)
-            for submission_count in results:
-                site_submission_count[submission_count['id']] = submission_count
-
-        if get_sub_status_questions:
-            query = {}
-            for meta in get_sub_status_questions:
-                for submission in FInstance.objects.filter(project_id=project.id, project_fxf_id=meta['form_id']).values('site_id', 'date').distinct('site_id').order_by('site_id', '-instance_id'):
-                    try:
-                        site_sub_status[meta['form_id']][submission['site_id']] = "Last submitted on " + submission['date'].strftime("%d %b %Y %I:%M %P")
-                    except:
-                        site_sub_status[meta['form_id']] = {submission['site_id']:"Last submitted on " + submission['date'].strftime("%d %b %Y %I:%M %P")}
-
-        #Optimized query, only one query per link type meta attribute which covers all site's answers.
-
-        def generate(project_id, site_map, meta, identifiers, selected_metas):
-            project_id = str(project_id)
-            sub_meta_ref_sites = {}
-            sub_site_map = {}
-            
-            sitesnew = Site.objects.filter(identifier__in = identifiers, project_id = project_id)
-            
-            for site in sitesnew.iterator():
-                if project_id == str(project.id):
-                    continue
-            
-                identifier = site_map.get(site.identifier)
-                  
-                if not site.site_meta_attributes_ans:
-                    meta_ans = {}
-                else:
-                    meta_ans = site.site_meta_attributes_ans
-
-                for meta in selected_metas.get(project_id, []):
-                    
-                    if meta.get('question_type') == "Link":
-                        link_answer=str(meta_ans.get(meta.get('question_name'), ""))
-                        if link_answer != "":    
-                            if meta['question_name'] in sub_site_map:
-                                if site.identifier in sub_site_map[meta['question_name']]:
-                                    sub_site_map[meta['question_name']][link_answer].append(identifier)
-                                else:
-                                    sub_site_map[meta['question_name']][link_answer] = [identifier]
-                            else:
-                                sub_site_map[meta['question_name']] = {}
-                                sub_site_map[meta['question_name']][link_answer] = [identifier]
-                            
-                            for idf in identifier:
-                                if meta['question_name'] in sub_meta_ref_sites:
-                                    sub_meta_ref_sites[meta['question_name']].append(meta_ans.get(meta['question_name']))
-                                else:
-                                    sub_meta_ref_sites[meta['question_name']] = [meta_ans.get(meta['question_name'])]
-
-                    else:
-                        for idf in identifier:
-                            site_list[idf][project_id+"-"+meta.get('question_name')] = meta_ans.get(meta.get('question_name'), "")
-            
-            del sitesnew
-            gc.collect()
-
-            for meta in selected_metas.get(project_id, []):
-                head = header_columns
-                head += [{'id':project_id+"-"+meta.get('question_name'), 'name':meta.get('question_text')}]
-                if meta.get('question_type') == "Link":
-                    generate(meta['project_id'], sub_site_map.get(meta['question_name'], []), meta, sub_meta_ref_sites.get(meta['question_name'], []), selected_metas)
-
-
         for site in sites.select_related('region').iterator():
-            
+            root_site_identifier = None
+            if site.site:
+                root_site_identifier = site.site.identifier
             columns = {'identifier':site.identifier, 'name':site.name, 'site_type_identifier':site.type.identifier if site.type else "", 'phone':site.phone, 'address':site.address, 'public_desc':site.public_desc, 'additional_desc':site.additional_desc, 'latitude':site.latitude,
-                       'longitude':site.longitude, }
-            
+                       'longitude':site.longitude, 'progress':site.current_progress, 'root_site_identifier':root_site_identifier }
+
             if project.cluster_sites:
                 columns['region_identifier'] = site.region.identifier if site.region else ""
-            
-            meta_ques = project.site_meta_attributes
-            meta_ans = site.site_meta_attributes_ans
+
+            meta_ans = site.all_ma_ans
             for question in meta_ques:
-                if question['question_type'] == 'FormSubCountQuestion':
-                    columns[question['question_name']] = site_submission_count[site.id][question['question_name']]
-                elif question['question_type'] == 'FormSubStat':
-                    columns[question['question_name']] = site_sub_status[question['form_id']].get(site.id, '') if question['form_id'] in site_sub_status else ''
-                elif question['question_type'] in ['Form','FormQuestionAnswerStatus']:
-                    columns[question['question_name']] = ""
-
+                if not question['question_type'] == 'Link':
+                    # question is not draw from another project
+                    question_name = question['question_name']
+                    columns[question_name] = meta_ans.get(question_name, "")
                 else:
-                    if question['question_name'] in meta_ans:
-                        columns[question['question_name']] = meta_ans[question['question_name']]
+                    question_name = question['question_name']
+                    # question is draw from another project
+                    # check answer is dict with children key
+                    linked_answer = meta_ans.get(question_name, "")
+                    if isinstance(linked_answer, dict):
+                        children = linked_answer['children']
+                        for k, v in children.items():
+                            columns[question_name + "/" + k] = v
+                    # else:
+                    #     # no site referenced
+                    #     # default empty answer
+                    #     try:
+                    #         link_metas = question['metas'].values()[0]
+                    #     except:
+                    #         link_metas = []
+                    #     for link_question_of_link_metas in link_metas:
+                    #         if not link_question_of_link_metas['question_type'] == 'Link':
+                    #             columns[question_name + "/" + link_question_of_link_metas['question_name']] = ""
 
-                        if question['question_type'] == "Link" and meta_ans[question['question_name']] != "":
-                            if question.get('question_name') in meta_ref_sites:
-                                meta_ref_sites[question.get('question_name')].append(meta_ans[question['question_name']])
-                            else:
-                                meta_ref_sites[question.get('question_name')] = [meta_ans[question['question_name']]]
-                    
-                    else:
-                        columns[question['question_name']] = '-'
-            
             site_list[site.id] = columns
-        
+
         del sites
         gc.collect()
 
-        for meta in meta_ques:
-            if meta['question_type'] == "Link":
-                site_map = {}
-                for key, value in site_list.items():
-                    if value[meta['question_name']] != "":
-                        identifier = str(value.get(meta['question_name']))
-                        if identifier in site_map:
-                            site_map[identifier].append(key)
-                        else:
-                            site_map[identifier] = [key]
-                
-                generate(meta['project_id'], site_map, meta, meta_ref_sites.get(meta['question_name'], []), meta.get('metas'))
-
-            elif meta['question_type'] == 'Form':
-                get_answer_questions.append(meta)
-
-            elif meta['question_type'] == 'FormQuestionAnswerStatus':
-                get_answer_status_questions.append(meta)
-                    
-        for meta in get_answer_questions:
-            form_owner = None
-            if "/" in meta['question']['name']:
-                group_name = meta['question']['name'].split("/")[0]
-                query = settings.MONGO_DB.instances.aggregate([
-                    {"$sort": {"_id": 1}},
-                    {"$match": {"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}}, {
-                        "$group": {
-                            "_id": "$fs_site",
-                            "answer": {'$last': "$" + group_name}
-                        }
-                    }])
-
-                for submission in query['result']:
-                    try:
-                        if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
-                            if not form_owner:
-                                form_owner = FieldSightXF.objects.select_related('xf__user').get(
-                                    pk=meta['form_id']).xf.user.username
-                            site_list[int(submission['_id'])][meta[
-                                'question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file=' + +'/attachments/' + \
-                                                    submission['answer'][0][meta['question']['name']]
-
-
-                        if meta['question']['type'] == 'repeat':
-                            site_list[int(submission['_id'])][meta['question_name']] = ""
-
-                        site_list[int(submission['_id'])][meta['question_name']] = submission['answer'][0][meta['question']['name']]
-                    except:
-                        pass
-            else:
-                query = settings.MONGO_DB.instances.aggregate([
-                    {"$sort":{"_id":1}},
-                    {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
-                    "_id" : "$fs_site",
-                    "answer": { '$last': "$"+meta['question']['name'] }
-                   }
-                 }])
-
-                for submission in query['result']:
-                    try:
-                        if meta['question']['type'] in ['photo', 'video', 'audio'] and submission['answer'] is not "":
-                            if not form_owner:
-                                form_owner = FieldSightXF.objects.select_related('xf__user').get(pk=meta['form_id']).xf.user.username
-                            site_list[int(submission['_id'])][meta['question_name']] = 'http://app.fieldsight.org/attachment/medium?media_file='+  +'/attachments/'+submission['answer']
-
-                        if meta['question']['type'] == 'repeat':
-                            site_list[int(submission['_id'])][meta['question_name']] = ""
-
-                        site_list[int(submission['_id'])][meta['question_name']] = submission['answer']
-                    except:
-                        pass
-
-        for meta in get_answer_status_questions:
-        
-            query = settings.MONGO_DB.instances.aggregate([
-                {"$sort": {"_id": 1}},
-                {"$match":{"fs_project": project.id, "fs_project_uuid": str(meta['form_id'])}},  { "$group" : {
-                "_id" : "$fs_site",
-                "answer": { '$last': "$"+meta['question']['name'] }
-               }
-             }])
-
-            for submission in query['result']:
-                try:
-                    if submission['answer'] and submission['answer'] != "":
-                        site_list[int(submission['_id'])][meta['question_name']] = "Answered"
-                    else:
-                        site_list[int(submission['_id'])][meta['question_name']] = "Not Answered"
-                except:
-                    pass
-                    
-        row_num = 0
-        
         header_row=[]
         for col_num in range(len(header_columns)):
             # header_cell=WriteOnlyCell(ws, value=header_columns[col_num]['name'])
@@ -2076,7 +1920,7 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
     task.content_object = obj
     task.save()
 
-    try: 
+    if True:
         buffer = BytesIO()
         data = []
         index = {}
@@ -2087,7 +1931,12 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
         end = date(int(split_enddate[0]), int(split_enddate[1]), int(split_enddate[2]))
 
         new_enddate = end + datetime.timedelta(days=1)
-        queryset = FieldSightLog.objects.select_related('source__user_profile').filter(recipient=None, date__range=[new_startdate, new_enddate]).exclude(type__in=[23, 29, 30, 32, 35])
+        queryset = FieldSightLog.objects.filter(
+            Q(event_name__isnull=False) |
+            Q(type__in=[16, 17, 18, 19, 31, 33, 34],
+              event_name__isnull=False, event_name__contains='form')
+        ).select_related('source__user_profile').filter(
+            recipient=None, date__range=[new_startdate, new_enddate]).exclude(type__in=[23, 29, 30, 32, 35])
         
         wb = Workbook()
         ws = wb.active
@@ -2124,7 +1973,7 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
                 for item in value:
                     query |= (Q(type=15) & Q(content_type=content_site) & Q(object_id=key) & Q(extra_json__contains='"'+item +'":'))
 
-            logs = queryset.filter(query)            
+            logs = queryset.filter(query)
         
         local_log_types = log_types
 
@@ -2162,18 +2011,16 @@ def exportLogs(task_prog_obj_id, pk, reportType, start_date, end_date):
         noti = task.logs.create(source=task.user, type=32, title="Xls "+ reportType +" Logs Report generation",
                                  recipient=task.user, content_object=task, extra_object=obj,
                                  extra_message=" <a href='"+ task.file.url +"'>Xls "+ reportType +" statistics report</a> generation in ")
-# user = User.objects.get(username="fsadmin")
-# exportLogs( 2143, user , 137, "Project", "2018-08-11", "2018-12-12")
-    except Exception as e:
-        task.description = "ERROR: " + str(e.message) 
-        task.status = 3
-        task.save()
-        print 'Report Gen Unsuccesfull. %s' % e
-        print e.__dict__
-        noti = task.logs.create(source=task.user, type=432, title="Xls "+ reportType +" logs report generation in ",
-                                       content_object=obj, recipient=task.user,
-                                       extra_message="@error " + u'{}'.format(e.message))
-        buffer.close()
+    # except Exception as e:
+    #     task.description = "ERROR: " + str(e.message)
+    #     task.status = 3
+    #     task.save()
+    #     print 'Report Gen Unsuccesfull. %s' % e
+    #     print e.__dict__
+    #     noti = task.logs.create(source=task.user, type=432, title="Xls "+ reportType +" logs report generation in ",
+    #                                    content_object=obj, recipient=task.user,
+    #                                    extra_message="@error " + u'{}'.format(e.message))
+    #     buffer.close()
 
 
 @shared_task(time_limit=120, soft_time_limit=120)
@@ -2750,8 +2597,11 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
             question_name = site_picture['question'].get('name', '')
             logo_url = get_submission_answer_by_question(instance.json, question_name)
             if logo_url:
-                attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
-                site.logo = attachment.media_file
+                try:
+                    attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                    site.logo = attachment.media_file
+                except:
+                    print("attachemnt not found for site logo",  logo_url)
 
         site_loc = fs_proj_xf.project.site_basic_info.get('site_location', None)
         if site_loc and site_loc.get('question_type', '') == 'Form' and site_loc.get('form_id', 0) == fs_proj_xf.id and site_loc.get('question', {}):
@@ -2768,10 +2618,13 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 logo_url = instance.json.get(question_name)
                 if logo_url:
                     attachments = {}
-                    attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
-                    attachments['_attachments'] = attachment.media_file.url
-                    attachments['_id'] = instance.id
-                    site.site_featured_images[question_name] = attachments
+                    try:
+                        attachment = Attachment.objects.get(instance=instance, media_file_basename=logo_url)
+                        attachments['_attachments'] = attachment.media_file.url
+                        attachments['_id'] = instance.id
+                        site.site_featured_images[question_name] = attachments
+                    except:
+                        pass
         site.save()
 
         # change site meta attributes answer
@@ -2789,7 +2642,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 meta_ans[item['question_name']] = answer
                 all_ma_ans[item['question_name']] = answer
 
-            elif item.get('question_type') == 'FormSubStat' and str(fs_proj_xf.id) == item.get('form_id', 0):
+            elif item.get('question_type') == 'FormSubStat' and fs_proj_xf.id == item.get('form_id', 0):
                 if instance.date_modified:
                     answer = "Last submitted on " + instance.date_modified.strftime("%d %b %Y %I:%M %P")
                 else:
@@ -2798,7 +2651,8 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 meta_ans[item['question_name']] = answer
                 all_ma_ans[item['question_name']] = answer
 
-            elif item.get('question_type') == "FormQuestionAnswerStatus":
+            elif item.get('question_type') == "FormQuestionAnswerStatus" and \
+                    str(fs_proj_xf.id) == item.get('form_id', 0):
                 get_answer = instance.json.get(item.get('question').get('name'), None)
                 if get_answer:
                     answer = "Answered"
@@ -2807,7 +2661,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
                 meta_ans[item['question_name']] = answer
                 all_ma_ans[item['question_name']] = answer
 
-            elif item.get('question_type') == "FormSubCountQuestion":
+            elif item.get('question_type') == "FormSubCountQuestion" and fs_proj_xf.id == item.get('form_id', 0):
                 meta_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
                 all_ma_ans[item['question_name']] = fs_proj_xf.project_form_instances.filter(site_id=site.id).count()
         if all_ma_ans != site.all_ma_ans:
@@ -2822,7 +2676,7 @@ def update_meta_details(fs_proj_xf_id, instance_id, task_id, site_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
-@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+@shared_task(time_limit=300, max_retries=2, soft_time_limit=300)
 def copy_meta_to_all_meta():
     projects = Project.objects.exclude(site_meta_attributes__contains=[]).values_list('pk', flat=True)
     Site.objects.filter(project__id__in=projects).update(all_ma_ans=F('site_meta_attributes_ans'))
@@ -2840,66 +2694,105 @@ def update_current_progress_site(site_id):
     site.save()
 
 
-@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+@shared_task(time_limit=300, max_retries=2, soft_time_limit=300)
 def update_site_meta_attribs_ans(pk, task_id, deleted_metas, changed_metas):
-    from onadata.apps.fieldsight.utils.siteMetaAttribs import update_site_meta_ans
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
     page_size = 1000
     page = 0
     try:
         while total_sites > 0:
+            print("updating site information meta batch for project ",
+                  pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
-            print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
+            site_pks = [s.pk for s in sites]
+            SiteMetaAttrAnsHistory.objects.bulk_create(
+                [SiteMetaAttrAnsHistory(site=site, meta_attributes_ans=site.all_ma_ans, status=2) for site in sites])
+            forms_dict = {}
+            all_meta_forms = []
+            if changed_metas:
+                for meta in changed_metas:
+                    if meta.get('question_type') in ["Form", "FormSubStat", "FormQuestionAnswerStatus",
+                                                     "FormSubCountQuestion"]:
+                        form_id = meta.get('form_id', None)
+                        if form_id:
+                            all_meta_forms.append(form_id)
+            for fsxf in FieldSightXF.objects.filter(pk__in=all_meta_forms).iterator():
+                distinct_sites = fsxf.project_form_instances.filter(site__in=site_pks).order_by('site').values_list('site', flat=True).distinct()
+                forms_dict[fsxf.id] = {'form': fsxf, 'submissions': distinct_sites}
+            sites_updates = []
             for site in sites:
-                update_site_meta_ans(site, deleted_metas, changed_metas)
-                SiteMetaAttrAnsHistory.objects.create(site=site, meta_attributes_ans=site.all_ma_ans, status=2)
+                s = update_site_meta_ans(site, deleted_metas, changed_metas, forms_dict)
+                sites_updates.append(s)
+            bulk_upload_json_site_all_ma(sites_updates)
             total_sites -= page_size
             page += 1
-            CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
 
 
-def update_basic_info_in_site(pk, location_changed, picture_changed, location_form, location_question, picture_form,
-                              picture_question, site):
-    if location_changed:
-        submission = FInstance.objects.filter(
-            site=site, project_fxf__id=location_form).order_by('-date').first()
-        if submission:
-            location = get_submission_answer_by_question(submission.instance.json, location_question)
-            if location:
-                location_float = list(map(lambda x: float(x), str(location).split(' ')))
-                site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6), srid=4326)
-
-    if picture_changed:
-        submission = FInstance.objects.filter(
-            site=site, project_fxf__id=picture_form).order_by('-date').first()
-        if submission:
-            logo_url = get_submission_answer_by_question(submission.instance.json, picture_question)
-            if logo_url:
-                attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
-                site.logo = attachment.media_file
-    site.save()
-
-
-@shared_task(time_limit=900, max_retries=2, soft_time_limit=900)
+@shared_task(time_limit=300, max_retries=2, soft_time_limit=900)
 def update_sites_info(pk, location_changed, picture_changed,
                       location_form, location_question, picture_form, picture_question):
+
     total_sites = Site.objects.filter(is_active=True, project=pk).count()
+
     page_size = 1000
     page = 0
-    try:
+    if True:
         while total_sites > 0:
+            print("updating site info location and picture batch for project ",
+                  pk, page * page_size, (page + 1) * page_size)
             sites = Site.objects.filter(is_active=True, project=pk)[
                     page * page_size:(page + 1) * page_size]
-            print("updating site Metas batch for project ", pk, page * page_size, (page + 1) * page_size)
+            sites_pk = [site.pk for site in sites]
+            submissions_location_dict = {}
+            submissions_picture_dict = {}
+            if location_changed:
+                submissions_location = FInstance.objects.filter(
+                    project_fxf__id=location_form, site__in=sites_pk).order_by('-date').select_related('instance')
+                list(submissions_location)
+                for s in submissions_location:
+                    if s.site_id not in submissions_location_dict:
+                        submissions_location_dict[s.site_id] = s
+            if picture_changed:
+                submissions_picture = FInstance.objects.filter(
+                    project_fxf__id=picture_form, site__in=sites_pk).order_by('-date').select_related('instance')
+                list(submissions_picture)
+                for s in submissions_picture:
+                    if s.site_id not in submissions_picture_dict:
+                        submissions_picture_dict[s.site_id] = s
             for site in sites:
-                update_basic_info_in_site(pk, location_changed,
-                                          picture_changed, location_form,
-                                          location_question, picture_form, picture_question, site)
+                if location_changed and site.id in submissions_location_dict:
+                    submission = submissions_location_dict[site.id]
+                    location = get_submission_answer_by_question(submission.instance.json, location_question)
+                    if location:
+                        location_float = list(map(lambda x: float(x), str(location).split(' ')))
+                        site.location = Point(round(float(location_float[1]), 6), round(float(location_float[0]), 6),
+                                              srid=4326)
 
+                if picture_changed and site.id in submissions_picture_dict:
+                    submission = submissions_picture_dict[site.id]
+                    logo_url = get_submission_answer_by_question(submission.instance.json, picture_question)
+                    if logo_url:
+                        try:
+                            attachment = Attachment.objects.get(instance=submission.instance, media_file_basename=logo_url)
+                            site.logo = attachment.media_file
+                            site.logo_changed = True
+                        except Exception as e:
+                            pass
+                            # print("Attachement not found  instance {0}, logourl {1} error {2}".
+                            #       format(submission, logo_url, str(e)))
+            site_dict = {}
+            for s in sites:
+                if hasattr(s, "logo_changed"):
+                    print("changed logo", s.id)
+                    site_dict[s.id] = s.logo.url.split("s3.amazonaws.com")[-1]
+            bulk_update_sites_all_logos(site_dict)
+            bulk_update_sites_all_location(sites)
             total_sites -= page_size
             page += 1
-    except Exception as e:
-        print(str(e))
+    # except Exception as e:
+    #     print(str(e), "errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
+

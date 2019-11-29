@@ -132,16 +132,21 @@ class MySiteSerializer(serializers.ModelSerializer):
         return group
 
     def get_submissions(self, obj):
-        response = obj.get_site_submission_count()
-        submissions = response['outstanding'] + response['flagged'] + response['approved'] + response['rejected']
+        queryset = FInstance.objects.order_by('-date')
+        total_sites = list(obj.sub_sites.values_list('id', flat=True))
+        total_sites.append(obj.id)
+        submissions = queryset.filter(site__in=total_sites).count()
 
         return submissions
 
     def get_status(self, obj):
 
+        total_sites = list(obj.sub_sites.values_list('id', flat=True))
+        total_sites.append(obj.id)
+        sites_subsite_instances = FInstance.objects.filter(site__in=total_sites)
         try:
-            if obj.site_instances.all():
-                return FORM_STATUS[obj.current_status]
+            if sites_subsite_instances:
+                return FORM_STATUS[sites_subsite_instances.order_by('-date')[0].form_status]
         except:
             return None
 
@@ -271,10 +276,8 @@ class UserInvitationSerializer(serializers.ModelSerializer):
         fields = ('id', 'by_user', 'group', 'current_user')
 
     def get_current_user(self, obj):
-
-        user = User.objects.filter(email__icontains=obj.email)[0]
-
-        return user.username
+        request = self.context.get('request')
+        return request.user.username
 
 
 class LatestSubmissionSerializer(serializers.ModelSerializer):
@@ -298,3 +301,12 @@ class LatestSubmissionSerializer(serializers.ModelSerializer):
     def get_date(self, obj):
         return datetime.strftime(obj.date, '%Y-%m-%d %H:%M:%S')
 
+
+class ChangePasswordSerializer(serializers.Serializer):
+    model = User
+
+    """
+    Serializer for password change endpoint.
+    """
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)

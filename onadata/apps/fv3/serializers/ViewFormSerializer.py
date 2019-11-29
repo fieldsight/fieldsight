@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, Count
 
 from rest_framework import serializers
@@ -183,21 +184,25 @@ class ViewSubStageFormSerializer(serializers.ModelSerializer):
         return obj.stage_forms.xf.title
 
     def get_response_count(self, obj):
-        is_project = self.context.get('is_project', False)
-        site = self.context.get('site', False)
 
-        if is_project:
+        try:
+            fsxf = FieldSightXF.objects.get(stage=obj)
 
-            count = obj.stage_forms.project_form_instances.count()
-            return count
+            is_project = self.context.get('is_project', False)
 
-        elif obj.site:
-            count = obj.stage_forms.site_form_instances.count()
-            return count
+            if is_project:
 
-        elif obj.project and site:
-            count = obj.stage_forms.project_form_instances.filter(site__id=site).count()
-            return count
+                count = fsxf.project_form_instances.count()
+                return count
+
+            else:
+                site_id = self.context.get('site', False)
+                if fsxf.project:
+                    return fsxf.project_form_instances.filter(site=site_id).count()
+                else:
+                    return fsxf.site_form_instances.count()
+        except ObjectDoesNotExist:
+            return 0
 
     def get_last_response(self, obj):
         is_project = self.context.get('is_project', False)
@@ -247,47 +252,92 @@ class ViewStageFormSerializer(serializers.ModelSerializer):
     def get_sub_stages(self, obj):
         site_id = self.context.get('site', False)
         is_project = self.context.get('is_project', False)
+        queryset = Stage.objects.filter(stage__isnull=False)
 
-        if obj.project or is_project:
-            is_project = True
-            queryset = Stage.objects.filter(stage__isnull=False, stage=obj, project=obj.project)
-            queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf',
-                                                                       'stage_forms__xf__user').\
-                    prefetch_related('stage_forms__project_form_instances', 'stage_forms__xf__fshistory')
-            data = ViewSubStageFormSerializer(queryset, many=True, context={'is_project': is_project}).data
+        stage_id = obj.id
+        queryset = queryset.filter(stage__id=stage_id)
+        stage = Stage.objects.get(pk=stage_id)
+        project = stage.project
+        site_id = site_id
 
-            return data
-
-        elif site_id:
-            queryset = Stage.objects.filter(stage__isnull=False, stage=obj)
-            site = Site.objects.select_related('region', 'type').get(id=site_id)
-            project_id = site.project_id
-            if site.type and site.region:
-                queryset = queryset.filter(Q(site__id=site.id, project_stage_id=0)
-                                            | Q(project__id=project_id, tags__contains=[site.type_id])
-                                            | Q(project__id=project_id, regions__contains=[site.region_id])
-                                            )
-            elif site.type:
-                queryset.filter(Q(site__id=site.id,
-                                  project_stage_id=0)
-                                | Q(project__id=project_id, tags__contains=[site.type_id])
-
-                                )
-            elif site.region:
-                queryset = queryset.filter(Q(site__id=site.id,
-                                             project_stage_id=0)
-                                           | Q(project__id=project_id, regions__contains=[site.region_id])
-                                           )
-            else:
-                queryset = queryset.filter(
-                    Q(site__id=site.id, project_stage_id=0)
-                    | Q(project__id=project_id))
+        if project and site_id:
+            site = Site.objects.get(pk=site_id)
+            types_count = project.types.count()
+            if project.cluster_sites and types_count:
+                if not site.type:
+                    site.type_id = 0
+                if not site.region:
+                    site.region_id = 0
+                queryset = queryset.filter(tags__contains=[site.type_id], regions__contains=[site.region_id])
+            elif types_count:
+                if not site.type:
+                    site.type_id = 0
+                queryset = queryset.filter(tags__contains=[site.type_id])
+            elif project.cluster_sites:
+                if not site.region:
+                    site.region_id = 0
+                queryset = queryset.filter(regions__contains=[site.region_id])
 
             queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf',
-                                                                       'stage_forms__xf__user', 'site', 'project').\
+                                                                                 'stage_forms__xf__user', 'site',
+                                                                                 'project'). \
                 prefetch_related('stage_forms__site_form_instances', 'stage_forms__xf__fshistory')
-            data = ViewSubStageFormSerializer(queryset, many=True,  context={'site': site_id}).data
+
+            data = ViewSubStageFormSerializer(queryset, many=True, context={'site': site_id}).data
+
             return data
+
+        elif is_project:
+            queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf',
+                                                                                 'stage_forms__xf__user', 'site',
+                                                                                 'project'). \
+                prefetch_related('stage_forms__site_form_instances', 'stage_forms__xf__fshistory')
+
+            data = ViewSubStageFormSerializer(queryset, many=True, context={'is_project': is_project}).data
+            return data
+        else:
+            queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf',
+                                                                                 'stage_forms__xf__user', 'site',
+                                                                                 'project'). \
+                prefetch_related('stage_forms__site_form_instances', 'stage_forms__xf__fshistory')
+
+            data = ViewSubStageFormSerializer(queryset, many=True, context={'site': site_id}).data
+            return data
+
+            # if obj.project or is_project:
+        #     is_project = True
+        #     queryset = Stage.objects.filter(stage__isnull=False, stage=obj, project=obj.project)
+        #     queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf',
+        #                                                                'stage_forms__xf__user').\
+        #             prefetch_related('stage_forms__project_form_instances', 'stage_forms__xf__fshistory')
+        #     data = ViewSubStageFormSerializer(queryset, many=True, context={'is_project': is_project}).data
+        #
+        #     return data
+        #
+        # elif site_id:
+        #     queryset = Stage.objects.filter(stage__isnull=False, stage=obj)
+        #     site = Site.objects.select_related('region', 'type').get(id=site_id)
+        #     project_id = site.project_id
+        #     if site.type and site.region:
+        #         queryset = queryset.filter(Q(site__id=site.id, project_stage_id=0)
+        #                                     | Q(project__id=project_id, tags__contains=[site.type_id])
+        #                                     | Q(project__id=project_id, regions__contains=[site.region_id])
+        #                                     )
+        #     elif site.type:
+        #         queryset.filter(Q(site__id=site.id,
+        #                           project_stage_id=0)
+        #                         | Q(project__id=project_id, tags__contains=[site.type_id])
+        #
+        #                         )
+        #     elif site.region:
+        #         queryset = queryset.filter(Q(site__id=site.id,
+        #                                      project_stage_id=0)
+        #                                    | Q(project__id=project_id, regions__contains=[site.region_id])
+        #                                    )
+        #     else:
+        #         queryset = queryset.filter(
+        #             Q(site__id=site.id, project_stage_id=0)
+        #             | Q(project__id=project_id))
 
 
 class ViewSubmissionStatusSerializer(serializers.ModelSerializer):
@@ -311,7 +361,7 @@ class ViewSubmissionStatusSerializer(serializers.ModelSerializer):
             return name
 
     def get_submission_url(self, obj):
-        return '/fieldsight/application/?submission={}#/submission-details'.format(obj.id)
+        return '/fieldsight/application/?submission={}#/submission-details'.format(obj.instance.id)
 
     def get_profile_url(self, obj):
         return '/users/profile/{}/'.format(obj.submitted_by.id)

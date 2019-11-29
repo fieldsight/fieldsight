@@ -467,6 +467,11 @@ class FormSubmissionsView(APIView):
         search_param = request.query_params.get('q', None)
 
         if project and fsxf_id is not None:
+            try:
+                Project.objects.get(id=project)
+            except Exception as e:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': str(e)})
+
             is_project = True
             try:
                 fsxf = FieldSightXF.objects.get(pk=fsxf_id)
@@ -493,8 +498,8 @@ class FormSubmissionsView(APIView):
                 serializer = FormSubmissionSerializer(page, many=True, context={'is_project': is_project})
                 project = Project.objects.filter(id=project).only('name')
                 form_name = fsxf.xf.title
-                return self.get_paginated_response({'data': serializer.data, 'form_name': form_name,
-                                                    'form_id_string': fsxf.xf.id_string, 'query': search_param,
+                return self.get_paginated_response({'data': serializer.data, 'form_name': form_name, 'is_survey':
+                    fsxf.is_survey, 'form_id_string': fsxf.xf.id_string, 'query': search_param,
                                                     'breadcrumbs': self.get_breadcrumbs(True, project, form_name)
                                                     })
 
@@ -536,8 +541,8 @@ class FormSubmissionsView(APIView):
                 serializer = FormSubmissionSerializer(page, many=True, context={'is_project': is_project})
                 site = Site.objects.filter(id=site).only('name')
                 form_name = fsxf.xf.title
-                return self.get_paginated_response({'data': serializer.data, 'form_name': form_name,
-                                                    'form_id_string': fsxf.xf.id_string, 'query': search_param,
+                return self.get_paginated_response({'data': serializer.data, 'form_name': form_name, 'is_survey':
+                    fsxf.is_survey, 'form_id_string': fsxf.xf.id_string, 'query': search_param,
                                                     'breadcrumbs': self.get_breadcrumbs(False, site, form_name)
 
                                                     })
@@ -633,7 +638,7 @@ class SubmissionsVersions(APIView):
                            'site_url': object.get_absolute_url(),
                            'responses': 'Responses',
                            'responses_url': '/fieldsight/application/#/site-responses/{}/general/'.format(object.id),
-                           'current_page': 'Versions of {}'.format(fsf.xf.title)
+                           'current_page': u'Versions of {}'.format(fsf.xf.title)
                            }
 
         return breadcrumbs

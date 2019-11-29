@@ -93,6 +93,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             if terms:
 
                 return {'site': obj.project.terms_and_labels.site,
+                        'sub_site': obj.project.terms_and_labels.sub_site,
                         'donor': obj.project.terms_and_labels.donor,
                         'site_supervisor': obj.project.terms_and_labels.site_supervisor,
                         'site_reviewer': obj.project.terms_and_labels.site_reviewer,
@@ -129,6 +130,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
                 if terms:
                     return {'site': project.terms_and_labels.site,
+                            'sub_site': project.terms_and_labels.sub_site,
                             'donor': project.terms_and_labels.donor,
                             'site_supervisor': project.terms_and_labels.site_supervisor,
                             'site_reviewer': project.terms_and_labels.site_reviewer,
@@ -149,6 +151,7 @@ class TaskSerializer(serializers.ModelSerializer):
             if terms:
 
                 return {'site': project.terms_and_labels.site,
+                        'sub_site': project.terms_and_labels.sub_site,
                         'donor': project.terms_and_labels.donor,
                         'site_supervisor': project.terms_and_labels.site_supervisor,
                         'site_reviewer': project.terms_and_labels.site_reviewer,

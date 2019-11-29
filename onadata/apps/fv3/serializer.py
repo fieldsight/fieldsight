@@ -154,7 +154,7 @@ class ProjectLevelTermsAndLabelsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectLevelTermsAndLabels
-        exclude = ()
+        exclude = ('sub_site',)
 
 
 class ProjectSiteSerializer(serializers.ModelSerializer):
@@ -207,7 +207,7 @@ class TeamSerializer(serializers.ModelSerializer):
         return obj.owner.id if obj.owner else None
 
     def get_projects(self, obj):
-        org_projects = obj.projects.filter(is_active=True).count()
+        org_projects = obj.projects.count()
 
         return org_projects
 

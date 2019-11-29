@@ -479,7 +479,7 @@ class Site(models.Model):
     site_meta_attributes_ans = JSONField(default=dict)
     all_ma_ans = JSONField(default=dict)
     site_featured_images = JSONField(default=dict)
-    current_progress = models.IntegerField(default=0)
+    current_progress = models.FloatField(default=0.0)
     current_status = models.IntegerField(default=0)
     enable_subsites = models.BooleanField(default=False)
     site = models.ForeignKey('self', blank=True, null=True, related_name="sub_sites")
@@ -724,6 +724,7 @@ class ProjectLevelTermsAndLabels(models.Model):
     project = models.OneToOneField(Project, related_name="terms_and_labels", on_delete=models.CASCADE)
     donor = models.CharField(max_length=255, default="Donor")
     site = models.CharField(max_length=255, default="Site")
+    sub_site = models.CharField(max_length=255, default="Subsite")
     site_supervisor = models.CharField(max_length=255, default="Site Supervisor")
     site_reviewer = models.CharField(max_length=255, default="Site Reviewer")
     region = models.CharField(max_length=255, default="Region")
@@ -842,6 +843,7 @@ def update_meta_attributes_sites(sender, instance, created,  **kwargs):
     if created:
         deleted_metas = instance.get_deleted_attributes()
         changed_metas = instance.get_changed_attributes()
+
         if deleted_metas or changed_metas:
             from onadata.apps.eventlog.models import CeleryTaskProgress
             from onadata.apps.fieldsight.tasks import update_site_meta_attribs_ans

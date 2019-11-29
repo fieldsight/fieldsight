@@ -154,7 +154,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         return project_managers
 
     def get_logs(self, obj):
-        qs = FieldSightLog.objects.select_related('source', 'source__user_profile', 'project__terms_and_labels', 'extra_content_type', 'content_type') \
+        qs = FieldSightLog.objects.select_related('source', 'source__user_profile', 'project__terms_and_labels',
+                                                  'extra_content_type', 'content_type') \
                  .prefetch_related('content_object', 'extra_object', 'seen_by').filter(Q(project=obj) | (
                 Q(content_type=ContentType.objects.get(app_label="fieldsight", model="project")) & Q(
             object_id=obj.id)))[:20]
@@ -162,10 +163,7 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         return serializers_qs.data
 
     def get_has_region(self, obj):
-        has_region = False
-        if obj.project_region.all():
-            has_region = True
-        return has_region
+        return obj.cluster_sites
 
     def get_form_submissions_chart_data(self, obj):
         line_chart = LineChartGeneratorProject(obj)
@@ -322,7 +320,8 @@ class ProgressScheduledFormSerializer(serializers.ModelSerializer):
         fields = ('name', 'form_url', 'progress_data')
 
     def get_form_url(self, obj):
-        return '/fieldsight/application/#/submission-data/{}/{}' .format(obj.id, obj.schedule_forms.id)
+        project_id =self.context.get('project_id', None)
+        return '/fieldsight/application/#/submission-data/{}/{}' .format(project_id, obj.schedule_forms.id)
 
     def get_progress_data(self, obj):
         project = obj.project
@@ -364,3 +363,17 @@ class SiteFormSerializer(serializers.ModelSerializer):
             return True
         else:
             return False
+
+
+class SitelistForMetasLinkSerializer(serializers.ModelSerializer):
+    label = serializers.ReadOnlyField(source='name', read_only=True)
+    id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Site
+        fields = ('id', 'label', 'identifier',)
+
+    def get_id(self, obj):
+        return obj.identifier
+
+

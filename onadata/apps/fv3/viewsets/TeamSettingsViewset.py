@@ -90,7 +90,7 @@ class TeamOwnerAccount(APIView):
     def get(self, request, *args,  **kwargs):
 
         try:
-            team = Organization.objects.get(id=self.kwargs.get('org_id'))
+            team = Organization.objects.get(id=self.kwargs.get('pk'))
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
@@ -127,7 +127,7 @@ class TeamOwnerAccount(APIView):
         else:
             return Response(status=status.HTTP_200_OK, data={"team_owner": False})
 
-    def post(self, request, org_id, format=None):
+    def post(self, request, pk, format=None):
         """
           replace old card with new
         """

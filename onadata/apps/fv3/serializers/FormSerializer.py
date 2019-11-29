@@ -282,6 +282,17 @@ class FSXFormSerializer(serializers.ModelSerializer):
         return None
 
 
+class SurveyFSXFormSerializer(FSXFormSerializer):
+    settings = serializers.SerializerMethodField()
+    class Meta:
+        model = FieldSightXF
+        fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
+                  'name', 'descriptionText', 'formID',
+                  'version', 'hash', 'em', 'settings')
+
+    def get_settings(self, obj):
+        return None
+
 class ScheduleSerializer(serializers.ModelSerializer):
     type = serializers.CharField(source='get_schedule_level_id_display')
 
@@ -319,7 +330,7 @@ class SubStageSerializer(serializers.ModelSerializer):
 
 class StageSerializer(serializers.ModelSerializer):
     sub_stages = SubStageSerializer(many=True, source="parent")
-    # site_project_id = serializers.SerializerMethodField()
+    site_project_id = serializers.SerializerMethodField()
     types = serializers.SerializerMethodField()
 
     class Meta:
@@ -338,10 +349,10 @@ class StageSerializer(serializers.ModelSerializer):
     #     serializer = SubStageSerializer(instance=stages, many=True)
     #     return serializer.data
 
-    # def get_site_project_id(self, obj):
-    #     if obj.site:
-    #         return obj.site.project_id
-    #     return None
+    def get_site_project_id(self, obj):
+        if obj.site:
+            return obj.site.project_id
+        return None
 
     def get_types(self, obj):
         return obj.tags

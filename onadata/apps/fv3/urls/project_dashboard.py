@@ -2,7 +2,7 @@ from django.conf.urls import url, include
 
 from rest_framework import routers
 from onadata.apps.fv3.viewsets.ProjectDashboardViewSet import ProjectDashboardViewSet, ProjectProgressTableViewSet, \
-    project_regions_types, ProjectSurveyFormsViewSet, SiteFormViewSet
+    project_regions_types, ProjectSurveyFormsViewSet, SiteFormViewSet, SitelistForMetasLink
 
 router = routers.DefaultRouter()
 
@@ -16,6 +16,8 @@ project_dashboard_urlpatterns = [
         name='progress_table'),
     url(r'^api/project-survey-forms/(?P<pk>\d+)/$', ProjectSurveyFormsViewSet.as_view(),
         name='project_survey_forms'),
+    url(r'^api/project-sites-for-metas/(?P<pk>\d+)/$', SitelistForMetasLink.as_view({'get': 'list'}),
+        name='project_sites_metas'),
 
 ]
 

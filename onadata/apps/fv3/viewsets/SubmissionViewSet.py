@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse, reverse_lazy
 from django.db.models import Prefetch
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -12,8 +13,10 @@ from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged, EditedSubmission, InstanceImages
 from onadata.apps.fsforms.utils import send_message_flagged
 from onadata.apps.fv3.permissions.submission import SubmissionDetailPermission, SubmissionChangePermission
-from onadata.apps.fv3.serializers.SubmissionSerializer import SubmissionSerializer, AlterInstanceStatusSerializer, \
-    EditSubmissionAnswerSerializer
+from onadata.apps.fv3.serializers.SubmissionSerializer import \
+    SubmissionSerializer, AlterInstanceStatusSerializer, \
+    EditSubmissionAnswerSerializer, MyFinstanceSerializer, \
+    MyFinstanceSerializerV2
 from onadata.apps.logger.models import Instance
 
 
@@ -114,6 +117,37 @@ class AlterSubmissionStatusViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class MySubmissionsPagination(PageNumberPagination):
+    page_size = 500
+    page_size_query_param = 'page_size'
+
+
+class MySubmissions(viewsets.ReadOnlyModelViewSet):
+    queryset = FInstance.objects.filter(form_status__in=[2, 1])
+    serializer_class = MyFinstanceSerializer
+    pagination_class = MySubmissionsPagination
+    authentication_classes = [CsrfExemptSessionAuthentication, BasicAuthentication, ]
+
+    def get_queryset(self):
+        user = self.request.user
+        return self.queryset.filter(submitted_by=user).select_related(
+            'site', 'project', 'project_fxf', 'project_fxf__xf', 'site_fxf', 'site_fxf__xf').order_by('-date')
+
+
+class MySubmissionsV2(viewsets.ReadOnlyModelViewSet):
+    queryset = InstanceStatusChanged.objects.filter(new_status__in=[2, 1])
+    serializer_class = MyFinstanceSerializerV2
+    pagination_class = MySubmissionsPagination
+    authentication_classes = [CsrfExemptSessionAuthentication, BasicAuthentication, ]
+
+    def get_queryset(self):
+        user = self.request.user
+        return self.queryset.filter(
+            finstance__submitted_by=user).select_related('finstance',
+            'finstance__site', 'finstance__project', 'finstance__project_fxf',
+                                                         'finstance__project_fxf__xf',
+                                                         'finstance__site_fxf', 'finstance__site_fxf__xf').order_by('-date')
 
 
 

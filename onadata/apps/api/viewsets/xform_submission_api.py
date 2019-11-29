@@ -23,7 +23,7 @@ from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fsforms.fieldsight_logger_tools import save_submission, save_attachments
-from onadata.apps.fsforms.models import FieldSightXF
+from onadata.apps.fsforms.models import FieldSightXF, FInstance
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.xform_instance_parser import \
     get_deprecated_uuid_from_xml, get_uuid_from_xml, DuplicateInstance
@@ -133,6 +133,15 @@ def update_meta(instance):
                  task_obj.id, instance.fieldsight_instance.site.id),
                 countdown=1)
 
+
+def update_default_status(instance):
+    fieldsight_instance = instance.fieldsight_instance
+    if fieldsight_instance.project_fxf:
+        status = fieldsight_instance.project_fxf.default_submission_status
+    else:
+        status = fieldsight_instance.site_fxf.default_submission_status
+    FInstance.objects.filter(
+        pk=fieldsight_instance.pk).update(form_status=status)
 
 class XFormSubmissionApi(OpenRosaHeadersMixin,
                          mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -246,6 +255,7 @@ Here is some example JSON, it would replace `[the JSON]` above:
                 return self.error_response(error, is_json_request, request)
             update_mongo(instance)
             update_meta(instance)
+            update_default_status(instance)
             context = self.get_serializer_context()
             serializer = SubmissionSerializer(instance, context=context)
 

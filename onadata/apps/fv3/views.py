@@ -543,8 +543,6 @@ class ProjectDefineSiteMeta(APIView):
         project.site_featured_images = request.data.get('site_featured_images')
 
         new_meta = project.site_meta_attributes
-
-        # try:
         if old_meta != new_meta:
             ProjectMetaAttrHistory.objects.create(old_meta_attributes=old_meta,
                                                   new_meta_atrributes=new_meta, user=request.user, project=project)
@@ -770,7 +768,7 @@ def project_sites_vt(request, pk, zoom, x, y):
 
 
 class TeamsViewset(viewsets.ReadOnlyModelViewSet):
-    queryset = Organization.objects.all()
+    queryset = Organization.objects.select_related('owner').prefetch_related('projects')
     serializer_class = TeamSerializer
     permission_classes = [IsAuthenticated, SuperUserPermissions]
     pagination_class = TeamsPagination
@@ -851,6 +849,36 @@ class TeamFormViewset(viewsets.ModelViewSet):
         return serializer.save()
 
 
+class EnableClusterSitesView(APIView):
+    """
+    A simple view for updating cluster sites from project level.
+    """
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, ]
+
+    def get(self, request, pk, *args, **kwargs):
+
+        try:
+            project = Project.objects.get(id=pk)
+            cluster_sites = project.cluster_sites
+
+            return Response(status=status.HTTP_200_OK, data={'cluster_sites': cluster_sites})
+
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
+
+    def post(self, request, pk, format=None):
+        try:
+            project = Project.objects.get(id=pk)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
+        cluster_sites = request.data.get('cluster_sites')
+        project.cluster_sites = cluster_sites
+        project.save()
+        return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.', 'cluster_sites':
+            project.cluster_sites})
+
+
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def project_full_map(request, pk):
@@ -865,3 +893,23 @@ def project_full_map(request, pk):
     data = serialize('custom_geojson', sites, geometry_field='location', fields=('location', 'id', 'name'))
     return Response(status=status.HTTP_200_OK, data=json.loads(data))
 
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def forms_breadcrumbs(request):
+    project = request.GET.get('project')
+    site = request.GET.get('site')
+    type = request.GET.get('type')
+
+    if project and type == 'create':
+        project = Project.objects.get(id=project)
+
+        breadcrumbs = {'current_page': 'Create Site', 'name': project.name, 'name_url': project.get_absolute_url()}
+
+    elif site and type == 'edit':
+        site = Site.objects.get(id=site)
+        breadcrumbs = {'current_page': 'Edit', 'name': site.name, 'name_url': site.get_absolute_url()}
+
+    else:
+        breadcrumbs = {}
+    return Response(status=status.HTTP_200_OK, data=breadcrumbs)

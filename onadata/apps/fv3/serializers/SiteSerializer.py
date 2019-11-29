@@ -62,23 +62,38 @@ class SiteSerializer(serializers.ModelSerializer):
     has_write_permission = serializers.SerializerMethodField()
     project_id = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    region = serializers.SerializerMethodField()
 
     class Meta:
         model = Site
-        fields = ('id', 'name', 'identifier', 'project_id', 'address', 'logo', 'public_desc', 'location', 'region', 'enable_subsites', 'site',
-                  'total_users', 'users', 'submissions',
-                  'form_submissions_chart_data', 'site_progress_chart_data',
-                  'total_subsites', 'terms_and_labels', 'has_write_permission', 'breadcrumbs')
+        fields = ('id', 'name', 'type', 'identifier', 'project_id', 'address', 'logo', 'public_desc', 'location',
+                  'region', 'enable_subsites', 'site', 'total_users', 'users', 'submissions',
+                  'form_submissions_chart_data', 'site_progress_chart_data', 'total_subsites', 'terms_and_labels',
+                  'has_write_permission', 'breadcrumbs', 'current_progress')
 
     def get_submissions(self, obj):
-        response = obj.get_site_submission_count()
+        queryset = FInstance.objects.order_by('-date')
+        total_sites = list(obj.sub_sites.values_list('id', flat=True))
+        total_sites.append(obj.id)
+        total_submissions = queryset.filter(site__in=total_sites).count()
+        outstanding = queryset.filter(site__in=total_sites, form_status=0).count()
+        flagged = queryset.filter(site__in=total_sites, form_status=2).count()
+        rejected = queryset.filter(site__in=total_sites, form_status=1).count()
+        approved = queryset.filter(site__in=total_sites, form_status=3).count()
 
-        outstanding, flagged, approved, rejected = obj.get_site_submission_count()
-        total_submissions = response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
+        # response = obj.get_site_submission_count()
+        #
+        # outstanding, flagged, approved, rejected = obj.get_site_submission_count()
+        # total_submissions = response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
+        # submissions = {
+        #                 'total_submissions': total_submissions, 'pending': response['outstanding'], flagged:
+        #                 response['flagged'], 'approved': response['approved'], 'rejected': response['rejected']
+        #                }
         submissions = {
-                        'total_submissions': total_submissions, 'pending': response['outstanding'], flagged:
-                        response['flagged'], 'approved': response['approved'], 'rejected': response['rejected']
-                       }
+            'total_submissions': total_submissions, 'pending': outstanding,  'flagged': flagged, 'rejected': rejected,
+            'approved': approved
+        }
 
         return submissions
 
@@ -95,6 +110,32 @@ class SiteSerializer(serializers.ModelSerializer):
                     }
 
         return data
+
+    def get_type(self, obj):
+
+        project = obj.project
+        if project.types.all():
+            if obj.type:
+                type = obj.type.name
+            else:
+                type = "Not Specified"
+        else:
+            type = None
+
+        return type
+
+    def get_region(self, obj):
+
+        project = obj.project
+        if project.project_region.all():
+            if obj.region:
+                type = obj.region.name
+            else:
+                type = "Not Specified"
+        else:
+            type = None
+
+        return type
 
     def get_total_users(self, obj):
         region = obj.region
@@ -167,6 +208,7 @@ class SiteSerializer(serializers.ModelSerializer):
             return {'site': project.terms_and_labels.site,
                     'donor': project.terms_and_labels.donor,
                     'site_supervisor': project.terms_and_labels.site_supervisor,
+                    'sub_site': project.terms_and_labels.sub_site,
                     'site_reviewer': project.terms_and_labels.site_reviewer,
                     'region': project.terms_and_labels.region,
                     'region_supervisor': project.terms_and_labels.region_supervisor,
@@ -177,6 +219,7 @@ class SiteSerializer(serializers.ModelSerializer):
             return {'site': 'Site',
                     'donor': 'Donor',
                     'site_supervisor': 'Site Supervisor',
+                    'sub_site': 'Subsite',
                     'site_reviewer': 'Site Reviewer',
                     'region': 'Region',
                     'region_supervisor': 'Region Supervisor',

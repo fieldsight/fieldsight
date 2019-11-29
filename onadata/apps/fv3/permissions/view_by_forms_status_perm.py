@@ -32,7 +32,8 @@ class ViewDataPermission(permissions.BasePermission):
             if user_role_org_admin:
                 return True
 
-            user_role_as_manager = request.roles.filter(project_id=project.id, group__name="Project Manager")
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                "Project Donor"])
 
             if user_role_as_manager:
                 return True
@@ -44,8 +45,13 @@ class ViewDataPermission(permissions.BasePermission):
 class DeleteFInstancePermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
-        instance = view.kwargs.get('pk')
-        finstance = FInstance.objects.get(instance_id=instance)
+
+        try:
+            finstance = FInstance.objects.get(instance_id=view.kwargs.get('pk'))
+
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
         form = finstance.fsxf
 
         if request.is_super_admin:

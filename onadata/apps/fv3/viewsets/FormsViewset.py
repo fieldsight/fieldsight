@@ -22,7 +22,7 @@ from onadata.apps.fv3.serializers.FormSerializer import XFormSerializer, \
     MyFormDeleteSerializer, \
     ShareUserListSerializer, ShareTeamListSerializer, \
     ShareProjectListSerializer, FSXFormSerializer, SchedueFSXFormSerializer, \
-    ScheduleSerializer, StageSerializer
+    ScheduleSerializer, StageSerializer, SurveyFSXFormSerializer
 from onadata.apps.logger.models import XForm
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -401,7 +401,8 @@ class FormsView(APIView):
         fieldsight_forms = FieldSightXF.objects.filter(
             is_deleted=False,  is_deployed=True).filter(Q(
             project__id__in=project_ids) | Q(site__project_id__in=project_ids,
-                                            from_project=False)
+                                            from_project=False,
+                                             site__is_active=True)
             ).select_related("xf", "em", "xf__user", "site", "settings").prefetch_related("em__em_images")
         list(fieldsight_forms)
         general_forms = [f for f in fieldsight_forms if (f.is_staged == False
@@ -425,7 +426,7 @@ class FormsView(APIView):
                 form_with_schedule.append(form)
 
         general_form_data = FSXFormSerializer(general_forms, many=True).data
-        survey_form_data = FSXFormSerializer(survey_forms, many=True).data
+        survey_form_data = SurveyFSXFormSerializer(survey_forms, many=True).data
         stages = Stage.objects.filter(is_deleted=False, stage__isnull=True).filter(
             Q(project__id__in=project_ids) | Q(
                 site__project__id__in=project_ids, project_stage_id=0)).select_related("site").prefetch_related(

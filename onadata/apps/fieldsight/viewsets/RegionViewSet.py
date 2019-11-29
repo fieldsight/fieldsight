@@ -27,7 +27,7 @@ class RegionViewSet(viewsets.ModelViewSet):
     """
     A simple ViewSet for viewing and editing Region.
     """
-    queryset = Region.objects.all()
+    queryset = Region.objects.filter(is_active=True)
     serializer_class = RegionSerializer
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     # permission_classes = (RegionAccessPermission,)

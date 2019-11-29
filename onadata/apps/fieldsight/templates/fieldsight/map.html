@@ -888,7 +888,7 @@
                             var site_type_value = siteT[x].name || siteT[x];
                             $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+otherColors[x]+';"></div><span>'+site_type_value+'</span></div><br/>' );
                         }
-                        $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:white;"></div><span>Unallocated</span></div><br/>' );
+                        $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:white;"></div><span>Unassigned</span></div><br/>' );
                         
                         changeColor(changeColorOfLayer, status);
                     }
@@ -904,7 +904,7 @@
                             region_value = regn[y].name || regn[y];
                             $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:'+otherColors[y]+';"></div><span>'+region_value+'</span></div><br/>' );
                         }
-                        $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:white;"></div><span>Unallocated</span></div><br/>' );
+                        $("#form_legend").html($("#form_legend").html()+'<div style="margin-top: -8px;"><div class="circle" style = "border:1px solid black; background:white;"></div><span>Unassigned</span></div><br/>' );
                         changeColor(changeColorOfLayer, status);
                     }
                     else{
@@ -992,11 +992,11 @@
                                     
                                     
                                     if(form_status!=null && form_status.length>0){
-                                        //console.log(form_status);
+                                        console.log(form_status);
                                         var status_matched = 1;
-                                        for(var l = 0; l<form_status.length; l++){//console.log(form_status[i]);
+                                        for(var l = 0; l<form_status.length; l++){//console.log(form_status[l]);
                                             if(siteListArray.features[i] != undefined){
-                                                if(siteListArray.features[i].status.trim().toLowerCase() == form_status[l].trim().toLowerCase()){ //console.log("status_entered");
+                                                if(siteListArray.features[i].status == form_status[l].trim().toLowerCase()){ //console.log("status_entered");
                                                     status_matched = 0;
                                                     //break;
                                                     //console.log(progress[k]);

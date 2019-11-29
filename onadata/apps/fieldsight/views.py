@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 import datetime
 import json
+from collections import OrderedDict
+
 import xlwt
 import stripe
 from django.contrib.contenttypes.models import ContentType
@@ -3498,7 +3500,7 @@ class ExcelBulkSiteSample(ProjectRoleMixin, View):
             font_style = xlwt.XFStyle()
             font_style.font.bold = True
 
-            columns = ['identifier', 'name', 'type', 'phone', 'address', 'public_desc', 'additional_desc', 'latitude', 'longitude',]
+            columns = ['identifier', 'name', 'type', 'phone', 'address', 'public_desc', 'additional_desc', 'latitude', 'longitude', 'root_site_identifier']
             if project.cluster_sites:
                 columns += ['region_id',]
             meta_ques = project.site_meta_attributes
@@ -4388,14 +4390,14 @@ def project_dashboard_graphs(request, pk):
 
 def site_refrenced_metas(request, pk):
 
-    try:
-        site = Site.objects.get(pk=pk)
-
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': 'Not Found'}, status=404)
-
-    metas = generateSiteMetaAttribs(int(pk))
-    return JsonResponse(metas, safe=False)
+    site = Site.objects.get(pk=pk)
+    project = site.project
+    question_dict = project.site_meta_attributes
+    all_ma_ans = OrderedDict()
+    ans_dict = site.all_ma_ans
+    for meta in question_dict:
+        all_ma_ans[meta['question_name']] = ans_dict.get(meta['question_name'], "")
+    return JsonResponse(all_ma_ans, safe=False)
 
 
 def redirectToSite(request, pk):

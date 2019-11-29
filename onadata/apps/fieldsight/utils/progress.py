@@ -15,7 +15,6 @@ def get_submission_answer_by_question(sub_answers={}, question_name="", depth=0)
     return answer
 
 
-
 def default_progress(site, project):
     from onadata.apps.fsforms.models import Stage
     approved_site_forms_weight = site.site_instances.filter(form_status=3,
@@ -34,7 +33,7 @@ def default_progress(site, project):
         Stage.objects.filter(stage__site=site, project_stage_id=0).aggregate(Sum('weight'))[
             'weight__sum']
         site_type = site.type_id
-        if not site_type:
+        if True: #not site_type:
             project_stages_weight = \
             Stage.objects.filter(stage__project=project).aggregate(
                 Sum('weight'))['weight__sum']
@@ -47,10 +46,15 @@ def default_progress(site, project):
         site_stages_weight = site_stages_weight if site_stages_weight else 0
         project_stages_weight = project_stages_weight if project_stages_weight else 0
         total_weight = site_stages_weight + project_stages_weight
-        p = ("%.0f" % (approved_weight / (total_weight * 0.01)))
-        p = int(p)
-        if p > 99:
+        if total_weight:
+            total_weight = float(total_weight)
+            approved_weight = float(approved_weight)
+            p = (approved_weight / (total_weight * 0.01))
+        else:
+            p = 0.0
+        if p > 100:
             return 100
+        p = round(p, 2)
         return p
     approved_forms_site = site.site_instances.filter(form_status=3,
                                                      site_fxf__is_staged=True).values_list(
@@ -67,10 +71,10 @@ def default_progress(site, project):
         stage__site=site).count()
     if not stages:
         return 0
-    p = ("%.0f" % (approved / (stages * 0.01)))
-    p = int(p)
-    if p > 99:
+    p = (float(approved) / (stages * 0.01))
+    if p > 100:
         return 100
+    p = round(p, 2)
     return p
 
 
@@ -153,12 +157,16 @@ def advance_stage_approved(site, project):
         site_stages_weight = site_stages_weight if site_stages_weight else 0
         project_stages_weight = project_stages_weight if project_stages_weight else 0
         total_weight = site_stages_weight + project_stages_weight
-        p = ("%.0f" % (approved_weight / (total_weight * 0.01)))
-        p = int(p)
-        if p > 99:
-            return 100
-        return p
+        if total_weight:
+            p = (float(approved_weight) / (total_weight * 0.01))
+            if p > 100:
+                return 100
+            p = round(p, 2)
+            return p
+        else:
+            return 0
     # weight not set
+
     approved_forms_site = Stage.objects.filter(stage__order__lte=max_stage_order, site=site).count()
     approved_forms_project = Stage.objects.filter(stage__order__lte=max_stage_order, project=project).count()
     approved = approved_forms_site + approved_forms_project
@@ -168,10 +176,10 @@ def advance_stage_approved(site, project):
     stages = Stage.objects.filter(stage__project=project).count() + Stage.objects.filter(stage__site=site).count()
     if not stages:
         return 0
-    p = ("%.0f" % (approved / (stages * 0.01)))
-    p = int(p)
-    if p > 99:
+    p = (float(approved) / (stages * 0.01))
+    if p > 100:
         return 100
+    p = round(p, 2)
     return p
 
 
@@ -202,7 +210,7 @@ def set_site_progress(site, project, project_settings=None):
         project_settings = project.progress_settings.filter(deployed=True, active=True).order_by("-date").first()
     if not project_settings or project_settings.source == 0:
         # default progress (stages approved/stages total) weight
-        progress = site.progress()
+        progress = default_progress(site, site.project)
     elif project_settings.source == 1:
         progress = advance_stage_approved(site, project)
     elif project_settings.source == 2:
@@ -210,25 +218,26 @@ def set_site_progress(site, project, project_settings=None):
         xform_question = project_settings.pull_integer_form_question
         progress = pull_integer_answer(form, xform_question, site)
         try:
-            progress = int(progress)
-            if progress and progress > 99:
+            progress = float(progress)
+            if progress and progress > 100:
                 progress = 100
         except Exception as e:
             progress = 0
             print("progress error", str(e))
     elif project_settings.source == 3:
-        p = ("%.0f" % (site.site_instances.filter(form_status=3).count() / (project_settings.no_submissions_total_count * 0.01)))
-        p = int(p)
-        if p > 99:
-            p = 100
+        submissions = site.site_instances.filter(form_status=3).count()
+        p = float(submissions) / (project_settings.no_submissions_total_count *
+                              0.01)
+        p = round(p, 2)
         progress = p
 
     elif project_settings.source == 4:
-        p = ("%.0f" % (site.site_instances.filter(
-            project_fxf_id=project_settings.no_submissions_form, form_status=3).count() / (
-                project_settings.no_submissions_total_count * 0.01)))
-        p = int(p)
-        if p > 99:
+        submissions = site.site_instances.filter(
+            project_fxf_id=project_settings.no_submissions_form,
+            form_status=3).count()
+        p = float(submissions) / (
+                project_settings.no_submissions_total_count * 0.01)
+        if p > 100:
             p = 100
         progress = p
     if not progress:

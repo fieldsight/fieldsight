@@ -11,7 +11,7 @@ router.register(r'team-geolayer', TeamGeoLayerViewset, base_name='team_geolayer'
 team_settings_urlpatterns = [
     url(r'^api/', include(router.urls)),
     url(r'^api/team-types-countries', team_types_countries, name="team_types"),
-    url(r'^api/team-owner-account/(?P<org_id>\d+)/$', TeamOwnerAccount.as_view(), name="team_owner_account"),
+    url(r'^api/team-owner-account/(?P<pk>\d+)/$', TeamOwnerAccount.as_view(), name="team_owner_account"),
 
 ]
 
