@@ -75,7 +75,7 @@ class Command(BaseCommand):
             while total_sites > 0:
                 chunk = values[page * page_size:(page + 1) * page_size]
                 range = 'A{0}:{1}'.format(((page * page_size) + 1),
-                                          len(values[0]))
+                                          len(values[0]) + 1)
                 print(range, "   ==========   range")
                 body = {'data': [{'majorDimension': 'ROWS',
                                   'range': range,
