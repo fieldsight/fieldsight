@@ -25,6 +25,12 @@ class Command(BaseCommand):
             help='spreadsheet_id google'
         )
         parser.add_argument(
+            '--grid_id',
+            type=int,
+            dest='grid_id',
+            help='grid_id google'
+        )
+        parser.add_argument(
             '--project',
             type=int,
             dest='project',
@@ -52,19 +58,24 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         spreadsheet_id = options["spreadsheet_id"]
+        grid_id = options["grid_id"]
         project = options["project"]
         range = options["range"]
         form_id = options["form_id"]
         report_type = options["report_type"]
 
         add_rows = {
-                "appendDimension": {
-                    "sheetId": spreadsheet_id,
-                    "dimension": "ROWS",
-                    "length": 10000
+            "requests": [
+                {
+                    "appendDimension": {
+                        "dimension": "ROWS",
+                        "length": 10000,
+                        "sheetId": grid_id
+                    }
                 }
-            }
-
+            ],
+            "includeSpreadsheetInResponse": False
+        }
         credentials = ServiceAccountCredentials.from_json_keyfile_name(
             'service_account.json', scope)
 
@@ -92,11 +103,11 @@ class Command(BaseCommand):
                                   }],
                         'valueInputOption': 'RAW'}
 
-                request_a = service.spreadsheets().values().batchUpdate(
-                    spreadsheetId=spreadsheet_id, body=add_rows)
-
-                response_a = request_a.execute()
-                pprint(response_a)
+                # request_a = service.spreadsheets().values().batchUpdate(
+                #     spreadsheetId=spreadsheet_id, body=add_rows)
+                #
+                # response_a = request_a.execute()
+                # pprint(response_a)
 
                 request = service.spreadsheets().values().batchUpdate(
                     spreadsheetId=spreadsheet_id, body=body)
