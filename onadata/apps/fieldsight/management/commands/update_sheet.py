@@ -99,7 +99,7 @@ class Command(BaseCommand):
                 request_a = service.spreadsheets().values().batchUpdate(
                     spreadsheetId=spreadsheet_id, body=add_rows)
 
-                response_a = request.execute()
+                response_a = request_a.execute()
                 pprint(response_a)
 
                 request = service.spreadsheets().values().batchUpdate(
