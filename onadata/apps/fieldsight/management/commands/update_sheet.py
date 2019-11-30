@@ -58,16 +58,12 @@ class Command(BaseCommand):
         report_type = options["report_type"]
 
         add_rows = {
-            "requests": [
-                {
-                    "appendDimension": {
-                        "sheetId": spreadsheet_id,
-                        "dimension": "ROWS",
-                        "length": 10000
-                    }
+                "appendDimension": {
+                    "sheetId": spreadsheet_id,
+                    "dimension": "ROWS",
+                    "length": 10000
                 }
-            ]
-        }
+            }
 
         credentials = ServiceAccountCredentials.from_json_keyfile_name(
             'service_account.json', scope)
