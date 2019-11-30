@@ -10,6 +10,8 @@ scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive',
          'https://www.googleapis.com/auth/spreadsheets']
 
+
+
 class Command(BaseCommand):
     ''' This command replace string in xml '''
 
@@ -55,6 +57,18 @@ class Command(BaseCommand):
         form_id = options["form_id"]
         report_type = options["report_type"]
 
+        add_rows = {
+            "requests": [
+                {
+                    "appendDimension": {
+                        "sheetId": spreadsheet_id,
+                        "dimension": "ROWS",
+                        "length": 10000
+                    }
+                }
+            ]
+        }
+
         credentials = ServiceAccountCredentials.from_json_keyfile_name(
             'service_account.json', scope)
 
@@ -74,14 +88,19 @@ class Command(BaseCommand):
             page = 0
             while total_sites > 0:
                 chunk = values[page * page_size:(page + 1) * page_size]
-                range = 'A{0}:{1}'.format(((page * page_size) + 1),
-                                          len(values[0]) + 1)
+                range = 'A{0}:GZ50000'.format((page * page_size) + 1)
                 print(range, "   ==========   range")
                 body = {'data': [{'majorDimension': 'ROWS',
                                   'range': range,
                                   'values': chunk
                                   }],
                         'valueInputOption': 'RAW'}
+
+                request_a = service.spreadsheets().values().batchUpdate(
+                    spreadsheetId=spreadsheet_id, body=add_rows)
+
+                response_a = request.execute()
+                pprint(response_a)
 
                 request = service.spreadsheets().values().batchUpdate(
                     spreadsheetId=spreadsheet_id, body=body)
