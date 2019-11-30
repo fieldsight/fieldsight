@@ -209,7 +209,7 @@ def form_submission(form_id):
                                  xform.id_string, filter_query)
 
     df = pd.read_excel(temp_file)
-    df = df.applymap(str)
+    df = df.applymap(unicode)
     print("df shape", df.shape)
     x, y = df.shape
     print(" total cell in sheets ==", x*y)
