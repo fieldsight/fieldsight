@@ -15,11 +15,6 @@ form_status_map = ["Pending", "Rejected", "Flagged", "Approved"]
 group_delimiter = '/'
 
 
-def default(o):
-    if isinstance(o, (datetime.date, datetime.datetime, pd.Timestamp)):
-        return str(o)
-    return o
-
 def site_information(project_id):
     project = Project.objects.get(pk=project_id)
     values = []
@@ -215,13 +210,10 @@ def form_submission(form_id):
 
     df = pd.read_excel(temp_file)
     df = df.applymap(str)
+    print("df shape", df.shape)
+    x, y = df.shape
+    print(" total cell in sheets ==", x*y)
     values = df.values.tolist()
-    # clean_values = []
-    # for row in values:
-    #     r = []
-    #     for v in row:
-    #         val = default(v)
-    #         r.append(val)
-    #     clean_values.append(row)
+    values.insert(0, list(df.columns.values))
     return values
 
