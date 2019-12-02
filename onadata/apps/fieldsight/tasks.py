@@ -2804,15 +2804,17 @@ def update_sites_info(pk, location_changed, picture_changed,
 
 @shared_task(soft_time_limit=400, time_limit=400)
 def update_sheet_in_drive():
-    scope = ['https://spreadsheets.google.com/feeds',
-             'https://www.googleapis.com/auth/drive',
-             'https://www.googleapis.com/auth/spreadsheets']
+    # scope = ['https://spreadsheets.google.com/feeds',
+    #          'https://www.googleapis.com/auth/drive',
+    #          'https://www.googleapis.com/auth/spreadsheets']
     from onadata.apps.fieldsight.sheet_list import SHEET_LIST
+    from django.core.management import call_command
     if SHEET_LIST:
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(
-            'service_account.json', scope)
-
-        service = discovery.build('sheets', 'v4', credentials=credentials)
+        # credentials = ServiceAccountCredentials.from_json_keyfile_name(
+        #     'service_account.json', scope)
+        #
+        # service = discovery.build('sheets', 'v4', credentials=credentials,
+        #                           cache_discovery=False)
         for sheet in SHEET_LIST:
             time.sleep(3)
             values = []
@@ -2822,45 +2824,50 @@ def update_sheet_in_drive():
             spreadsheet_id = sheet.get('spreadsheet_id')
             grid_id = sheet.get('grid_id')
             range = sheet.get('range')
-            if report_type == "site_info":
-                values = site_information(project)
-            elif report_type == "site_progress":
-                values = progress_information(project)
-            elif report_type == "form":
-                values = form_submission(form_id)
-            if len(values) >= 10000:
-                total_sites = len(values)
-                page_size = 10000
-                page = 0
-                while total_sites > 0:
-                    chunk = values[page * page_size:(page + 1) * page_size]
-                    range = 'A{0}:GZ50000'.format((page * page_size) + 1)
-                    print(range, "   ==========   range")
-                    body = {'data': [{'majorDimension': 'ROWS',
-                                      'range': range,
-                                      'values': chunk
-                                      }],
-                            'valueInputOption': 'RAW'}
+            call_command("update_sheet", {"--spreadsheet_id":spreadsheet_id,
+                        "--grid_id":grid_id, "--project":project,
+                         "--range":range, "--form_id":form_id,
+                          "--report_type": report_type})
 
-                    request = service.spreadsheets().values().batchUpdate(
-                        spreadsheetId=spreadsheet_id, body=body)
-
-                    response = request.execute()
-                    print(response)
-                    print("finished ,", sheet, page)
-                    total_sites -= page_size
-                    page += 1
-            else:
-                body = {'data': [{'majorDimension': 'ROWS',
-                                  'range': range,
-                                  'values': values
-                                  }],
-                        'valueInputOption': 'RAW'}
-
-                request = service.spreadsheets().values().batchUpdate(
-                    spreadsheetId=spreadsheet_id, body=body)
-
-                response = request.execute()
-                print(response)
-
-                print("finished ,", sheet)
+            # if report_type == "site_info":
+            #     values = site_information(project)
+            # elif report_type == "site_progress":
+            #     values = progress_information(project)
+            # elif report_type == "form":
+            #     values = form_submission(form_id)
+            # if len(values) >= 10000:
+            #     total_sites = len(values)
+            #     page_size = 10000
+            #     page = 0
+            #     while total_sites > 0:
+            #         chunk = values[page * page_size:(page + 1) * page_size]
+            #         range = 'A{0}:GZ50000'.format((page * page_size) + 1)
+            #         print(range, "   ==========   range")
+            #         body = {'data': [{'majorDimension': 'ROWS',
+            #                           'range': range,
+            #                           'values': chunk
+            #                           }],
+            #                 'valueInputOption': 'RAW'}
+            #
+            #         request = service.spreadsheets().values().batchUpdate(
+            #             spreadsheetId=spreadsheet_id, body=body)
+            #
+            #         response = request.execute()
+            #         print(response)
+            #         print("finished ,", sheet, page)
+            #         total_sites -= page_size
+            #         page += 1
+            # else:
+            #     body = {'data': [{'majorDimension': 'ROWS',
+            #                       'range': range,
+            #                       'values': values
+            #                       }],
+            #             'valueInputOption': 'RAW'}
+            #
+            #     request = service.spreadsheets().values().batchUpdate(
+            #         spreadsheetId=spreadsheet_id, body=body)
+            #
+            #     response = request.execute()
+            #     print(response)
+            #
+            #     print("finished ,", sheet)
