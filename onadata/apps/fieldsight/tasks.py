@@ -2823,11 +2823,13 @@ def update_sheet_in_drive():
             form_id = sheet.get('form_id')
             spreadsheet_id = sheet.get('spreadsheet_id')
             grid_id = sheet.get('grid_id')
-            range = sheet.get('range')
-            call_command("update_sheet", {"--spreadsheet_id":spreadsheet_id,
-                        "--grid_id":grid_id, "--project":project,
-                         "--range":range, "--form_id":form_id,
-                          "--report_type": report_type})
+            sheet_range = sheet.get('range')
+            call_command("update_sheet",
+                         "update_sheet",
+                         spreadsheet_id=spreadsheet_id,
+                         grid_id=grid_id, project=project,
+                         range=sheet_range,
+                         form_id=form_id, report_type=report_type)
 
             # if report_type == "site_info":
             #     values = site_information(project)
