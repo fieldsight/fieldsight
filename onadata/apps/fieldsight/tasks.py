@@ -2800,7 +2800,7 @@ def update_sites_info(pk, location_changed, picture_changed,
     # except Exception as e:
     #     print(str(e), "errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
 
-
+d = {}
 
 @shared_task(soft_time_limit=400, time_limit=400)
 def update_sheet_in_drive():
@@ -2810,8 +2810,10 @@ def update_sheet_in_drive():
     from onadata.apps.fieldsight.sheet_list import SHEET_LIST
     from django.core.management import call_command
     if SHEET_LIST:
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(
-            'service_account.json', scope)
+        # credentials = ServiceAccountCredentials.from_json_keyfile_name(
+        #     'service_account.json', scope)
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+            d, scope)
 
         service = discovery.build('sheets', 'v4', credentials=credentials,
                                   cache_discovery=False)
