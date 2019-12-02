@@ -8,7 +8,7 @@ from django.conf import settings
 
 from onadata.apps.fieldsight.models import Project, Site
 from onadata.apps.fsforms.models import FInstance, FieldSightXF
-from onadata.libs.utils.export_tools import ExportBuilder, query_mongo
+
 
 form_status_map = ["Pending", "Rejected", "Flagged", "Approved"]
 
@@ -189,6 +189,7 @@ def progress_information(project_id):
 
 
 def form_submission(form_id):
+    from onadata.libs.utils.export_tools import ExportBuilder, query_mongo
     fieldsight_xf = FieldSightXF.objects.get(pk=form_id)
     xform = fieldsight_xf.xf
     export_builder = ExportBuilder()

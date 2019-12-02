@@ -35,9 +35,4 @@ django==1.8.19
 
 django-excel==0.0.10
 
-
-
-
-
-
-
+django-celery-beat==1.1.1

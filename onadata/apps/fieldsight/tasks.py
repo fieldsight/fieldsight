@@ -8,11 +8,15 @@ import datetime
 import gc
 import calendar
 from datetime import date
+from oauth2client.service_account import ServiceAccountCredentials
+from googleapiclient import discovery
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
 from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType,\
     ProgressSettings, SiteMetaAttrAnsHistory
+from onadata.apps.fieldsight.utils.google_sheet_sync import site_information, \
+    progress_information, form_submission
 from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos, \
     bulk_update_sites_all_location, bulk_upload_json_site_all_ma, update_site_meta_ans
@@ -2796,3 +2800,67 @@ def update_sites_info(pk, location_changed, picture_changed,
     # except Exception as e:
     #     print(str(e), "errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
 
+
+
+@shared_task(soft_time_limit=400, time_limit=400)
+def update_sheet_in_drive():
+    scope = ['https://spreadsheets.google.com/feeds',
+             'https://www.googleapis.com/auth/drive',
+             'https://www.googleapis.com/auth/spreadsheets']
+    from onadata.apps.fieldsight.sheet_list import SHEET_LIST
+    if SHEET_LIST:
+        credentials = ServiceAccountCredentials.from_json_keyfile_name(
+            'service_account.json', scope)
+
+        service = discovery.build('sheets', 'v4', credentials=credentials)
+        for sheet in SHEET_LIST:
+            time.sleep(3)
+            values = []
+            report_type = sheet.get('report_type')
+            project = sheet.get('project')
+            form_id = sheet.get('form_id')
+            spreadsheet_id = sheet.get('spreadsheet_id')
+            grid_id = sheet.get('grid_id')
+            range = sheet.get('range')
+            if report_type == "site_info":
+                values = site_information(project)
+            elif report_type == "site_progress":
+                values = progress_information(project)
+            elif report_type == "form":
+                values = form_submission(form_id)
+            if len(values) >= 10000:
+                total_sites = len(values)
+                page_size = 10000
+                page = 0
+                while total_sites > 0:
+                    chunk = values[page * page_size:(page + 1) * page_size]
+                    range = 'A{0}:GZ50000'.format((page * page_size) + 1)
+                    print(range, "   ==========   range")
+                    body = {'data': [{'majorDimension': 'ROWS',
+                                      'range': range,
+                                      'values': chunk
+                                      }],
+                            'valueInputOption': 'RAW'}
+
+                    request = service.spreadsheets().values().batchUpdate(
+                        spreadsheetId=spreadsheet_id, body=body)
+
+                    response = request.execute()
+                    print(response)
+                    print("finished ,", sheet, page)
+                    total_sites -= page_size
+                    page += 1
+            else:
+                body = {'data': [{'majorDimension': 'ROWS',
+                                  'range': range,
+                                  'values': values
+                                  }],
+                        'valueInputOption': 'RAW'}
+
+                request = service.spreadsheets().values().batchUpdate(
+                    spreadsheetId=spreadsheet_id, body=body)
+
+                response = request.execute()
+                print(response)
+
+                print("finished ,", sheet)
