@@ -2825,7 +2825,6 @@ def update_sheet_in_drive():
             grid_id = sheet.get('grid_id')
             sheet_range = sheet.get('range')
             call_command("update_sheet",
-                         "update_sheet",
                          spreadsheet_id=spreadsheet_id,
                          grid_id=grid_id, project=project,
                          range=sheet_range,
