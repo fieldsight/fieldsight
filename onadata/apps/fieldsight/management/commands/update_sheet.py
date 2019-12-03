@@ -52,7 +52,7 @@ class Command(BaseCommand):
                     while total_sites > 0:
                         chunk = values[page * page_size:(page + 1) * page_size]
                         range = 'A{0}:GZ50000'.format((page * page_size) + 1)
-                        pprint(range, "   ==========   range")
+                        print(range, "   ==========   range")
                         body = {'data': [{'majorDimension': 'ROWS',
                                           'range': range,
                                           'values': chunk
@@ -64,7 +64,7 @@ class Command(BaseCommand):
 
                         response = request.execute()
                         pprint(response)
-                        pprint("finished ,", sheet, page)
+                        print("finished ,", sheet, page)
                         total_sites -= page_size
                         page += 1
                 else:
@@ -80,5 +80,5 @@ class Command(BaseCommand):
                     response = request.execute()
                     pprint(response)
 
-                    pprint("finished ,", sheet)
+                    print("finished ,", sheet)
 
