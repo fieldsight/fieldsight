@@ -65,4 +65,5 @@ media
 dump.rdb
 fs_kobocat_data.json
 gunicorn_config.py
-
+db.txt
+.env
