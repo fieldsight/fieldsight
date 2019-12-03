@@ -211,10 +211,14 @@ def form_submission(form_id):
 
     df = pd.read_excel(temp_file)
     df = df.applymap(unicode)
-    print("df shape", df.shape)
-    x, y = df.shape
-    print(" total cell in sheets ==", x*y)
-    values = df.values.tolist()
-    values.insert(0, list(df.columns.values))
-    return values
+    try:
+        print("df shape", df.shape)
+        x, y = df.shape
+        print(" total cell in sheets ==", x*y)
+        values = df.values.tolist()
+        values.insert(0, list(df.columns.values))
+        return values
+    except Exception as e:
+        return [[]]
+    return [[]]
 
