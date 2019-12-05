@@ -75,8 +75,9 @@
 
 			<div class="top-nav clearfix">
 				<ul class="right-nav clearfix">
+					{% if not request.user.is_anonymous %}
 
-					<li class="dropdown">
+						<li class="dropdown">
 						<a href="#" id="dropdownMenuButtonNotification" onclick="getmytasksdata()" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 							<i class="la la-tasks"></i>
 							<span class="badge badge-warning" id="id_task"><span class="task_count"></span></span>
@@ -164,8 +165,11 @@
 							
 						</div>
 					</li>
+					{% endif %}
 
-					<li class="dropdown">
+					{% if not request.user.is_anonymous %}
+
+						<li class="dropdown">
 						<a href="#" id="dropdownMenuButtonNotification" onclick="getnotifdata()" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 							<i class="la la-bell"></i>
 							<span class="badge badge-warning" id="id_notif"><span class="not_count"></span></span>
@@ -210,7 +214,11 @@
 						</div>
 
 					</li>
-					<li class="dropdown">
+					{% endif %}
+
+					{% if not request.user.is_anonymous %}
+
+						<li class="dropdown">
 						<a href="#" id="dropdownMenuButtonUser" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 							<div class="user-avatar">
 								<img src="{{request.user.user_profile.profile_picture.url}}" alt="">
@@ -225,6 +233,7 @@
 							<a class="dropdown-item" href="{% url 'auth_logout' %}"><i class="la la-sign-out"></i>{% trans 'Logout' %}</a>
 						</div>
 					</li>
+					{% endif %}
 				</ul>
 			</div>
 		</header>
@@ -232,12 +241,15 @@
 			<div id="sidebar" data-toggle="affix">
 				<div class="leftside-navigation">
 					<ul class="sidebar-menu" id="nav-accordion">
-						<li>
-							<a class="" href="{% url 'dashboard' %}">
-								<i class="la la-dashboard"></i>
-								<span>{% trans 'Dashboard' %}</span>
-							</a>
-						</li>
+						{% if not request.user.is_anonymous %}
+
+							<li>
+								<a class="" href="{% url 'dashboard' %}">
+									<i class="la la-dashboard"></i>
+									<span>{% trans 'Dashboard' %}</span>
+								</a>
+							</li>
+						{% endif %}
 						{% if request.user.is_superuser %}
 						<li class="sub-menu">
 							<a href="/fieldsight/application/#/teams">
@@ -270,20 +282,22 @@
 								<!--<li><a href="#">New Project</a></li>-->
 							<!--</ul>-->
 						<!--</li>-->
-						
-						<li class="sub-menu">
-							<a href="javascript:;">
-								<i class="la la-file-text"></i>
-								<span>{% trans 'Forms' %}</span>
-							</a>
-							<ul class="sub">
-								<!--<li><a href="{{ koboform_url }}#/forms/new">{% trans 'Create' %} {% trans 'New' %}</a></li>-->
-								<li><a href="{% url 'forms:forms-create' %}">{% trans 'Create' %} {% trans 'New' %}</a></li>
-<!--								<li><a href="{% url 'forms:forms-list' %}">{% trans 'My' %} {% trans 'Forms' %}</a></li>-->
-								<li><a href="{% url 'fieldsight:application' %}#/forms/myform">{% trans 'My' %} {% trans 'Forms' %}</a></li>
+						{% if not request.user.is_anonymous %}
 
-							</ul>
-						</li>
+							<li class="sub-menu">
+								<a href="javascript:;">
+									<i class="la la-file-text"></i>
+									<span>{% trans 'Forms' %}</span>
+								</a>
+								<ul class="sub">
+									<!--<li><a href="{{ koboform_url }}#/forms/new">{% trans 'Create' %} {% trans 'New' %}</a></li>-->
+									<li><a href="{% url 'forms:forms-create' %}">{% trans 'Create' %} {% trans 'New' %}</a></li>
+	<!--								<li><a href="{% url 'forms:forms-list' %}">{% trans 'My' %} {% trans 'Forms' %}</a></li>-->
+									<li><a href="{% url 'fieldsight:application' %}#/forms/myform">{% trans 'My' %} {% trans 'Forms' %}</a></li>
+
+								</ul>
+							</li>
+						{% endif %}
 						<!--<li class="sub-menu">-->
 							<!--<a href="javascript:;">-->
 								<!--<i class="la la-users"></i>-->
