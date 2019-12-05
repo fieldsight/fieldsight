@@ -57,7 +57,7 @@ class Command(BaseCommand):
                                           'range': range,
                                           'values': chunk
                                           }],
-                                'valueInputOption': 'RAW'}
+                                'valueInputOption': 'USER_ENTERED'}
 
                         request = service.spreadsheets().values().batchUpdate(
                             spreadsheetId=spreadsheet_id, body=body)
@@ -72,7 +72,7 @@ class Command(BaseCommand):
                                       'range': sheet_range,
                                       'values': values
                                       }],
-                            'valueInputOption': 'RAW'}
+                            'valueInputOption': 'USER_ENTERED'}
 
                     request = service.spreadsheets().values().batchUpdate(
                         spreadsheetId=spreadsheet_id, body=body)
