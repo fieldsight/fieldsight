@@ -16,7 +16,7 @@ class BarGenerator(object):
         self.data['Completed'] = 0
 
         for site in sites:
-            progress_range = self.get_range(site.progress())
+            progress_range = self.get_range(site.current_progress)
             self.data[progress_range] +=1
 
     def get_range(self, progress):
