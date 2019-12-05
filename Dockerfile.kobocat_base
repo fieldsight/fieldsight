@@ -21,7 +21,7 @@ RUN apt-get update && \
 
 
 ###########################
-# Install `pip` packages. #
+# Install `pip` packages. #d
 ###########################
 
 COPY ./requirements/ ${KOBOCAT_TMP_DIR}/base_requirements/
@@ -30,11 +30,4 @@ RUN mkdir -p ${PIP_EDITABLE_PACKAGES_DIR} && \
     pip install --src ${PIP_EDITABLE_PACKAGES_DIR}/ -r ${KOBOCAT_TMP_DIR}/base_requirements/s3.pip
 
 
-################################
-# Install `kobocat-templates`. #
-################################
 
-RUN mkdir -p /srv/src && \
-    cd /srv/src && \
-    git clone --depth 1 https://github.com/kobotoolbox/kobocat-template.git -b master && \
-    chown -R wsgi /srv/src/kobocat-template

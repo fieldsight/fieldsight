@@ -74,6 +74,13 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
+    def get_object(self):
+
+        pk = self.kwargs.get('pk', None)
+        obj = get_object_or_404(Region, pk=pk)
+        self.check_object_permissions(self.request, obj)
+        return obj
+
     def get_queryset(self):
 
         project_id = self.request.query_params.get('project', None)

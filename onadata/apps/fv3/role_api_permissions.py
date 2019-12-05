@@ -148,7 +148,10 @@ class TeamDashboardPermissions(permissions.BasePermission):
         if request.is_super_admin:
             return True
 
-        team_id = view.kwargs.get('pk')
+        if request.query_params.get('team') is not None:
+            team_id = request.query_params.get('team')
+        else:
+            team_id = view.kwargs.get('pk')
         obj = Organization.objects.get(id=team_id)
 
         if obj is not None:

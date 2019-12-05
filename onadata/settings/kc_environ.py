@@ -124,7 +124,7 @@ CSRF_COOKIE_DOMAIN = os.environ.get('CSRF_COOKIE_DOMAIN', None)
 
 if CSRF_COOKIE_DOMAIN:
     SESSION_COOKIE_DOMAIN = CSRF_COOKIE_DOMAIN
-    SESSION_COOKIE_NAME = 'kobonaut'
+    SESSION_COOKIE_NAME = os.environ.get('SESSION_COOKIE_NAME', 'my_cookie')
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 

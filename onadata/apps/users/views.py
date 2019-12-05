@@ -59,6 +59,7 @@ from rest_framework.permissions import AllowAny
 from social_django.utils import psa
 
 from onadata.apps.fieldsight.tasks import email_after_signup
+from django.views.decorators.csrf import csrf_exempt
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -518,7 +519,6 @@ def web_authenticate(username=None, password=None):
         except MultipleObjectsReturned:
             print("username multiple", username)
             return None, False
-
 
 def web_login(request):
     reset = request.GET.get('reset')
