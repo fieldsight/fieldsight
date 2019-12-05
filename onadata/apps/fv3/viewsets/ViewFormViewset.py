@@ -631,7 +631,7 @@ class SubmissionsVersions(APIView):
                            'project_url': object.get_absolute_url(),
                            'responses': 'Responses',
                            'responses_url': '/fieldsight/application/#/project-responses/{}/general/'.format(object.id),
-                           'current_page': 'Versions of {}'.format(fsf.xf.title)
+                           'current_page': u'Versions of {}'.format(fsf.xf.title)
                            }
         else:
             breadcrumbs = {'site_name': object.name,
