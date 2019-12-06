@@ -2804,8 +2804,17 @@ def update_sites_info(pk, location_changed, picture_changed,
     # except Exception as e:
     #     print(str(e), "errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
 
-d = {}
 
-@shared_task(soft_time_limit=400, time_limit=400)
-def update_sheet_in_drive():
-    print("hello")
+@shared_task(max_retries=3)
+def update_metas_in_sites(pk, start, end):
+    from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
+    sites = Site.objects.filter(is_active=True, project=pk)[
+            start:end]
+    print("updating site Metas batch for project ", pk, start, end)
+    SiteMetaAttrAnsHistory.objects.bulk_create(
+        [SiteMetaAttrAnsHistory(site=site, meta_attributes_ans=site.all_ma_ans) for site in sites])
+    for site in sites:
+        old_all_ma_ans = copy.deepcopy(site.all_ma_ans)
+        metas = get_site_meta_ans(site.id)
+        if metas != old_all_ma_ans:
+            site.save()
