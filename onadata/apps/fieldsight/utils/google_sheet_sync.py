@@ -210,7 +210,9 @@ def form_submission(form_id):
                                  xform.id_string, filter_query)
 
     df = pd.read_excel(temp_file)
+    df = df.replace('nan', '')
     df = df.applymap(unicode)
+
     try:
         print("df shape", df.shape)
         x, y = df.shape
