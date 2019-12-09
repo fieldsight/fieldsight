@@ -5,7 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer
+from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer, ReportSyncSettingsSerializer
+from onadata.apps.fsforms.models import ReportSyncSettings
 
 
 class ReportVs(viewsets.ModelViewSet):
@@ -29,3 +30,14 @@ class ReportVs(viewsets.ModelViewSet):
         location = Point(round(lng, 6), round(lat, 6), srid=4326)
         serializer.save(user=self.request.user, location=location)
 
+
+class ReportSyncSettingsViewSet(viewsets.ModelViewSet):
+    serializer_class = ReportSyncSettingsSerializer
+    queryset = ReportSyncSettings.objects.all()
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def get_queryset(self):
+        project_id = self.request.query_params.get('project_id', None)
+        if project_id is not None:
+            return self.queryset.filter(project_id=project_id)

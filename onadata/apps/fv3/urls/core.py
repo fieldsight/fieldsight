@@ -10,6 +10,7 @@ from onadata.apps.fv3.urls.project_dashboard import project_dashboard_urlpattern
 from onadata.apps.fv3.urls.team_dashboard import team_dashboard_urlpatterns
 from onadata.apps.fv3.urls.team_settings import team_settings_urlpatterns
 from onadata.apps.fv3.urls.view_by_forms_status import view_by_forms_status_urlpatterns
+from onadata.apps.fv3.urls.reports import reports_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
     ProjectDefineSiteMeta, ProjectSitesViewset, check_region, project_sites_vt, forms_breadcrumbs
 
@@ -102,3 +103,4 @@ urlpatterns += team_dashboard_urlpatterns
 urlpatterns += team_settings_urlpatterns
 urlpatterns += view_by_forms_status_urlpatterns
 urlpatterns += map_urlpatterns
+urlpatterns += reports_urlpatterns

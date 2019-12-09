@@ -42,6 +42,8 @@ SCHEDULED_LEVEL = [(0, 'Daily'), (1, 'Weekly'), (2, 'Monthly')]
 FORM_STATUS = [(0, 'Pending'), (1, 'Rejected'),
                (2, 'Flagged'), (3, 'Approved')]
 
+REPORT_TYPE = [('site_info', 'Site Info'), ('site_progress', 'Site Progress'), ('form', 'Form')]
+
 
 class FormGroup(models.Model):
     name = models.CharField(max_length=256, unique=True)
@@ -1155,3 +1157,12 @@ class SharedFieldSightForm(models.Model):
         return settings.KPI_URL + '#/forms/' + self.xf.id_string
 
 
+class ReportSyncSettings(models.Model):
+    project = models.ForeignKey(Project, related_name="report_sync_settings", on_delete=models.CASCADE)
+    form = models.ForeignKey(FieldSightXF, related_name="report_sync_settings", on_delete=models.CASCADE)
+    spreadsheet_id = models.CharField(max_length=250, null=True, blank=True)
+    grid_id = models.IntegerField(null=True, blank=True)
+    range = models.CharField(max_length=250, null=True, blank=True)
+    report_type = models.CharField(choices=REPORT_TYPE, default='site_info', max_length=50)
+    description = models.TextField(null=True, blank=True)
+    last_synced_date = models.DateTimeField(null=True, blank=True)
