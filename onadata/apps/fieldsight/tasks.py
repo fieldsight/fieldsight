@@ -15,6 +15,7 @@ from django.contrib.gis.geos import Point
 from celery import shared_task
 from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType,\
     ProgressSettings, SiteMetaAttrAnsHistory
+from onadata.apps.fieldsight.utils.google_sheet_create import site_details_generator, upload_to_drive
 from onadata.apps.fieldsight.utils.google_sheet_sync import site_information, \
     progress_information, form_submission
 from onadata.apps.fieldsight.utils.progress import set_site_progress
@@ -84,7 +85,7 @@ def gsuit_assign_perm(title, emails):
     time.sleep(3)
     gauth = GoogleAuth()
     drive = GoogleDrive(gauth)
-    file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()[0]
+    file = drive.ListFile({'q':"title = '" + title +"' and trashed=false"}).GetList()[0]
     for perm in emails:
         time.sleep(1)
         try:
@@ -97,96 +98,6 @@ def gsuit_assign_perm(title, emails):
             pass
 
     return True
-
-def upload_to_drive(file_path, title, folder_title, project, user):
-    # pass
-    """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
-    try:
-        gauth = GoogleAuth()
-        drive = GoogleDrive(gauth)
-
-        folders = drive.ListFile({'q':"title = '"+ folder_title +"'"}).GetList()
-        
-        if folders:
-            folder_id = folders[0]['id']
-        else:
-            folder_metadata = {'title' : folder_title, 'mimeType' : 'application/vnd.google-apps.folder'}
-            new_folder = drive.CreateFile(folder_metadata)
-            new_folder.Upload()            
-            folder_id = new_folder['id']
-        
-        file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()
-
-        if not file:    
-            new_file = drive.CreateFile({'title' : title, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
-            new_file.SetContentFile(file_path)
-            new_file.Upload({'convert':True})
-            file = drive.ListFile({'q':"title = '"+ title +"' and trashed=false"}).GetList()[0]
-
-        else:
-            file = file[0]
-            file.SetContentFile(file_path)
-            file.Upload({'convert':True})
-        
-        _project = Project.objects.get(pk=project.id) 
-        gsuit_meta = _project.gsuit_meta
-        gsuit_meta[folder_title] = {
-            'link':file['alternateLink'],
-            'updated_at':datetime.datetime.now().isoformat(),
-        }
-        if user:
-            gsuit_meta[folder_title]['user'] = {
-                'username': user.username,
-                'full_name': user.get_full_name()
-            }
-        _project.gsuit_meta = gsuit_meta
-        _project.save()
-        permissions = file.GetPermissions()
-
-        user_emails = UserRole.objects.filter(
-            Q(Q(group__name="Organization Admin", project__isnull=True) | Q(group__name__in=["Project Manager", "Project Donor"], project_id=_project.id)),
-            organization_id=_project.organization_id
-        ).distinct().values_list('user__email', flat=True)    
-        
-        all_users = set(user_emails)
-
-        existing_perms = []
-
-        for permission in permissions:
-            existing_perms.append(permission['emailAddress'])
-
-        perms = set(existing_perms)
-
-        perm_to_rm = perms - all_users
-        perm_to_add = all_users - perms
-
-        for permission in permissions:
-            if permission['emailAddress'] in perm_to_rm and permission['emailAddress'] != "exports.fieldsight@gmail.com":
-                file.DeletePermission(permission['id'])
-
-        
-        retry_emails = []
-        index = 0
-        for perm in perm_to_add:
-            try:
-                file.InsertPermission({
-                    'type':'user',
-                    'value':perm,
-                    'role': 'writer'
-                })
-        
-            except Exception as e:
-                if "Since there is no Google account associated with this email address" not in str(e):
-                    retry_emails.append(perm)
-
-            index += 1
-
-        if retry_emails:
-            print "retrying again for ", retry_emails
-            gsuit_assign_perm.delay(title, retry_emails)
-
-    except Exception as e:
-        raise DriveException({"message":e})
 
 
 
@@ -730,109 +641,8 @@ def generateCustomReportPdf(task_prog_obj_id, site_id, base_url, fs_ids, start_d
                                        extra_message="@error " + u'{}'.format(e.message))
         buffer.close()        
 
-def siteDetailsGenerator(project, sites, ws):
-    try:
-        header_columns = [ {'id': 'identifier' ,'name':'identifier'},
-                           {'id': 'name','name':'name'},
-                           {'id': 'site_type_identifier','name':'type'}, 
-                           {'id': 'phone','name':'phone'},
-                           {'id': 'address','name':'address'},
-                           {'id': 'public_desc','name':'public_desc'},
-                           {'id': 'additional_desc','name':'additional_desc'},
-                           {'id': 'latitude','name':'latitude'},
-                           {'id': 'longitude','name':'longitude'},
-                           {'id': 'progress','name':'progress'},
-                           {'id': 'root_site_identifier','name':'root_site_identifier'}, ]
-
-        if project.cluster_sites:
-            header_columns += [{'id':'region_identifier', 'name':'region_id'}, ]
-        
-        meta_ques = project.site_meta_attributes
-        for question in meta_ques:
-            if not question['question_type'] == 'Link':
-                header_columns += [{'id': question['question_name'], 'name': question['question_name']}]
-            else:
-                question_name = question['question_name']
-                try:
-                    link_metas = question['metas'].values()[0]
-                except:
-                    link_metas = []
-                for link_question in link_metas:
-                    if not link_question['question_type'] == 'Link': # ignore links of links
-                        header_columns += [{
-                            'id': question_name + "/" + link_question['question_name'],
-                            'name': question_name + "/" + link_question['question_name']
-                        }]
-
-        site_list = {}
-        for site in sites.select_related('region').iterator():
-            root_site_identifier = None
-            if site.site:
-                root_site_identifier = site.site.identifier
-            columns = {'identifier':site.identifier, 'name':site.name, 'site_type_identifier':site.type.identifier if site.type else "", 'phone':site.phone, 'address':site.address, 'public_desc':site.public_desc, 'additional_desc':site.additional_desc, 'latitude':site.latitude,
-                       'longitude':site.longitude, 'progress':site.current_progress, 'root_site_identifier':root_site_identifier }
-
-            if project.cluster_sites:
-                columns['region_identifier'] = site.region.identifier if site.region else ""
-
-            meta_ans = site.all_ma_ans
-            for question in meta_ques:
-                if not question['question_type'] == 'Link':
-                    # question is not draw from another project
-                    question_name = question['question_name']
-                    columns[question_name] = meta_ans.get(question_name, "")
-                else:
-                    question_name = question['question_name']
-                    # question is draw from another project
-                    # check answer is dict with children key
-                    linked_answer = meta_ans.get(question_name, "")
-                    if isinstance(linked_answer, dict):
-                        children = linked_answer['children']
-                        for k, v in children.items():
-                            columns[question_name + "/" + k] = v
-                    # else:
-                    #     # no site referenced
-                    #     # default empty answer
-                    #     try:
-                    #         link_metas = question['metas'].values()[0]
-                    #     except:
-                    #         link_metas = []
-                    #     for link_question_of_link_metas in link_metas:
-                    #         if not link_question_of_link_metas['question_type'] == 'Link':
-                    #             columns[question_name + "/" + link_question_of_link_metas['question_name']] = ""
-
-            site_list[site.id] = columns
-
-        del sites
-        gc.collect()
-
-        header_row=[]
-        for col_num in range(len(header_columns)):
-            # header_cell=WriteOnlyCell(ws, value=header_columns[col_num]['name'])
-            # header_cell=Font(name='Courier', size=16)
-            header_row.append(header_columns[col_num]['name'])
-            
-        ws.append(header_row)
-        
 
 
-        for key,site in site_list.iteritems():
-        #    ws.append([site.get(header_columns[col_num]['id']) for col_num in range(len(header_columns))])
-            row=[]
-            for col_num in range(len(header_columns)):
-                row.append(site.get(header_columns[col_num]['id'], ""))    
-            ws.append(row)
-
-        gc.collect()
-        return True, 'success'
-
-    except Exception as e:
-        gc.collect()
-        return False, e.message
-
-# project = Project.objects.get(pk=137)
-# sites = project.sites.all()
-# siteDetailsGenerator(project, sites, None)
 
 @shared_task(time_limit=300, soft_time_limit=300)
 def generateSiteDetailsXls(task_prog_obj_id, project_id, region_ids, type_ids=None, sync_to_drive=False):
@@ -863,7 +673,7 @@ def generateSiteDetailsXls(task_prog_obj_id, project_id, region_ids, type_ids=No
         if type_ids:
             sites = sites.filter(type_id__in=type_ids)
 
-        status, message = siteDetailsGenerator(project, sites, ws)
+        status, message = site_details_generator(project, sites, ws)
 
         if not status:
             raise ValueError(message)
@@ -1065,7 +875,7 @@ def exportProjectSiteResponses(task_prog_obj_id, project_id, base_url, fs_ids, s
         
         elif len(forms) < 2:        
             sites = Site.objects.filter(pk__in=response_sites)
-            status, message = siteDetailsGenerator(project, sites, ws_site_details)
+            status, message = site_details_generator(project, sites, ws_site_details)
             if not status:
                 raise ValueError(message)
 
