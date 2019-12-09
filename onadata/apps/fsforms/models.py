@@ -1160,7 +1160,8 @@ class SharedFieldSightForm(models.Model):
 
 class ReportSyncSettings(models.Model):
     project = models.ForeignKey(Project, related_name="report_sync_settings", on_delete=models.CASCADE)
-    form = models.ForeignKey(FieldSightXF, related_name="report_sync_settings", on_delete=models.CASCADE)
+    form = models.ForeignKey(FieldSightXF, related_name="report_sync_settings", on_delete=models.CASCADE,
+                             null=True, blank=True)
     schedule_type = models.CharField(choices=SCHEDULED_TYPE, default=0, max_length=50)
     day = models.IntegerField(null=True, blank=True)
     spreadsheet_id = models.CharField(max_length=250, null=True, blank=True)
