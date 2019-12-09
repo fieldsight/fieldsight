@@ -5,8 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer, ReportSyncSettingsSerializer
-from onadata.apps.fsforms.models import ReportSyncSettings
+from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer, ReportSyncSettingsSerializer, \
+    ProjectFormSerializer
+from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF
 
 
 class ReportVs(viewsets.ModelViewSet):
@@ -41,3 +42,12 @@ class ReportSyncSettingsViewSet(viewsets.ModelViewSet):
         project_id = self.request.query_params.get('project_id', None)
         if project_id is not None:
             return self.queryset.filter(project_id=project_id)
+
+
+class ProjectFormsViewSet(viewsets.ModelViewSet):
+
+    queryset = FieldSightXF.objects.select_related('xf').filter(is_deleted=False)
+    serializer_class = ProjectFormSerializer
+
+    def filter_queryset(self, queryset):
+        return queryset.filter(project_id=self.kwargs.get('pk'))
