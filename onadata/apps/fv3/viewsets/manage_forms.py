@@ -443,7 +443,8 @@ class StageFormsVS(viewsets.ModelViewSet):
                 if not site.region:
                     site.region_id = 0
                 queryset = queryset.filter(Q(site__id=site_id, project_stage_id=0)
-                                           | Q(project__id=project_id, tags__contains=[site.type_id], regions__contains=[site.region_id])
+                                           | Q(project__id=project_id, tags__contains=[site.type_id],
+                                               regions__contains=[site.region_id])
                                            )
             if types_count:
                 if not site.type:

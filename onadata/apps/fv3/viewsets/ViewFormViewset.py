@@ -84,8 +84,8 @@ class ProjectSiteResponsesView(APIView):
                         site.region_id = 0
                     generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False)
                                                | Q(project__id=project_id, settings__isnull=True)
-                                               | Q(project__id=project_id, settings__types__contains=[site.type_id]),
-                                               settings__regions__contains=[site.region_id])
+                                               | Q(project__id=project_id, settings__types__contains=[site.type_id],
+                                                   settings__regions__contains=[site.region_id]))
                 elif project.cluster_sites:
                     if not site.region:
                         site.region_id = 0
@@ -100,7 +100,8 @@ class ProjectSiteResponsesView(APIView):
                                                | Q(project__id=project_id, settings__isnull=True)
                                                | Q(project__id=project_id, settings__types__contains=[site.type_id]))
                 else:
-                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False) | Q(project__id=project_id))
+                    generals_queryset = base_queryset.filter(Q(site__id=site.id, from_project=False) |
+                                                             Q(project__id=project_id))
 
                 generals_queryset = generals_queryset.\
                     select_related('xf', 'xf__user', 'site', 'project').prefetch_related('xf__fshistory',
@@ -164,8 +165,8 @@ class ProjectSiteResponsesView(APIView):
                     scheduled_queryset = base_queryset.filter(Q(site__id=site.id)
                                                | Q(project__id=project_id, schedule_forms__settings__isnull=True)
                                                | Q(project__id=project_id,
-                                                   schedule_forms__settings__types__contains=[site.type_id]),
-                                               schedule_forms__settings__regions__contains=[site.region_id])
+                                                   schedule_forms__settings__types__contains=[site.type_id],
+                                                   schedule_forms__settings__regions__contains=[site.region_id]))
                 elif types_count > 0:
                     if not site.type_id:
                         site.type_id = 0
@@ -194,7 +195,8 @@ class ProjectSiteResponsesView(APIView):
                     prefetch_related('schedule_forms__site_form_instances', 'schedule_forms__xf__fshistory').\
                     filter(schedule_forms__is_staged=False, schedule_forms__is_scheduled=True,
                            schedule_forms__is_survey=False, schedule_forms__is_deleted=True, project_id=project).\
-                    filter(Q(schedule_forms__site__id=site.id, schedule_forms__from_project=False) | Q(project__id=project_id))
+                    filter(Q(schedule_forms__site__id=site.id, schedule_forms__from_project=False) |
+                           Q(project__id=project_id))
 
                 scheduled_deleted_forms = ViewScheduledFormSerializer(scheduled_deleted_qs,
                                                                    many=True).data
@@ -243,10 +245,9 @@ class ProjectSiteResponsesView(APIView):
                         site.type_id = 0
                     if not site.region:
                         site.region_id = 0
-                    stage_queryset = base_queryset.filter(Q(site__id=site.id,
-                                                 project_stage_id=0)
-                                               | Q(project__id=project_id, tags__contains=[site.type_id])
-                                               | Q(project__id=project_id, regions__contains=[site.region_id])
+                    stage_queryset = base_queryset.filter(Q(site__id=site.id, project_stage_id=0)
+                                                          | Q(project__id=project_id, tags__contains=[site.type_id])
+                                                          | Q(project__id=project_id, regions__contains=[site.region_id])
                                                )
                 if types_count:
                     if not site.type:
