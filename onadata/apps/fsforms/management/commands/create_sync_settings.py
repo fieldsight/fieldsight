@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from onadata.apps.api.models import Project
+from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, ReportSyncSettings
 
 
