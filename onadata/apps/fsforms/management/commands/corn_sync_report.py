@@ -1,4 +1,5 @@
 import datetime
+import calendar
 from pprint import pprint
 
 from django.db.models import Q
@@ -93,11 +94,18 @@ class Command(BaseCommand):
                  'https://www.googleapis.com/auth/spreadsheets']
         week_day = int(datetime.datetime.today().strftime('%w'))
         day = datetime.datetime.today().day
+        _start, _end = calendar.monthrange(datetime.datetime.today().year, datetime.datetime.today().month)
+        if day == _end:
+            sheet_list = ReportSyncSettings.objects.exclude(schedule_type=0).filter(Q(schedule_type=1)
+                            | Q(schedule_type=2, day=week_day)
+                            | Q(schedule_type=3, day=0)
+                            )
 
-        sheet_list = ReportSyncSettings.objects.exclude(schedule_type=0).filter(Q(schedule_type=1)
-                                                                                | Q(schedule_type=2, day=week_day)
-                                                                                | Q(schedule_type=3, day=day)
-                                                                                )
+        else:
+            sheet_list = ReportSyncSettings.objects.exclude(schedule_type=0).filter(Q(schedule_type=1)
+                            | Q(schedule_type=2, day=week_day)
+                            | Q(schedule_type=3, day=day)
+                            )
 
         if sheet_list:
             credentials = ServiceAccountCredentials.from_json_keyfile_name(
