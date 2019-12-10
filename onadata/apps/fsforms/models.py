@@ -1159,6 +1159,7 @@ class SharedFieldSightForm(models.Model):
 
 
 class ReportSyncSettings(models.Model):
+    user = models.ForeignKey(User, related_name='report_sync_settings', on_delete=models.CASCADE, null=True, blank=True)
     project = models.ForeignKey(Project, related_name="report_sync_settings", on_delete=models.CASCADE)
     form = models.ForeignKey(FieldSightXF, related_name="report_sync_settings", on_delete=models.CASCADE,
                              null=True, blank=True)
@@ -1170,3 +1171,4 @@ class ReportSyncSettings(models.Model):
     report_type = models.CharField(choices=REPORT_TYPE, default='site_info', max_length=50)
     description = models.TextField(null=True, blank=True)
     last_synced_date = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
