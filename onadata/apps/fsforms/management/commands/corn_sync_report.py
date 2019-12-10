@@ -19,7 +19,7 @@ scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/spreadsheets']
 
 
-def update_sheet(service, id, report_type, project, form_id, spreadsheet_id, grid_id, sheet_range):
+def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_id, grid_id, sheet_range):
     if not sheet_range:
         sheet_range = "A1:GZ50000"
     if report_type == "site_info":
@@ -49,9 +49,10 @@ def update_sheet(service, id, report_type, project, form_id, spreadsheet_id, gri
 
             response = request.execute()
             pprint(response)
-            print("finished ,", id, page)
+            print("finished ,", sheet_obj.id, page)
             total_sites -= page_size
             page += 1
+        sheet_obj.last_synced_date = datetime.datetime.now()
     else:
         body = {
             'data': [{
@@ -67,8 +68,8 @@ def update_sheet(service, id, report_type, project, form_id, spreadsheet_id, gri
 
         response = request.execute()
         pprint(response)
-
-        print("finished ,", id)
+        sheet_obj.last_synced_date = datetime.datetime.now()
+        print("finished ,", sheet_obj.id)
 
 
 def create_new_sheet(sheet):
@@ -121,7 +122,7 @@ class Command(BaseCommand):
                 grid_id = sheet.grid_id
                 sheet_range = sheet.range
                 if spreadsheet_id:  # Already Have file in Drive
-                    update_sheet(service, sheet.id,
+                    update_sheet(service, sheet,
                                  report_type, project, form_id, spreadsheet_id, grid_id, sheet_range)
                     
                 else:
