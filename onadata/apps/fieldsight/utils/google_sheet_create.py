@@ -67,7 +67,7 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
                 group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
             organization_id=sheet.project.organization_id
         ).distinct().values_list('user__email', flat=True)
-
+        user_emails = list(user_emails)
         user_emails.append(settings.SERVICE_ACCOUNT_EMAIL)
         all_users = set(user_emails)
 
