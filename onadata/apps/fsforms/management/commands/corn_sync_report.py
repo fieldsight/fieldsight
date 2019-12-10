@@ -1,4 +1,7 @@
+import datetime
 from pprint import pprint
+
+from django.db.models import Q
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient import discovery
 from django.core.management.base import BaseCommand
@@ -88,7 +91,13 @@ class Command(BaseCommand):
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive',
                  'https://www.googleapis.com/auth/spreadsheets']
-        sheet_list = ReportSyncSettings.objects.exclude(schedule_type=0)
+        week_day = int(datetime.datetime.today().strftime('%w'))
+        day = datetime.datetime.today().day
+
+        sheet_list = ReportSyncSettings.objects.exclude(schedule_type=0).filter(Q(schedule_type=1)
+                                                                                | Q(schedule_type=2, day=week_day)
+                                                                                | Q(schedule_type=3, day=day)
+                                                                                )
 
         if sheet_list:
             credentials = ServiceAccountCredentials.from_json_keyfile_name(
