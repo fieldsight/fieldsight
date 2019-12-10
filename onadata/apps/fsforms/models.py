@@ -474,6 +474,9 @@ class FormSettings(models.Model):
 
 @receiver(post_save, sender=FieldSightXF)
 def create_messages(sender, instance, created,  **kwargs):
+    if instance.project and created:
+        sync_settings = ReportSyncSettings(project=instance, report_type="form", schedule_type=0)
+        sync_settings.save()
     if instance.project is not None and created and not instance.is_staged and not instance.is_scheduled:
         send_message_project_form(instance)
     elif created and instance.site is not None and not instance.is_staged and not instance.is_scheduled:

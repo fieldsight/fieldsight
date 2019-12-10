@@ -366,6 +366,14 @@ class Project(models.Model):
     def get_absolute_url(self):
         return "/fieldsight/application/#/project-dashboard/{}".format(self.pk)
 
+@receiver(post_save, sender=Project)
+def create_messages(sender, instance, created,  **kwargs):
+    if created:
+        from onadata.apps.fsforms.models import ReportSyncSettings
+        s = ReportSyncSettings(project=instance, report_type="site_info", schedule_type=0)
+        so = ReportSyncSettings(project=instance, report_type="site_progress", schedule_type=0)
+        s.save()
+        so.save()
 
 class Region(models.Model):
     identifier = models.CharField(max_length=255)
