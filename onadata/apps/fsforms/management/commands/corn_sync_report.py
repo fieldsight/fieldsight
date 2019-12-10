@@ -86,9 +86,6 @@ class Command(BaseCommand):
 
     help = 'update sheet data in google'
 
-    def add_arguments(self, parser):
-        parser.add_argument('schedule_type', type=str)
-
     def handle(self, *args, **options):
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive',
