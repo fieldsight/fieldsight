@@ -1,11 +1,11 @@
-import time
-
 from pprint import pprint
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient import discovery
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.conf import settings
 
+from onadata.apps.fieldsight.utils.google_sheet_create import generate_site_info, generate_site_progress, \
+    generate_form_report
 from onadata.apps.fieldsight.utils.google_sheet_sync import site_information, \
     progress_information, form_submission
 from onadata.apps.fsforms.models import ReportSyncSettings
@@ -65,18 +65,6 @@ def update_sheet(service, id, report_type, project, form_id, spreadsheet_id, gri
         pprint(response)
 
         print("finished ,", id)
-
-
-def generate_site_info(sheet):
-    pass
-
-
-def generate_site_progress(sheet):
-    pass
-
-
-def generate_form_report(sheet):
-    pass
 
 
 def create_new_sheet(sheet):

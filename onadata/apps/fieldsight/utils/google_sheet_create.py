@@ -2,20 +2,25 @@ import datetime
 import gc
 import os
 from io import BytesIO
+from tempfile import NamedTemporaryFile
 
 from openpyxl import Workbook
 
 from django.conf import settings
-from django.db.models import Q
-from django.core.files.storage import get_storage_class
+from django.db.models import Sum, Case, When, IntegerField, Q
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+import pyexcel as p
 
-from onadata.apps.api.models import Project
+from onadata.apps.fieldsight.models import Site
+from onadata.apps.fsforms.models import FInstance, FieldSightXF
 from onadata.apps.userrole.models import UserRole
+
+
+form_status_map = ["Pending", "Rejected", "Flagged", "Approved"]
 
 
 class DriveException(Exception):
@@ -59,7 +64,7 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
 
         user_emails = UserRole.objects.filter(
             Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
-                group__name__in=["Project Manager", "Project Donor"], project_id=_project.id)),
+                group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
             organization_id=sheet.project.organization_id
         ).distinct().values_list('user__email', flat=True)
 
@@ -236,6 +241,205 @@ def generate_site_info(sheet):
         out.write(xls)  ## Read bytes into file
 
     upload_to_drive(temporarylocation,
-                    "{} - Site Information".format(project.id), "Site Information", project, sheet.user)
+                    "{} - Site Information".format(project.id), "Site Information", project, sheet.user, sheet)
+
+    os.remove(temporarylocation)
+
+
+def generate_site_progress(sheet):
+    project = sheet.project
+    try:
+        data = []
+        ss_index = []
+        form_ids = []
+        stages_rows = []
+        head_row = ["Site ID", "Name", "Region ID", "Address", "Latitude", "longitude", "Status", "Progress"]
+
+        query = {}
+
+        stages = project.stages.filter(stage__isnull=True)
+        for stage in stages:
+            sub_stages = stage.parent.filter(stage_forms__isnull=False)
+            if len(sub_stages):
+                head_row.append("Stage :" + stage.name)
+                stages_rows.append("Stage :" + stage.name)
+                ss_index.append(str(""))
+                for ss in sub_stages:
+                    head_row.append("Sub Stage :" + ss.name)
+                    ss_index.append(str(ss.stage_forms.id))
+                    form_ids.append(str(ss.stage_forms.id))
+                    query[str(ss.stage_forms.id)] = Sum(
+                        Case(
+                            When(site_instances__project_fxf_id=ss.stage_forms.id, then=1),
+                            default=0, output_field=IntegerField()
+                        ))
+
+        query['flagged'] = Sum(
+            Case(
+                When(site_instances__form_status=2, site_instances__project_fxf_id__in=form_ids, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['rejected'] = Sum(
+            Case(
+                When(site_instances__form_status=1, site_instances__project_fxf_id__in=form_ids, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        query['submission'] = Sum(
+            Case(
+                When(site_instances__project_fxf_id__in=form_ids, then=1),
+                default=0, output_field=IntegerField()
+            ))
+
+        head_row.extend(["Site Visits", "Submission Count", "Flagged Submission", "Rejected Submission"])
+        data.append(head_row)
+
+        sites = Site.objects.filter(is_active=True)
+
+        sites_filter = {'project_id': project.id}
+        finstance_filter = {'project_fxf__in': form_ids}
+
+        site_dict = {}
+
+        # Redoing query because annotate and lat long did not go well in single query.
+        # Probable only an issue because of old django version.
+
+        for site_obj in sites.filter(**sites_filter).iterator():
+            site_dict[str(site_obj.id)] = {
+                'visits': 0, 'site_status': 'No Submission', 'latitude': site_obj.latitude,
+                'longitude': site_obj.longitude
+            }
+
+        sites_status = FInstance.objects.filter(**finstance_filter).order_by('site_id', '-id').distinct(
+            'site_id').values_list('site_id', 'form_status')
+
+        for site_status in sites_status:
+            try:
+                site_dict[str(site_status[0])]['site_status'] = form_status_map[site_status[1]]
+            except:
+                pass
+        sites_status = None
+        gc.collect()
+
+        site_visits = settings.MONGO_DB.instances.aggregate(
+            [{"$match": {"fs_project": project.id, "fs_project_uuid": {"$in": form_ids}}}, {
+                "$group": {
+                    "_id": {
+                        "fs_site": "$fs_site",
+                        "date": {"$substr": ["$start", 0, 10]}
+                    },
+                }
+            }, {
+                 "$group": {
+                     "_id": "$_id.fs_site", "visits": {
+                         "$push": {
+                             "date": "$_id.date"
+                         }
+                     }
+                 }
+             }])['result']
+
+        for site_visit in site_visits:
+            try:
+                site_dict[str(site_visit['_id'])]['visits'] = len(site_visit['visits'])
+            except:
+                pass
+
+        site_visits = None
+        gc.collect()
+
+        sites = sites.filter(**sites_filter).values('id', 'identifier', 'name', 'region__identifier', 'address',
+                                                    "current_progress").annotate(**query)
+
+        for site in sites:
+            # import pdb; pdb.set_trace();
+            try:
+                site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'],
+                            site_dict[str(site.get('id'))]['latitude'], site_dict[str(site.get('id'))]['longitude'],
+                            site_dict[str(site.get('id'))]['site_status'], site['current_progress']]
+
+                for stage in ss_index:
+                    site_row.append(site.get(stage, ""))
+
+                site_row.extend(
+                    [site_dict[str(site.get('id'))]['visits'], site['submission'], site['flagged'], site['rejected']])
+
+                data.append(site_row)
+            except Exception as e:
+                print e
+
+        sites = None
+        site_dict = None
+        gc.collect()
+
+        p.save_as(array=data, dest_file_name="media/stage-report/{}_stage_data.xls".format(project.id))
+
+        with open("media/stage-report/{}_stage_data.xls".format(project.id), 'rb') as fin:
+            buffer = BytesIO(fin.read())
+            buffer.seek(0)
+            path = default_storage.save(
+                "media/stage-report/{}_stage_data.xls".format(project.id),
+                ContentFile(buffer.getvalue())
+            )
+            buffer.close()
+
+
+        upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id),
+                        "{} - Progress Report".format(project.id), "Site Progress", project, sheet.user, sheet)
+
+    except DriveException as e:
+        print 'Report upload to drive  Unsuccesfull. %s' % e
+        print e.__dict__
+
+
+    except Exception as e:
+        print 'Report Gen Unsuccesfull. %s' % e
+        print e.__dict__
+
+
+def generate_form_report(sheet):
+    group_delimiter = '/'
+    form_id = sheet.form.id
+    from onadata.libs.utils.export_tools import ExportBuilder, query_mongo
+    fieldsight_xf = FieldSightXF.objects.get(pk=form_id)
+    xform = fieldsight_xf.xf
+    id_string = xform.id_string
+    export_builder = ExportBuilder()
+    export_builder.GROUP_DELIMITER = group_delimiter
+    export_builder.SPLIT_SELECT_MULTIPLES = True
+    export_builder.BINARY_SELECT_MULTIPLES = False
+    export_builder.set_survey(xform.data_dictionary().survey)
+
+    prefix = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "__" + \
+             xform.id_string
+    temp_file = NamedTemporaryFile(prefix=prefix, suffix=(".xls"))
+    filter_query = {
+        '$and': [{'fs_project_uuid': str(form_id)}, {
+            '$or': [{
+                '_deleted_at': {'$exists': False}
+            }, {'_deleted_at': None}]
+        }],
+        '_deleted_at': {'$exists': False}
+    }
+    # filter_query = {"fs_project_uuid": str(form_id)}
+    records = query_mongo(xform.user.username, xform.id_string, filter_query)
+    export_builder.to_xls_export(temp_file.name, records, xform.user.username,
+                                 xform.id_string, filter_query)
+
+    if not os.path.exists("media/forms/"):
+        os.makedirs("media/forms/")
+
+    temporarylocation = "media/forms/submissions_{}.xls".format(xform.id_string)
+    import shutil
+    shutil.copy(temp_file.name, temporarylocation)
+    if fieldsight_xf.schedule:
+        name = fieldsight_xf.schedule.name
+    elif fieldsight_xf.stage:
+        name = fieldsight_xf.stage.name
+    else:
+        name = fieldsight_xf.xf.title
+    upload_to_drive(temporarylocation, name + '_' + id_string, str(fieldsight_xf.id) + '_' + name + '_' + id_string,
+                    fieldsight_xf.project, sheet.user, sheet)
 
     os.remove(temporarylocation)
