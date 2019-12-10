@@ -3,11 +3,12 @@ from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer, ReportSyncSettingsSerializer, \
     ProjectFormSerializer
-from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF
+from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF, SCHEDULED_TYPE
 
 
 class ReportVs(viewsets.ModelViewSet):
@@ -51,3 +52,25 @@ class ProjectFormsViewSet(viewsets.ModelViewSet):
 
     def filter_queryset(self, queryset):
         return queryset.filter(project_id=self.kwargs.get('pk'))
+
+
+class ReportSyncSettingsList(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        project_id = self.request.query_params.get('project_id', None)
+        report_sync_queryset = ReportSyncSettings.objects.filter(project_id=project_id)
+        report_sync_list = [{'id': report.id, 'form': report.form.xf.title, 'schedule_type':
+            SCHEDULED_TYPE[int(report.schedule_type)][1], 'day': report.day} for report in report_sync_queryset]
+
+        report_sync_form_ids = ReportSyncSettings.objects.filter(project_id=project_id).values_list('form__xf_id',
+                                                                                                    flat=True)
+
+        project_forms_queryset = FieldSightXF.objects.select_related('xf').filter(is_deleted=False,
+                                                                                  project_id=self.kwargs.get('pk')).\
+            exclude(xf_id__in=report_sync_form_ids)
+        project_forms = [{'id': None, 'form': form.xf.title, 'schedule_type': 'Manual', 'day': None}
+                         for form in project_forms_queryset]
+        report_sync_list.extend(project_forms)
+
+        return Response(status=status.HTTP_200_OK, data=report_sync_list)
