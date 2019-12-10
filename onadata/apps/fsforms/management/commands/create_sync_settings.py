@@ -10,9 +10,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         projects = Project.objects.all()
         forms = FieldSightXF.objects.filter(is_deleted=False, project__isnull=False)
+        list(forms)
         settings = []
         for f in forms:
-            s = ReportSyncSettings(project=f.project, report_type="form", schedule_type=0)
+            s = ReportSyncSettings(project=f.project, report_type="form", schedule_type=0, form=f)
             settings.append(s)
 
         for p in projects:
