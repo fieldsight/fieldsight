@@ -52,8 +52,9 @@ class ReportSyncSettingsList(APIView):
                              'day': report.day, 'report_type': report.get_report_type_display()}
                             for report in report_sync_queryset]
 
-        report_sync_form_ids = ReportSyncSettings.objects.filter(project_id=project_id).values_list('form__xf_id',
-                                                                                                    flat=True)
+        report_sync_form_ids = ReportSyncSettings.objects.\
+            filter(project_id=project_id).exclude(report_type__in=['site_info', 'site_progress']).\
+            values_list('form__xf_id', flat=True)
         site_info_queryset = ReportSyncSettings.objects.filter(project_id=project_id, report_type='site_info')
         if site_info_queryset.exists():
             site_info = [{'id': info.id, 'schedule_type': SCHEDULED_TYPE[int(info.schedule_type)][1], 'day': info.day,
