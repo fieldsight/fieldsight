@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer, ReportSyncSettingsSerializer, \
     ProjectFormSerializer
-from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF, SCHEDULED_TYPE
+from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF, SCHEDULED_TYPE, Stage
 
 
 class ReportVs(viewsets.ModelViewSet):
@@ -45,40 +45,59 @@ class ReportSyncSettingsList(APIView):
 
     def get(self, request, *args, **kwargs):
         project_id = self.request.query_params.get('project_id', None)
-        report_sync_queryset = ReportSyncSettings.objects.select_related('form__xf').filter(project_id=project_id).\
-            exclude(report_type__in=['site_info', 'site_progress'])
-        report_sync_list = [{'id': report.id, 'form': report.form.xf.title,
-                             'schedule_type': SCHEDULED_TYPE[int(report.schedule_type)][1],
-                             'day': report.day, 'report_type': report.get_report_type_display()}
-                            for report in report_sync_queryset]
+        schedule_queryset = FieldSightXF.objects.select_related('xf').prefetch_related('report_sync_settings').\
+            filter(project_id=project_id, is_scheduled=True, is_staged=False, is_survey=False)
 
-        report_sync_form_ids = ReportSyncSettings.objects.\
-            filter(project_id=project_id).exclude(report_type__in=['site_info', 'site_progress']).\
-            values_list('form__xf_id', flat=True)
-        site_info_queryset = ReportSyncSettings.objects.filter(project_id=project_id, report_type='site_info')
-        if site_info_queryset.exists():
-            site_info = [{'id': info.id, 'schedule_type': SCHEDULED_TYPE[int(info.schedule_type)][1], 'day': info.day,
-                          'report_type': info.get_report_type_display()} for info in site_info_queryset]
-        else:
-            site_info = [{'id': None, 'schedule_type': 'Manual', 'day': None, 'report_type': 'Site Info'}]
-        site_progress_queryset = ReportSyncSettings.objects.filter(project_id=project_id, report_type='site_progress')
+        schedule = [{'report_id': form.report_sync_settings.all()[0].id, 'schedule_type':
+            form.report_sync_settings.all()[0].schedule_type, 'day': form.report_sync_settings.all()[0].day,
+                     'grid_id': form.report_sync_settings.all()[0].grid_id,
+                     'range': form.report_sync_settings.all()[0].range, 'report_type': form.report_sync_settings.all()[0].report_type,
+                     'last_synced_date': form.report_sync_settings.all()[0].last_synced_date, 'spreadsheet_id':
+                         form.report_sync_settings.all()[0].spreadsheet_id} for form in schedule_queryset if
+                    form.report_sync_settings.all()]
+        stages = Stage.objects.filter(project_id=project_id)
+        mainstage = []
 
-        if site_progress_queryset.exists():
+        for stage in stages:
+            if stage.stage_id is None:
+                substages = stage.get_sub_stage_list()
+                main_stage = {'id': stage.id, 'title': stage.name, 'sub_stages': list(substages)}
+                mainstage.append(main_stage)
 
-            site_progress = [{'id': progress.id, 'schedule_type': SCHEDULED_TYPE[int(progress.schedule_type)][1],
-                              'day': progress.day, 'report_type': progress.get_report_type_display()}
-                             for progress in site_progress_queryset]
-        else:
-            site_progress = [{'id': None, 'schedule_type': 'Manual',
-                              'day': None, 'report_type': 'Site Progress'}]
+        survey_queryset = FieldSightXF.objects.select_related('xf').prefetch_related('report_sync_settings').filter(project_id=project_id, is_scheduled=False,
+                                                                           is_staged=False,
+                                                                           is_survey=True)
+        survey = [
+            {'report_id': form.report_sync_settings.all()[0].id,
+             'schedule_type': form.report_sync_settings.all()[0].schedule_type,
+             'day': form.report_sync_settings.all()[0].day, 'grid_id': form.report_sync_settings.all()[0].grid_id,
+             'range': form.report_sync_settings.all()[0].range,
+             'report_type': form.report_sync_settings.all()[0].report_type,
+             'last_synced_date': form.report_sync_settings.all()[0].last_synced_date, 'spreadsheet_id':
+                 form.report_sync_settings.all()[0].spreadsheet_id} for form in survey_queryset if
+            form.report_sync_settings.all()]
 
-        project_forms_queryset = FieldSightXF.objects.select_related('xf').filter(is_deleted=False,
-                                                                                  project_id=self.kwargs.get('pk')).\
-            exclude(xf_id__in=report_sync_form_ids)
-        project_forms = [{'id': None, 'form': form.xf.title, 'schedule_type': 'Manual', 'day': None,
-                          'report_type': 'Form'}
-                         for form in project_forms_queryset]
-        report_sync_list.extend(project_forms)
+        general_queryset = FieldSightXF.objects.select_related('xf').prefetch_related('report_sync_settings')\
+            .filter(project_id=project_id, is_scheduled=False, is_staged=False, is_survey=False)
+        general = [
+            {'report_id': form.report_sync_settings.all()[0].id, 'schedule_type': form.report_sync_settings.all()[0].schedule_type,
+             'day': form.report_sync_settings.all()[0].day, 'grid_id': form.report_sync_settings.all()[0].grid_id,
+             'range': form.report_sync_settings.all()[0].range, 'report_type': form.report_sync_settings.all()[0].report_type,
+             'last_synced_date': form.report_sync_settings.all()[0].last_synced_date, 'spreadsheet_id':
+                 form.report_sync_settings.all()[0].spreadsheet_id} for form in general_queryset if form.report_sync_settings.all()]
 
-        return Response(status=status.HTTP_200_OK, data={'forms': report_sync_list,
-                                                         'site_info': site_info, 'site_progress': site_progress})
+        standard_reports_queryset = ReportSyncSettings.objects.filter(project_id=project_id,
+                                                                      report_type__in=['site_info', 'site_progress'])
+        standard_reports = [
+            {'report_id': report.id, 'schedule_type': report.schedule_type,
+             'day': report.day, 'grid_id': report.grid_id,
+             'range': report.range, 'report_type': report.report_type,
+             'last_synced_date': report.last_synced_date, 'spreadsheet_id':
+                 report.spreadsheet_id} for report in standard_reports_queryset]
+        return Response(status=status.HTTP_200_OK, data={'standard_reports': standard_reports,
+                                                         'general_reports': general,
+                                                         'schedule_reports': schedule,
+                                                         'stage_reports': {},
+                                                         'survey_reports': survey
+
+                                                         })
