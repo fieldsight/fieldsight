@@ -20,6 +20,7 @@ scope = ['https://spreadsheets.google.com/feeds',
 
 
 def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_id, grid_id, sheet_range):
+    spreadsheet_id = spreadsheet_id.split("/")[-2]
     if not sheet_range:
         sheet_range = "A1:GZ50000"
     if report_type == "site_info":
