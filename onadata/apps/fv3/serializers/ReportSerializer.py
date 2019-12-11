@@ -20,9 +20,9 @@ class ReportSyncSettingsSerializer(serializers.ModelSerializer):
 
     def get_day_display(self, obj):
         if obj.day and obj.schedule_type == 2:
-            return {0: "Sunday", 1: "Monday", 2: "Tuesday",
-                    3: "Wednesday", 4: "Thursday",
-                    5: "Friday", 6: "Saturday"}.get(obj.day, "")
+            return {'0': "Sunday", '1': "Monday", '2': "Tuesday",
+                    '3': "Wednesday", '4': "Thursday",
+                    '5': "Friday", '6': "Saturday"}.get(str(obj.day), "-")
         return ""
 
 
