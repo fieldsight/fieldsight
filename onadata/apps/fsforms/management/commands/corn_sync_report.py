@@ -20,12 +20,13 @@ scope = ['https://spreadsheets.google.com/feeds',
 
 
 def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_id, grid_id, sheet_range):
+    spreadsheet_id = spreadsheet_id.split("/")[-2]
     if not sheet_range:
         sheet_range = "A1:GZ50000"
     if report_type == "site_info":
-        values = site_information(project)
+        values = site_information(project.id)
     elif report_type == "site_progress":
-        values = progress_information(project)
+        values = progress_information(project.id)
     elif report_type == "form":
         values = form_submission(form_id)
     if len(values) >= 10000:
@@ -48,11 +49,12 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
                 spreadsheetId=spreadsheet_id, body=body)
 
             response = request.execute()
-            pprint(response)
+            # pprint(response)
             print("finished ,", sheet_obj.id, page)
             total_sites -= page_size
             page += 1
         sheet_obj.last_synced_date = datetime.datetime.now()
+        sheet_obj.save()
     else:
         body = {
             'data': [{
@@ -67,8 +69,9 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
             spreadsheetId=spreadsheet_id, body=body)
 
         response = request.execute()
-        pprint(response)
+        # pprint(response)
         sheet_obj.last_synced_date = datetime.datetime.now()
+        sheet_obj.save()
         print("finished ,", sheet_obj.id)
 
 

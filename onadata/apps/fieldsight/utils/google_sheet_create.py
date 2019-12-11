@@ -57,7 +57,8 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
         file.Upload({'convert': True})
 
     sheet.spreadsheet_id = file['alternateLink']
-    sheet.last_synced_date = datetime.datetime.now(),
+    sheet.last_synced_date = datetime.datetime.now()
+    sheet.save()
 
     permissions = file.GetPermissions()
 
@@ -294,7 +295,6 @@ def generate_site_progress(sheet):
 
     sites = Site.objects.filter(is_active=True)
 
-    sites_filter = {'project_id': project.id}
     finstance_filter = {'project_fxf__in': form_ids}
 
     site_dict = {}
@@ -302,7 +302,7 @@ def generate_site_progress(sheet):
     # Redoing query because annotate and lat long did not go well in single query.
     # Probable only an issue because of old django version.
 
-    for site_obj in sites.filter(**sites_filter).iterator():
+    for site_obj in sites.filter(project=project).iterator():
         site_dict[str(site_obj.id)] = {
             'visits': 0, 'site_status': 'No Submission', 'latitude': site_obj.latitude,
             'longitude': site_obj.longitude
@@ -346,11 +346,10 @@ def generate_site_progress(sheet):
     site_visits = None
     gc.collect()
 
-    sites = sites.filter(**sites_filter).values('id', 'identifier', 'name', 'region__identifier', 'address',
+    sites = sites.filter(project=project).values('id', 'identifier', 'name', 'region__identifier', 'address',
                                                 "current_progress").annotate(**query)
 
-    for site in sites:
-        # import pdb; pdb.set_trace();
+    for site in sites.iterator():
         try:
             site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'],
                         site_dict[str(site.get('id'))]['latitude'], site_dict[str(site.get('id'))]['longitude'],
