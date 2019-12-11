@@ -73,7 +73,8 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     existing_perms = []
 
     for permission in permissions:
-        existing_perms.append(permission['emailAddress'])
+        if "emailAddress" in permission:
+            existing_perms.append(permission['emailAddress'])
 
     perms = set(existing_perms)
 
@@ -81,9 +82,10 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     perm_to_add = all_users - perms
 
     for permission in permissions:
-        if permission['emailAddress'] in perm_to_rm and (
-                permission['emailAddress'] != "exports.fieldsight@gmail.com"):
-            file.DeletePermission(permission['id'])
+        if "emailAddress" in permission:
+            if permission['emailAddress'] in perm_to_rm and (
+                    permission['emailAddress'] != "exports.fieldsight@gmail.com"):
+                file.DeletePermission(permission['id'])
 
     retry_emails = []
     index = 0
