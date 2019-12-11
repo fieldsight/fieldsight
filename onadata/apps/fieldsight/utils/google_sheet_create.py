@@ -30,85 +30,83 @@ class DriveException(Exception):
 def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     # pass
     """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
-    try:
-        gauth = GoogleAuth()
-        drive = GoogleDrive(gauth)
+    gauth = GoogleAuth()
+    drive = GoogleDrive(gauth)
 
-        folders = drive.ListFile({'q': "title = '" + folder_title + "'"}).GetList()
+    folders = drive.ListFile({'q': "title = '" + folder_title + "'"}).GetList()
 
-        if folders:
-            folder_id = folders[0]['id']
-        else:
-            folder_metadata = {'title': folder_title, 'mimeType': 'application/vnd.google-apps.folder'}
-            new_folder = drive.CreateFile(folder_metadata)
-            new_folder.Upload()
-            folder_id = new_folder['id']
+    if folders:
+        folder_id = folders[0]['id']
+    else:
+        folder_metadata = {'title': folder_title, 'mimeType': 'application/vnd.google-apps.folder'}
+        new_folder = drive.CreateFile(folder_metadata)
+        new_folder.Upload()
+        folder_id = new_folder['id']
 
-        file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()
+    file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()
 
-        if not file:
-            new_file = drive.CreateFile({'title': title, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
-            new_file.SetContentFile(file_path)
-            new_file.Upload({'convert': True})
-            file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
+    if not file:
+        new_file = drive.CreateFile({'title': title, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
+        new_file.SetContentFile(file_path)
+        new_file.Upload({'convert': True})
+        file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
 
-        else:
-            file = file[0]
-            file.SetContentFile(file_path)
-            file.Upload({'convert': True})
+    else:
+        file = file[0]
+        file.SetContentFile(file_path)
+        file.Upload({'convert': True})
 
-        sheet.spreadsheet_id = file['alternateLink']
-        sheet.last_synced_date = datetime.datetime.now(),
+    sheet.spreadsheet_id = file['alternateLink']
+    sheet.last_synced_date = datetime.datetime.now(),
 
-        permissions = file.GetPermissions()
+    permissions = file.GetPermissions()
 
-        user_emails = UserRole.objects.filter(
-            Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
-                group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
-            organization_id=sheet.project.organization_id
-        ).distinct().values_list('user__email', flat=True)
+    user_emails = UserRole.objects.filter(
+        Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
+            group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
+        organization_id=sheet.project.organization_id
+    ).distinct().values_list('user__email', flat=True)
+    user_emails = list(user_emails)
+    user_emails.append(settings.SERVICE_ACCOUNT_EMAIL)
+    all_users = set(user_emails)
 
-        user_emails.append(settings.SERVICE_ACCOUNT_EMAIL)
-        all_users = set(user_emails)
+    existing_perms = []
 
-        existing_perms = []
-
-        for permission in permissions:
+    for permission in permissions:
+        if "emailAddress" in permission:
             existing_perms.append(permission['emailAddress'])
 
-        perms = set(existing_perms)
+    perms = set(existing_perms)
 
-        perm_to_rm = perms - all_users
-        perm_to_add = all_users - perms
+    perm_to_rm = perms - all_users
+    perm_to_add = all_users - perms
 
-        for permission in permissions:
+    for permission in permissions:
+        if "emailAddress" in permission:
             if permission['emailAddress'] in perm_to_rm and (
                     permission['emailAddress'] != "exports.fieldsight@gmail.com"):
                 file.DeletePermission(permission['id'])
 
-        retry_emails = []
-        index = 0
-        for perm in perm_to_add:
-            try:
-                file.InsertPermission({
-                    'type': 'user',
-                    'value': perm,
-                    'role': 'writer'
-                })
+    retry_emails = []
+    index = 0
+    for perm in perm_to_add:
+        try:
+            file.InsertPermission({
+                'type': 'user',
+                'value': perm,
+                'role': 'writer'
+            })
 
-            except Exception as e:
-                if "Since there is no Google account associated with this email address" not in str(e):
-                    retry_emails.append(perm)
+        except Exception as e:
+            if "Since there is no Google account associated with this email address" not in str(e):
+                retry_emails.append(perm)
 
-            index += 1
+        index += 1
 
-        if retry_emails:
-            print "retrying again for ", retry_emails
-            from onadata.apps.fieldsight.task import gsuit_assign_perm
-            gsuit_assign_perm.delay(title, retry_emails)
-
-    except Exception as e:
-        raise DriveException({"message": e})
+    if retry_emails:
+        print "retrying again for ", retry_emails
+        from onadata.apps.fieldsight.task import gsuit_assign_perm
+        gsuit_assign_perm.delay(title, retry_emails)
 
 
 def site_details_generator(project, sites, ws):
