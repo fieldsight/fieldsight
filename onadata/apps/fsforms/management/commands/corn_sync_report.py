@@ -112,6 +112,7 @@ class Command(BaseCommand):
             service = discovery.build('sheets', 'v4', credentials=credentials,
                                       cache_discovery=False)
             for sheet in sheet_list:
+                print("syncing for ", sheet.id)
                 report_type = sheet.report_type
                 project = sheet.project
                 form_id = sheet.form_id if sheet.form else 0
