@@ -1,8 +1,10 @@
+import calendar
 import datetime
 
 from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
@@ -132,6 +134,29 @@ class ReportSyncSettingsList(APIView):
                                                          'survey_reports': survey
 
                                                          })
+
+
+class ReportSyncSettingsToday(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ReportSyncSettingsSerializer
+    queryset = ReportSyncSettings.objects.all()
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        week_day = int(datetime.datetime.today().strftime('%w'))
+        day = datetime.datetime.today().day
+        _start, _end = calendar.monthrange(datetime.datetime.today().year, datetime.datetime.today().month)
+        if day == _end:
+            sheet_list = ReportSyncSettings.objects.exclude(schedule_type=0).filter(Q(schedule_type=1)
+                            | Q(schedule_type=2, day=week_day)
+                            | Q(schedule_type=3, day=0)
+                            )
+
+        else:
+            sheet_list = ReportSyncSettings.objects.exclude(schedule_type=0).filter(Q(schedule_type=1)
+                            | Q(schedule_type=2, day=week_day)
+                            | Q(schedule_type=3, day=day))
+        return sheet_list
+
 
 
 class ReportSyncView(APIView):
