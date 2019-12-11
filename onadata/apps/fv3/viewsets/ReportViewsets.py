@@ -96,7 +96,7 @@ class ReportSyncSettingsList(APIView):
         standard_reports_queryset = ReportSyncSettings.objects.select_related('form__xf').\
             filter(project_id=project_id, report_type__in=['site_info', 'site_progress'])
         standard_reports = [
-            {'report_id': report.id, 'schedule_type': report.schedule_type,
+            {'report_id': report.id, 'schedule_type': SCHEDULED_TYPE[int(report.schedule_type)][1],
              'day': report.day, 'grid_id': report.grid_id,
              'range': report.range, 'report_type': report.report_type,
              'last_synced_date': report.last_synced_date, 'spreadsheet_id':
