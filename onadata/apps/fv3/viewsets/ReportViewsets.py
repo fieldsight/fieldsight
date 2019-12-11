@@ -54,14 +54,15 @@ class ReportSyncSettingsList(APIView):
                  'report_type': form.report_sync_settings.all()[0].report_type,
                  'last_synced_date': form.report_sync_settings.all()[0].last_synced_date,
                  'spreadsheet_id': form.report_sync_settings.all()[0].spreadsheet_id} for form in queryset
-                if form.report_sync_settings.all()]
+                if form.report_sync_settings.all().exists()]
 
         return data
 
     def get(self, request, *args, **kwargs):
         project_id = self.request.query_params.get('project_id', None)
-        schedule_queryset = FieldSightXF.objects.select_related('xf').prefetch_related('report_sync_settings').\
-            filter(project_id=project_id, is_scheduled=True, is_staged=False, is_survey=False)
+        main_queryset = FieldSightXF.objects.select_related('xf').prefetch_related('report_sync_settings')
+        schedule_queryset = main_queryset.filter(project_id=project_id, is_scheduled=True, is_staged=False,
+                                                 is_survey=False)
 
         schedule = self.get_report_data(schedule_queryset)
 
@@ -81,16 +82,16 @@ class ReportSyncSettingsList(APIView):
                          'spreadsheet_id': form.stage_forms.report_sync_settings.all()[0].spreadsheet_id}
                         for form in stage.active_substages().prefetch_related('stage_forms', 'stage_forms__xf',
                                                                               'stage_forms__report_sync_settings')
-                        if form.stage_forms.report_sync_settings.all()]
+                        if form.stage_forms.report_sync_settings.all().exists()]
                 stages = {'id': stage.id, 'stage': stage.name, 'sub_stages': data}
                 mainstage.append(stages)
 
-        survey_queryset = FieldSightXF.objects.select_related('xf').prefetch_related('report_sync_settings').\
-            filter(project_id=project_id, is_scheduled=False, is_staged=False, is_survey=True)
+        survey_queryset = main_queryset.filter(project_id=project_id, is_scheduled=False, is_staged=False,
+                                               is_survey=True)
         survey = self.get_report_data(survey_queryset)
 
-        general_queryset = FieldSightXF.objects.select_related('xf').prefetch_related('report_sync_settings')\
-            .filter(project_id=project_id, is_scheduled=False, is_staged=False, is_survey=False)
+        general_queryset = main_queryset.filter(project_id=project_id, is_scheduled=False, is_staged=False,
+                                                is_survey=False)
         general = self.get_report_data(general_queryset)
 
         standard_reports_queryset = ReportSyncSettings.objects.select_related('form__xf').\
