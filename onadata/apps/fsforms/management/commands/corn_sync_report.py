@@ -54,6 +54,7 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
             total_sites -= page_size
             page += 1
         sheet_obj.last_synced_date = datetime.datetime.now()
+        sheet_obj.save()
     else:
         body = {
             'data': [{
@@ -70,6 +71,7 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
         response = request.execute()
         # pprint(response)
         sheet_obj.last_synced_date = datetime.datetime.now()
+        sheet_obj.save()
         print("finished ,", sheet_obj.id)
 
 
