@@ -30,85 +30,83 @@ class DriveException(Exception):
 def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     # pass
     """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
-    try:
-        gauth = GoogleAuth()
-        drive = GoogleDrive(gauth)
+    gauth = GoogleAuth()
+    drive = GoogleDrive(gauth)
 
-        folders = drive.ListFile({'q': "title = '" + folder_title + "'"}).GetList()
+    folders = drive.ListFile({'q': "title = '" + folder_title + "'"}).GetList()
 
-        if folders:
-            folder_id = folders[0]['id']
-        else:
-            folder_metadata = {'title': folder_title, 'mimeType': 'application/vnd.google-apps.folder'}
-            new_folder = drive.CreateFile(folder_metadata)
-            new_folder.Upload()
-            folder_id = new_folder['id']
+    if folders:
+        folder_id = folders[0]['id']
+    else:
+        folder_metadata = {'title': folder_title, 'mimeType': 'application/vnd.google-apps.folder'}
+        new_folder = drive.CreateFile(folder_metadata)
+        new_folder.Upload()
+        folder_id = new_folder['id']
 
-        file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()
+    file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()
 
-        if not file:
-            new_file = drive.CreateFile({'title': title, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
-            new_file.SetContentFile(file_path)
-            new_file.Upload({'convert': True})
-            file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
+    if not file:
+        new_file = drive.CreateFile({'title': title, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
+        new_file.SetContentFile(file_path)
+        new_file.Upload({'convert': True})
+        file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
 
-        else:
-            file = file[0]
-            file.SetContentFile(file_path)
-            file.Upload({'convert': True})
+    else:
+        file = file[0]
+        file.SetContentFile(file_path)
+        file.Upload({'convert': True})
 
-        sheet.spreadsheet_id = file['alternateLink']
-        sheet.last_synced_date = datetime.datetime.now(),
+    sheet.spreadsheet_id = file['alternateLink']
+    sheet.last_synced_date = datetime.datetime.now(),
 
-        permissions = file.GetPermissions()
+    permissions = file.GetPermissions()
 
-        user_emails = UserRole.objects.filter(
-            Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
-                group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
-            organization_id=sheet.project.organization_id
-        ).distinct().values_list('user__email', flat=True)
+    user_emails = UserRole.objects.filter(
+        Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
+            group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
+        organization_id=sheet.project.organization_id
+    ).distinct().values_list('user__email', flat=True)
+    user_emails = list(user_emails)
+    user_emails.append(settings.SERVICE_ACCOUNT_EMAIL)
+    all_users = set(user_emails)
 
-        user_emails.append(settings.SERVICE_ACCOUNT_EMAIL)
-        all_users = set(user_emails)
+    existing_perms = []
 
-        existing_perms = []
-
-        for permission in permissions:
+    for permission in permissions:
+        if "emailAddress" in permission:
             existing_perms.append(permission['emailAddress'])
 
-        perms = set(existing_perms)
+    perms = set(existing_perms)
 
-        perm_to_rm = perms - all_users
-        perm_to_add = all_users - perms
+    perm_to_rm = perms - all_users
+    perm_to_add = all_users - perms
 
-        for permission in permissions:
+    for permission in permissions:
+        if "emailAddress" in permission:
             if permission['emailAddress'] in perm_to_rm and (
                     permission['emailAddress'] != "exports.fieldsight@gmail.com"):
                 file.DeletePermission(permission['id'])
 
-        retry_emails = []
-        index = 0
-        for perm in perm_to_add:
-            try:
-                file.InsertPermission({
-                    'type': 'user',
-                    'value': perm,
-                    'role': 'writer'
-                })
+    retry_emails = []
+    index = 0
+    for perm in perm_to_add:
+        try:
+            file.InsertPermission({
+                'type': 'user',
+                'value': perm,
+                'role': 'writer'
+            })
 
-            except Exception as e:
-                if "Since there is no Google account associated with this email address" not in str(e):
-                    retry_emails.append(perm)
+        except Exception as e:
+            if "Since there is no Google account associated with this email address" not in str(e):
+                retry_emails.append(perm)
 
-            index += 1
+        index += 1
 
-        if retry_emails:
-            print "retrying again for ", retry_emails
-            from onadata.apps.fieldsight.task import gsuit_assign_perm
-            gsuit_assign_perm.delay(title, retry_emails)
-
-    except Exception as e:
-        raise DriveException({"message": e})
+    if retry_emails:
+        print "retrying again for ", retry_emails
+        from onadata.apps.fieldsight.task import gsuit_assign_perm
+        gsuit_assign_perm.delay(title, retry_emails)
 
 
 def site_details_generator(project, sites, ws):
@@ -248,154 +246,145 @@ def generate_site_info(sheet):
 
 def generate_site_progress(sheet):
     project = sheet.project
-    try:
-        data = []
-        ss_index = []
-        form_ids = []
-        stages_rows = []
-        head_row = ["Site ID", "Name", "Region ID", "Address", "Latitude", "longitude", "Status", "Progress"]
+    data = []
+    ss_index = []
+    form_ids = []
+    stages_rows = []
+    head_row = ["Site ID", "Name", "Region ID", "Address", "Latitude", "longitude", "Status", "Progress"]
 
-        query = {}
+    query = {}
 
-        stages = project.stages.filter(stage__isnull=True)
-        for stage in stages:
-            sub_stages = stage.parent.filter(stage_forms__isnull=False)
-            if len(sub_stages):
-                head_row.append("Stage :" + stage.name)
-                stages_rows.append("Stage :" + stage.name)
-                ss_index.append(str(""))
-                for ss in sub_stages:
-                    head_row.append("Sub Stage :" + ss.name)
-                    ss_index.append(str(ss.stage_forms.id))
-                    form_ids.append(str(ss.stage_forms.id))
-                    query[str(ss.stage_forms.id)] = Sum(
-                        Case(
-                            When(site_instances__project_fxf_id=ss.stage_forms.id, then=1),
-                            default=0, output_field=IntegerField()
-                        ))
+    stages = project.stages.filter(stage__isnull=True)
+    for stage in stages:
+        sub_stages = stage.parent.filter(stage_forms__isnull=False)
+        if len(sub_stages):
+            head_row.append("Stage :" + stage.name)
+            stages_rows.append("Stage :" + stage.name)
+            ss_index.append(str(""))
+            for ss in sub_stages:
+                head_row.append("Sub Stage :" + ss.name)
+                ss_index.append(str(ss.stage_forms.id))
+                form_ids.append(str(ss.stage_forms.id))
+                query[str(ss.stage_forms.id)] = Sum(
+                    Case(
+                        When(site_instances__project_fxf_id=ss.stage_forms.id, then=1),
+                        default=0, output_field=IntegerField()
+                    ))
 
-        query['flagged'] = Sum(
-            Case(
-                When(site_instances__form_status=2, site_instances__project_fxf_id__in=form_ids, then=1),
-                default=0, output_field=IntegerField()
-            ))
+    query['flagged'] = Sum(
+        Case(
+            When(site_instances__form_status=2, site_instances__project_fxf_id__in=form_ids, then=1),
+            default=0, output_field=IntegerField()
+        ))
 
-        query['rejected'] = Sum(
-            Case(
-                When(site_instances__form_status=1, site_instances__project_fxf_id__in=form_ids, then=1),
-                default=0, output_field=IntegerField()
-            ))
+    query['rejected'] = Sum(
+        Case(
+            When(site_instances__form_status=1, site_instances__project_fxf_id__in=form_ids, then=1),
+            default=0, output_field=IntegerField()
+        ))
 
-        query['submission'] = Sum(
-            Case(
-                When(site_instances__project_fxf_id__in=form_ids, then=1),
-                default=0, output_field=IntegerField()
-            ))
+    query['submission'] = Sum(
+        Case(
+            When(site_instances__project_fxf_id__in=form_ids, then=1),
+            default=0, output_field=IntegerField()
+        ))
 
-        head_row.extend(["Site Visits", "Submission Count", "Flagged Submission", "Rejected Submission"])
-        data.append(head_row)
+    head_row.extend(["Site Visits", "Submission Count", "Flagged Submission", "Rejected Submission"])
+    data.append(head_row)
 
-        sites = Site.objects.filter(is_active=True)
+    sites = Site.objects.filter(is_active=True)
 
-        sites_filter = {'project_id': project.id}
-        finstance_filter = {'project_fxf__in': form_ids}
+    sites_filter = {'project_id': project.id}
+    finstance_filter = {'project_fxf__in': form_ids}
 
-        site_dict = {}
+    site_dict = {}
 
-        # Redoing query because annotate and lat long did not go well in single query.
-        # Probable only an issue because of old django version.
+    # Redoing query because annotate and lat long did not go well in single query.
+    # Probable only an issue because of old django version.
 
-        for site_obj in sites.filter(**sites_filter).iterator():
-            site_dict[str(site_obj.id)] = {
-                'visits': 0, 'site_status': 'No Submission', 'latitude': site_obj.latitude,
-                'longitude': site_obj.longitude
+    for site_obj in sites.filter(**sites_filter).iterator():
+        site_dict[str(site_obj.id)] = {
+            'visits': 0, 'site_status': 'No Submission', 'latitude': site_obj.latitude,
+            'longitude': site_obj.longitude
+        }
+
+    sites_status = FInstance.objects.filter(**finstance_filter).order_by('site_id', '-id').distinct(
+        'site_id').values_list('site_id', 'form_status')
+
+    for site_status in sites_status:
+        try:
+            site_dict[str(site_status[0])]['site_status'] = form_status_map[site_status[1]]
+        except:
+            pass
+    sites_status = None
+    gc.collect()
+
+    site_visits = settings.MONGO_DB.instances.aggregate(
+        [{"$match": {"fs_project": project.id, "fs_project_uuid": {"$in": form_ids}}}, {
+            "$group": {
+                "_id": {
+                    "fs_site": "$fs_site",
+                    "date": {"$substr": ["$start", 0, 10]}
+                },
             }
-
-        sites_status = FInstance.objects.filter(**finstance_filter).order_by('site_id', '-id').distinct(
-            'site_id').values_list('site_id', 'form_status')
-
-        for site_status in sites_status:
-            try:
-                site_dict[str(site_status[0])]['site_status'] = form_status_map[site_status[1]]
-            except:
-                pass
-        sites_status = None
-        gc.collect()
-
-        site_visits = settings.MONGO_DB.instances.aggregate(
-            [{"$match": {"fs_project": project.id, "fs_project_uuid": {"$in": form_ids}}}, {
-                "$group": {
-                    "_id": {
-                        "fs_site": "$fs_site",
-                        "date": {"$substr": ["$start", 0, 10]}
-                    },
-                }
-            }, {
-                 "$group": {
-                     "_id": "$_id.fs_site", "visits": {
-                         "$push": {
-                             "date": "$_id.date"
-                         }
+        }, {
+             "$group": {
+                 "_id": "$_id.fs_site", "visits": {
+                     "$push": {
+                         "date": "$_id.date"
                      }
                  }
-             }])['result']
+             }
+         }])['result']
 
-        for site_visit in site_visits:
-            try:
-                site_dict[str(site_visit['_id'])]['visits'] = len(site_visit['visits'])
-            except:
-                pass
+    for site_visit in site_visits:
+        try:
+            site_dict[str(site_visit['_id'])]['visits'] = len(site_visit['visits'])
+        except:
+            pass
 
-        site_visits = None
-        gc.collect()
+    site_visits = None
+    gc.collect()
 
-        sites = sites.filter(**sites_filter).values('id', 'identifier', 'name', 'region__identifier', 'address',
-                                                    "current_progress").annotate(**query)
+    sites = sites.filter(**sites_filter).values('id', 'identifier', 'name', 'region__identifier', 'address',
+                                                "current_progress").annotate(**query)
 
-        for site in sites:
-            # import pdb; pdb.set_trace();
-            try:
-                site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'],
-                            site_dict[str(site.get('id'))]['latitude'], site_dict[str(site.get('id'))]['longitude'],
-                            site_dict[str(site.get('id'))]['site_status'], site['current_progress']]
+    for site in sites:
+        # import pdb; pdb.set_trace();
+        try:
+            site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'],
+                        site_dict[str(site.get('id'))]['latitude'], site_dict[str(site.get('id'))]['longitude'],
+                        site_dict[str(site.get('id'))]['site_status'], site['current_progress']]
 
-                for stage in ss_index:
-                    site_row.append(site.get(stage, ""))
+            for stage in ss_index:
+                site_row.append(site.get(stage, ""))
 
-                site_row.extend(
-                    [site_dict[str(site.get('id'))]['visits'], site['submission'], site['flagged'], site['rejected']])
+            site_row.extend(
+                [site_dict[str(site.get('id'))]['visits'], site['submission'], site['flagged'], site['rejected']])
 
-                data.append(site_row)
-            except Exception as e:
-                print e
+            data.append(site_row)
+        except Exception as e:
+            print e
 
-        sites = None
-        site_dict = None
-        gc.collect()
+    sites = None
+    site_dict = None
+    gc.collect()
 
-        p.save_as(array=data, dest_file_name="media/stage-report/{}_stage_data.xls".format(project.id))
+    p.save_as(array=data, dest_file_name="media/stage-report/{}_stage_data.xls".format(project.id))
 
-        with open("media/stage-report/{}_stage_data.xls".format(project.id), 'rb') as fin:
-            buffer = BytesIO(fin.read())
-            buffer.seek(0)
-            path = default_storage.save(
-                "media/stage-report/{}_stage_data.xls".format(project.id),
-                ContentFile(buffer.getvalue())
-            )
-            buffer.close()
-
-
-        upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id),
-                        "{} - Progress Report".format(project.id), "Site Progress", project, sheet.user, sheet)
-
-    except DriveException as e:
-        print 'Report upload to drive  Unsuccesfull. %s' % e
-        print e.__dict__
+    with open("media/stage-report/{}_stage_data.xls".format(project.id), 'rb') as fin:
+        buffer = BytesIO(fin.read())
+        buffer.seek(0)
+        path = default_storage.save(
+            "media/stage-report/{}_stage_data.xls".format(project.id),
+            ContentFile(buffer.getvalue())
+        )
+        buffer.close()
 
 
-    except Exception as e:
-        print 'Report Gen Unsuccesfull. %s' % e
-        print e.__dict__
+    upload_to_drive("media/stage-report/{}_stage_data.xls".format(project.id),
+                    "{} - Progress Report".format(project.id), "Site Progress", project, sheet.user, sheet)
+
 
 
 def generate_form_report(sheet):
