@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import ReportData
-from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF
+from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF, SCHEDULED_TYPE
 
 
 class ReportSerializer(serializers.ModelSerializer):

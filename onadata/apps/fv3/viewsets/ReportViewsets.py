@@ -1,14 +1,24 @@
+import datetime
+
 from django.contrib.gis.geos import Point
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from oauth2client.service_account import ServiceAccountCredentials
+from googleapiclient import discovery
+
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.fsforms.management.commands.corn_sync_report import update_sheet, create_new_sheet
 from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer, ReportSyncSettingsSerializer, \
     ProjectFormSerializer
 from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF, SCHEDULED_TYPE, Stage
+from onadata.apps.fv3.permissions.reports import ReportSyncPermission
 
 
 class ReportVs(viewsets.ModelViewSet):
@@ -38,6 +48,19 @@ class ReportSyncSettingsViewSet(viewsets.ModelViewSet):
     queryset = ReportSyncSettings.objects.all()
     permission_classes = [IsAuthenticated]
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        data = serializer.data
+        data.update({'schedule_type': SCHEDULED_TYPE[int(serializer.data.get('schedule_type'))][1]})
+        return Response(data, status=status.HTTP_200_OK)
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user, updated_at=datetime.datetime.now())
 
 
 class ReportSyncSettingsList(APIView):
@@ -109,3 +132,44 @@ class ReportSyncSettingsList(APIView):
                                                          'survey_reports': survey
 
                                                          })
+
+
+class ReportSyncView(APIView):
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+    permission_classes = (IsAuthenticated, ReportSyncPermission)
+
+    def post(self, request, *args, **kwargs):
+        sheet_id = self.kwargs.get('pk', None)
+        try:
+            sheet = ReportSyncSettings.objects.get(id=sheet_id)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+        report_type = sheet.report_type
+        project = sheet.project
+        form_id = sheet.form_id if sheet.form else 0
+        spreadsheet_id = sheet.spreadsheet_id
+        grid_id = sheet.grid_id
+        sheet_range = sheet.range
+
+        scope = ['https://spreadsheets.google.com/feeds',
+                 'https://www.googleapis.com/auth/drive',
+                 'https://www.googleapis.com/auth/spreadsheets']
+        if hasattr(settings, 'SERVICE_ACCOUNT_JSON'):
+            credentials = ServiceAccountCredentials.from_json_keyfile_name(
+                settings.SERVICE_ACCOUNT_JSON, scope)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND,
+                            data={'detail': 'SERVICE_ACCOUNT_JSON is not found in settings.'})
+
+        service = discovery.build('sheets', 'v4', credentials=credentials,
+                                  cache_discovery=False)
+        if spreadsheet_id:  # Already Have file in Drive
+            update_sheet(service, sheet,
+                         report_type, project, form_id, spreadsheet_id, grid_id, sheet_range)
+            status_response = status.HTTP_200_OK
+
+        else:
+            create_new_sheet(sheet)
+            status_response = status.HTTP_201_CREATED
+
+        return Response(status=status_response)
