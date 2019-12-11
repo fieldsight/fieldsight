@@ -12,10 +12,18 @@ class ReportSerializer(serializers.ModelSerializer):
 
 
 class ReportSyncSettingsSerializer(serializers.ModelSerializer):
+    day_display = serializers.SerializerMethodField()
 
     class Meta:
         model = ReportSyncSettings
         exclude = ()
+
+    def get_day_display(self, obj):
+        if obj.day and obj.schedule_type == 2:
+            return {0: "Sunday", 1: "Monday", 2: "Tuesday",
+                    3: "Wednesday", 4: "Thursday",
+                    5: "Friday", 6: "Saturday"}.get(obj.day, "")
+        return ""
 
 
 class ProjectFormSerializer(serializers.ModelSerializer):
