@@ -247,7 +247,6 @@ def generate_site_info(sheet):
 
 def generate_site_progress(sheet):
     project = sheet.project
-    print(project, "project**************")
     data = []
     ss_index = []
     form_ids = []
@@ -351,7 +350,6 @@ def generate_site_progress(sheet):
                                                 "current_progress").annotate(**query)
 
     for site in sites.iterator():
-        # import pdb; pdb.set_trace();
         try:
             site_row = [site['identifier'], site['name'], site['region__identifier'], site['address'],
                         site_dict[str(site.get('id'))]['latitude'], site_dict[str(site.get('id'))]['longitude'],

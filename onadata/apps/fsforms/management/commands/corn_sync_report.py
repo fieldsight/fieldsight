@@ -49,7 +49,7 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
                 spreadsheetId=spreadsheet_id, body=body)
 
             response = request.execute()
-            pprint(response)
+            # pprint(response)
             print("finished ,", sheet_obj.id, page)
             total_sites -= page_size
             page += 1
@@ -68,7 +68,7 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
             spreadsheetId=spreadsheet_id, body=body)
 
         response = request.execute()
-        pprint(response)
+        # pprint(response)
         sheet_obj.last_synced_date = datetime.datetime.now()
         print("finished ,", sheet_obj.id)
 
