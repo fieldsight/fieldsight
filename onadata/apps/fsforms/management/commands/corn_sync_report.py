@@ -24,9 +24,9 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
     if not sheet_range:
         sheet_range = "A1:GZ50000"
     if report_type == "site_info":
-        values = site_information(project)
+        values = site_information(project.id)
     elif report_type == "site_progress":
-        values = progress_information(project)
+        values = progress_information(project.id)
     elif report_type == "form":
         values = form_submission(form_id)
     if len(values) >= 10000:
