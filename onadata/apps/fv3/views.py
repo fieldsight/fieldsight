@@ -194,7 +194,7 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
                                                             'enable_subsites', 'site'])
 
         annos = sites.values('id').annotate(
-            submissions=Count('site_instances'),
+            submissions=Count('site_instances')).annotate(
             users=Count('site_roles')).values('id', 'submissions', 'users')
         df = pd.DataFrame(list(annos), columns=["id", "submissions", "users"])
         ddf = df_sites.merge(df, on='id', how="left", sort=False)
