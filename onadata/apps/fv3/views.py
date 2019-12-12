@@ -174,15 +174,21 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
 
             except:
                 return []
+        return sites
 
+    def list(self, request, *args, **kwargs):
+        sites = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(sites)
         query_sites = sites.values('id', 'name', 'latitude', 'longitude', 'address', 'phone',
-                  'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
-                  'date_modified', 'is_active', 'site_meta_attributes_ans',
-                  'enable_subsites', 'site')
+                                   'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
+                                   'date_modified', 'is_active', 'site_meta_attributes_ans',
+                                   'enable_subsites', 'site')
         df_sites = pd.DataFrame(list(query_sites), columns=['id', 'name', 'latitude', 'longitude', 'address', 'phone',
-                  'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
-                  'date_modified', 'is_active', 'site_meta_attributes_ans',
-                  'enable_subsites', 'site'])
+                                                            'current_progress', 'identifier', 'type', 'type_label',
+                                                            'region', 'project',
+                                                            'date_modified', 'is_active', 'site_meta_attributes_ans',
+                                                            'enable_subsites', 'site'])
 
         annos = sites.values('id').annotate(
             submissions=Count('site_instances'),
@@ -192,7 +198,9 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
         ddf['region_id'] = self.request.query_params.get('region_id')
         ddf = ddf.replace('nan', '')
         data = ddf.to_dict(orient='records')
-        return Response({'data': data})
+        if page is not None:
+            return self.get_paginated_response(data)
+        return Response(data)
 
     def get_serializer_context(self):
         return {'parent_region': self.request.query_params.get('region_id')}
