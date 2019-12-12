@@ -180,13 +180,14 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
         sites = self.filter_queryset(self.get_queryset())
         if not sites:
             return Response({})
-
+        page = self.paginate_queryset(sites)
+        pks = [o.pk for o in page]
+        sites = Site.objects.filter(pk__in=pks)
         query_sites = sites.values('id', 'name', 'location', 'address', 'phone',
                                    'current_progress', 'identifier', 'type', 'type__name', 'region', 'project',
                                    'date_modified', 'is_active', 'site_meta_attributes_ans',
                                    'enable_subsites', 'site')
-        page = self.paginate_queryset(query_sites)
-        df_sites = pd.DataFrame(list(page), columns=['id', 'name', 'location', 'address', 'phone',
+        df_sites = pd.DataFrame(list(query_sites), columns=['id', 'name', 'location', 'address', 'phone',
                                                             'current_progress', 'identifier', 'type', 'type__name',
                                                             'region', 'project',
                                                             'date_modified', 'is_active', 'site_meta_attributes_ans',
@@ -195,8 +196,7 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
         annos = sites.values('id').annotate(
             submissions=Count('site_instances'),
             users=Count('site_roles')).values('id', 'submissions', 'users')
-        page_annos = self.paginate_queryset(annos)
-        df = pd.DataFrame(list(page_annos), columns=["id", "submissions", "users"])
+        df = pd.DataFrame(list(annos), columns=["id", "submissions", "users"])
         ddf = df_sites.merge(df, on='id', how="left", sort=False)
         ddf['region_id'] = self.request.query_params.get('region_id')
         ddf['latitude'] = ddf.location.apply(
