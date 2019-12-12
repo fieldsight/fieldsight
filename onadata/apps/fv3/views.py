@@ -182,12 +182,12 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
             return Response({})
 
         query_sites = sites.values('id', 'name', 'location', 'address', 'phone',
-                                   'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
+                                   'current_progress', 'identifier', 'type', 'type__name', 'region', 'project',
                                    'date_modified', 'is_active', 'site_meta_attributes_ans',
                                    'enable_subsites', 'site')
         page = self.paginate_queryset(query_sites)
         df_sites = pd.DataFrame(list(page), columns=['id', 'name', 'location', 'address', 'phone',
-                                                            'current_progress', 'identifier', 'type', 'type_label',
+                                                            'current_progress', 'identifier', 'type', 'type__name',
                                                             'region', 'project',
                                                             'date_modified', 'is_active', 'site_meta_attributes_ans',
                                                             'enable_subsites', 'site'])
