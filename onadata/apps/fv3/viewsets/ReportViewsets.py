@@ -20,7 +20,8 @@ from onadata.apps.fsforms.management.commands.corn_sync_report import update_she
 from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer, ReportSyncSettingsSerializer, \
     ProjectFormSerializer
 from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF, SCHEDULED_TYPE, Stage
-from onadata.apps.fv3.permissions.reports import ReportSyncPermission
+from onadata.apps.fv3.permissions.reports import ReportSyncPermission, check_manager_or_admin_perm, \
+    ReportSyncSettingsViewPermission
 
 
 class ReportVs(viewsets.ModelViewSet):
@@ -48,7 +49,7 @@ class ReportVs(viewsets.ModelViewSet):
 class ReportSyncSettingsViewSet(viewsets.ModelViewSet):
     serializer_class = ReportSyncSettingsSerializer
     queryset = ReportSyncSettings.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ReportSyncPermission]
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
 
     def update(self, request, *args, **kwargs):
@@ -66,7 +67,7 @@ class ReportSyncSettingsViewSet(viewsets.ModelViewSet):
 
 
 class ReportSyncSettingsList(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, ReportSyncSettingsViewPermission)
 
     def get_report_data(self, queryset):
 
@@ -131,7 +132,9 @@ class ReportSyncSettingsList(APIView):
                                                          'general_reports': general,
                                                          'schedule_reports': schedule,
                                                          'stage_reports': mainstage,
-                                                         'survey_reports': survey
+                                                         'survey_reports': survey,
+                                                         'can_edit_or_sync': check_manager_or_admin_perm(request,
+                                                                                                         project_id)
 
                                                          })
 
@@ -156,7 +159,6 @@ class ReportSyncSettingsToday(viewsets.ReadOnlyModelViewSet):
                             | Q(schedule_type=2, day=week_day)
                             | Q(schedule_type=3, day=day))
         return sheet_list
-
 
 
 class ReportSyncView(APIView):
@@ -197,4 +199,4 @@ class ReportSyncView(APIView):
             create_new_sheet(sheet)
             status_response = status.HTTP_201_CREATED
 
-        return Response(status=status_response)
+        return Response(status=status_response, data={'detail': 'This report is being synced with google sheets.'})
