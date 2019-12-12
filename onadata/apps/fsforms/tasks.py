@@ -5,9 +5,12 @@ from django.contrib.auth.models import User
 
 from django.db import transaction
 from django.conf import settings
+from googleapiclient import discovery
+from oauth2client.service_account import ServiceAccountCredentials
 
 from onadata.apps.fieldsight.models import Project, Site
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
+from onadata.apps.fsforms.management.commands.corn_sync_report import update_sheet, create_new_sheet
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, ReportSyncSettings
 from onadata.apps.fsforms.utils import send_sub_stage_deployed_project, send_bulk_message_stage_deployed_project, \
     send_bulk_message_stages_deployed_project, send_message_un_deploy_project, notify_koboform_updated
 from onadata.apps.logger.models import XForm
@@ -429,3 +432,29 @@ def update_progress(site_id, project_fxf_id, submission_answer={}):
                 history.save()
     except Exception as e:
         print("error progess update in submission", str(e))
+
+
+@shared_task(max_retries=5)
+def sync_sheet(sheet_id):
+    sheet = ReportSyncSettings.objects.get(id=sheet_id)
+
+    report_type = sheet.report_type
+    project = sheet.project
+    form_id = sheet.form_id if sheet.form else 0
+    spreadsheet_id = sheet.spreadsheet_id
+    grid_id = sheet.grid_id
+    sheet_range = sheet.range
+
+    scope = ['https://spreadsheets.google.com/feeds',
+             'https://www.googleapis.com/auth/drive',
+             'https://www.googleapis.com/auth/spreadsheets']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(
+        settings.SERVICE_ACCOUNT_JSON, scope)
+
+    service = discovery.build('sheets', 'v4', credentials=credentials,
+                              cache_discovery=False)
+    if spreadsheet_id:  # Already Have file in Drive
+        update_sheet(service, sheet,
+                     report_type, project, form_id, spreadsheet_id, grid_id, sheet_range)
+    else:
+        create_new_sheet(sheet)

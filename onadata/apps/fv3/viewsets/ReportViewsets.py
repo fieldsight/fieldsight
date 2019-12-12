@@ -16,6 +16,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient import discovery
 
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.fsforms.tasks import sync_sheet
 from onadata.apps.fsforms.management.commands.corn_sync_report import update_sheet, create_new_sheet
 from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer, ReportSyncSettingsSerializer, \
     ProjectFormSerializer
@@ -167,36 +168,5 @@ class ReportSyncView(APIView):
 
     def post(self, request, *args, **kwargs):
         sheet_id = self.kwargs.get('pk', None)
-        try:
-            sheet = ReportSyncSettings.objects.get(id=sheet_id)
-        except ObjectDoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
-        report_type = sheet.report_type
-        project = sheet.project
-        form_id = sheet.form_id if sheet.form else 0
-        spreadsheet_id = sheet.spreadsheet_id
-        grid_id = sheet.grid_id
-        sheet_range = sheet.range
-
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive',
-                 'https://www.googleapis.com/auth/spreadsheets']
-        if hasattr(settings, 'SERVICE_ACCOUNT_JSON'):
-            credentials = ServiceAccountCredentials.from_json_keyfile_name(
-                settings.SERVICE_ACCOUNT_JSON, scope)
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND,
-                            data={'detail': 'SERVICE_ACCOUNT_JSON is not found in settings.'})
-
-        service = discovery.build('sheets', 'v4', credentials=credentials,
-                                  cache_discovery=False)
-        if spreadsheet_id:  # Already Have file in Drive
-            update_sheet(service, sheet,
-                         report_type, project, form_id, spreadsheet_id, grid_id, sheet_range)
-            status_response = status.HTTP_200_OK
-
-        else:
-            create_new_sheet(sheet)
-            status_response = status.HTTP_201_CREATED
-
-        return Response(status=status_response, data={'detail': 'This report is being synced with google sheets.'})
+        sync_sheet.delay(sheet_id)
+        return Response(status=status.HTTP_200_OK, data={'detail': 'This report is being synced with google sheets.'})
