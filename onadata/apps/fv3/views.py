@@ -179,21 +179,22 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         sites = self.filter_queryset(self.get_queryset())
 
-        page = self.paginate_queryset(sites)
-        query_sites = page.values('id', 'name', 'latitude', 'longitude', 'address', 'phone',
+        query_sites = sites.values('id', 'name', 'latitude', 'longitude', 'address', 'phone',
                                    'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
                                    'date_modified', 'is_active', 'site_meta_attributes_ans',
                                    'enable_subsites', 'site')
-        df_sites = pd.DataFrame(list(query_sites), columns=['id', 'name', 'latitude', 'longitude', 'address', 'phone',
+        page = self.paginate_queryset(query_sites)
+        df_sites = pd.DataFrame(list(page), columns=['id', 'name', 'latitude', 'longitude', 'address', 'phone',
                                                             'current_progress', 'identifier', 'type', 'type_label',
                                                             'region', 'project',
                                                             'date_modified', 'is_active', 'site_meta_attributes_ans',
                                                             'enable_subsites', 'site'])
 
-        annos = page.values('id').annotate(
+        annos = sites.values('id').annotate(
             submissions=Count('site_instances'),
             users=Count('site_roles')).values('id', 'submissions', 'users')
-        df = pd.DataFrame(list(annos), columns=["id", "submissions", "users"])
+        page_annos = self.paginate_queryset(annos)
+        df = pd.DataFrame(list(page_annos), columns=["id", "submissions", "users"])
         ddf = df_sites.merge(df, on='id', how="left", sort=False)
         ddf['region_id'] = self.request.query_params.get('region_id')
         ddf = ddf.replace('nan', '')
