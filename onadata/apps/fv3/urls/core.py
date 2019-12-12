@@ -12,7 +12,8 @@ from onadata.apps.fv3.urls.team_settings import team_settings_urlpatterns
 from onadata.apps.fv3.urls.view_by_forms_status import view_by_forms_status_urlpatterns
 from onadata.apps.fv3.urls.reports import reports_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
-    ProjectDefineSiteMeta, ProjectSitesViewset, check_region, project_sites_vt, forms_breadcrumbs
+    ProjectDefineSiteMeta, ProjectSitesViewset, check_region, project_sites_vt, forms_breadcrumbs, \
+    MySuperviseSitesViewsetV4
 
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, \
     MyProjectFormsViewSet, ShareFormViewSet, \
@@ -44,6 +45,7 @@ urlpatterns = [
     url(r'^api/project-full-map/(?P<pk>\d+)/$', project_full_map, name='project_full_map'),
 
     url(r'^api/sites/', MySuperviseSitesViewset.as_view({'get': 'list'}),  name='supervisor_sites'),
+    url(r'^api/sites/v4/', MySuperviseSitesViewsetV4.as_view({'get': 'list'}),  name='supervisor_sitesv4'),
     url(r'^api/site/blueprint/', site_blueprints, name='site_blueprints'),
     url(r'^api/user/logs/', supervisor_logs, name='supervisor_logs'),
     url(r'^api/check-region/(?P<project_id>\d+)/$', check_region, name='check_region'),

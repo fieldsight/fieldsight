@@ -1,9 +1,9 @@
 import json
 from datetime import datetime
-
+import pandas as pd
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.serializers import serialize
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, Count
 from django.http import Http404, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -34,7 +34,7 @@ from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectsitesPagina
 from onadata.apps.logger.models import Instance
 from onadata.apps.subscriptions.models import Package, Customer, Subscription
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination
+from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination, MySitesOnlyResultsSetPagination
 
 from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, \
     create_site_meta_attribs_ans_history, email_after_subscribed_plan
@@ -135,6 +135,64 @@ class MySuperviseSitesViewset(viewsets.ModelViewSet):
                 return []
 
         return sites
+
+    def get_serializer_context(self):
+        return {'parent_region': self.request.query_params.get('region_id')}
+
+
+class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
+    serializer_class = SiteSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = MySitesOnlyResultsSetPagination
+    renderer_classes = [JSONRenderer]
+
+    def get_queryset(self):
+        query_params = self.request.query_params
+        region_id = query_params.get('region_id')
+        project_id = query_params.get('project_id')
+        last_updated = query_params.get('last_updated')
+
+        if region_id:  # Region Reviewer Roles
+            sites = Site.objects.filter(Q(region=region_id) | Q(
+                region_id__parent=region_id) | Q(region_id__parent__parent=region_id))
+        elif project_id:  # Site Supervisor Roles
+            sites = Site.objects.filter(project=project_id).filter(Q(
+                site_roles__group__name="Site Supervisor",
+                site_roles__ended_at__isnull=True,
+                site_roles__user=self.request.user) | Q(
+                site__site_roles__group__name="Site Supervisor",
+                site__site_roles__ended_at__isnull=True,
+                site__site_roles__user=self.request.user)).order_by(
+                'id').distinct('id')
+
+        else:
+            sites = []
+        if last_updated:
+            try:
+                last_updated_date = datetime.fromtimestamp(int(last_updated))#  Deleted and last updated sites.
+                sites = sites.filter(date_modified__gte=last_updated_date)
+
+            except:
+                return []
+
+        query_sites = sites.values('id', 'name', 'latitude', 'longitude', 'address', 'phone',
+                  'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
+                  'date_modified', 'is_active', 'site_meta_attributes_ans',
+                  'enable_subsites', 'site')
+        df_sites = pd.DataFrame(list(query_sites), columns=['id', 'name', 'latitude', 'longitude', 'address', 'phone',
+                  'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
+                  'date_modified', 'is_active', 'site_meta_attributes_ans',
+                  'enable_subsites', 'site'])
+
+        annos = sites.values('id').annotate(
+            submissions=Count('site_instances'),
+            users=Count('site_roles')).values('id', 'submissions', 'users')
+        df = pd.DataFrame(list(annos), columns=["id", "submissions", "users"])
+        ddf = df_sites.merge(df, on='id', how="left", sort=False)
+        ddf['region_id'] = self.request.query_params.get('region_id')
+        ddf = ddf.replace('nan', '')
+        data = ddf.to_dict(orient='records')
+        return Response({'data': data})
 
     def get_serializer_context(self):
         return {'parent_region': self.request.query_params.get('region_id')}
