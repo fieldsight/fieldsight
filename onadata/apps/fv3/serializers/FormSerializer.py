@@ -235,13 +235,14 @@ class FSXFormSerializer(serializers.ModelSerializer):
     formID = serializers.SerializerMethodField('get_form_id', read_only=True)
     manifestUrl = serializers.SerializerMethodField('get_manifest_url')
     site_project_id = serializers.SerializerMethodField()
+    last_submission = serializers.SerializerMethodField()
 
 
     class Meta:
         model = FieldSightXF
         fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
                   'name', 'descriptionText', 'formID',
-                  'version', 'hash', 'em', 'settings')
+                  'version', 'hash', 'em', 'settings', 'last_submission')
 
     def get_version(self, obj):
         return get_version(obj.xf.xml)
@@ -281,17 +282,40 @@ class FSXFormSerializer(serializers.ModelSerializer):
             return obj.site.project_id
         return None
 
+    def get_last_submission(self, obj):
+        if obj.project:
+            last_sub = obj.project_form_instances.order_by('-date').first()
+            if last_sub:
+                return last_sub.date
+        if obj.site:
+            last_sub = obj.site_form_instances.order_by('-date').first()
+            if last_sub:
+                return last_sub.date
+
 
 class SurveyFSXFormSerializer(FSXFormSerializer):
     settings = serializers.SerializerMethodField()
+    last_submission = serializers.SerializerMethodField()
+
     class Meta:
         model = FieldSightXF
         fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
                   'name', 'descriptionText', 'formID',
-                  'version', 'hash', 'em', 'settings')
+                  'version', 'hash', 'em', 'settings', 'last_submission')
 
     def get_settings(self, obj):
         return None
+
+    def get_last_submission(self, obj):
+        if obj.project:
+            last_sub = obj.project_form_instances.order_by('-date').first()
+            if last_sub:
+                return last_sub.date
+        if obj.site:
+            last_sub = obj.site_form_instances.order_by('-date').first()
+            if last_sub:
+                return last_sub.date
+
 
 class ScheduleSerializer(serializers.ModelSerializer):
     type = serializers.CharField(source='get_schedule_level_id_display')
@@ -310,7 +334,20 @@ class SchedueFSXFormSerializer(FSXFormSerializer):
         model = FieldSightXF
         fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
                   'name', 'descriptionText', 'formID',
-                  'version', 'hash', 'em', 'schedule', 'settings')
+                  'version', 'hash', 'em', 'schedule', 'settings', 'last_submission')
+
+    def get_last_submission(self, obj):
+        try:
+            if obj.project:
+                last_sub = obj.schedule_forms.project_form_instances.order_by('-date').first()
+                if last_sub:
+                    return last_sub.date
+            if obj.site:
+                last_sub = obj.schedule_forms.site_form_instances.order_by('-date').first()
+                if last_sub:
+                    return last_sub.date
+        except:
+            return ""
 
 
 class SubStageSerializer(serializers.ModelSerializer):
