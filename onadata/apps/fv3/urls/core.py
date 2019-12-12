@@ -44,8 +44,8 @@ urlpatterns = [
     url(r'^api/projects/', supervisor_projects, name='supervisor_projects'),
     url(r'^api/project-full-map/(?P<pk>\d+)/$', project_full_map, name='project_full_map'),
 
-    url(r'^api/sites/', MySuperviseSitesViewset.as_view({'get': 'list'}),  name='supervisor_sites'),
     url(r'^api/sites/v4/', MySuperviseSitesViewsetV4.as_view({'get': 'list'}),  name='supervisor_sitesv4'),
+    url(r'^api/sites/', MySuperviseSitesViewset.as_view({'get': 'list'}), name='supervisor_sites'),
     url(r'^api/site/blueprint/', site_blueprints, name='site_blueprints'),
     url(r'^api/user/logs/', supervisor_logs, name='supervisor_logs'),
     url(r'^api/check-region/(?P<project_id>\d+)/$', check_region, name='check_region'),
