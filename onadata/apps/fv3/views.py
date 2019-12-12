@@ -180,7 +180,7 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
         sites = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(sites)
-        query_sites = sites.values('id', 'name', 'latitude', 'longitude', 'address', 'phone',
+        query_sites = page.values('id', 'name', 'latitude', 'longitude', 'address', 'phone',
                                    'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
                                    'date_modified', 'is_active', 'site_meta_attributes_ans',
                                    'enable_subsites', 'site')
@@ -190,7 +190,7 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
                                                             'date_modified', 'is_active', 'site_meta_attributes_ans',
                                                             'enable_subsites', 'site'])
 
-        annos = sites.values('id').annotate(
+        annos = page.values('id').annotate(
             submissions=Count('site_instances'),
             users=Count('site_roles')).values('id', 'submissions', 'users')
         df = pd.DataFrame(list(annos), columns=["id", "submissions", "users"])
