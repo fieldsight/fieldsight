@@ -181,12 +181,12 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
         if not sites:
             return Response({})
 
-        query_sites = sites.values('id', 'name', 'latitude', 'longitude', 'address', 'phone',
+        query_sites = sites.values('id', 'name', 'location', 'address', 'phone',
                                    'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
                                    'date_modified', 'is_active', 'site_meta_attributes_ans',
                                    'enable_subsites', 'site')
         page = self.paginate_queryset(query_sites)
-        df_sites = pd.DataFrame(list(page), columns=['id', 'name', 'latitude', 'longitude', 'address', 'phone',
+        df_sites = pd.DataFrame(list(page), columns=['id', 'name', 'location', 'address', 'phone',
                                                             'current_progress', 'identifier', 'type', 'type_label',
                                                             'region', 'project',
                                                             'date_modified', 'is_active', 'site_meta_attributes_ans',
@@ -199,6 +199,11 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
         df = pd.DataFrame(list(page_annos), columns=["id", "submissions", "users"])
         ddf = df_sites.merge(df, on='id', how="left", sort=False)
         ddf['region_id'] = self.request.query_params.get('region_id')
+        ddf['latitude'] = ddf.location.apply(
+            lambda x: x.y if x else "")
+        ddf['longitude'] = ddf.location.apply(
+            lambda x: x.x if x else "")
+        del ddf['location']
         ddf = ddf.replace('nan', '')
         data = ddf.to_dict(orient='records')
         if page is not None:
