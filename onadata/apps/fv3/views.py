@@ -193,11 +193,14 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
                                                             'date_modified', 'is_active', 'site_meta_attributes_ans',
                                                             'enable_subsites', 'site'])
 
-        annos = sites.values('id').annotate(
-            submissions=Count('site_instances')).annotate(
-            users=Count('site_roles')).values('id', 'submissions', 'users')
-        df = pd.DataFrame(list(annos), columns=["id", "submissions", "users"])
-        ddf = df_sites.merge(df, on='id', how="left", sort=False)
+        annos_sub = sites.values('id').annotate(
+            submissions=Count('site_instances')).values('id', 'submissions')
+        annos_user = sites.values('id').annotate(
+            users=Count('site_roles')).values('id', 'users')
+        df_sub = pd.DataFrame(list(annos_sub), columns=["id", "submissions"])
+        df_user = pd.DataFrame(list(annos_user), columns=["id", "users"])
+        ddf = df_sites.merge(df_sub, on='id', how="left", sort=False)
+        ddf = ddf.merge(df_user, on='id', how="left", sort=False)
         ddf['region_id'] = self.request.query_params.get('region_id')
         ddf['latitude'] = ddf.location.apply(
             lambda x: x.y if x else "")
