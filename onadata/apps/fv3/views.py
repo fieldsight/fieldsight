@@ -178,6 +178,8 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         sites = self.filter_queryset(self.get_queryset())
+        if not sites:
+            return Response({})
 
         query_sites = sites.values('id', 'name', 'latitude', 'longitude', 'address', 'phone',
                                    'current_progress', 'identifier', 'type', 'type_label', 'region', 'project',
