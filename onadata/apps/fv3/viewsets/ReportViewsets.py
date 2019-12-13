@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient import discovery
 
+from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.fsforms.tasks import sync_sheet
 from onadata.apps.fsforms.management.commands.corn_sync_report import update_sheet, create_new_sheet
@@ -129,13 +130,18 @@ class ReportSyncSettingsList(APIView):
              'range': report.range, 'report_type': report.report_type,
              'last_synced_date': report.last_synced_date, 'spreadsheet_id':
                  report.spreadsheet_id} for report in standard_reports_queryset]
+        
+        project = Project.objects.get(id=project_id)
+
+        breadcrumbs = {'project': project.name, 'project_url': project.get_absolute_url(), 'current_page': 'Reports'}
         return Response(status=status.HTTP_200_OK, data={'standard_reports': standard_reports,
                                                          'general_reports': general,
                                                          'schedule_reports': schedule,
                                                          'stage_reports': mainstage,
                                                          'survey_reports': survey,
                                                          'can_edit_or_sync': check_manager_or_admin_perm(request,
-                                                                                                         project_id)
+                                                                                                         project_id),
+                                                         'breadcrumbs': breadcrumbs
 
                                                          })
 
