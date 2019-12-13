@@ -184,12 +184,13 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
         pks = [o.pk for o in page]
         sites = Site.objects.filter(pk__in=pks)
         query_sites = sites.values('id', 'name', 'location', 'address', 'phone',
-                                   'current_progress', 'identifier', 'type', 'type__name', 'region', 'project',
+                                   'current_progress', 'identifier', 'type', 'type__name',
+                                   'region', 'region__name', 'project', 'logo',
                                    'date_modified', 'is_active', 'site_meta_attributes_ans',
                                    'enable_subsites', 'site')
         df_sites = pd.DataFrame(list(query_sites), columns=['id', 'name', 'location', 'address', 'phone',
                                                             'current_progress', 'identifier', 'type', 'type__name',
-                                                            'region', 'project',
+                                                            'region',  'region__name', 'project', 'logo',
                                                             'date_modified', 'is_active', 'site_meta_attributes_ans',
                                                             'enable_subsites', 'site'])
 
