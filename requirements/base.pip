@@ -15,7 +15,7 @@ modilabs-python-utils==0.1.5
 Pillow==2.5.3
 poster==0.8.1
 psycopg2-binary==2.7.7
-pymongo==3.7.2
+pymongo==2.7.2
 lxml==3.4.0
 pyxform==0.13.1
 django-reversion==2.0.8

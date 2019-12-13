@@ -62,7 +62,7 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
 
     permissions = file.GetPermissions()
 
-    user_emails = UserRole.objects.filter(
+    user_emails = UserRole.objects.filter(ended_at__isnull=True).filter(
         Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
             group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
         organization_id=sheet.project.organization_id
