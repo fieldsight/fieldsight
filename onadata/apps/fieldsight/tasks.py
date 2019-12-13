@@ -2020,7 +2020,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
 
         review_query['resolved'] = Sum(
             Case(
-                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], submission_comments__new_status=3, then=1),
+                When(submission_comments__date__range=[new_startdate, new_enddate], submission_comments__finstance__project_id=project_id, submission_comments__old_status__in=[1,2], supervisor__form_status=3, then=1),
                 default=0, output_field=IntegerField()
             ))        
 
