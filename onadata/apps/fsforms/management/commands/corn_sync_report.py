@@ -29,6 +29,7 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
         values = progress_information(project.id)
     elif report_type == "form":
         values = form_submission(form_id)
+
     if len(values) >= 10000:
         total_sites = len(values)
         page_size = 10000
@@ -49,10 +50,31 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
                 spreadsheetId=spreadsheet_id, body=body)
 
             response = request.execute()
-            # pprint(response)
-            print("finished ,", sheet_obj.id, page)
-            total_sites -= page_size
-            page += 1
+            if "error" in response:
+                pprint(response)
+                print("failed ", sheet_obj.id)
+                if grid_id:
+                    add_rows = {
+                        "requests": [
+                            {
+                                "appendDimension": {
+                                    "dimension": "ROWS",
+                                    "length": 100,
+                                    "sheetId": grid_id
+                                }
+                            }
+                        ],
+                        "includeSpreadsheetInResponse": False
+                    }
+                    request_add_row = service.spreadsheets().values().batchUpdate(
+                        spreadsheetId=spreadsheet_id, body=add_rows)
+
+                    response_add_row = request_add_row.execute()
+                    pprint(response_add_row)
+            else:
+                print("finished ,", sheet_obj.id, page)
+                total_sites -= page_size
+                page += 1
         sheet_obj.last_synced_date = datetime.datetime.now()
         sheet_obj.save()
     else:
@@ -69,6 +91,33 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
             spreadsheetId=spreadsheet_id, body=body)
 
         response = request.execute()
+        if "error" in response:
+            pprint(response)
+            print("failed ", sheet_obj.id)
+            if grid_id:
+                add_rows = {
+                    "requests": [
+                        {
+                            "appendDimension": {
+                                "dimension": "ROWS",
+                                "length": 100,
+                                "sheetId": grid_id
+                            }
+                        }
+                    ],
+                    "includeSpreadsheetInResponse": False
+                }
+                request_add_row = service.spreadsheets().values().batchUpdate(
+                    spreadsheetId=spreadsheet_id, body=add_rows)
+
+                response_add_row = request_add_row.execute()
+                pprint(response_add_row)
+                request = service.spreadsheets().values().batchUpdate(
+                    spreadsheetId=spreadsheet_id, body=body)
+
+                response = request.execute()
+                pprint(response)
+
         # pprint(response)
         sheet_obj.last_synced_date = datetime.datetime.now()
         sheet_obj.save()
