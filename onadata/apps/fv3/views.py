@@ -177,6 +177,8 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
         return sites
 
     def list(self, request, *args, **kwargs):
+        from django.conf import settings
+        MEDIA_LOCATION_URL = settings.MEDIA_LOCATION_URL
         sites = self.filter_queryset(self.get_queryset())
         if not sites:
             return Response({})
@@ -194,6 +196,8 @@ class MySuperviseSitesViewsetV4(viewsets.ModelViewSet):
                                                             'date_modified', 'is_active', 'site_meta_attributes_ans',
                                                             'enable_subsites', 'site'])
 
+        df_sites['site_logo'] = df_sites.logo.apply(lambda x: MEDIA_LOCATION_URL + x if x else "")
+        del df_sites['logo']
         annos_sub = sites.values('id').annotate(
             submissions=Count('site_instances')).values('id', 'submissions')
         annos_user = sites.values('id').annotate(
