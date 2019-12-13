@@ -299,7 +299,6 @@ CELERYBEAT_SCHEDULE = {
     }
 }
 
-
-
 SERVICE_ACCOUNT_JSON = "****.json"
 SERVICE_ACCOUNT_EMAIL = "sheet********@gmail.com"
+REPORT_ACCOUNT_EMAIL = "******@gmail.com"

@@ -85,7 +85,7 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     for permission in permissions:
         if "emailAddress" in permission:
             if permission['emailAddress'] in perm_to_rm and (
-                    permission['emailAddress'] != "exports.fieldsight@gmail.com"):
+                    permission['emailAddress'] != settings.REPORT_ACCOUNT_EMAIL):
                 file.DeletePermission(permission['id'])
 
     retry_emails = []
