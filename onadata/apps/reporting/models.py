@@ -3,6 +3,8 @@ from django.utils.translation import gettext as _
 from django.contrib.auth.models import User
 from jsonfield import JSONField
 
+from onadata.apps.fieldsight.models import Project
+
 REPORT_TYPES = (
     (0, 'Site'),
     (1, 'Region'),
@@ -74,6 +76,8 @@ class ReportSettings(models.Model):
     owner = models.ForeignKey(User, related_name="report_settings", on_delete=models.CASCADE)
     shared_with = models.ManyToManyField(User, related_name="shared_report_settings", blank=True)
     attributes = JSONField(default=dict)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="report_settings")
+    add_to_templates = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

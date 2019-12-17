@@ -70,5 +70,20 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, ReportingProjectFormsPermissions]
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
 
+    def get_queryset(self):
+        type = self.request.query_params.get('type')
+        project_id = self.kwargs.get('pk')
+
+        if type == 'custom':
+            queryset = self.queryset.filter(project_id=project_id, add_to_templates=True)
+
+        elif type == 'shared_with_me':
+            queryset = self.queryset.filter(project_id=project_id, shared_with=self.request.user,
+                                            add_to_templates=False)
+
+        else:
+            queryset = self.queryset.filter(project_id=project_id, add_to_templates=False, owner=self.request.user)
+        return queryset
+
     def perform_create(self, serializer):
-        return serializer.save(owner=self.request.user)
+        return serializer.save(owner=self.request.user, project_id=self.kwargs.get('pk'))

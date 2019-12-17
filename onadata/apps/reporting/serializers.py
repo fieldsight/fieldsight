@@ -27,7 +27,7 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReportSettings
 
-        exclude = ('owner',)
+        exclude = ('owner', 'project')
 
     def get_owner_full_name(self, obj):
         return obj.owner.get_full_name()

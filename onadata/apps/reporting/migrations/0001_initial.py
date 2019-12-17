@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
+import django.db.models.deletion
 import jsonfield.fields
 from django.conf import settings
 
@@ -23,8 +24,8 @@ class Migration(migrations.Migration):
                 ('attributes', jsonfield.fields.JSONField(default=dict)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('owner', models.ForeignKey(related_name='report_settings', to=settings.AUTH_USER_MODEL)),
-                ('shared_with', models.ManyToManyField(related_name='shared_report_settings', to=settings.AUTH_USER_MODEL, blank=True)),
+                ('owner', models.ForeignKey(related_name='report_settings', on_delete=django.db.models.deletion.SET_NULL, blank=True, to=settings.AUTH_USER_MODEL, null=True)),
+                ('shared_with', models.ManyToManyField(related_name='shared_report_settings', to=settings.AUTH_USER_MODEL)),
             ],
         ),
     ]
