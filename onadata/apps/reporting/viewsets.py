@@ -1,16 +1,20 @@
 from django.shortcuts import get_object_or_404
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework import viewsets
 
 from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
-from .serializers import StageFormSerializer
+from .serializers import StageFormSerializer, ReportSettingsSerializer
 from .permissions import ReportingProjectFormsPermissions
+from .models import ReportSettings
+from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
-class ReportingProjectForms(APIView):
+class ReportingProjectFormData(APIView):
     permission_classes = [IsAuthenticated, ReportingProjectFormsPermissions]
 
     def get(self, request, pk, *args,  **kwargs):
@@ -58,3 +62,13 @@ class ReportingProjectForms(APIView):
             return Response(status=status.HTTP_200_OK, data=surveys_data)
         else:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'form_type params is required.'})
+
+
+class ReportSettingsViewSet(viewsets.ModelViewSet):
+    serializer_class = ReportSettingsSerializer
+    queryset = ReportSettings.objects.all()
+    permission_classes = [IsAuthenticated, ReportingProjectFormsPermissions]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def perform_create(self, serializer):
+        return serializer.save(owner=self.request.user)

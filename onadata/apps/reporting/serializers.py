@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from onadata.apps.fsforms.models import Stage
+from .models import ReportSettings
 
 
 class StageFormSerializer(serializers.ModelSerializer):
@@ -18,3 +19,16 @@ class StageFormSerializer(serializers.ModelSerializer):
                 ]
 
         return data
+
+
+class ReportSettingsSerializer(serializers.ModelSerializer):
+    owner_full_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ReportSettings
+
+        exclude = ('owner',)
+
+    def get_owner_full_name(self, obj):
+        return obj.owner.get_full_name()
+

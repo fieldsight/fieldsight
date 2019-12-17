@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext as _
-
+from django.contrib.auth.models import User
+from jsonfield import JSONField
 
 REPORT_TYPES = (
     (0, 'Site'),
@@ -68,3 +69,16 @@ METRICES_DATA = [
 
 class ReportSettings(models.Model):
     type = models.IntegerField(default=0, choices=REPORT_TYPES)
+    description = models.TextField()
+    title = models.CharField(max_length=250)
+    owner = models.ForeignKey(User, related_name="report_settings", on_delete=models.CASCADE)
+    shared_with = models.ManyToManyField(User, related_name="shared_report_settings", blank=True)
+    attributes = JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+
+
