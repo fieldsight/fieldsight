@@ -40,6 +40,7 @@ urlpatterns = patterns(
     url(r'^events/', include('onadata.apps.eventlog.urls', namespace='eventlog')),
     url(r'^subscription/', include('onadata.apps.subscriptions.urls', namespace='subscriptions')),
     url(r'^fv3/', include('onadata.apps.fv3.urls', namespace='fv3')),
+    url(r'^v4/api/reporting/', include('onadata.apps.reporting.urls', namespace='v4_reporting')),
 
     # django default stuff
     # url(r'^admin/', include(admin.site.urls)),
