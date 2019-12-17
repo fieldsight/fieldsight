@@ -62,7 +62,7 @@ class ReportSyncSettingsViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
         data = serializer.data
         if not data.get('spreadsheet_id') and data.get('schedule_type') != 0:
-            sync_sheet.delay(data.get('spreadsheet_id'))
+            sync_sheet.delay(instance.id)
         data.update({'schedule_type': SCHEDULED_TYPE[int(serializer.data.get('schedule_type'))][1]})
         return Response(data, status=status.HTTP_200_OK)
 
