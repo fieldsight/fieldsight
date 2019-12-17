@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,7 +11,7 @@ from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
 from .serializers import StageFormSerializer, ReportSettingsSerializer
 from .permissions import ReportingProjectFormsPermissions
-from .models import ReportSettings
+from .models import ReportSettings, REPORT_TYPES, METRICES_DATA
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
@@ -85,5 +86,38 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
             queryset = self.queryset.filter(project_id=project_id, add_to_templates=False, owner=self.request.user)
         return queryset
 
+    def list(self, request, *args, **kwargs):
+        type = self.request.query_params.get('type')
+        if type == 'custom':
+            custom_data = {
+                'custom_reports': ReportSettingsSerializer(self.get_queryset(), many=True).data
+            }
+            custom_data.update({
+                'standard_reports': [{'title': 'Project Summary',
+                                      'description': 'Contains high level overview of the project in form of numbers, '
+                                                     'graphs and map.'},
+                                     {'title': 'Site Information',
+                                      'description': 'Export of key progress indicators like submission count, status '
+                                                     'and site visits generated from Staged Forms.'},
+
+                                     {'title': 'Progress Report',
+                                      'description': 'Export of key progress indicators like submission count, '
+                                                     'status and site visits generated from Staged Forms.'}
+
+                                     ]
+            })
+            return Response(custom_data)
+        else:
+            return Response(data=ReportSettingsSerializer(self.get_queryset(), many=True).data)
+
     def perform_create(self, serializer):
         return serializer.save(owner=self.request.user, project_id=self.kwargs.get('pk'))
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def metrics_data(request):
+    report_types = REPORT_TYPES
+    metrics = METRICES_DATA
+
+    return Response(status=status.HTTP_200_OK, data={'report_types': report_types, 'metrics': metrics})
