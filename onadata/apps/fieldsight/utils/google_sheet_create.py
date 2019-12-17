@@ -106,8 +106,18 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
 
     if retry_emails:
         print "retrying again for ", retry_emails
-        from onadata.apps.fieldsight.task import gsuit_assign_perm
-        gsuit_assign_perm.delay(title, retry_emails)
+        file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
+        import time
+        for perm in retry_emails:
+            time.sleep(1)
+            try:
+                file.InsertPermission({
+                    'type': 'user',
+                    'value': perm,
+                    'role': 'writer'
+                })
+            except:
+                pass
 
 
 def site_details_generator(project, sites, ws):
