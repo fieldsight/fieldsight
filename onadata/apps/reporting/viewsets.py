@@ -9,9 +9,12 @@ from rest_framework import viewsets
 
 from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
+from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
+    exportProjectSiteResponses
 from .serializers import StageFormSerializer, ReportSettingsSerializer
 from .permissions import ReportingProjectFormsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA
+from ..eventlog.models import CeleryTaskProgress
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
@@ -112,6 +115,79 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save(owner=self.request.user, project_id=self.kwargs.get('pk'))
+
+
+class GenerateStandardReports(APIView):
+    permission_classes = [IsAuthenticated, ]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def post(self, request, pk, *args,  **kwargs):
+
+        report_type = self.request.query_params.get('report_type')
+        project = get_object_or_404(Project, pk=pk)
+
+        if report_type == 'site_information':
+
+            source_user = self.request.user
+            data = request.data
+            site_type_ids = data.get('siteTypes', None)
+            region_ids = data.get('regions', None)
+            sync_to_drive = data.get('sync_to_drive', False)
+
+            task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
+            if task_obj:
+                task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), region_ids, site_type_ids,
+                                                    sync_to_drive)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'detail': 'The sites details xls file is being generated. '
+                                               'You will be notified after the file is generated.'}
+            else:
+                status, data = 401, {'detail': 'Error occured please try again.'}
+            return Response(status=status, data=data)
+
+        elif report_type == 'progress_report':
+            user = self.request.user
+            data = request.data
+            site_type_ids = data.get('siteTypes', None)
+            region_ids = data.get('regions', None)
+            sync_to_drive = data.get('sync_to_drive', False)
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, task_type=10, content_object=project)
+            if task_obj:
+                task = generate_stage_status_report.delay(task_obj.pk, project.id, site_type_ids, region_ids,
+                                                          sync_to_drive)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'detail': 'Progress report is being generated. You will be notified upon '
+                                               'completion. (It may take more time depending upon number of sites '
+                                               'and submissions.)'}
+            else:
+                status, data = 401, {'detail': 'Report cannot be generated a the moment.'}
+            return Response(status=status, data=data)
+
+        elif report_type == 'form':
+            base_url = self.request.get_host()
+            user = self.request.user
+            data = request.data
+            fs_ids = data.get('fs_ids')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+            region_ids = data.get('regions', None)
+            site_type_ids = data.get('siteTypes', None)
+            project = get_object_or_404(Project, pk=self.kwargs.get('pk'))
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=3)
+            if task_obj:
+                task = exportProjectSiteResponses.delay(task_obj.pk, self.kwargs.get('pk'), base_url, fs_ids,
+                                                        start_date, end_date, region_ids, site_type_ids)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'detail': 'Success, the report is being generated. You will be notified after '
+                                               'the report is generated.'}
+            else:
+                status, data = 401, {'detail': 'Error occured please try again.'}
+            return Response(status=status, data=data)
 
 
 @permission_classes([IsAuthenticated])
