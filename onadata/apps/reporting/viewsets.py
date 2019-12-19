@@ -266,6 +266,12 @@ class PreviewStandardReports(APIView):
             site_type_ids = data.get('siteTypes', None)
             region_ids = data.get('regions', None)
 
+            if region_ids is not None:
+                region_ids = ast.literal_eval(data.get('regions', None))
+
+            if site_type_ids is not None:
+                site_type_ids = ast.literal_eval(data.get('siteTypes', None))
+
             data = []
             form_ids = []
             ss_index = []
@@ -273,6 +279,7 @@ class PreviewStandardReports(APIView):
             query = {}
 
             stages = project.stages.filter(stage__isnull=True)
+
             for stage in stages:
                 sub_stages = stage.parent.filter(stage_forms__isnull=False)
                 stages_rows.append("Stage :" + stage.name)
