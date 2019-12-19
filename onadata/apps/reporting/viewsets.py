@@ -242,6 +242,18 @@ class PreviewStandardReports(APIView):
             metas_questions = [question['question_name'] for question in project_metas if
                                question['question_type'] != 'Link']
 
+            for question in project_metas:
+                if question['question_type'] == 'Link':
+                    question_name = question['question_name']
+                    try:
+                        link_metas = question['metas'].values()[0]
+                    except:
+                        link_metas = []
+                    for link_question in link_metas:
+
+                        other_questions = question_name + "/" + link_question['question_name'],
+                        metas_questions.extend(other_questions)
+
             return Response(status=status.HTTP_200_OK,
                             data={'sites': PreviewSiteInformationSerializer(sites, many=True).data,
                                   'metas_questions': metas_questions})
