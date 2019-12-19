@@ -257,9 +257,11 @@ class PreviewStandardReports(APIView):
                         other_questions = question_name + "/" + link_question['question_name'],
                         metas_questions.extend(other_questions)
 
+            rows_cols = {'rows': 0, 'cols': 0, 'cells': 0}
+
             return Response(status=status.HTTP_200_OK,
                             data={'sites': PreviewSiteInformationSerializer(sites, many=True).data,
-                                  'metas_questions': metas_questions})
+                                  'metas_questions': metas_questions, 'rows_cols': rows_cols})
 
         elif report_type == 'progress_report':
             data = request.data
@@ -394,9 +396,12 @@ class PreviewStandardReports(APIView):
                     print e
             sites = None
             site_dict = None
+            rows = sites.filter(**sites_filter).count() + 1
             gc.collect()
+            rows_cols = {'rows': 0, 'cols': 0, 'cells': 0}
 
-            return Response(status=status.HTTP_200_OK, data={'progress_report': data, 'stages_rows': stages_rows})
+            return Response(status=status.HTTP_200_OK, data={'progress_report': data, 'stages_rows': stages_rows,
+                                                             'rows_cols': rows_cols})
 
 
 @permission_classes([IsAuthenticated])
