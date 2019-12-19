@@ -1,7 +1,10 @@
 from rest_framework import serializers
 
 from onadata.apps.fsforms.models import Stage
+from onadata.apps.fieldsight.models import Site
+
 from .models import ReportSettings
+
 
 
 class StageFormSerializer(serializers.ModelSerializer):
@@ -31,4 +34,33 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
 
     def get_owner_full_name(self, obj):
         return obj.owner.get_full_name()
+
+
+class PreviewSiteInformationSerializer(serializers.ModelSerializer):
+    region = serializers.CharField(source='region.identifier')
+    latitude = serializers.SerializerMethodField()
+    longitude = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Site
+
+        exclude = ('id', 'project', 'logo', 'location', 'current_status', 'enable_subsites', 'weight', 'date_created',
+                   'date_modified', 'site_meta_attributes_ans', 'site_featured_images')
+
+    def get_latitude(self, obj):
+        if obj.location:
+            return obj.location.y
+
+    def get_longitude(self, obj):
+        if obj.location:
+            return obj.location.x
+
+    def to_representation(self, instance):
+        data = super(PreviewSiteInformationSerializer, self).to_representation(instance)
+        project = instance.project
+
+        if not project.cluster_sites:
+            data.pop('region')
+        return data
+
 

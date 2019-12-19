@@ -1,3 +1,5 @@
+import ast
+
 from django.shortcuts import get_object_or_404
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.decorators import permission_classes, api_view
@@ -11,7 +13,7 @@ from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
     exportProjectSiteResponses
-from .serializers import StageFormSerializer, ReportSettingsSerializer
+from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
 from .permissions import ReportingProjectFormsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA
 from ..eventlog.models import CeleryTaskProgress
@@ -105,7 +107,20 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
                                      {'title': 'Progress Report',
                                       'description': 'Export of key progress indicators like submission count, '
-                                                     'status and site visits generated from Staged Forms.'}
+                                                     'status and site visits generated from Staged Forms.'},
+
+                                     {'title': 'Activity Report',
+                                      'description': 'Export of sites visits, submissions and active users in a '
+                                                     'selected time interval.'},
+
+                                     {'title': 'Project Logs',
+                                      'description': 'Export of all the logs in the project in a selected time '
+                                                     'interval.'},
+
+                                     {'title': 'User Activity Report',
+                                      'description': 'Export of User Activities in a selected time interval.'},
+
+
 
                                      ]
             })
@@ -118,7 +133,7 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
 
 class GenerateStandardReports(APIView):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, ReportingProjectFormsPermissions]
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
 
     def post(self, request, pk, *args,  **kwargs):
@@ -188,6 +203,48 @@ class GenerateStandardReports(APIView):
             else:
                 status, data = 401, {'detail': 'Error occured please try again.'}
             return Response(status=status, data=data)
+
+
+class PreviewStandardReports(APIView):
+    permission_classes = [IsAuthenticated, ReportingProjectFormsPermissions]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def post(self, request, pk, *args,  **kwargs):
+
+        report_type = self.request.query_params.get('report_type')
+        project = get_object_or_404(Project, pk=pk)
+
+        if report_type == 'site_information':
+            data = request.data
+            site_type_ids = data.get('siteTypes', None)
+            region_ids = data.get('regions', None)
+
+            if region_ids is not None:
+                region_ids = ast.literal_eval(data.get('regions', None))
+
+            if site_type_ids is not None:
+                site_type_ids = ast.literal_eval(data.get('siteTypes', None))
+
+            if region_ids and site_type_ids:
+                sites = project.sites.filter(is_active=True, region_id__in=region_ids, type_id__in=site_type_ids).\
+                    order_by('identifier')[:7]
+            elif region_ids:
+                sites = project.sites.filter(is_active=True, region_id__in=region_ids). \
+                    order_by('identifier')[:7]
+
+            elif site_type_ids:
+                sites = project.sites.filter(is_active=True, type_id__in=site_type_ids)[:7]
+
+            else:
+                sites = project.sites.filter(is_active=True)[:7]
+
+            project_metas = project.site_meta_attributes
+            metas_questions = [question['question_name'] for question in project_metas if
+                               question['question_type'] != 'Link']
+
+            return Response(status=status.HTTP_200_OK,
+                            data={'sites': PreviewSiteInformationSerializer(sites, many=True).data,
+                                  'metas_questions': metas_questions})
 
 
 @permission_classes([IsAuthenticated])
