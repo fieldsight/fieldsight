@@ -400,7 +400,7 @@ class PreviewStandardReports(APIView):
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def metrics_data(request):
-    report_types = [{'key': rep_type[0], 'value': rep_type[1]} for rep_type in REPORT_TYPES]
+    report_types = [{'id': rep_type[0], 'name': rep_type[1]} for rep_type in REPORT_TYPES]
     metrics = METRICES_DATA
 
     return Response(status=status.HTTP_200_OK, data={'report_types': report_types, 'metrics': metrics})
