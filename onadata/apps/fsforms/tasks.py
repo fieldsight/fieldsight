@@ -434,7 +434,7 @@ def update_progress(site_id, project_fxf_id, submission_answer={}):
         print("error progess update in submission", str(e))
 
 
-@shared_task(max_retries=5)
+@shared_task(max_retries=5, soft_time_limit=300)
 def sync_sheet(sheet_id):
     sheet = ReportSyncSettings.objects.get(id=sheet_id)
 
