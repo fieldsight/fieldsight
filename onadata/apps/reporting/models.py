@@ -96,6 +96,79 @@ METRICES_DATA = [
           {'code': 'active_users_by_role', 'label': _('Number of Active Users by Role'), 'children': ROLE_MATRICS, },
           ], 'category': 'users'},
 
+    {'code': 'form', 'label': _('Individual Form Metrics'),
+     'types': [0, 1, 2, 3, 4, 5], 'children':
+         [{'code': 'form_no_submissions', 'label': _('Number of Submissions'), 'children': [], },
+          {'code': 'form_no_pending_submissions', 'label': _('Number of Pending Submissions'), 'children': []},
+          {'code': 'form_no_approved_submissions', 'label': _('Number of Approved Submissions'), 'children': [], },
+          {'code': 'form_no_flagged_submissions', 'label': _('Number of Flagged Submissions'), 'children': [], },
+          {'code': 'form_no_rejected_submissions', 'label': _('Number of Rejected Submissions'), 'children': [], },
+          {'code': 'form_no_resolved_submissions', 'label': _('Number of Resolved Submissions'), 'children': [], },
+          {'code': 'form_submissions_reviewed', 'label': _('Submissions Reviewed'), 'children': [], },
+          {'code': 'form_submissions_flagged', 'label': _('Submissions Flagged'), 'children': [], },
+          {'code': 'form_submissions_rejected', 'label': _('Submissions Rejected'), 'children': [], },
+          {'code': 'form_submissions_approved', 'label': _('Submissions Approved'), 'children': [], },
+          {'code': 'form_submissions_resolutions', 'label': _('Submission Resolutions'), 'children': [], },
+          ], 'category': 'users'},
+
+]
+
+SITE_INFORMATION_VALUES_METRICS_DATA = [
+    {'code': 'actual', 'label': _('Actual'), 'types': [0, 1, 2], 'children':[],
+     'category': 'site_information'},
+
+    {'code': 'average', 'label': _('Average'), 'types': [1, 2], 'children': [],
+     'category': 'site_information'},
+
+    {'code': 'sum', 'label': _('Sum'), 'types': [1, 2], 'children': [],
+     'category': 'site_information'},
+
+    {'code': 'maximum', 'label': _('Maximum'), 'types': [1, 2], 'children': [],
+     'category': 'site_information'},
+
+    {'code': 'minimum', 'label': _('Minimum'), 'types': [1, 2], 'children': [],
+     'category': 'site_information'},
+
+    {'code': 'most_common', 'label': _('Most Common'), 'types': [1, 2], 'children': [],
+     'category': 'site_information'},
+
+    {'code': 'count', 'label': _('Count'), 'types': [1, 2], 'children': [],
+     'category': 'site_information'},
+
+    {'code': 'count_distinct', 'label': _('Count Distinct'), 'types': [1, 2], 'children': [],
+     'category': 'site_information'},
+
+    {'code': 'all_values', 'label': _('All Values'), 'types': [1, 2], 'children': [],
+     'category': 'site_information'},
+]
+
+FORM_INFORMATION_VALUES_METRICS_DATA = [
+    {'code': 'form_info_most_recent', 'label': _('Most Recent'), 'types': [0, 1, 2], 'children':[],
+     'category': 'form_information'},
+
+    {'code': 'form_info_average', 'label': _('Average'), 'types': [0, 1, 2], 'children': [],
+     'category': 'form_information'},
+
+    {'code': 'form_info_sum', 'label': _('Sum'), 'types': [0, 1, 2], 'children': [],
+     'category': 'form_information'},
+
+    {'code': 'form_info_maximum', 'label': _('Maximum'), 'types': [0, 1, 2], 'children': [],
+     'category': 'form_information'},
+
+    {'code': 'form_info_minimum', 'label': _('Minimum'), 'types': [0, 1, 2], 'children': [],
+     'category': 'form_information'},
+
+    {'code': 'form_info_most_common', 'label': _('Most Common'), 'types': [0, 1, 2], 'children': [],
+     'category': 'form_information'},
+
+    {'code': 'form_info_count', 'label': _('Count'), 'types': [0, 1, 2], 'children': [],
+     'category': 'form_information'},
+
+    {'code': 'form_info_count_distinct', 'label': _('Count Distinct'), 'types': [0, 1, 2], 'children': [],
+     'category': 'form_information'},
+
+    {'code': 'form_info_all_values', 'label': _('All Values'), 'types': [0, 1, 2], 'children': [],
+     'category': 'form_information'},
 ]
 
 

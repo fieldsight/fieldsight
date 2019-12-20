@@ -18,7 +18,8 @@ from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage
     exportProjectSiteResponses, form_status_map
 from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
 from .permissions import ReportingProjectFormsPermissions
-from .models import ReportSettings, REPORT_TYPES, METRICES_DATA
+from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
+    FORM_INFORMATION_VALUES_METRICS_DATA
 from ..eventlog.models import CeleryTaskProgress
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
@@ -406,8 +407,12 @@ class PreviewStandardReports(APIView):
 
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
-def metrics_data(request):
+def metrics_data(request, pk):
+    project = get_object_or_404(Project, id=pk)
     report_types = [{'id': rep_type[0], 'name': rep_type[1]} for rep_type in REPORT_TYPES]
-    metrics = METRICES_DATA
-
-    return Response(status=status.HTTP_200_OK, data={'report_types': report_types, 'metrics': metrics})
+    metrics = []
+    metrics.extend(METRICES_DATA)
+    metrics.extend(SITE_INFORMATION_VALUES_METRICS_DATA)
+    metrics.extend(FORM_INFORMATION_VALUES_METRICS_DATA)
+    return Response(status=status.HTTP_200_OK, data={'report_types': report_types,
+                                                     'metrics': metrics})
