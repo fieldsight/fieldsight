@@ -2627,4 +2627,5 @@ def update_metas_in_sites(pk, start, end):
         old_all_ma_ans = copy.deepcopy(site.all_ma_ans)
         metas = get_site_meta_ans(site.id)
         if metas != old_all_ma_ans:
+            site.all_ma_ans = metas
             site.save()
