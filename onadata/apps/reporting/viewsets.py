@@ -411,10 +411,16 @@ def metrics_data(request, pk):
     project = get_object_or_404(Project, id=pk)
     meta_attributes = project.site_meta_attributes
     report_types = [{'id': rep_type[0], 'name': rep_type[1]} for rep_type in REPORT_TYPES]
-    # to_be_deleted_keys = ['question_placeholder', 'question_type', 'question_help']
     for meta in meta_attributes:
         meta['code'] = meta.pop('question_name')
         meta['label'] = meta.pop('question_text')
+        meta['type'] = meta.pop('question_type')
+
+        if 'question_placeholder' in meta:
+            del meta['question_placeholder']
+
+        if 'question_help' in meta:
+            del meta['question_help']
 
     metrics = []
     metrics.extend(METRICES_DATA)
