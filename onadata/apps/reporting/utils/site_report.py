@@ -27,41 +27,69 @@ def generate_form_metrices(form_id, df, df_submissions, df_reviews):
 
     # no of submissions current
     df_submissions_status_index = df_submissions.set_index('form_status')
-    submissions_pending = df_submissions_status_index.loc[0].groupby(['site']).size().to_frame(
-        'submissions_pending' + form_id).reset_index()
-    submissions_approved = df_submissions_status_index.loc[1].groupby(['site']).size().to_frame(
-        'submissions_approved' + form_id).reset_index()
-    submissions_flagged = df_submissions_status_index.loc[2].groupby(['site']).size().to_frame(
-        'submissions_flagged' + form_id).reset_index()
-    submissions_rejected = df_submissions_status_index.loc[3].groupby(['site']).size().to_frame(
-        'submissions_rejected' + form_id).reset_index()
-    df = df.merge(submissions_pending, on="site", how="left")
-    df = df.merge(submissions_approved, on="site", how="left")
-    df = df.merge(submissions_flagged, on="site", how="left")
-    df = df.merge(submissions_rejected, on="site", how="left")
+    try:
+        submissions_pending = df_submissions_status_index.loc[0].groupby(['site']).size().to_frame(
+            'submissions_pending' + form_id).reset_index()
+        df = df.merge(submissions_pending, on="site", how="left")
+    except:
+        df['submissions_pending' + form_id] = 0
+    try:
+        submissions_approved = df_submissions_status_index.loc[1].groupby(['site']).size().to_frame(
+            'submissions_approved' + form_id).reset_index()
+        df = df.merge(submissions_approved, on="site", how="left")
+    except:
+        df['submissions_approved' + form_id] = 0
+    try:
+        submissions_flagged = df_submissions_status_index.loc[2].groupby(['site']).size().to_frame(
+            'submissions_flagged' + form_id).reset_index()
+        df = df.merge(submissions_flagged, on="site", how="left")
+    except:
+        df['submissions_flagged' + form_id] = 0
+    try:
+        submissions_rejected = df_submissions_status_index.loc[3].groupby(['site']).size().to_frame(
+            'submissions_rejected' + form_id).reset_index()
+        df = df.merge(submissions_rejected, on="site", how="left")
+    except:
+        df['submissions_rejected' + form_id] = 0
 
     df_reviews_old_status_index = df_reviews.set_index('old_status')
+    try:
+        approved_submissions = df_submissions_status_index.loc[1]
+        df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 3]]
+        approved_submissions_with_resolved = approved_submissions.assign(
+            resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
+        approved_submissions_with_resolved_only = approved_submissions_with_resolved[
+            approved_submissions_with_resolved["resolved"]]
+        submissions_resolved_ever = approved_submissions_with_resolved_only.groupby(['site']).size().to_frame(
+            'submissions_resolved_ever' + form_id).reset_index()
 
-    approved_submissions = df_submissions_status_index.loc[1]
-    df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 3]]
-    approved_submissions_with_resolved = approved_submissions.assign(
-        resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
-    approved_submissions_with_resolved_only = approved_submissions_with_resolved[
-        approved_submissions_with_resolved["resolved"]]
-    submissions_resolved_ever = approved_submissions_with_resolved_only.groupby(['site']).size().to_frame(
-        'submissions_resolved_ever' + form_id).reset_index()
+        df = df.merge(submissions_resolved_ever, on="site", how="left")
+    except:
+        df['submissions_resolved_ever' + form_id] = 0
 
-    df = df.merge(submissions_resolved_ever, on="site", how="left")
+    try:
+        submissions_pending_ever = df_reviews_old_status_index.loc[0].groupby("site").size().to_frame('submissions_pending_ever' + form_id).reset_index()
+        df = df.merge(submissions_pending_ever, on="site", how="left")
+    except:
+        df['submissions_pending_ever' + form_id] = 0
 
-    submissions_pending_ever = df_reviews_old_status_index.loc[0].groupby("site").size().to_frame('submissions_pending_ever' + form_id)
-    submissions_approved_ever = df_reviews_old_status_index.loc[1].groupby("site").size().to_frame('submissions_approved_ever' + form_id)
-    submissions_flagged_ever = df_reviews_old_status_index.loc[2].groupby("site").size().to_frame('submissions_flagged_ever' + form_id)
-    submissions_rejected_ever = df_reviews_old_status_index.loc[3].groupby("site").size().to_frame('submissions_rejected_ever' + form_id)
+    try:
+        submissions_approved_ever = df_reviews_old_status_index.loc[1].groupby("site").size().to_frame('submissions_approved_ever' + form_id).reset_index()
+        df = df.merge(submissions_approved_ever, on="site", how="left")
+    except:
+        df['submissions_approved_ever' + form_id] = 0
 
-    df = df.merge(submissions_pending_ever, on="site", how="left")
-    df = df.merge(submissions_approved_ever, on="site", how="left")
-    df = df.merge(submissions_flagged_ever, on="site", how="left")
-    df = df.merge(submissions_rejected_ever, on="site", how="left")
+
+    try:
+        submissions_flagged_ever = df_reviews_old_status_index.loc[2].groupby("site").size().to_frame('submissions_flagged_ever' + form_id).reset_index()
+        df = df.merge(submissions_flagged_ever, on="site", how="left")
+    except:
+        df['submissions_flagged_ever' + form_id] = 0
+    try:
+        submissions_rejected_ever = df_reviews_old_status_index.loc[3].groupby("site").size().to_frame('submissions_rejected_ever' + form_id).reset_index()
+        df = df.merge(submissions_rejected_ever, on="site", how="left")
+    except:
+        df['submissions_rejected_ever' + form_id] = 0
     return df
 
 
@@ -113,7 +141,10 @@ def site_report(project_id):
     ).values("pk", "site", "project_fxf", "form_status", "submitted_by", "date")
     df_submissions = pd.DataFrame(
         list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date"])
-    query_reviews = InstanceStatusChanged.objects.all().values(
+    query_reviews = InstanceStatusChanged.objects.filter(
+        Q(finstance__project_fxf__project=project_id) |
+        Q(finstance__site_fxf__site__project=project_id)
+    ).values(
         "pk", "finstance__site", "new_status", "old_status", "user", "finstance")
     df_reviews = pd.DataFrame(list(query_reviews),
                               columns=["pk", "finstance__site", "new_status", "old_status", "user", "finstance"])
@@ -121,19 +152,19 @@ def site_report(project_id):
 
     df = generate_form_metrices("_site", df, df_submissions, df_reviews)
 
-    df_submissions_form = df_submissions.set_index('project_fxf')
+    form_submissions = df_submissions[df_submissions.project_fxf == form_metrics['form_id']]
 
     # form submission status, approved, rejected etc
-    df = generate_form_metrices(form_metrics['form_id'], df, df_submissions_form.loc[form_metrics['form_id']], df_reviews)
+    df = generate_form_metrices(form_metrics['form_id'], df, form_submissions, df_reviews)
 
-    query_submissions_form = FInstance.objects.filter(
-        project_fxf__in=form_information['form_id']).select_related(
-        'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
-    df_submissions_form_answer = pd.DataFrame(list(query_submissions_form),
-                                              columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
-    df_submissions_form_answer = pd.concat([df_submissions_form_answer.drop('instance__json', axis=1),
-                                  df_submissions_form_answer['instance__json'].apply(pd.Series)], axis=1)
+    #query_submissions_form = FInstance.objects.filter(
+    #    project_fxf__in=form_information['form_id']).select_related(
+    #    'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
+    #df_submissions_form_answer = pd.DataFrame(list(query_submissions_form),
+    #                                          columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
+    #df_submissions_form_answer = pd.concat([df_submissions_form_answer.drop('instance__json', axis=1),
+    #                              df_submissions_form_answer['instance__json'].apply(pd.Series)], axis=1)
 
     # form submission answer of a question
-    df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
+    #df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
     return df
