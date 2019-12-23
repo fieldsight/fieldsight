@@ -53,10 +53,10 @@ def generate_form_metrices(form_id, df, df_submissions, df_reviews):
 
     df = df.merge(submissions_resolved_ever, on="site", how="left")
 
-    submissions_pending_ever = df_reviews_old_status_index.loc[0].groupby("site").size().to_frame('submissions_pending_ever' + form_id)
-    submissions_approved_ever = df_reviews_old_status_index.loc[1].groupby("site").size().to_frame('submissions_approved_ever' + form_id)
-    submissions_flagged_ever = df_reviews_old_status_index.loc[2].groupby("site").size().to_frame('submissions_flagged_ever' + form_id)
-    submissions_rejected_ever = df_reviews_old_status_index.loc[3].groupby("site").size().to_frame('submissions_rejected_ever' + form_id)
+    submissions_pending_ever = df_reviews_old_status_index.loc[0].groupby("site").size().to_frame('submissions_pending_ever' + form_id).reset_index()
+    submissions_approved_ever = df_reviews_old_status_index.loc[1].groupby("site").size().to_frame('submissions_approved_ever' + form_id).reset_index()
+    submissions_flagged_ever = df_reviews_old_status_index.loc[2].groupby("site").size().to_frame('submissions_flagged_ever' + form_id).reset_index()
+    submissions_rejected_ever = df_reviews_old_status_index.loc[3].groupby("site").size().to_frame('submissions_rejected_ever' + form_id).reset_index()
 
     df = df.merge(submissions_pending_ever, on="site", how="left")
     df = df.merge(submissions_approved_ever, on="site", how="left")
@@ -126,14 +126,14 @@ def site_report(project_id):
     # form submission status, approved, rejected etc
     df = generate_form_metrices(form_metrics['form_id'], df, df_submissions_form.loc[form_metrics['form_id']], df_reviews)
 
-    query_submissions_form = FInstance.objects.filter(
-        project_fxf__in=form_information['form_id']).select_related(
-        'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
-    df_submissions_form_answer = pd.DataFrame(list(query_submissions_form),
-                                              columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
-    df_submissions_form_answer = pd.concat([df_submissions_form_answer.drop('instance__json', axis=1),
-                                  df_submissions_form_answer['instance__json'].apply(pd.Series)], axis=1)
+    #query_submissions_form = FInstance.objects.filter(
+    #    project_fxf__in=form_information['form_id']).select_related(
+    #    'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
+    #df_submissions_form_answer = pd.DataFrame(list(query_submissions_form),
+    #                                          columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
+    #df_submissions_form_answer = pd.concat([df_submissions_form_answer.drop('instance__json', axis=1),
+    #                              df_submissions_form_answer['instance__json'].apply(pd.Series)], axis=1)
 
     # form submission answer of a question
-    df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
+    #df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
     return df
