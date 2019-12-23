@@ -94,7 +94,7 @@ METRICES_DATA = [
          [{'code': 'active_users', 'label': _('Number of Active Users'), 'children': [], },
           {'code': 'users_by_role', 'label': _('Number of Users by Role'), 'children': ROLE_MATRICS},
           {'code': 'active_users_by_role', 'label': _('Number of Active Users by Role'), 'children': ROLE_MATRICS, },
-          ], 'category': 'users'},
+          ], 'category': 'default'},
 
     {'code': 'form', 'label': _('Individual Form Metrics'),
      'types': [0, 1, 2, 3, 4, 5], 'children':
@@ -109,7 +109,7 @@ METRICES_DATA = [
           {'code': 'form_submissions_rejected', 'label': _('Submissions Rejected'), 'children': [], },
           {'code': 'form_submissions_approved', 'label': _('Submissions Approved'), 'children': [], },
           {'code': 'form_submissions_resolutions', 'label': _('Submission Resolutions'), 'children': [], },
-          ], 'category': 'users'},
+          ], 'category': 'form'},
 
 ]
 
