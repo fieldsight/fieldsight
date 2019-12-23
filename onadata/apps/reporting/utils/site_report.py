@@ -5,7 +5,7 @@ from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
 
 
-def generate_form_frame(form_id, df, df_submissions, df_reviews):
+def generate_form_metrices(form_id, df, df_submissions, df_reviews):
     form_id = str(form_id)
     df_visits = df_submissions.date.apply(lambda dt: dt.date()).groupby(
         [df_submissions.site]).nunique().to_frame('site_visited' + form_id).reset_index()
@@ -18,7 +18,7 @@ def generate_form_frame(form_id, df, df_submissions, df_reviews):
 
     # status of most recent submission
     df_mrs = df_submissions.loc[df_submissions.groupby('site').date.idxmax()][['site', 'form_status']]
-    df_mrs.columns = ['site', 'status_of_most_recent_submission']
+    df_mrs.columns = ['site', 'status_of_most_recent_submission' + form_id]
     df = df.merge(df_mrs, on="site", how="left")
 
     # no of submissions
@@ -49,7 +49,7 @@ def generate_form_frame(form_id, df, df_submissions, df_reviews):
     approved_submissions_with_resolved_only = approved_submissions_with_resolved[
         approved_submissions_with_resolved["resolved"]]
     submissions_resolved_ever = approved_submissions_with_resolved_only.groupby(['site']).size().to_frame(
-        'submissions_resolved_ever').reset_index()
+        'submissions_resolved_ever' + form_id).reset_index()
 
     df = df.merge(submissions_resolved_ever, on="site", how="left")
 
@@ -58,14 +58,14 @@ def generate_form_frame(form_id, df, df_submissions, df_reviews):
     submissions_flagged_ever = df_reviews_old_status_index.loc[2].groupby("site").size().to_frame('submissions_flagged_ever' + form_id)
     submissions_rejected_ever = df_reviews_old_status_index.loc[3].groupby("site").size().to_frame('submissions_rejected_ever' + form_id)
 
-    df = pd.concat([df, submissions_pending_ever], axis=1)
-    df = pd.concat([df, submissions_approved_ever], axis=1)
-    df = pd.concat([df, submissions_flagged_ever], axis=1)
-    df = pd.concat([df, submissions_rejected_ever], axis=1)
+    df = df.merge(submissions_pending_ever, on="site", how="left")
+    df = df.merge(submissions_approved_ever, on="site", how="left")
+    df = df.merge(submissions_flagged_ever, on="site", how="left")
+    df = df.merge(submissions_rejected_ever, on="site", how="left")
     return df
 
 
-def generate_answer_frame(form_id, question, df, df_sub_form_data):
+def generate_form_information(form_id, question, df, df_sub_form_data):
     form_id = str(form_id)
     df_submissions_form_most_recent = df_sub_form_data.loc[df_sub_form_data.groupby('site').date.idxmax()]
     df_submissions_form_most_recent_question = df_submissions_form_most_recent[['site', question]]
@@ -97,10 +97,9 @@ def generate_answer_frame(form_id, question, df, df_sub_form_data):
 
 
 def site_report(project_id):
-    selected_metas = []
-    selected_forms = []
-    selected_forms_answer = []
-    selected_questions = []
+    selected_metas = ['Slip_Number', '3rd_Installment__CM_']
+    form_metrics = {'form_id': 73732, 'metrices': []}
+    form_information = {'form_id': 73732, 'question': 'pa_bookname', 'metrices': []}
     query = Site.objects.filter(project_id=project_id).values(
         'id', 'identifier', 'name', 'current_progress', 'all_ma_ans')
     df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress', 'all_ma_ans'])
@@ -120,24 +119,21 @@ def site_report(project_id):
                               columns=["pk", "finstance__site", "new_status", "old_status", "user", "finstance"])
     df_reviews.columns = ["pk", "site", "new_status", "old_status", "user", "finstance"]
 
-    df = generate_form_frame("site", df, df_submissions, df_reviews)
+    df = generate_form_metrices("_site", df, df_submissions, df_reviews)
 
     df_submissions_form = df_submissions.set_index('project_fxf')
 
     # form submission status, approved, rejected etc
-    for form_id in selected_forms:
-        df = generate_form_frame(form_id, df, df_submissions_form.loc[form_id], df_reviews)
+    df = generate_form_metrices(form_metrics['form_id'], df, df_submissions_form.loc[form_metrics['form_id']], df_reviews)
 
     query_submissions_form = FInstance.objects.filter(
-        project_fxf__in=selected_forms_answer).select_related('instance').values("pk", "site", 'project_fxf', "date")
+        project_fxf__in=form_information['form_id']).select_related(
+        'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
     df_submissions_form_answer = pd.DataFrame(list(query_submissions_form),
                                               columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
     df_submissions_form_answer = pd.concat([df_submissions_form_answer.drop('instance__json', axis=1),
                                   df_submissions_form_answer['instance__json'].apply(pd.Series)], axis=1)
-    df_submissions_form_answer.set_index("project_fxf")
 
     # form submission answer of a question
-    for form_id in selected_forms_answer:
-        df_answer = df_submissions_form_answer.loc[form_id]
-        for question in selected_questions:
-            df = generate_answer_frame(form_id, question, df, df_answer)
+    df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
+    return df
