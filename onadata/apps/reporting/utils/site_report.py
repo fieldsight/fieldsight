@@ -112,15 +112,15 @@ def generate_form_information(form_id, question, df, df_sub_form_data):
         form_id + question + 'dd').reset_index()
     df_question_distinct[form_id + question + "-distinct-sub"] = df_question_distinct[form_id + question + 'dd']
 
-    df.merge(df_submissions_form_most_recent_question, on="site", how="left")
-    df.merge(average_value, on="site", how="left")
-    df.merge(sum_value, on="site", how="left")
-    df.merge(max_value, on="site", how="left")
-    df.merge(min_value, on="site", how="left")
-    df.merge(count_value, on="site", how="left")
-    df.merge(count_value_distinct, on="site", how="left")
-    df.merge(common, on="site", how="left")
-    df.merge(df_question_distinct, on="site", how="left")
+    df = df.merge(df_submissions_form_most_recent_question, on="site", how="left")
+    df = df.merge(average_value, on="site", how="left")
+    df = df.merge(sum_value, on="site", how="left")
+    df = df.merge(max_value, on="site", how="left")
+    df = df.merge(min_value, on="site", how="left")
+    df = df.merge(count_value, on="site", how="left")
+    df = df.merge(count_value_distinct, on="site", how="left")
+    df = df.merge(common, on="site", how="left")
+    df = df.merge(df_question_distinct, on="site", how="left")
     return df
 
 
