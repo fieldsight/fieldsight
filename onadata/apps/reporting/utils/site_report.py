@@ -107,20 +107,20 @@ def generate_form_information(form_id, question, df, df_sub_form_data):
     min_value = df_sub_form_data.groupby('site')[question].min().to_frame(form_id + question + '-min').reset_index()
     count_value = df_sub_form_data.groupby('site')[question].size().to_frame(form_id + question + '-count').reset_index()
     count_value_distinct = df_sub_form_data.groupby('site')[question].nunique().to_frame(form_id + question + '-count-distinct').reset_index()
-    common = df_sub_form_data.groupby('site')[question].apply(pd.Series.mode).to_frame(form_id + question + "-common").reset_index().head()
+    common = df_sub_form_data.groupby('site')[question].apply(pd.Series.mode).to_frame(form_id + question + "-common").reset_index()
     df_question_distinct = df_sub_form_data.groupby(['site', question])['site', question].size().to_frame(
         form_id + question + 'dd').reset_index()
     df_question_distinct[form_id + question + "-distinct-sub"] = df_question_distinct[form_id + question + 'dd']
 
-    df.merge(df_submissions_form_most_recent_question, on="site", how="left")
-    df.merge(average_value, on="site", how="left")
-    df.merge(sum_value, on="site", how="left")
-    df.merge(max_value, on="site", how="left")
-    df.merge(min_value, on="site", how="left")
-    df.merge(count_value, on="site", how="left")
-    df.merge(count_value_distinct, on="site", how="left")
-    df.merge(common, on="site", how="left")
-    df.merge(df_question_distinct, on="site", how="left")
+    df = df.merge(df_submissions_form_most_recent_question, on="site", how="left")
+    df = df.merge(average_value, on="site", how="left")
+    df = df.merge(sum_value, on="site", how="left")
+    df = df.merge(max_value, on="site", how="left")
+    df = df.merge(min_value, on="site", how="left")
+    df = df.merge(count_value, on="site", how="left")
+    df = df.merge(count_value_distinct, on="site", how="left")
+    df = df.merge(common, on="site", how="left")
+    df = df.merge(df_question_distinct, on="site", how="left")
     return df
 
 
@@ -167,4 +167,5 @@ def site_report(project_id):
 
     # form submission answer of a question
     df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
+    df.replace("Nan", 0)
     return df
