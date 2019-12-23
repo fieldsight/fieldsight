@@ -171,13 +171,18 @@ class ProjectMetas(viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         return queryset.filter(pk=self.kwargs.get('pk'))
 
+
 class ProjectForms(viewsets.ModelViewSet):
 
     queryset = FieldSightXF.objects.filter(is_deleted=False, is_survey=False)
     serializer_class = ProjectFormsSerializer
 
     def filter_queryset(self, queryset):
-        return queryset.filter(project_id=self.kwargs.get('pk'))
+        id = self.request.query_params.get('id', None)
+        queryset.filter(project_id=self.kwargs.get('pk'))
+        if id:
+            queryset = queryset.filter(id=id)
+        return queryset
 
 
 class UserProjectlistMinimalViewset(viewsets.ModelViewSet):

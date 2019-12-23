@@ -46,9 +46,9 @@ class ReportingProjectFormData(APIView):
             schedules_queryset = Schedule.objects.select_related('project').prefetch_related('schedule_forms')\
                 .filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
                         schedule_forms__isnull=False, schedule_forms__xf__isnull=False).\
-                values('schedule_forms__xf__id', 'schedule_forms__xf__title')
+                values('schedule_forms__id', 'schedule_forms__xf__title')
 
-            schedules_data = [{'id': form['schedule_forms__xf__id'], 'title': form['schedule_forms__xf__title']}
+            schedules_data = [{'id': form['schedule_forms__id'], 'title': form['schedule_forms__xf__title']}
                               for form in schedules_queryset]
 
             return Response(status=status.HTTP_200_OK, data=schedules_data)
@@ -431,6 +431,7 @@ def metrics_data(request, pk):
                   {'code': 'staged_forms', 'label': 'Staged Forms'},
                   {'code': 'survey_forms', 'label': 'Survey Forms'},
                   ]
+
     return Response(status=status.HTTP_200_OK, data={'report_types': report_types,
                                                      'metrics': metrics, 'meta_attributes': meta_attributes,
                                                      'form_types': form_types})
