@@ -127,7 +127,7 @@ def generate_form_information(form_id, question, df, df_sub_form_data):
 def site_report(project_id):
     selected_metas = ['Slip_Number', '3rd_Installment__CM_']
     form_metrics = {'form_id': 73732, 'metrices': []}
-    form_information = {'form_id': 73732, 'question': 'pa_bookname', 'metrices': []}
+    form_information = {'form_id': 73732, 'question': 'status_cbi/va/member_16_59', 'metrices': []}
     query = Site.objects.filter(project_id=project_id).values(
         'id', 'identifier', 'name', 'current_progress', 'all_ma_ans')
     df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress', 'all_ma_ans'])
@@ -157,14 +157,14 @@ def site_report(project_id):
     # form submission status, approved, rejected etc
     df = generate_form_metrices(form_metrics['form_id'], df, form_submissions, df_reviews)
 
-    #query_submissions_form = FInstance.objects.filter(
-    #    project_fxf__in=form_information['form_id']).select_related(
-    #    'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
-    #df_submissions_form_answer = pd.DataFrame(list(query_submissions_form),
-    #                                          columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
-    #df_submissions_form_answer = pd.concat([df_submissions_form_answer.drop('instance__json', axis=1),
-    #                              df_submissions_form_answer['instance__json'].apply(pd.Series)], axis=1)
+    query_submissions_form = FInstance.objects.filter(
+       project_fxf__in=[form_information['form_id']]).select_related(
+       'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
+    df_submissions_form_answer = pd.DataFrame(list(query_submissions_form),
+                                             columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
+    df_submissions_form_answer = pd.concat([df_submissions_form_answer.drop('instance__json', axis=1),
+                                 df_submissions_form_answer['instance__json'].apply(pd.Series)], axis=1)
 
     # form submission answer of a question
-    #df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
+    df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
     return df
