@@ -114,8 +114,8 @@ def site_report(project_id):
     df_submissions = pd.DataFrame(
         list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date"])
     query_reviews = InstanceStatusChanged.objects.filter(
-        Q(instance__project_fxf__project=project_id) |
-        Q(instance__site_fxf__site__project=project_id)
+        Q(finstance__project_fxf__project=project_id) |
+        Q(finstance__site_fxf__site__project=project_id)
     ).values(
         "pk", "finstance__site", "new_status", "old_status", "user", "finstance")
     df_reviews = pd.DataFrame(list(query_reviews),
