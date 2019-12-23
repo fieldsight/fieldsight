@@ -107,7 +107,7 @@ def generate_form_information(form_id, question, df, df_sub_form_data):
     min_value = df_sub_form_data.groupby('site')[question].min().to_frame(form_id + question + '-min').reset_index()
     count_value = df_sub_form_data.groupby('site')[question].size().to_frame(form_id + question + '-count').reset_index()
     count_value_distinct = df_sub_form_data.groupby('site')[question].nunique().to_frame(form_id + question + '-count-distinct').reset_index()
-    common = df_sub_form_data.groupby('site')[question].apply(pd.Series.mode).to_frame(form_id + question + "-common").reset_index().head()
+    common = df_sub_form_data.groupby('site')[question].apply(pd.Series.mode).to_frame(form_id + question + "-common").reset_index()
     df_question_distinct = df_sub_form_data.groupby(['site', question])['site', question].size().to_frame(
         form_id + question + 'dd').reset_index()
     df_question_distinct[form_id + question + "-distinct-sub"] = df_question_distinct[form_id + question + 'dd']
