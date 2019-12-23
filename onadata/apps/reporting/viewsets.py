@@ -405,7 +405,7 @@ class PreviewStandardReports(APIView):
                                                              'rows_cols': rows_cols})
 
 
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated,])
 @api_view(['GET'])
 def metrics_data(request, pk):
     project = get_object_or_404(Project, id=pk)
