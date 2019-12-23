@@ -124,12 +124,10 @@ def site_report(project_id):
 
     df = generate_form_metrices("_site", df, df_submissions, df_reviews)
 
-
-    df_submissions_form = df_submissions.set_index('project_fxf')
-    form_submissions = df_submissions_form.loc[form_metrics['form_id']]
+    form_submissions = df_submissions[df_submissions.project_fxf == form_metrics['form_id']]
 
     # form submission status, approved, rejected etc
-    df = generate_form_metrices(form_metrics['form_id'], df, df_submissions_form, df_reviews)
+    df = generate_form_metrices(form_metrics['form_id'], df, form_submissions, df_reviews)
 
     #query_submissions_form = FInstance.objects.filter(
     #    project_fxf__in=form_information['form_id']).select_related(
