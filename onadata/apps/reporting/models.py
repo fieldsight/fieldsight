@@ -26,8 +26,7 @@ ROLE_MATRICS = [
 ]
 
 METRICES_DATA = [
-    {'code': 'num_sites', 'label': _('Number of Sites'), 'types': [1, 2, 3, 4, 5], 'children':
-        [{'code': 'test', 'label': _('Test Label')}, {'code': 'test2', 'label': _('Test Label2')}],
+    {'code': 'num_sites', 'label': _('Number of Sites'), 'types': [1, 2, 3, 4, 5], 'children': [],
      'category': 'default'},
     {'code': 'num_regions', 'label': _('Number of Regions'), 'types': [0, 2, 3, 4, 5], 'children': [],
      'category': 'default'},
@@ -92,8 +91,21 @@ METRICES_DATA = [
     {'code': 'users', 'label': _('Users'),
      'types': [0, 1, 2, 3, 5], 'children':
          [{'code': 'active_users', 'label': _('Number of Active Users'), 'children': [], },
-          {'code': 'users_by_role', 'label': _('Number of Users by Role'), 'children': ROLE_MATRICS},
-          {'code': 'active_users_by_role', 'label': _('Number of Active Users by Role'), 'children': ROLE_MATRICS, },
+          {'code': 'no_of_organization_admin', 'label': _('Number of Organization Admin'), 'children': []},
+          {'code': 'no_of_project_manager', 'label': _('Number of Project Manager'), 'children': []},
+          {'code': 'no_of_project_donor', 'label': _('Number of Project Donor'), 'children': []},
+          {'code': 'no_of_region_supervisor', 'label': _('Number of Region Supervisor'), 'children': []},
+          {'code': 'no_of_region_reviewer', 'label': _('Number of Region Reviewer'), 'children': []},
+          {'code': 'no_of_site_supervisor', 'label': _('Number of Site Supervisor'), 'children': []},
+          {'code': 'no_of_reviewer', 'label': _('Number of Reviewer'), 'children': []},
+          {'code': 'no_of_active_organization_admin', 'label': _('Number of Active Organization Admin'), 'children': []},
+          {'code': 'no_of_active_project_manager', 'label': _('Number of Active Project Manager'), 'children': []},
+          {'code': 'no_of_active_project_donor', 'label': _('Number of Active Project Donor'), 'children': []},
+          {'code': 'no_of_active_region_supervisor', 'label': _('Number of Active Region Supervisor'), 'children': []},
+          {'code': 'no_of_active_region_reviewer', 'label': _('Number of Active Region Reviewer'), 'children': []},
+          {'code': 'no_of_active_site_supervisor', 'label': _('Number of Active Site Supervisor'), 'children': []},
+          {'code': 'no_of_active_reviewer', 'label': _('Number of Active Reviewer'), 'children': []},
+
           ], 'category': 'default'},
 
     {'code': 'form', 'label': _('Individual Form Metrics'),
