@@ -17,7 +17,7 @@ from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
     exportProjectSiteResponses, form_status_map
 from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
-from .permissions import ReportingProjectFormsPermissions
+from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
     FORM_INFORMATION_VALUES_METRICS_DATA
 from ..eventlog.models import CeleryTaskProgress
@@ -435,3 +435,25 @@ def metrics_data(request, pk):
     return Response(status=status.HTTP_200_OK, data={'report_types': report_types,
                                                      'metrics': metrics, 'meta_attributes': meta_attributes,
                                                      'form_types': form_types})
+
+
+class ReportExportView(APIView):
+    permission_classes = [IsAuthenticated, ReportingSettingsPermissions]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def post(self, request, pk, *args,  **kwargs):
+
+        report_obj = ReportSettings.objects.get(id=pk)
+
+        export_type = self.request.query_params.get('export_type')
+
+        if export_type == 'excel':
+            task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=26, content_object=report_obj)
+            if task_obj:
+
+                return Response(status=status.HTTP_201_CREATED, data={'detail': 'The excel report is being generated. '
+                                                                                'You will be notified after the report '
+                                                                                'is generated.'})
+
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'export_type params is required.'})
