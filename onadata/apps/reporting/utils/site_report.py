@@ -113,7 +113,10 @@ def site_report(project_id):
     ).values("pk", "site", "project_fxf", "form_status", "submitted_by", "date")
     df_submissions = pd.DataFrame(
         list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date"])
-    query_reviews = InstanceStatusChanged.objects.all().values(
+    query_reviews = InstanceStatusChanged.objects.filter(
+        Q(instance__project_fxf__project=project_id) |
+        Q(instance__site_fxf__site__project=project_id)
+    ).values(
         "pk", "finstance__site", "new_status", "old_status", "user", "finstance")
     df_reviews = pd.DataFrame(list(query_reviews),
                               columns=["pk", "finstance__site", "new_status", "old_status", "user", "finstance"])
@@ -121,10 +124,12 @@ def site_report(project_id):
 
     df = generate_form_metrices("_site", df, df_submissions, df_reviews)
 
+
     df_submissions_form = df_submissions.set_index('project_fxf')
+    form_submissions = df_submissions_form.loc[form_metrics['form_id']]
 
     # form submission status, approved, rejected etc
-    df = generate_form_metrices(form_metrics['form_id'], df, df_submissions_form.loc[form_metrics['form_id']], df_reviews)
+    df = generate_form_metrices(form_metrics['form_id'], df, df_submissions_form, df_reviews)
 
     #query_submissions_form = FInstance.objects.filter(
     #    project_fxf__in=form_information['form_id']).select_related(
