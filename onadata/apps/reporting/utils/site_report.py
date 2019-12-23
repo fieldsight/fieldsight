@@ -167,4 +167,5 @@ def site_report(project_id):
 
     # form submission answer of a question
     df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
+    df.replace("Nan", 0)
     return df
