@@ -1,6 +1,7 @@
 import ast, gc
 
 from django.conf import settings
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.db.models import Case, When, Sum, IntegerField
 
@@ -19,7 +20,7 @@ from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage
 from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
 from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
-    FORM_INFORMATION_VALUES_METRICS_DATA
+    FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA
 from ..eventlog.models import CeleryTaskProgress
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
@@ -82,6 +83,7 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         type = self.request.query_params.get('type')
+        id = self.request.query_params.get('id')
         project_id = self.kwargs.get('pk')
 
         if type == 'custom':
@@ -91,8 +93,15 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
             queryset = self.queryset.filter(project_id=project_id, shared_with=self.request.user,
                                             add_to_templates=False)
 
-        else:
+        elif type == "my_reports":
             queryset = self.queryset.filter(project_id=project_id, add_to_templates=False, owner=self.request.user)
+
+        elif id is not None:
+            queryset = self.queryset.filter(id=id)
+
+        else:
+            queryset = self.queryset
+
         return queryset
 
     def list(self, request, *args, **kwargs):
@@ -134,6 +143,14 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save(owner=self.request.user, project_id=self.kwargs.get('pk'))
+
+    def update(self, request, pk=None):
+        try:
+            self.get_object()
+        except Http404:
+            return Response(
+                {'detail': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+        return super(ReportSettingsViewSet, self).update(request, pk)
 
 
 class GenerateStandardReports(APIView):
@@ -424,6 +441,8 @@ def metrics_data(request, pk):
 
     metrics = []
     metrics.extend(METRICES_DATA)
+    metrics.extend(USERS_METRICS_DATA)
+    metrics.extend(INDIVIDUAL_FORM_METRICS_DATA)
     metrics.extend(SITE_INFORMATION_VALUES_METRICS_DATA)
     metrics.extend(FORM_INFORMATION_VALUES_METRICS_DATA)
     form_types = [{'code': 'general_forms', 'label': 'General Forms'},
