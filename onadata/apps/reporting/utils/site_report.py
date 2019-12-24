@@ -3,6 +3,7 @@ from django.db.models import Q
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
+from onadata.apps.userrole.models import UserRole
 
 
 def generate_form_metrices(form_id, df, df_submissions, df_reviews):
@@ -167,5 +168,20 @@ def site_report(project_id):
 
     # form submission answer of a question
     df = generate_form_information(form_information['form_id'], form_information['question'], df, df_submissions_form_answer)
+
+    query_role = UserRole.objects.filter(project=137, site__isnull=False).values("site", "group", "ended_at")
+    df_role = pd.DataFrame(list(query_role), columns=["site", "group", "ended_at"])
+    active_df = df_role[~df_role.ended_at.isnull()]
+    active_users = active_df.groupby('site').size().to_frame("active_users").reset_index()
+    users_site_sup = df_role[df_role.group == 4].groupby('site').size().to_frame("users_supervisor").reset_index()
+    users_site_rev = df_role[df_role.group == 3].groupby('site').size().to_frame("users_rev").reset_index()
+    active_users_site_sup = active_df[active_df.group == 4].groupby('site').size().to_frame("active_users_supervisor").reset_index()
+    active_users_site_rev = active_df[active_df.group == 3].groupby('site').size().to_frame("active_users_rev").reset_index()
+    df = df.merge(active_users, on="site", how="left")
+    df = df.merge(users_site_sup, on="site", how="left")
+    df = df.merge(users_site_rev, on="site", how="left")
+    df = df.merge(active_users_site_sup, on="site", how="left")
+    df = df.merge(active_users_site_rev, on="site", how="left")
+
     df.replace("Nan", 0)
     return df
