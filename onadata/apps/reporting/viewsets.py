@@ -19,7 +19,7 @@ from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage
 from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
 from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
-    FORM_INFORMATION_VALUES_METRICS_DATA
+    FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA
 from ..eventlog.models import CeleryTaskProgress
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
@@ -424,6 +424,8 @@ def metrics_data(request, pk):
 
     metrics = []
     metrics.extend(METRICES_DATA)
+    metrics.extend(USERS_METRICS_DATA)
+    metrics.extend(INDIVIDUAL_FORM_METRICS_DATA)
     metrics.extend(SITE_INFORMATION_VALUES_METRICS_DATA)
     metrics.extend(FORM_INFORMATION_VALUES_METRICS_DATA)
     form_types = [{'code': 'general_forms', 'label': 'General Forms'},
