@@ -183,5 +183,5 @@ def site_report(project_id):
     df = df.merge(active_users_site_sup, on="site", how="left")
     df = df.merge(active_users_site_rev, on="site", how="left")
 
-    df.replace("Nan", 0)
+    df = df.replace("Nan", 0)
     return df
