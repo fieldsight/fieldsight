@@ -427,8 +427,30 @@ class PreviewStandardReports(APIView):
 def metrics_data(request, pk):
     project = get_object_or_404(Project, id=pk)
     meta_attributes = project.site_meta_attributes
+    form_question_answer_status_form_metas = []
     report_types = [{'id': rep_type[0], 'name': rep_type[1]} for rep_type in REPORT_TYPES]
+
     for meta in meta_attributes:
+
+        if meta['question_type'] == 'Form' or meta['question_type'] == 'FormQuestionAnswerStatus':
+            form_question_answer_status_form_metas.append(meta)
+
+        else:
+            meta['code'] = meta.pop('question_name')
+            meta['label'] = meta.pop('question_text')
+            meta['type'] = meta.pop('question_type')
+
+            if 'question_placeholder' in meta:
+                del meta['question_placeholder']
+
+            if 'question_help' in meta:
+                del meta['question_help']
+
+    for meta in form_question_answer_status_form_metas:
+        if meta['question']['type'] == 'integer':
+            meta.update({'input_type': 'Number'})
+        else:
+            meta.update({'input_type': 'Text'})
         meta['code'] = meta.pop('question_name')
         meta['label'] = meta.pop('question_text')
         meta['type'] = meta.pop('question_type')
