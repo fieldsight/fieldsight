@@ -1,6 +1,7 @@
 import ast, gc
 
 from django.conf import settings
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.db.models import Case, When, Sum, IntegerField
 
@@ -82,6 +83,7 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         type = self.request.query_params.get('type')
+        id = self.request.query_params.get('id')
         project_id = self.kwargs.get('pk')
 
         if type == 'custom':
@@ -91,8 +93,15 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
             queryset = self.queryset.filter(project_id=project_id, shared_with=self.request.user,
                                             add_to_templates=False)
 
-        else:
+        elif type == "my_reports":
             queryset = self.queryset.filter(project_id=project_id, add_to_templates=False, owner=self.request.user)
+
+        elif id is not None:
+            queryset = self.queryset.filter(id=id)
+
+        else:
+            queryset = self.queryset
+
         return queryset
 
     def list(self, request, *args, **kwargs):
@@ -134,6 +143,14 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save(owner=self.request.user, project_id=self.kwargs.get('pk'))
+
+    def update(self, request, pk=None):
+        try:
+            self.get_object()
+        except Http404:
+            return Response(
+                {'detail': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+        return super(ReportSettingsViewSet, self).update(request, pk)
 
 
 class GenerateStandardReports(APIView):
