@@ -99,6 +99,7 @@ def user_report(project_id):
     form_metrics = {'form_id': 73732, 'metrices': []}
     query = User.objects.all().values('pk', 'username', 'email')
     df = pd.DataFrame(list(query), columns=['pk', 'username', 'email'])
+    df.columns = ['user', 'username', 'email']
     query_role = UserRole.objects.filter(
         ended_at__isnull=True, project__isnull=False).values("user", "site", "project", "region")
     df_role = pd.DataFrame(list(query_role), columns=["user", "site", "project", "region"])
