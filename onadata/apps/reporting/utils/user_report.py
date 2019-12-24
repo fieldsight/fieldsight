@@ -138,8 +138,8 @@ def user_report(project_id):
 
     df_submissions_with_progress = df_submissions.merge(df_site, on="site", how="left")
     progress_average = df_submissions_with_progress.groupby('user').progress.mean().to_frame('progress_average')
-    progress_max = df_submissions_with_progress.groupby('max').progress.mean().to_frame('progress_max')
-    progress_min = df_submissions_with_progress.groupby('min').progress.mean().to_frame('progress_min')
+    progress_max = df_submissions_with_progress.groupby('user').progress.max().to_frame('progress_max')
+    progress_min = df_submissions_with_progress.groupby('user').progress.min().to_frame('progress_min')
     df = df.merge(progress_average, on="user", how="left")
     df = df.merge(progress_max, on="user", how="left")
     df = df.merge(progress_min, on="user", how="left")
