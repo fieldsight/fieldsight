@@ -139,9 +139,9 @@ def site_report(project_id):
     query_submissions = FInstance.objects.filter(
         Q(project_fxf__project=project_id) |
         Q(site_fxf__site__project=project_id)
-    ).values("pk", "site", "project_fxf", "form_status", "submitted_by", "date")
+    ).values("pk", "site", "project_fxf", "form_status", "date")
     df_submissions = pd.DataFrame(
-        list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date"])
+        list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "date"])
     query_reviews = InstanceStatusChanged.objects.filter(
         Q(finstance__project_fxf__project=project_id) |
         Q(finstance__site_fxf__site__project=project_id)
@@ -183,5 +183,5 @@ def site_report(project_id):
     df = df.merge(active_users_site_sup, on="site", how="left")
     df = df.merge(active_users_site_rev, on="site", how="left")
 
-    df.replace("Nan", 0)
+    df = df.replace("Nan", 0)
     return df
