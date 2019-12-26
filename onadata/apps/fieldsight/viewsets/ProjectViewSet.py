@@ -183,7 +183,7 @@ class ProjectForms(viewsets.ModelViewSet):
             return []
         form_id = self.request.query_params.get('id', None)
         queryset = queryset.filter(project_id=self.kwargs.get('pk'))
-        if id:
+        if form_id:
             queryset = queryset.filter(pk=form_id)
         return queryset.select_related("xf")
 
