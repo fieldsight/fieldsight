@@ -467,10 +467,10 @@ def metrics_data(request, pk):
     metrics.extend(INDIVIDUAL_FORM_METRICS_DATA)
     metrics.extend(SITE_INFORMATION_VALUES_METRICS_DATA)
     metrics.extend(FORM_INFORMATION_VALUES_METRICS_DATA)
-    form_types = [{'code': 'general_forms', 'label': 'General Forms'},
-                  {'code': 'scheduled_forms', 'label': 'Scheduled Forms'},
-                  {'code': 'staged_forms', 'label': 'Staged Forms'},
-                  {'code': 'survey_forms', 'label': 'Survey Forms'},
+    form_types = [{'code': 'general', 'label': 'General Forms'},
+                  {'code': 'scheduled', 'label': 'Scheduled Forms'},
+                  {'code': 'stage', 'label': 'Staged Forms'},
+                  {'code': 'survey', 'label': 'Survey Forms'},
                   ]
 
     return Response(status=status.HTTP_200_OK, data={'report_types': report_types,
