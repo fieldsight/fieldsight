@@ -218,10 +218,11 @@ def form_submission(form_id):
     childrens = json.loads(xform.json)['children']
     select_multiples = [c['name'] for c in childrens if c['type'] == 'select all that apply']
     select_multiples_slash = [s+"/" for s in select_multiples]
+    dict_keys = {"1.0": True, "0.0": False}
     for col in df.columns:
         for select_m_slash in select_multiples_slash:
             if select_m_slash in col:
-                df[col] = (df[col] == '1.0').astype(bool)
+                df[col] = df.replace({col: dict_keys})
 
     df = df.replace('nan', '')
 
