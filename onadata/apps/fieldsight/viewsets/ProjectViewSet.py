@@ -4,6 +4,7 @@ from rest_framework import viewsets
 from channels import Group as ChannelGroup
 
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import BasePermission
 
@@ -178,11 +179,13 @@ class ProjectForms(viewsets.ModelViewSet):
     serializer_class = ProjectFormsSerializer
 
     def filter_queryset(self, queryset):
-        id = self.request.query_params.get('id', None)
-        queryset.filter(project_id=self.kwargs.get('pk'))
+        if not self.kwargs.get('pk'):
+            return []
+        form_id = self.request.query_params.get('id', None)
+        queryset = queryset.filter(project_id=self.kwargs.get('pk'))
         if id:
-            queryset = queryset.filter(id=id)
-        return queryset
+            queryset = queryset.filter(pk=form_id)
+        return queryset.select_related("xf")
 
 
 class UserProjectlistMinimalViewset(viewsets.ModelViewSet):
