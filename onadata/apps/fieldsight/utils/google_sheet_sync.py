@@ -221,7 +221,7 @@ def form_submission(form_id):
     for col in df.columns:
         for select_m_slash in select_multiples_slash:
             if select_m_slash in col:
-                df[col] = (df[col] == 1).astype(bool)
+                df[col] = (df[col] == '1').astype(bool)
 
     df = df.replace('nan', '')
 
