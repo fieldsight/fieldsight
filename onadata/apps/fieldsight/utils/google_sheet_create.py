@@ -135,7 +135,7 @@ def site_details_generator(project, sites, ws):
                           {'id': 'root_site_identifier', 'name': 'root_site_identifier'}, ]
 
         if project.cluster_sites:
-            header_columns += [{'id': 'region_identifier', 'name': 'region_id'}, ]
+            header_columns += [{'id': 'region_identifier', 'name': 'region_identifier'}, ]
 
         meta_ques = project.site_meta_attributes
         for question in meta_ques:
