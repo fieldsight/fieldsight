@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 
 import datetime
@@ -211,6 +213,16 @@ def form_submission(form_id):
 
     df = pd.read_excel(temp_file)
     df = df.applymap(unicode)
+
+    # select multiples as Bool
+    childrens = json.loads(xform.json)['children']
+    select_multiples = [c['name'] for c in childrens if c['type'] == 'select all that apply']
+    select_multiples_slash = [s+"/" for s in select_multiples]
+    for col in df.columns:
+        for select_m_slash in select_multiples_slash:
+            if select_m_slash in col:
+                df[col] = df[col].astype(bool)
+
     df = df.replace('nan', '')
 
     try:
