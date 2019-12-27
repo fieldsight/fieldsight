@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -22,10 +23,11 @@ class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
 
-        project_id = self.request.query_params.get('project', None)
+        id = self.request.query_params.get('project', None)
         search_param = self.request.query_params.get('q', None)
         unassigned = self.request.query_params.get('region', None)
 
+        project_id = get_object_or_404(Project, id=id)
         if search_param and project_id and unassigned:
             return self.queryset.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
                                         project_id=project_id, is_survey=False, is_active=True, region=None)

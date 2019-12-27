@@ -591,7 +591,7 @@ class ProjectDefineSiteMeta(APIView):
 
     def get(self, request, pk, format=None):
 
-        project_obj = Project.objects.get(pk=pk)
+        project_obj = get_object_or_404(Project, pk=pk)
         level = "1"
         project_data = Project.objects.filter(pk=pk).values('id', 'name', 'organization_id', 'organization__name', )
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project_obj).exists()
@@ -984,12 +984,12 @@ def forms_breadcrumbs(request):
     type = request.GET.get('type')
 
     if project and type == 'create':
-        project = Project.objects.get(id=project)
+        project = get_object_or_404(Project, id=project)
 
         breadcrumbs = {'current_page': 'Create Site', 'name': project.name, 'name_url': project.get_absolute_url()}
 
     elif site and type == 'edit':
-        site = Site.objects.get(id=site)
+        site = get_object_or_404(Site, id=site)
         breadcrumbs = {'current_page': 'Edit', 'name': site.name, 'name_url': site.get_absolute_url()}
 
     else:

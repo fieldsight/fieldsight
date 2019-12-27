@@ -3456,7 +3456,7 @@ class SiteMetaForm(ReviewerRoleMixin, TemplateView):
 
 class MultiSiteAssignRegionView(ProjectRoleMixin, TemplateView):
     def get(self, request, pk):
-        project = Project.objects.get(pk=pk)
+        project = get_object_or_404(Project, id=pk)
         level = "1"
 
         if project.cluster_sites is False:
