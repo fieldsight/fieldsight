@@ -1,11 +1,16 @@
+from django.db.models import Count
 from django.utils import timezone
 from rest_framework import viewsets, status
-from onadata.apps.fieldsight.models import SuperOrganization
+from rest_framework.authentication import BasicAuthentication
+from rest_framework.views import APIView
+
+from onadata.apps.fieldsight.models import SuperOrganization, Organization
 from rest_framework.permissions import IsAuthenticated
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from django.contrib.gis.geos import Point
 from rest_framework.response import Response
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer
+from onadata.apps.fv3.permissions.super_admin import SuperAdminPermission
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -44,3 +49,44 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save()
+
+
+class SuperOrganizationListView(APIView):
+    """
+    A simple view for list of super organizations.
+    """
+    permission_classes = [IsAuthenticated, ]
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_superuser:
+            super_organizations = SuperOrganization.objects.all().annotate(teams=Count('organizations')).\
+                values('id', 'name', 'teams')
+
+            return Response(status=status.HTTP_200_OK, data=super_organizations)
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN, data={'detail': 'You do not have permission to '
+                                                                              'perform this action.'})
+
+
+class ManageTeamsView(APIView):
+
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, SuperAdminPermission]
+
+    def get(self, request, pk, *args,  **kwargs):
+        queryset = Organization.objects.all()
+        teams = queryset.values('id', 'name')
+        selected_teams = queryset.filter(parent_id=pk).values('id', 'name')
+
+        return Response(status=status.HTTP_200_OK, data={'teams': teams, 'selected_teams': selected_teams})
+
+    def post(self, request, pk, format=None):
+        team_ids = request.data.get('team_ids', None)
+
+        if team_ids:
+            SuperOrganizationListView.objects.filter(id__in=team_ids).update(parent_id=pk)
+
+            return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
+
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'team_ids field is required.'})

@@ -7,7 +7,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         group_list = ['Organization Admin', 'Project Manager', 'Reviewer', 'Site Supervisor', 'Super Admin',
-                      'Unassigned', 'Project Donor', 'Staff Project Manager', 'Region Supervisor', 'Region Reviewer']
+                      'Unassigned', 'Project Donor', 'Staff Project Manager', 'Region Supervisor', 'Region Reviewer',
+                      'Super Organization Admin']
         for group in group_list:
             new_group, created = Group.objects.get_or_create(name=group)
             self.stdout.write('Successfully created group .. "%s"' % group)
