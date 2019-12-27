@@ -8,6 +8,7 @@ from onadata.apps.fv3.urls.site_dashboard import site_dashboard_urlpatterns
 from onadata.apps.fv3.urls.manage_forms import manage_forms_urlpatterns
 from onadata.apps.fv3.urls.project_dashboard import project_dashboard_urlpatterns
 from onadata.apps.fv3.urls.team_dashboard import team_dashboard_urlpatterns
+from onadata.apps.fv3.urls.super_organization import super_organization_urlpatterns
 from onadata.apps.fv3.urls.team_settings import team_settings_urlpatterns
 from onadata.apps.fv3.urls.view_by_forms_status import view_by_forms_status_urlpatterns
 from onadata.apps.fv3.urls.reports import reports_urlpatterns
@@ -29,14 +30,13 @@ from onadata.apps.fv3.viewsets.SubmissionViewSet import \
     SubmissionViewSet, MySubmissions, MySubmissionsV2
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
     ProjectSitesListViewSet, SubSitesListViewSet
-
 from onadata.apps.fv3.views import RegionalSites, sub_regions, users, project_full_map
-from onadata.apps.fv3.views import TeamsViewset, TeamFormViewset
+from onadata.apps.fv3.views import TeamsViewset, TeamFormViewset, OrganizationViewSet
+
 
 router = routers.DefaultRouter()
 
 router.register(r'project-sites', ProjectSitesViewset, base_name='project-sites')
-
 
 urlpatterns = [
 
@@ -94,6 +94,11 @@ urlpatterns = [
         name='project_sites_vt'),
 
     url(r'^api/site-forms-breadcrumbs/$', forms_breadcrumbs, name='forms_breadcrumbs'),
+
+    url(r'^api/super-organization-form/$', OrganizationViewSet.as_view({'get' : 'list', 'post': 'create'}),
+        name='super_organization_form'),
+    url(r'^api/super-organization-lists/(?P<pk>\d+)/$', OrganizationViewSet.as_view({'get' : 'retrieve'}),
+        name='super_organization_lists'),
 ]
 
 urlpatterns += progress_urlpatterns
@@ -106,3 +111,4 @@ urlpatterns += team_settings_urlpatterns
 urlpatterns += view_by_forms_status_urlpatterns
 urlpatterns += map_urlpatterns
 urlpatterns += reports_urlpatterns
+urlpatterns += super_organization_urlpatterns
