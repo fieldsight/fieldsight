@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.db import connection
 from django.contrib.auth.models import User, Group
+from django.utils import timezone
 
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
@@ -22,7 +23,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from django.contrib.gis.geos import Point
 from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels, \
-    ProjectMetaAttrHistory, Organization
+    ProjectMetaAttrHistory, Organization, SuperOrganization
 from onadata.apps.fsforms.models import FInstance, ProgressSettings, Stage
 from onadata.apps.fsforms.tasks import clone_form
 
@@ -46,7 +47,7 @@ from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
     check_site_permission, SuperUserPermissions, TeamCreationPermission
-from .serializer import TeamSerializer
+from .serializer import TeamSerializer, SuperOrganizationSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
@@ -926,6 +927,35 @@ class TeamFormViewset(viewsets.ModelViewSet):
                 UserRole.objects.get_or_create(user=user, group=group, organization=self.object, project_id=project.id,
                                                site_id=site.id)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        return serializer.save()
+
+
+class OrganizationViewSet(viewsets.ModelViewSet):
+    queryset = SuperOrganization.objects.all()
+    serializer_class = SuperOrganizationSerializer
+    authentication_classes = [CsrfExemptSessionAuthentication, ]
+    permission_classes = [IsAuthenticated, ]
+
+    def create(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=False)
+            self.object = self.perform_create(serializer)
+            self.object.owner = self.request.user
+            self.object.date_created = timezone.now()
+            self.object.save()
+            longitude = request.data.get('longitude', None)
+            latitude = request.data.get('latitude', None)
+            if latitude and longitude is not None:
+                p = Point(round(float(longitude), 6), round(float(latitude), 6),
+                          srid=4326)
+                self.object.location = p
+                self.object.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"test", str(e)})
 
     def perform_create(self, serializer):
         return serializer.save()
