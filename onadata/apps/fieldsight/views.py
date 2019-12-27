@@ -3502,7 +3502,7 @@ class ExcelBulkSiteSample(ProjectRoleMixin, View):
 
             columns = ['identifier', 'name', 'type', 'phone', 'address', 'public_desc', 'additional_desc', 'latitude', 'longitude', 'root_site_identifier']
             if project.cluster_sites:
-                columns += ['region_id',]
+                columns += ['region_identifier',]
             meta_ques = project.site_meta_attributes
             for question in meta_ques:
                 columns += [question['question_name']]
