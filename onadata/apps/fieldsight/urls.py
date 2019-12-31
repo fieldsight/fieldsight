@@ -66,10 +66,9 @@ from .views import (
     SiteBulkEditView, site_refrenced_metas, UnassignUserRegionAndSites, MainRegionsAndSitesAPI, redirectToSite,
     municipality_data, FormResponseSite, DonorRegionalSitelist, SubRegionAndSitesAPI, SiteSearchLiteView,
     EditSitesTypeView, DeleteSitesTypeView, ProjectRegionSitesView, ProjectGeoLayerView, ManageProjectSites,
-    ApplicationView,
-    ProjectTermsAndLabelView, project_terms_label_create, ProjectSyncScheduleUpdateView, ProjectTermsLabelUpdate,
-    SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView,
-    SubSiteCreateView, GenerateSiteReport, mvt_tiles, vect_map, attachment_url)
+    ApplicationView, ProjectTermsAndLabelView, project_terms_label_create, ProjectSyncScheduleUpdateView,
+    ProjectTermsLabelUpdate, SyncScheduleCreateView, SyncScheduleUpdateView, SyncScheduleDeleteView, SubSiteCreateView,
+    GenerateSiteReport, mvt_tiles, vect_map, attachment_url, ManagePeopleSuperOrganizationView)
 
 from onadata.apps.fieldsight.viewsets.SiteViewSet import ProjectSiteViewSet
 
@@ -177,10 +176,14 @@ urlpatterns = [
 
     url(r'^manage/people/site/(?P<pk>\d+)/$', ManagePeopleSiteView.as_view(), name='manage-people-site'),
     url(r'^manage/people/project/(?P<pk>\d+)/$', ManagePeopleProjectView.as_view(), name='manage-people-project'),
-    url(r'^manage/people/organization/(?P<pk>\d+)/$', ManagePeopleOrganizationView.as_view(), name='manage-people-organization'),
+    url(r'^manage/people/organization/(?P<pk>\d+)/$', ManagePeopleOrganizationView.as_view(),
+        name='manage-people-organization'),
+    url(r'^manage/people/super-organization/(?P<pk>\d+)/$', ManagePeopleSuperOrganizationView.as_view(),
+        name='manage_people_super_organization'),
 
     url(r'^multi-user-assign-site/(?P<pk>\d+)/$', MultiUserAssignSiteView.as_view(), name='multi_user_site_assign'),
-    url(r'^multi-user-assign-project/(?P<pk>\d+)/$', MultiUserAssignProjectView.as_view(), name='multi_user_project_assign'),
+    url(r'^multi-user-assign-project/(?P<pk>\d+)/$', MultiUserAssignProjectView.as_view(),
+        name='multi_user_project_assign'),
 
     url(r'^accounts/create/$', CreateUserView.as_view(form_class=RegistrationForm), name='user-create'),
     url(r'^userlist/$', UserListView.as_view(), name='user-list'),

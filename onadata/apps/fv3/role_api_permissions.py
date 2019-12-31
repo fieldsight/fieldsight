@@ -786,3 +786,29 @@ def check_del_site_perm(request, pk):
 
             if user_role_as_region_supervisor:
                 return True
+
+
+class SupervisorPermission(permissions.BasePermission):
+    """
+    permissions to allow only for supervisor.
+    """
+
+    def has_permission(self, request, view):
+
+        project_id = view.kwargs.get('pk')
+        try:
+            project = Project.objects.get(id=project_id)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+
+        if project is not None:
+            user = request.user
+            user_roles_exists = user.user_roles.filter(group__name__in=["Site Supervisor", "Region Supervisor"],
+                                                          project=project, ended_at=None).distinct('project_id').\
+                values_list('project_id', flat=True).exists()
+
+            if user_roles_exists:
+                return True
+            else:
+                return False
+        return False

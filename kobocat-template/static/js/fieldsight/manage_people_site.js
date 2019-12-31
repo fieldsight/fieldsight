@@ -125,7 +125,7 @@ var Role = function (data){
   self.site = ko.observable();
   self.project = ko.observable();
   self.organization = ko.observable();
-
+  self.super_organization = ko.observable();
 
   for (var i in data){
     if(i == "user"){
@@ -959,6 +959,289 @@ self.doAssignToEntireProject = function(){
 
 }
 
+var SuperOrgVM = function(level, pk){
+  var self=this;
+  self.group = ko.observable("Super Organization Admin");
+  self.new_role = ko.observable();
+  self.new_invite = ko.observable();
+  self.admins = ko.observableArray();
+  self.allAdmins = ko.observableArray();
+  self.projects = ko.observableArray();
+  self.project = ko.observableArray();
+  self.allprojects = ko.observableArray();
+  self.search_key = ko.observable();
+  self.allprojectid = ko.observableArray();
+  self.allprojectid([]);
+  self.all_selected_projects = ko.observableArray();
+  self.all_selected_projects([]);
+  self.available_admins = ko.observableArray();
+  self.add = function(){
+    vm.addRole(self.group());
+  };
+
+
+
+  self.loadAdmins = function(){
+    App.showProcessing();
+        $.ajax({
+            url: '/userrole/api/people/'+ String(level) + '/' + String(pk),
+            method: 'GET',
+            dataType: 'json',
+            // data: post_data,
+            // async: true,
+            success: function (response) {
+                App.hideProcessing();
+               var mappedData = ko.utils.arrayMap(response, function(item) {
+                        return new Role(item);
+                    });
+                self.allAdmins(mappedData);
+
+                self.admins(mappedData);
+
+            },
+            error: function (errorThrown) {
+                App.hideProcessing();
+                console.log(errorThrown);
+            }
+        });
+  };
+
+
+
+
+
+
+
+    self.loadAdmins();
+
+
+    self.loadAllProjects = function(){
+    App.showProcessing();
+        $.ajax({
+            url: proj_site_url,
+            method: 'GET',
+            dataType: 'json',
+            // data: post_data,
+            // async: true,
+            success: function (response) {
+                App.hideProcessing();
+               var mappedData = ko.utils.arrayMap(response, function(item) {
+
+                        project = new Project(item);
+                        self.allprojectid.push(project);
+                        console.log(project.id());
+                        return project;
+
+
+                    });
+
+                self.projects(mappedData);
+                self.allprojects(mappedData);
+
+            },
+            error: function (errorThrown) {
+                App.hideProcessing();
+                console.log(errorThrown);
+            }
+        });
+  };
+
+  self.setSelected = function(project){
+   if (self.all_selected_projects.indexOf(project) < 0) {
+    self.all_selected_projects.push(project);
+
+  }else{
+    self.all_selected_projects.remove(project);
+
+  }
+
+        return true;
+  };
+
+  self.setAllAssignAsSelected = function(project){
+
+
+   self.all_selected_projects([]);
+
+   ko.utils.arrayForEach(self.projects(), function(project) {
+
+   project.selected(true);
+   // console.log(project.selected());
+
+
+    });
+   self.all_selected_projects(self.allprojects().slice(0));
+
+  };
+
+  self.setAllUnSelected = function(project){
+   // console.log(self.alluserid());
+   ko.utils.arrayForEach(self.projects(), function(project) {
+
+   project.selected(false);
+   // console.log(project.selected());
+   // console.log(all_selected_users());
+    });
+    self.all_selected_projects([]);
+
+  };
+
+  self.search_key.subscribe(function (newValue) {
+
+    if (!newValue) {
+        self.projects(self.allprojects());
+    } else {
+        filter_data = ko.utils.arrayFilter(self.allprojects(), function(item) {
+            console.log(item.name());
+            return ko.utils.stringStartsWith(item.name().toLowerCase(), newValue.toLowerCase());
+        });
+        self.projects(filter_data);
+    }
+    });
+
+
+    var inviteurl = '/fieldsight/sendmultiusermultilevelinvite/';
+
+
+
+    var invitepssuccess =  function (response) {
+                App.hideProcessing();
+
+                App.notifyUser(
+                        'User Invited Sucess',
+                        'success'
+                    );
+
+            };
+
+    var invitepsfailure =  function (errorThrown) {
+      var err_message = errorThrown.responseJSON[0];
+                App.hideProcessing();
+                App.notifyUser(
+                        err_message,
+                        'error'
+                    );
+
+            };
+
+
+
+
+function validateEmail(email) {
+  var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(email);
+}
+
+function validateemail(email) {
+  if (validateEmail(email)) {
+        return {
+        multiemailstatus: true,
+        email: email
+        };
+
+  }
+        return {
+            multiemailstatus: false,
+            email: email
+            };
+
+
+}
+
+
+function multiemailvalidate(entry) {
+
+    email_res = validateemail(entry);
+
+    if(email_res.multiemailstatus == false){
+      multiemailstatus=false;
+
+
+      }
+    }
+
+
+  self.inviteforemails = (function (newValue) {
+    App.showProcessing();
+
+    var emails = emails2;
+    console.log(emails);
+    if (!emails[0]) {
+        App.hideProcessing();
+        alert("Please insert an email to invite.");
+        return false;
+
+    } else {
+          multiemailstatus=true;
+          emails.forEach(multiemailvalidate);
+          if(!self.all_selected_projects()[0])
+          {
+            App.hideProcessing();
+            alert("No Projects Selected.");
+            return false;
+          }
+          if(multiemailstatus == true ){
+            self.new_invite({'group':'Project Manager', 'emails':emails, 'levels':[], 'leveltype':'project'});
+
+            ko.utils.arrayMap(self.all_selected_projects(), function(item) {
+                    self.new_invite().levels.push(item.id);
+                    });
+            console.log(ko.toJS(self.new_invite()));
+
+             App.remotePost(inviteurl, ko.toJS(self.new_invite()), invitepssuccess, invitepsfailure);
+           }
+          else{ App.hideProcessing();
+            alert('Contains Invalid Email'); }
+    }
+    });
+
+
+
+  //
+    self.loadAllProjects();
+    self.doAssign = function(){
+    App.showProcessing();
+    self.new_role({'group':'Organization Admin', 'users':[], 'projects':[]});
+
+    ko.utils.arrayMap(all_selected_users(), function(item) {
+                    console.log(item.user().id);
+                    self.new_role().users.push(item.user().id);
+                    });
+
+    ko.utils.arrayMap(self.all_selected_projects(), function(item) {
+                    console.log(item.id());
+                    self.new_role().projects.push(item.id);
+                    });
+       // App.showProcessing();
+
+    var url = assignurl;
+    console.log(ko.toJS(self.new_role()))
+
+
+    var success =  function (response) {
+                App.hideProcessing();
+
+                App.notifyUser(
+                        'User Assigned Sucess',
+                        'success'
+                    );
+
+            };
+    var failure =  function (errorThrown) {
+      var err_message = errorThrown.responseJSON[0];
+                App.hideProcessing();
+                App.notifyUser(
+                        err_message,
+                        'error'
+                    );
+
+            };
+
+       App.remotePost(url, ko.toJS(self.new_role()), success, failure);
+};
+}
+
+
 var OrgVM = function(level, pk){
   var self=this;
   self.group = ko.observable("Organization Admin");
@@ -1267,6 +1550,7 @@ function ManagePeopleViewModel(pk, level, organization) {
   self.siteVm = ko.observable();
   self.projectVm = ko.observable();
   self.orgVm = ko.observable();
+  self.superOrgVm = ko.observable();
 
   self.addRole = function(group){
     
@@ -1565,6 +1849,10 @@ if (self.level == "0"){
 }else if (self.level == "2"){
   self.currentVm("organization");
   self.orgVm(new OrgVM(level, pk));
+
+}else if (self.level == "3"){
+  self.currentVm("super_organization");
+  self.superOrgVm(new SuperOrgVM(level, pk));
 
 }  
 

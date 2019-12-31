@@ -911,7 +911,7 @@ class TeamFormViewset(viewsets.ModelViewSet):
         if task_obj:
             project_id = Project.objects.get(name="Example Project", organization_id=self.object.id).id
 
-            clone_form.delay(user_id, project_id, task_obj.id)
+            clone_form.delay(project_id, task_obj.id)
 
         if self.request.roles.filter(group__name="Unassigned").exists() or self.request.user.organizations.all():
             previous_group = UserRole.objects.filter(user=self.request.user, group__name="Unassigned").exists()

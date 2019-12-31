@@ -50,11 +50,12 @@ from .mixins import (LoginRequiredMixin, SuperAdminMixin, OrganizationMixin, Pro
                      MyOwnProjectMixin, ProjectMixin)
 
 from .rolemixins import FullMapViewMixin, SuperUserRoleMixin, ReadonlyProjectLevelRoleMixin, ReadonlySiteLevelRoleMixin, \
-    DonorRoleMixin, DonorSiteViewRoleMixin, SiteDeleteRoleMixin, SiteRoleMixin, ProjectRoleView, ReviewerRoleMixin, ProjectRoleMixin,\
-    OrganizationRoleMixin, ProjectRoleMixinDeleteView, RegionRoleMixin, RegionSupervisorReviewerMixin
+    DonorRoleMixin, DonorSiteViewRoleMixin, SiteDeleteRoleMixin, SiteRoleMixin, ProjectRoleView, ReviewerRoleMixin, \
+    ProjectRoleMixin, OrganizationRoleMixin, ProjectRoleMixinDeleteView, RegionRoleMixin, \
+    RegionSupervisorReviewerMixin, SuperOrganizationRoleMixin
 
 from .models import ProjectGeoJSON, Organization, Project, Site, BluePrints, UserInvite, Region, SiteType, \
-    ProjectType, Sector, ProjectLevelTermsAndLabels
+    ProjectType, Sector, ProjectLevelTermsAndLabels, SuperOrganization
 from .forms import (OrganizationForm, ProjectForm, SiteForm, RegistrationForm, SetProjectManagerForm, SetSupervisorForm,
                     SetProjectRoleForm, AssignOrgAdmin, UploadFileForm, BluePrintForm, ProjectFormKo, RegionForm,
                     SiteBulkEditForm, SiteTypeForm, ProjectGeoLayerForm, ProjectGsuitSyncForm, FieldsightFormGsuitSyncEditForm, FieldsightFormGsuitSyncNewForm )
@@ -1614,8 +1615,18 @@ class ManagePeopleProjectView(LoginRequiredMixin, ProjectRoleMixin, TemplateView
 class ManagePeopleOrganizationView(LoginRequiredMixin, OrganizationRoleMixin, TemplateView):
     def get(self, request, pk):
         obj = get_object_or_404(Organization, id=self.kwargs.get('pk'))
-        return render(request, 'fieldsight/manage_people_site.html', {'obj': obj, 'pk': pk, 'level': "2", 'category':"Organization Admin", 'organization': pk, 'type':'org'})
+        return render(request, 'fieldsight/manage_people_site.html',
+                      {'obj': obj, 'pk': pk, 'level': "2", 'category':"Organization Admin", 'organization': pk,
+                       'type':'org'})
 
+
+class ManagePeopleSuperOrganizationView(LoginRequiredMixin, SuperOrganizationRoleMixin, TemplateView):
+
+    def get(self, request, pk):
+        obj = get_object_or_404(SuperOrganization, id=self.kwargs.get('pk'))
+        return render(request, 'fieldsight/manage_people_site.html',
+                      {'obj': obj, 'pk': pk, 'level': "3", 'category': "Super Organization Admin",
+                       'super_organization': pk, 'type': 'super_org'})
 
 def all_notification(user,  message):
     ChannelGroup("%s" % user).send({

@@ -9,8 +9,11 @@ from rest_framework.permissions import IsAuthenticated
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from django.contrib.gis.geos import Point
 from rest_framework.response import Response
-from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer
 from onadata.apps.fv3.permissions.super_admin import SuperAdminPermission
+
+from onadata.apps.fsforms.models import OrganizationFormLibrary
+from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
+    OrganizationFormLibrarySerializer
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -87,3 +90,23 @@ class ManageTeamsView(APIView):
 
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'team_ids field is required.'})
+
+
+class OrganizationFormLibraryVS(viewsets.ModelViewSet):
+    queryset = OrganizationFormLibrary.objects.all()
+    serializer_class = OrganizationFormLibrarySerializer
+    authentication_classes = [CsrfExemptSessionAuthentication, ]
+    permission_classes = [IsAuthenticated, ]
+
+    def get_queryset(self):
+        params = self.request.query_params
+        org = params.get('org')
+        if not org:
+            return []
+        return self.queryset.filter(organization=org)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.deleted = True
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
