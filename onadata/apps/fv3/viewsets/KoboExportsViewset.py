@@ -1,3 +1,7 @@
+import os
+
+from django.core.files.storage import get_storage_class, FileSystemStorage
+from django.http import HttpResponseRedirect
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
@@ -7,6 +11,8 @@ from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.fv3.serializers.KoboExportSerializer import ExportSerializer
 from onadata.apps.viewer.models import Export
 from onadata.apps.viewer.tasks import create_async_export
+from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.utils.viewer_tools import export_def_from_filename
 
 
 class ExportViewSet(viewsets.ModelViewSet):
@@ -38,7 +44,7 @@ class ExportViewSet(viewsets.ModelViewSet):
         is_project = params.get('is_project')
         version = params.get('version', 0)
         if not (id and fsxf and is_project):
-            return Response({'error': 'Parameters missing'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Parameters missing'}, status=status.HTTP_400_BAD_REQUEST)
         fsxf = FieldSightXF.objects.get(pk=fsxf)
         if is_project == 1 or is_project == '1':
             site_id = 0
@@ -83,7 +89,15 @@ class ExportViewSet(viewsets.ModelViewSet):
         create_async_export(fsxf.xform, 'xls', query, force_xlsx, options, is_project, id, site_id , version, False)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def retrieve(self, request, *args, **kwargs):
+        export = self.get_object()
+        ext, mime_type = export_def_from_filename(export.filename)
+        default_storage = get_storage_class()()
+        if not isinstance(default_storage, FileSystemStorage):
+            return HttpResponseRedirect(default_storage.url(export.filepath))
+        basename = os.path.splitext(export.filename)[0]
+        response = response_with_mimetype_and_name(
+            mime_type, name=basename, extension=ext,
+            file_path=export.filepath, show_date=False)
+        return response
+
