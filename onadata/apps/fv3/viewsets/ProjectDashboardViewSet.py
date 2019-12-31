@@ -22,7 +22,8 @@ from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
     ProgressGeneralFormSerializer, ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer, \
     SitelistForMetasLinkSerializer
-from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions
+from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions, \
+    SupervisorPermission
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import Instance
 from onadata.apps.fieldsight.tasks import UnassignAllSiteRoles
@@ -296,3 +297,28 @@ class SitelistForMetasLink(viewsets.ModelViewSet):
 
     def filter_queryset(self, queryset):
         return queryset.filter(project__id=self.kwargs.get('pk', None))
+
+
+class SupervisorProjectDashboardView(APIView):
+    permission_classes = [IsAuthenticated, SupervisorPermission]
+
+    def get(self, request, *args,  **kwargs):
+
+        project_id = self.kwargs.get('pk', None)
+        obj = get_object_or_404(Project, pk=project_id)
+        outstanding, flagged, approved, rejected = obj.get_submissions_count()
+        total_submissions = outstanding + flagged + approved + rejected,
+        total_sites = obj.sites.filter(is_active=True, is_survey=False, site__isnull=True).count()
+        total_regions = obj.project_region.filter(is_active=True, parent__isnull=True).count()
+        project_managers_qs = obj.project_roles.select_related("user", "user__user_profile").filter(
+            ended_at__isnull=True,
+            group__name="Project Manager")
+
+        users = [{'id': role.user.id, 'full_name': role.user.get_full_name(),
+                  'profile_picture': role.user.user_profile.profile_picture.url, 'role': 'Project Manager'} for role in
+                 project_managers_qs]
+
+        return Response({'total_submissions': total_submissions[0],
+                         'total_sites': total_sites,
+                         'total_regions': total_regions,
+                         'users': users})

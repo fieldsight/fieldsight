@@ -104,42 +104,23 @@ def post_update_xform(xform_id, user):
 
 
 @shared_task(max_retries=5)
-def clone_form(user_id, project_id, task_id):
+def clone_form(project_id, task_id):
     time.sleep(10)
-    user = User.objects.get(id=user_id)
     project = Project.objects.get(id=project_id)
 
-    token = user.auth_token.key
+    organization = project.organization
+    try:
+        super_org = organization.parent
+        library_forms = super_org.library_forms.filter(deleted=False)
+        fsxf_list = []
+        for lf in library_forms:
+            fsxf = FieldSightXF(xf=lf.xf,project=project, is_deployed=True)
+            fsxf_list.append(fsxf)
+        FieldSightXF.objects.bulk_create(fsxf_list)
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception as e:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
 
-    #general clone
-
-    clone1, id_string1 = clone_kpi_form(settings.DEFAULT_FORM_3['id_string'], token, task_id, settings.DEFAULT_FORM_3['name'])
-    if clone1:
-        xf = XForm.objects.get(id_string=id_string1, user=user)
-        FieldSightXF.objects.get_or_create(xf=xf, project=project, is_deployed=True)
-    else:
-        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
-        raise ValueError(" Failed  clone and deploy")
-
-    clone2, id_string2 = clone_kpi_form(settings.DEFAULT_FORM_2['id_string'], token, task_id, settings.DEFAULT_FORM_2['name'])
-    if clone2:
-        xf2 = XForm.objects.get(id_string=id_string2, user=user)
-        schedule, created = Schedule.objects.get_or_create(name =settings.DEFAULT_FORM_2['name'], project=project)
-        FieldSightXF.objects.get_or_create(xf=xf2, project=project, is_scheduled=True, schedule=schedule, is_deployed=True)
-    else:
-        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
-        raise ValueError(" Failed  clone and deploy")
-
-    clone3, id_string3 = clone_kpi_form(settings.DEFAULT_FORM_1['id_string'], token, task_id, settings.DEFAULT_FORM_1['name'])
-    if clone3:
-        xf3 = XForm.objects.get(id_string=id_string3, user=user)
-        schedule2, created2 = Schedule.objects.get_or_create(name=settings.DEFAULT_FORM_1['name'], project=project, schedule_level_id=1)
-        FieldSightXF.objects.get_or_create(xf=xf3, project=project, is_scheduled=True,
-                                                           schedule=schedule2, is_deployed=True)
-    else:
-        CeleryTaskProgress.objects.filter(id=task_id).update(status=3)
-        raise ValueError(" Failed  clone and deploy")
-    CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
 
 
 # task to share the form for all the project managers of a project where the form is assigned
