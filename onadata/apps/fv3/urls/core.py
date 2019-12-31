@@ -1,6 +1,7 @@
 from django.conf.urls import url, include
 from rest_framework import routers
 
+from onadata.apps.fv3.urls.kobo_exports import kobo_exports_urlpatterns
 from onadata.apps.fv3.urls.map import map_urlpatterns
 from onadata.apps.fv3.urls.project_settings import progress_urlpatterns
 from onadata.apps.fv3.urls.myroles import my_roles_urlpatterns
@@ -112,3 +113,4 @@ urlpatterns += view_by_forms_status_urlpatterns
 urlpatterns += map_urlpatterns
 urlpatterns += reports_urlpatterns
 urlpatterns += super_organization_urlpatterns
+urlpatterns += kobo_exports_urlpatterns
