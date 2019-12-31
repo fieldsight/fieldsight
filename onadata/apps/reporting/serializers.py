@@ -26,6 +26,7 @@ class StageFormSerializer(serializers.ModelSerializer):
 
 class ReportSettingsSerializer(serializers.ModelSerializer):
     owner_full_name = serializers.SerializerMethodField(read_only=True)
+    attributes = serializers.JSONField()
 
     class Meta:
         model = ReportSettings
