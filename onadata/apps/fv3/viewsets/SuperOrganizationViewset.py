@@ -61,3 +61,9 @@ class OrganizationFormLibraryVS(viewsets.ModelViewSet):
         if not org:
             return []
         return self.queryset.filter(organization=org)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.deleted = True
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)

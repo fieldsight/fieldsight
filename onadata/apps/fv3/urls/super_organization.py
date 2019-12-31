@@ -16,4 +16,6 @@ super_organization_urlpatterns = [
         'post': 'create', 'get': 'list'}), name='super_organizations'),
     url(r'^api/super_organizations_library/', OrganizationFormLibraryVS.as_view({
         'post': 'create', 'get': 'list'}), name='super_organizations_lib'),
+    url(r'^api/super_organizations_library/(?P<pk>\d+)/$', OrganizationFormLibraryVS.as_view({
+        'post': 'destroy'}), name='super_organizations_lib_del'),
 ]
