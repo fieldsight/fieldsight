@@ -14,6 +14,9 @@ from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.decorators import api_view, permission_classes
 
+from onadata.apps.eventlog.models import CeleryTaskProgress
+from onadata.apps.fsforms.tasks import clone_form
+
 from onadata.apps.fv3.serializers.TeamSerializer import TeamSerializer, TeamProjectSerializer
 from onadata.apps.fv3.serializer import ProjectUpdateSerializer
 from onadata.apps.fieldsight.models import Organization, Project, Region, SiteType
@@ -161,6 +164,12 @@ class AddTeamProjectViewset(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance = self.perform_create(serializer)
+
+
+        task_obj = CeleryTaskProgress.objects.create(user=request.user,
+                                                     description="Auto Clone and Deployment of Forms",
+                                                     task_type=15, content_object=instance.organization)
+        clone_form.delay(instance.id, task_obj.id)
         longitude = request.data.get('longitude', None)
         latitude = request.data.get('latitude', None)
 
