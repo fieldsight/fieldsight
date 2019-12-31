@@ -1,5 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import DjangoObjectPermissions
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -465,8 +466,8 @@ class ProjectDonorApiPermissions(DjangoObjectPermissions):
                                                                                                                "Project Donor"])
                 if user_role:
                     return True
-
-                organization_id = Project.objects.get(pk=int(project_id)).organization.id
+                proj = get_object_or_404(Project, id=project_id)
+                organization_id = proj.organization.id
                 user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
 
                 if user_role_asorgadmin:

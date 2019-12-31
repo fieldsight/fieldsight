@@ -86,11 +86,7 @@ class ProjectRegionsViewset(viewsets.ModelViewSet):
         project_id = self.request.query_params.get('project', None)
         region_id = self.request.query_params.get('region', None)
 
-        try:
-            project = Project.objects.get(id=project_id)
-        except :
-            return Region.objects.all().none
-
+        project = get_object_or_404(Project, id=project_id)
         if project_id and region_id:
 
             region = get_object_or_404(Region, id=region_id)

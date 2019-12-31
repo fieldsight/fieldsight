@@ -222,7 +222,7 @@ def form_submission(form_id):
     for col in df.columns:
         for select_m_slash in select_multiples_slash:
             if select_m_slash in col:
-                df[col] = df.replace({col: dict_keys})
+                df = df.replace({col: dict_keys})
 
     df = df.replace('nan', '')
 

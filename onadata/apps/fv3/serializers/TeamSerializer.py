@@ -33,7 +33,9 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def get_total_sites(self, obj):
 
-        total_sites = Site.objects.filter(project__organization=obj, is_survey=False, is_active=True).count()
+        total_sites = Site.objects.filter(project__organization=obj,
+                                          is_survey=False,
+                                          is_active=True).count()
 
         return total_sites
 

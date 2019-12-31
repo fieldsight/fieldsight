@@ -87,6 +87,80 @@ class ProjectType(models.Model):
         return u'{}'.format(self.name)
 
 
+class SuperOrganization(models.Model):
+    name = models.CharField(max_length=255)
+    phone = models.CharField(
+        "Contact Number", max_length=255, blank=True, null=True)
+    fax = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+    country = models.CharField(max_length=3, choices=COUNTRIES, default=u'NPL')
+    address = models.TextField(blank=True, null=True)
+    public_desc = models.TextField("Public Description", blank=True, null=True)
+    additional_desc = models.TextField(
+        "Additional Description", blank=True, null=True)
+    logo = models.ImageField(
+        upload_to="logo", default="logo/default_org_image.jpg")
+    is_active = models.BooleanField(default=True)
+    location = PointField(geography=True, srid=4326, blank=True, null=True,)
+    date_created = models.DateTimeField(auto_now_add=True, blank=True)
+    logs = GenericRelation('eventlog.FieldSightLog')
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL,
+                              related_name="super_organizations",
+                              null=True, blank=True)
+
+    class Meta:
+        ordering = ['-is_active', 'name', ]
+
+    def __unicode__(self):
+        return u'{}'.format(self.name)
+
+    @property
+    def latitude(self):
+        if self.location:
+            return self.location.y
+
+    @property
+    def longitude(self):
+        if self.location:
+            return self.location.x
+
+    def get_absolute_url(self):
+        return "/fieldsight/application/#/team-dashboard/{}".format(self.pk)
+
+    def get_organization_submission(self):
+        instances = self.superorganization_instances.all().order_by('-date')
+        outstanding, flagged, approved, rejected = [], [], [], []
+        for submission in instances:
+            if submission.form_status == 0:
+                outstanding.append(submission)
+            elif submission.form_status == 1:
+                rejected.append(submission)
+            elif submission.form_status == 2:
+                flagged.append(submission)
+            elif submission.form_status == 3:
+                approved.append(submission)
+
+        return outstanding, flagged, approved, rejected
+
+    def get_submissions_count(self):
+        from onadata.apps.fsforms.models import FInstance
+        outstanding = FInstance.objects.filter(
+            project__organization__parent=self, project__is_active=True,
+            form_status=0).count()
+        rejected = FInstance.objects.filter(
+            project__organization__parent=self, project__is_active=True,
+            form_status=1).count()
+        flagged = FInstance.objects.filter(
+            project__organization__parent=self, project__is_active=True,
+            form_status=2).count()
+        approved = FInstance.objects.filter(
+            project__organization__parent=self, project__is_active=True,
+            form_status=3).count()
+
+        return outstanding, flagged, approved, rejected
+
+
 class Organization(models.Model):
     name = models.CharField("Team Name", max_length=255)
     type = models.ForeignKey(
@@ -108,6 +182,9 @@ class Organization(models.Model):
     date_created = models.DateTimeField(auto_now_add=True, blank=True)
     logs = GenericRelation('eventlog.FieldSightLog')
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="organizations", null=True, blank=True)
+    parent = models.ForeignKey('SuperOrganization', on_delete=models.CASCADE,
+                               related_name='organizations', blank=True,
+                               null=True)
 
     class Meta:
         ordering = ['-is_active', 'name', ]
