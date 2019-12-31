@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from onadata.apps.fieldsight.models import SuperOrganization, Site
+from onadata.apps.fsforms.models import OrganizationFormLibrary
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -50,3 +51,15 @@ class OrganizationSerializer(serializers.ModelSerializer):
         pass
         # return obj.organization_roles.filter(ended_at__isnull=True).distinct(
         #     'user_id').count()
+
+
+class OrganizationFormLibrarySerializer(serializers.Serializer):
+    xf_title = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrganizationFormLibrary
+        fields = ('id', 'xf', 'date_created', 'xf_title')
+        read_only_fields = ('date_created',)
+
+    def get_xf_title(self, obj):
+        return obj.xf.title

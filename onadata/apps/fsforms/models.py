@@ -23,8 +23,8 @@ from pyxform import create_survey_from_xls, SurveyElementBuilder
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
-from onadata.apps.fieldsight.models import Site, Project, Organization,\
-    ProgressSettings
+from onadata.apps.fieldsight.models import Site, Project, Organization, \
+    ProgressSettings, SuperOrganization
 from onadata.apps.fsforms.fieldsight_models import IntegerRangeField
 from onadata.apps.fsforms.utils import send_message, send_message_project_form,\
     check_version
@@ -288,6 +288,21 @@ class Schedule(models.Model):
 class DeletedXForm(models.Model):
     xf = models.OneToOneField(XForm, related_name="deleted_xform")
     date_created = models.DateTimeField(auto_now=True)
+
+
+class ActiveOrgLibs(models.Manager):
+    def get_queryset(self):
+        return super(ActiveOrgLibs, self).get_queryset(
+
+        ).filter(deleted=False)
+
+
+class OrganizationFormLibrary(models.Model):
+    xf = models.ForeignKey(XForm, related_name="library_forms")
+    organization = models.ForeignKey(SuperOrganization, related_name="library_forms")
+    date_created = models.DateTimeField(auto_now_add=True)
+    deleted = models.BooleanField(default=False)
+    objects = ActiveOrgLibs()
 
 
 class FieldSightXF(models.Model):
