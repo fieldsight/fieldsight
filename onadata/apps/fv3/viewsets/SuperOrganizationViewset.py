@@ -55,17 +55,14 @@ class SuperOrganizationListView(APIView):
     """
     A simple view for list of super organizations.
     """
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, SuperAdminPermission]
 
     def get(self, request, *args, **kwargs):
-        if request.user.is_superuser:
-            super_organizations = SuperOrganization.objects.all().annotate(teams=Count('organizations')).\
-                values('id', 'name', 'teams')
 
-            return Response(status=status.HTTP_200_OK, data=super_organizations)
-        else:
-            return Response(status=status.HTTP_403_FORBIDDEN, data={'detail': 'You do not have permission to '
-                                                                              'perform this action.'})
+        super_organizations = SuperOrganization.objects.all().annotate(teams=Count('organizations')).\
+            values('id', 'name', 'teams')
+
+        return Response(status=status.HTTP_200_OK, data=super_organizations)
 
 
 class ManageTeamsView(APIView):
@@ -75,9 +72,9 @@ class ManageTeamsView(APIView):
 
     def get(self, request, pk, *args,  **kwargs):
         queryset = Organization.objects.all()
-        teams = queryset.values('id', 'name')
         selected_teams = queryset.filter(parent_id=pk).values('id', 'name')
-
+        selected_team_ids = [team['id'] for team in selected_teams if id in team]
+        teams = queryset.exclude(id__in=selected_team_ids).values('id', 'name')
         return Response(status=status.HTTP_200_OK, data={'teams': teams, 'selected_teams': selected_teams})
 
     def post(self, request, pk, format=None):
