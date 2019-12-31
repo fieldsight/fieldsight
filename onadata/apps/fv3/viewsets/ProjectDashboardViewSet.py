@@ -306,7 +306,6 @@ class SupervisorProjectDashboardView(APIView):
 
         project_id = self.kwargs.get('pk', None)
         obj = get_object_or_404(Project, pk=project_id)
-        total_users = obj.project_roles.select_related('user').filter(ended_at__isnull=True).distinct('user').count()
         outstanding, flagged, approved, rejected = obj.get_submissions_count()
         total_submissions = outstanding + flagged + approved + rejected,
         total_sites = obj.sites.filter(is_active=True, is_survey=False, site__isnull=True).count()
@@ -319,8 +318,7 @@ class SupervisorProjectDashboardView(APIView):
                   'profile_picture': role.user.user_profile.profile_picture.url, 'role': 'Project Manager'} for role in
                  project_managers_qs]
 
-        return Response({'total_users': total_users,
-                         'total_submissions': total_submissions[0],
+        return Response({'total_submissions': total_submissions[0],
                          'total_sites': total_sites,
                          'total_regions': total_regions,
                          'users': users})
