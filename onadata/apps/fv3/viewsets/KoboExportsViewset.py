@@ -48,13 +48,13 @@ class ExportViewSet(viewsets.ModelViewSet):
         fsxf = FieldSightXF.objects.get(pk=fsxf)
         if is_project == 1 or is_project == '1':
             site_id = None
-            query = {"fs_project_uuid": str(fsxf)}
+            query = {"fs_project_uuid": str(fsxf.id)}
         else:
             site_id = id
             if fsxf.site:
-                query = {"fs_uuid": str(fsxf)}
+                query = {"fs_uuid": str(fsxf.id)}
             else:
-                query = {"fs_project_uuid": str(fsxf), "fs_site": site_id}
+                query = {"fs_project_uuid": str(fsxf.id), "fs_site": site_id}
         force_xlsx = True
         if version not in ["0", 0]:
             query["__version__"] = version
@@ -67,14 +67,14 @@ class ExportViewSet(viewsets.ModelViewSet):
         print("query at excel generation", query)
 
         # export options
-        group_delimiter = request.POST.get("options[group_delimiter]", '/')
+        group_delimiter = request.POST.get("group_delimiter", '/')
         if group_delimiter not in ['.', '/']:
             return Response({'error': _("%s is not a valid delimiter" % group_delimiter)}, status=status.HTTP_400_BAD_REQUEST)
 
         # default is True, so when dont_.. is yes
         # split_select_multiples becomes False
         split_select_multiples = request.POST.get(
-            "options[dont_split_select_multiples]", "no") == "no"
+            "dont_split_select_multiples", "no") == "no"
 
         binary_select_multiples = False
         # external export option
