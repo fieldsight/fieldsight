@@ -86,7 +86,7 @@ class ExportViewSet(viewsets.ModelViewSet):
             'meta': meta.replace(",", "") if meta else None
         }
 
-        create_async_export(fsxf.xform, 'xls', query, force_xlsx, options, is_project, id, site_id , version, False)
+        create_async_export(fsxf.xf, 'xls', query, force_xlsx, options, is_project, id, site_id , version, False)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def retrieve(self, request, *args, **kwargs):
