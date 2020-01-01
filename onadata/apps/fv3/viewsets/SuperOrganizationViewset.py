@@ -4,14 +4,14 @@ from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.views import APIView
 
-from onadata.apps.fieldsight.models import SuperOrganization, Organization
+from onadata.apps.fieldsight.models import SuperOrganization, Organization, Project
 from rest_framework.permissions import IsAuthenticated
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from django.contrib.gis.geos import Point
 from rest_framework.response import Response
 from onadata.apps.fv3.permissions.super_admin import SuperAdminPermission
 
-from onadata.apps.fsforms.models import OrganizationFormLibrary
+from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
     OrganizationFormLibrarySerializer
 
@@ -85,6 +85,14 @@ class ManageTeamsView(APIView):
 
         if team_ids:
             Organization.objects.filter(id__in=team_ids).update(parent_id=pk)
+            projects = Project.objects.filter(organization__id__in=team_ids)
+            library_forms = OrganizationFormLibrary.objects.filter(organization=pk)
+            fsxf_list = []
+            for p in projects:
+                for lf in library_forms:
+                    fsxf = FieldSightXF(xf=lf.xf, project=p, is_deployed=True)
+                    fsxf_list.append(fsxf)
+            FieldSightXF.objects.bulk_create(fsxf_list)
 
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
 
