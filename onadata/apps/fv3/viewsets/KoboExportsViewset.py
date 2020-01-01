@@ -3,7 +3,10 @@ import os
 from django.core.files.storage import get_storage_class, FileSystemStorage
 from django.http import HttpResponseRedirect
 from rest_framework import viewsets, status
+from rest_framework.decorators import detail_route
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import BaseRenderer
+
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from rest_framework.response import Response
 from django.utils.translation import ugettext as _
@@ -14,9 +17,17 @@ from onadata.apps.viewer.tasks import create_async_export
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.viewer_tools import export_def_from_filename
 
+class BinaryFileRenderer(BaseRenderer):
+    media_type = 'application/vnd.openxmlformats'
+    format = None
+    charset = None
+    # render_style = 'binary'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        return data
 
 class ExportViewSet(viewsets.ModelViewSet):
-    queryset = Export.objects.all()
+    queryset = Export.objects.all().order_by("-created_on")
     serializer_class = ExportSerializer
     authentication_classes = [CsrfExemptSessionAuthentication, ]
     permission_classes = [IsAuthenticated, ]
@@ -89,8 +100,9 @@ class ExportViewSet(viewsets.ModelViewSet):
         create_async_export(fsxf.xf, 'xls', query, force_xlsx, options, is_project, fsxf.id, site_id, version, False)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    # @detail_route(methods=['get'], renderer_classes=(BinaryFileRenderer,))
     def retrieve(self, request, *args, **kwargs):
-        export = self.get_object()
+        export = Export.objects.get(pk=kwargs['pk'])
         ext, mime_type = export_def_from_filename(export.filename)
         default_storage = get_storage_class()()
         if not isinstance(default_storage, FileSystemStorage):
@@ -100,4 +112,9 @@ class ExportViewSet(viewsets.ModelViewSet):
             mime_type, name=basename, extension=ext,
             file_path=export.filepath, show_date=False)
         return response
+
+    def destroy(self, request, *args, **kwargs):
+        instance = Export.objects.get(pk=kwargs['pk'])
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
