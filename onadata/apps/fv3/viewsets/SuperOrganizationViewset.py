@@ -84,7 +84,7 @@ class ManageTeamsView(APIView):
         team_ids = request.data.get('team_ids', None)
 
         if team_ids:
-            SuperOrganizationListView.objects.filter(id__in=team_ids).update(parent_id=pk)
+            Organization.objects.filter(id__in=team_ids).update(parent_id=pk)
 
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
 
