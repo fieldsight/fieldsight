@@ -2729,7 +2729,7 @@ class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
             return HttpResponse("Failed")
 
 
-class MultiUserAssignTeamView(OrganizationRoleMixin, TemplateView):
+class MultiUserAssignTeamView(SuperOrganizationRoleMixin, TemplateView):
 
     def post(self, request, pk, *args, **kwargs):
         data = json.loads(self.request.body)
