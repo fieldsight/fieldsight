@@ -76,15 +76,15 @@ class ManageTeamsView(APIView):
     def get(self, request, pk, *args,  **kwargs):
         queryset = Organization.objects.all()
         selected_teams = queryset.filter(parent_id=pk).values('id', 'name')
-        selected_team_ids = [team['id'] for team in selected_teams if id in team]
+        selected_team_ids = [team['id'] for team in selected_teams if 'id' in team]
         teams = queryset.exclude(id__in=selected_team_ids).values('id', 'name')
         return Response(status=status.HTTP_200_OK, data={'teams': teams, 'selected_teams': selected_teams})
 
     def post(self, request, pk, format=None):
-        team_ids = request.POST.get('team_ids', None)
+        team_ids = request.data.get('team_ids', None)
 
         if team_ids:
-            Organization.objects.filter(id__in=team_ids).update(parent_id=pk)
+            SuperOrganizationListView.objects.filter(id__in=team_ids).update(parent_id=pk)
 
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
 
