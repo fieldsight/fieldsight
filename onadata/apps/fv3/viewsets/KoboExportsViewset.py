@@ -29,7 +29,7 @@ class ExportViewSet(viewsets.ModelViewSet):
         version = params.get('version')
         if not (id and fsxf and is_project):
             return []
-        if is_project in ["1", True]:
+        if is_project in ["1", True, 1]:
             self.queryset = self.queryset.filter(fsxf=fsxf)
         else:
             self.queryset = self.queryset.filter(fsxf=fsxf, site=id)
