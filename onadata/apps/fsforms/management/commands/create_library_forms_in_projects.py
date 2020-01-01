@@ -15,4 +15,4 @@ class Command(BaseCommand):
             for lf in library_forms:
                 fsxf = FieldSightXF(xf=lf.xf, project=p, is_deployed=True)
                 fsxf_list.append(fsxf)
-            FieldSightXF.objects.bulk_create(fsxf_list)
+        FieldSightXF.objects.bulk_create(fsxf_list)

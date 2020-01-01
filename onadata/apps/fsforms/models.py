@@ -461,6 +461,16 @@ class FieldSightXF(models.Model):
         return u'{}- {}- {}'.format(self.xf, self.site, self.is_staged)
 
 
+@receiver(post_save, sender=OrganizationFormLibrary)
+def create_messages(sender, instance, created,  **kwargs):
+    projects = Project.objects.filter(organization__parent=instance.organization)
+    fsxf_list = []
+    for p in projects:
+        fsxf = FieldSightXF(xf=instance.xf, project=p, is_deployed=True)
+        fsxf_list.append(fsxf)
+    FieldSightXF.objects.bulk_create(fsxf_list)
+
+
 class FormSettings(models.Model):
     form = models.OneToOneField(FieldSightXF, related_name="settings")
     types = ArrayField(models.IntegerField(), default=[])
