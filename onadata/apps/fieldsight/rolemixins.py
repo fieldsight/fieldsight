@@ -63,6 +63,19 @@ class OrganizationRoleMixin(LoginRequiredMixin):
         raise PermissionDenied()
 
 
+class SuperOrganizationRoleMixin(LoginRequiredMixin):
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.is_super_admin:
+            return super(SuperOrganizationRoleMixin, self).dispatch(request, *args, **kwargs)
+        super_organization_id = self.kwargs.get('pk')
+        user_role = request.roles.filter(super_organization_id=super_organization_id,
+                                         group__name="Super Organization Admin")
+        if user_role:
+            return super(SuperOrganizationRoleMixin, self).dispatch(request, *args, **kwargs)
+        raise PermissionDenied()
+
+
 class SuperUserRoleMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         if request.is_super_admin:

@@ -1,10 +1,15 @@
+from django.db.models import Count
 from django.utils import timezone
 from rest_framework import viewsets, status
-from onadata.apps.fieldsight.models import SuperOrganization
+from rest_framework.authentication import BasicAuthentication
+from rest_framework.views import APIView
+
+from onadata.apps.fieldsight.models import SuperOrganization, Organization
 from rest_framework.permissions import IsAuthenticated
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from django.contrib.gis.geos import Point
 from rest_framework.response import Response
+from onadata.apps.fv3.permissions.super_admin import SuperAdminPermission
 
 from onadata.apps.fsforms.models import OrganizationFormLibrary
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
@@ -47,6 +52,44 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save()
+
+
+class SuperOrganizationListView(APIView):
+    """
+    A simple view for list of super organizations.
+    """
+    permission_classes = [IsAuthenticated, SuperAdminPermission]
+
+    def get(self, request, *args, **kwargs):
+
+        super_organizations = SuperOrganization.objects.all().annotate(teams=Count('organizations')).\
+            values('id', 'name', 'teams')
+
+        return Response(status=status.HTTP_200_OK, data=super_organizations)
+
+
+class ManageTeamsView(APIView):
+
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, SuperAdminPermission]
+
+    def get(self, request, pk, *args,  **kwargs):
+        queryset = Organization.objects.all()
+        selected_teams = queryset.filter(parent_id=pk).values('id', 'name')
+        selected_team_ids = [team['id'] for team in selected_teams if id in team]
+        teams = queryset.exclude(id__in=selected_team_ids).values('id', 'name')
+        return Response(status=status.HTTP_200_OK, data={'teams': teams, 'selected_teams': selected_teams})
+
+    def post(self, request, pk, format=None):
+        team_ids = request.data.get('team_ids', None)
+
+        if team_ids:
+            Organization.objects.filter(id__in=team_ids).update(parent_id=pk)
+
+            return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
+
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'team_ids field is required.'})
 
 
 class OrganizationFormLibraryVS(viewsets.ModelViewSet):

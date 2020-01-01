@@ -126,7 +126,7 @@ class SuperOrganization(models.Model):
             return self.location.x
 
     def get_absolute_url(self):
-        return "/fieldsight/application/#/team-dashboard/{}".format(self.pk)
+        return "/fieldsight/application/#/super-team-dashboard/{}".format(self.pk)
 
     def get_organization_submission(self):
         instances = self.superorganization_instances.all().order_by('-date')

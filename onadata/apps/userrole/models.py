@@ -12,7 +12,7 @@ from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
-from onadata.apps.fieldsight.models import Site, Project, Organization, Region
+from onadata.apps.fieldsight.models import Site, Project, Organization, Region, SuperOrganization
 from onadata.apps.fsforms.notifications import save_notification
 from onadata.apps.staff.models import StaffProject
 from onadata.apps.eventlog.models import CeleryTaskProgress
@@ -26,6 +26,8 @@ class UserRole(models.Model):
     site = models.ForeignKey(Site, null=True, blank=True, related_name='site_roles')
     project = models.ForeignKey(Project, null=True, blank=True, related_name='project_roles')
     organization = models.ForeignKey(Organization, null=True, blank=True, related_name='organization_roles')
+    super_organization = models.ForeignKey(SuperOrganization, null=True, blank=True,
+                                           related_name='super_organization_roles')
     staff_project = models.ForeignKey(StaffProject, null=True, blank=True, related_name='staff_project_roles')
     region = models.ForeignKey(Region, null=True, blank=True, related_name='region_roles')
 
@@ -60,6 +62,11 @@ class UserRole(models.Model):
                 'project': ValidationError(_('Missing Project.'), code='required'),
             })
 
+        if self.group.name == 'Super Organization Admin' and not self.super_organization:
+            raise ValidationError({
+                'super_organization': ValidationError(_('Missing Super Organization.'), code='required'),
+            })
+
         if self.group.name == 'Organization Admin' and not self.organization_id:
             raise ValidationError({
                 'organization': ValidationError(_('Missing Organization.'), code='required'),
@@ -78,6 +85,12 @@ class UserRole(models.Model):
 
     def save(self, *args, **kwargs):
         if self.group.name == 'Super Admin':
+            self.organization = None
+            self.project = None
+            self.site = None
+            self.region = None
+
+        elif self.group.name == 'Super Organization Admin':
             self.organization = None
             self.project = None
             self.site = None
@@ -116,6 +129,12 @@ class UserRole(models.Model):
 
     def update(self, *args, **kwargs):
         if self.group.name == 'Super Admin':
+            self.organization = None
+            self.project = None
+            self.site = None
+            self.region = None
+
+        elif self.group.name == 'Organization Admin':
             self.organization = None
             self.project = None
             self.site = None
