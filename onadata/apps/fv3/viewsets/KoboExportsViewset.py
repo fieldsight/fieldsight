@@ -52,9 +52,9 @@ class ExportViewSet(viewsets.ModelViewSet):
         else:
             site_id = id
             if fsxf.site:
-                query = {"fs_uuid": str(id)}
+                query = {"fs_uuid": str(fsxf)}
             else:
-                query = {"fs_project_uuid": str(id), "fs_site": site_id}
+                query = {"fs_project_uuid": str(fsxf), "fs_site": site_id}
         force_xlsx = True
         if version not in ["0", 0]:
             query["__version__"] = version
@@ -86,7 +86,7 @@ class ExportViewSet(viewsets.ModelViewSet):
             'meta': meta.replace(",", "") if meta else None
         }
 
-        create_async_export(fsxf.xf, 'xls', query, force_xlsx, options, is_project, id, site_id , version, False)
+        create_async_export(fsxf.xf, 'xls', query, force_xlsx, options, is_project, fsxf.id, site_id, version, False)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def retrieve(self, request, *args, **kwargs):
