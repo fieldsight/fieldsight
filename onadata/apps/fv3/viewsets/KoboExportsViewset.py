@@ -47,7 +47,7 @@ class ExportViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Parameters missing'}, status=status.HTTP_400_BAD_REQUEST)
         fsxf = FieldSightXF.objects.get(pk=fsxf)
         if is_project == 1 or is_project == '1':
-            site_id = 0
+            site_id = None
             query = {"fs_project_uuid": str(fsxf)}
         else:
             site_id = id
