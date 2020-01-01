@@ -14,6 +14,6 @@ urlpatterns = [
     url(r'preview-standard-reports/(?P<pk>\d+)/$', PreviewStandardReports.as_view(),
         name='preview_standard_reports'),
     url(r'metrics-data/(?P<pk>\d+)/$', metrics_data, name='metrics_data'),
-    url(r'export/(?P<pk>\d+)/$', ReportExportView, name='report_export')
+    url(r'export/(?P<pk>\d+)/$', ReportExportView.as_view(), name='report_export')
 
 ]

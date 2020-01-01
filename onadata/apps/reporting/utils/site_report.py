@@ -125,7 +125,8 @@ def generate_form_information(form_id, question, df, df_sub_form_data):
     return df
 
 
-def site_report(project_id):
+def site_report(report_obj):
+    project_id = report_obj.project_id
     selected_metas = ['Slip_Number', '3rd_Installment__CM_']
     form_metrics = {'form_id': 73732, 'metrices': []}
     form_information = [{'form_id': 73732, 'question': 'status_cbi/va/member_16_59', 'metrices': []}]
@@ -133,8 +134,9 @@ def site_report(project_id):
         'id', 'identifier', 'name', 'current_progress', 'all_ma_ans')
     df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress', 'all_ma_ans'])
     df.columns = ['site', 'identifier', 'name', 'current_progress', 'all_ma_ans']
-    meta_objects = [df, pd.DataFrame(df['all_ma_ans'].tolist())[selected_metas]]
+    meta_objects = [df, pd.DataFrame(df['all_ma_ans'].tolist())] #[selected_metas]]
     df = pd.concat(meta_objects, axis=1).drop('all_ma_ans', axis=1)
+    return df
 
     query_submissions = FInstance.objects.filter(
         Q(project_fxf__project=project_id) |

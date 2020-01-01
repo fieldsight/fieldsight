@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.utils.translation import gettext as _
 from django.contrib.auth.models import User
@@ -207,9 +208,16 @@ class ReportSettings(models.Model):
     add_to_templates = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    logs = GenericRelation('eventlog.FieldSightLog')
 
     def __str__(self):
         return self.title
+
+    def getname(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return "/fieldsight/application/#/team-dashboard/{}".format(self.pk)
 
 
 
