@@ -73,8 +73,9 @@ from django.utils.encoding import force_text
 from django.utils.http import urlsafe_base64_decode
 
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, UnassignAllProjectRolesAndSites, \
-    UnassignAllSiteRoles, UnassignUser, generateCustomReportPdf, multiuserassignproject, bulkuploadsites, multiuserassignsite, \
-    multiuserassignregion, multi_users_assign_regions, multi_users_assign_to_entire_project, email_after_subscribed_plan
+    UnassignAllSiteRoles, UnassignUser, generateCustomReportPdf, multiuserassignproject, bulkuploadsites, \
+    multiuserassignsite, multiuserassignregion, multi_users_assign_regions, multi_users_assign_to_entire_project, \
+    email_after_subscribed_plan, multiuserassignteam
 from .generatereport import PDFReport
 from django.conf import settings
 from django.db.models import Prefetch
@@ -1934,11 +1935,13 @@ def senduserinvite(request):
     emails = request.POST.getlist('emails[]')
     group = Group.objects.get(name=request.POST.get('group'))
 
+    super_organization_id = None
     organization_id = None
-    project_id =[]
-    site_id =[]
+    project_id = []
+    site_id = []
 
-
+    if RepresentsInt(request.POST.get('super_organization_id')):
+        super_organization_id = request.POST.get('super_organization_id')
     if RepresentsInt(request.POST.get('organization_id')):
         organization_id = request.POST.get('organization_id')
     if RepresentsInt(request.POST.get('project_id')):
@@ -1951,28 +1954,41 @@ def senduserinvite(request):
     for email in emails:
         email = email.strip()
         
-        userinvite = UserInvite.objects.filter(email__iexact=email, organization_id=organization_id, group=group, project__in=project_id,  site__in=site_id, is_used=False)
+        userinvite = UserInvite.objects.filter(email__iexact=email, super_organization_id=super_organization_id,
+                                               organization_id=organization_id, group=group, project__in=project_id,
+                                               site__in=site_id, is_used=False)
 
         if userinvite:
             if group.name == "Unassigned":
-                response += 'Invite for '+ email + ' has already been sent.<br>'
+                response += 'Invite for ' + email + ' has already been sent.<br>'
             else:
-                response += 'Invite for '+ email + ' in ' + group.name +' role has already been sent.<br>'
+                response += 'Invite for ' + email + ' in ' + group.name + ' role has already been sent.<br>'
             continue
 
         user = User.objects.filter(email__iexact=email)
         if user:
-            userrole = UserRole.objects.filter(user=user[0], group=group, organization_id=organization_id, project__in=project_id, site__in=site_id, ended_at__isnull=True).order_by('-id') 
+            userrole = UserRole.objects.filter(user=user[0], group=group, super_organization_id=super_organization_id,
+                                               organization_id=organization_id, project__in=project_id,
+                                               site__in=site_id, ended_at__isnull=True).order_by('-id')
 
             if userrole:
                 if group.name == "Unassigned":
-                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' has already joined this Team.<br>'
+                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + \
+                                ' has already joined this Team.<br>'
                 else:
-                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' already has the role for '+group.name+'.<br>' 
+                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + \
+                                ' already has the role for '+ group.name+'.<br>'
                 continue
-           
-        invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32), group=group, organization_id=organization_id)
+
+        if group.name == 'Super Organization Admin':
+
+            invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32),
+                                group=group, super_organization_id=super_organization_id)
+        else:
+            invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32),
+                                group=group, organization_id=organization_id)
         invite.save()
+        invite.organization = organization_id
         invite.project = project_id
         invite.site = site_id
         current_site = get_current_site(request)
@@ -2006,17 +2022,19 @@ def senduserinvite(request):
         msg.content_subtype = "html"
         msg.send()
         if group.name == "Unassigned":
-            response += "Sucessfully invited "+ email +" to join this Team.<br>"
+            response += "Sucessfully invited " + email +" to join this Team.<br>"
         else:
             if len(invite.project.all()) > 0:
                 project = get_object_or_404(Project, id=invite.project.all()[0].id)
                 labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
                 if labels:
 
-                    TERMS_AND_LABELS = {'Project Donor': 'Project '+project.terms_and_labels.donor, 'Organization Admin':
-                                        'Team Admin', 'Project Manager': 'Project Manager', 'Reviewer': project.terms_and_labels.site_reviewer,
-                                        'Site Supervisor': project.terms_and_labels.site_supervisor, 'Super Admin': 'Super Admin',
-                                        'Staff Project Manager': 'Staff Project Manager', 'Region Supervisor': project. terms_and_labels.region_supervisor,
+                    TERMS_AND_LABELS = {'Project Donor': 'Project ' +project.terms_and_labels.donor,
+                                        'Organization Admin': 'Team Admin', 'Project Manager': 'Project Manager',
+                                        'Reviewer': project.terms_and_labels.site_reviewer,
+                                        'Site Supervisor': project.terms_and_labels.site_supervisor,
+                                        'Super Admin': 'Super Admin', 'Staff Project Manager': 'Staff Project Manager',
+                                        'Region Supervisor': project. terms_and_labels.region_supervisor,
                                         'Region Reviewer': project.terms_and_labels.region_reviewer
 
                                         }
@@ -2028,6 +2046,10 @@ def senduserinvite(request):
                 if group.name == 'Organization Admin':
 
                     response += "Sucessfully invited " + email +" for Team Admin role."
+
+                elif group.name == 'Super Organization Admin':
+
+                    response += "Sucessfully invited " + email + " for Super Organization Admin role."
                 else:
                     response += "Sucessfully invited " + email +" for "+ group.name +" role.<br>"
 
@@ -2706,6 +2728,25 @@ class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
         else:
             return HttpResponse("Failed")
 
+
+class MultiUserAssignTeamView(OrganizationRoleMixin, TemplateView):
+
+    def post(self, request, pk, *args, **kwargs):
+        data = json.loads(self.request.body)
+        teams = data.get('projects')
+        users = data.get('users')
+        group = Group.objects.get(name=data.get('group'))
+        group_id = Group.objects.get(name="Organization Admin").id
+        user = request.user
+        super_org = get_object_or_404(SuperOrganization, pk=pk)
+        task_obj = CeleryTaskProgress.objects.create(user=user, content_object=super_org, task_type=1)
+        if task_obj:
+            task = multiuserassignteam.delay(task_obj.pk, pk, teams, users, group_id)
+            task_obj.task_id=task.id
+            task_obj.save()
+            return HttpResponse("Success")
+        else:
+            return HttpResponse("Failed")
 
 #May need it
 # class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):

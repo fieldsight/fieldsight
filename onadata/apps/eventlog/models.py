@@ -4,15 +4,14 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.contrib.auth.models import User
 
-
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from jsonfield import JSONField
 
-
-from onadata.apps.fieldsight.models import Organization, Project, Site
+from onadata.apps.fieldsight.models import Organization, Project, Site, SuperOrganization
 from onadata.apps.users.models import UserProfile
+
 from celery.result import AsyncResult
 from django.contrib.contenttypes.fields import GenericRelation
 
@@ -63,6 +62,7 @@ class FieldSightLog(models.Model):
         (38, 'User was added as Region Supervisor of Region Name by Invitor Full Name.'),
         (39, 'User was added as Region Reviewer in count regions of project by Invitor Full Name.'),
         (40, 'User was added as Region Supervisor in count regions of project by Invitor Full Name.'),
+        (41, 'User was added as the Super Organization Admin of Organization Name by Invitor Full Name.'),
         (412, 'Bulk upload of number + sites in Project Name failed.'),
         (421, 'User assign unsuccessful in Team.'),
         (422, 'User assign unsucessfull in project.'),
@@ -78,6 +78,7 @@ class FieldSightLog(models.Model):
     is_seen = models.BooleanField(default=False)
     seen_by = models.ManyToManyField(User)
     source = models.ForeignKey(User, related_name='log', null=True)
+    super_organization = models.ForeignKey(SuperOrganization, related_name="logs", null=True, blank=True)
     organization = models.ForeignKey(Organization, related_name="logs", null=True)
     project = models.ForeignKey(Project, related_name="logs", null=True)
     site = models.ForeignKey(Site, related_name="logs", null=True)

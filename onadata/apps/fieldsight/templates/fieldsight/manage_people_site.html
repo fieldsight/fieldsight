@@ -56,27 +56,81 @@
                 }
             });
 
-
-            var email2OrgTags = $('#email2OrgTags');
+             var email2OrgTags = $('#email2OrgTags');
 
             var addEvent = function(text) {
                 $('#events_container').append(text + '<br>');
             };
 
             email2OrgTags.tagit({
-             
+
                 afterTagAdded: function(evt, ui) {
                     emails2=email2OrgTags.tagit('assignedTags')
                     console.log(emails2);
                 },
-             
+
                 afterTagRemoved: function(evt, ui) {
                     emails2=email2OrgTags.tagit('assignedTags')
                     console.log(emails2);
                 },
-             
+
             });
-          
+
+
+             var email1SuperOrgTags = $('#email1SuperOrgTags');
+
+            var addEvent = function(text) {
+                $('#events_container').append(text + '<br>');
+            };
+
+            email1SuperOrgTags.tagit({
+
+                beforeTagAdded: function(evt, ui) {
+                    if (!ui.duringInitialization) {
+                        addEvent('beforeTagAdded: ' + email1SuperOrgTags.tagit('tagLabel', ui.tag));
+                    }
+                },
+                afterTagAdded: function(evt, ui) {
+                    emails1=email1SuperOrgTags.tagit('assignedTags')
+                    console.log(emails1);
+                },
+                beforeTagRemoved: function(evt, ui) {
+
+                },
+                afterTagRemoved: function(evt, ui) {
+                    emails1=email1SuperOrgTags.tagit('assignedTags')
+                    console.log(emails1);
+                },
+                onTagClicked: function(evt, ui) {
+                    addEvent('onTagClicked: ' + email1SuperOrgTags.tagit('tagLabel', ui.tag));
+                },
+                onTagExists: function(evt, ui) {
+                    addEvent('onTagExists: ' + email1SuperOrgTags.tagit('tagLabel', ui.existingTag));
+                }
+            });
+
+
+           var email2SuperOrgTags = $('#email2SuperOrgTags');
+
+            var addEvent = function(text) {
+                $('#events_container').append(text + '<br>');
+            };
+
+            email2SuperOrgTags.tagit({
+
+                afterTagAdded: function(evt, ui) {
+                    emails2=email2SuperOrgTags.tagit('assignedTags')
+                    console.log(emails2);
+                },
+
+                afterTagRemoved: function(evt, ui) {
+                    emails2=email2SuperOrgTags.tagit('assignedTags')
+                    console.log(emails2);
+                },
+
+            });
+
+
 
            var email1ProjectTags = $('#email1ProjectTags');
 
@@ -240,6 +294,12 @@ var CSRF_TOKEN = '{{ csrf_token }}';
   var proj_site_url = '{% url 'role:multi_ops_list' 1 pk %}';
   userurl = '{% url 'role:multi_user_list' 1 pk %}';
   assignurl = '{% url 'fieldsight:multi_user_project_assign' pk %}'
+
+{% elif type == "super_org" %}
+
+  var proj_site_url = '{% url 'role:multi_ops_list' 2 pk %}';
+  userurl = '{% url 'role:multi_user_list' 3 pk %}';
+  assignurl = '{% url 'fieldsight:multi_user_team_assign' pk %}'
 
 {% endif %}
 
@@ -1434,11 +1494,11 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                 <form>
                   <div class="input-group">
 
-                  <ul id="email1OrgTags">
+                  <ul id="email1SuperOrgTags">
 
                     </ul>
                     <span class="input-group-btn">
-                      <button class="btn btn-primary" id="retry" onclick="sendmultiplerequest('Organization Admin', 1)"
+                      <button class="btn btn-primary" id="retry" onclick="sendmultiplerequest('Super Organization Admin', 1)"
                               type="button"><i class="la la-user-plus"></i> {% trans 'Invite' %}</button>
                     </span>
                   </div>
@@ -1462,7 +1522,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
                  <input type="button" class="btn btn-primary margin-top" value="Select All" data-bind=" click:$root.setAllAssignAsSelected">
                  <input type="button" class="btn btn-primary margin-top" value="Unselect All" data-bind="click:$root.setAllUnSelected">
 
-                  <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignOadmin"><i class="la la-user-plus"></i> {% trans 'Assign' %} {% trans 'Team' %} {% trans 'Admin' %}</button>
+                  <button type="submit" class="btn btn-primary margin-top" data-bind="click:$root.assignSuperOrgadmin"><i class="la la-user-plus"></i> {% trans 'Assign' %} {% trans 'Super' %} {% trans 'Organization' %} {% trans 'Admin' %}</button>
                   <ul class="row" data-bind="foreach:$root.users">
                   <li class="col-md-4">
                     <label class="custom-control margin-top user-checkbox custom-checkbox" >
@@ -1539,7 +1599,7 @@ vm = new ManagePeopleViewModel(pk, level, organization);
 
                 </ul> -->
                  <div class="input-group">
-                     <ul id="email2OrgTags">
+                     <ul id="email2SuperOrgTags">
                     </ul>
                     <span class="input-group-btn">
                       <button class="btn btn-primary" id="retry" data-bind="click:inviteforemails" type="button">
@@ -1871,10 +1931,13 @@ function sendnewuserinvite(){
 
 <script>
   function sendinvite(emails, group){
-      $('#myinvitemodal').modal(); 
+      $('#myinvitemodal').modal();
+
+      var super_organization_id = $("#invite_super_organization_id").val();
       var organization_id = $("#invite_organization_id").val();
       var project_id = $("#invite_project_id").val();
       var site_id = $("#invite_site_id").val();
+
       // console.log(emails);
       // console.log(group);
       // console.log(project_id);
@@ -1882,7 +1945,8 @@ function sendnewuserinvite(){
       // console.log(organization_id);
       $.ajax({
         url: "{% url 'fieldsight:senduserinvite' %}",
-        data: {'emails[]': emails, 'organization_id':organization_id,'project_id':project_id,'site_id':site_id,'group':group, 'csrfmiddlewaretoken': '{{ csrf_token }}'},
+        data: {'emails[]': emails, 'organization_id':organization_id,'project_id':project_id,'site_id':site_id,
+        'super_organization_id': super_organization_id, 'group':group, 'csrfmiddlewaretoken': '{{ csrf_token }}'},
         type: 'POST',
         success: function (html) {
            $('#update-next-step').html(html);
@@ -1893,14 +1957,16 @@ function sendnewuserinvite(){
 {% else %}
 <script>
   function sendinvite(emails, group){ 
-      $('#myinvitemodal').modal(); 
+      $('#myinvitemodal').modal();
+      var super_organization_id = $("#invite_super_organization_id").val();
       var organization_id = $("#invite_organization_id").val();
       var project_id = $("#invite_project_id").val();
       var site_id = $("#invite_site_id").val();
       
       $.ajax({
         url: "{% url 'fieldsight:senduserinvite' %}",
-        data: {'emails[]': emails, 'organization_id':organization_id,'project_id':project_id,'site_id':site_id,'group':group, 'csrfmiddlewaretoken': '{{ csrf_token }}'},
+        data: {'emails[]': emails, 'organization_id':organization_id,'project_id':project_id,'site_id':site_id,
+        'super_organization_id': super_organization_id, 'group':group, 'csrfmiddlewaretoken': '{{ csrf_token }}'},
         type: 'POST',
         success: function (html) {
 
