@@ -14,6 +14,7 @@ from onadata.apps.fv3.permissions.super_admin import SuperAdminPermission
 from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
     OrganizationFormLibrarySerializer
+from onadata.apps.fv3.serializer import TeamSerializer
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -75,13 +76,17 @@ class ManageTeamsView(APIView):
 
     def get(self, request, pk, *args,  **kwargs):
         queryset = Organization.objects.all()
-        selected_teams = queryset.filter(parent_id=pk).values('id', 'name')
-        selected_team_ids = [team['id'] for team in selected_teams if id in team]
+        selected_teams_qs = queryset.filter(parent_id=pk)
+        selected_teams = TeamSerializer(selected_teams_qs, many=True).data
+        selected_team_ids = [team['id'] for team in selected_teams if 'id' in team]
         teams = queryset.exclude(id__in=selected_team_ids).values('id', 'name')
-        return Response(status=status.HTTP_200_OK, data={'teams': teams, 'selected_teams': selected_teams})
+        is_superuser = True if request.user.is_superuser else False
+        return Response(status=status.HTTP_200_OK, data={'teams': teams, 'selected_teams': selected_teams,
+                                                         'is_superuser': is_superuser})
 
     def post(self, request, pk, format=None):
         team_ids = request.data.get('team_ids', None)
+        team_id = request.data.get('team_id', None)
 
         if team_ids:
             Organization.objects.filter(id__in=team_ids).update(parent_id=pk)
@@ -96,8 +101,12 @@ class ManageTeamsView(APIView):
 
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
 
+        elif team_id:
+            Organization.objects.get(id=team_id).update(parent_id=None)
+
         else:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'team_ids field is required.'})
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'team_ids or team_id '
+                                                                                'field is required.'})
 
 
 class OrganizationFormLibraryVS(viewsets.ModelViewSet):

@@ -200,8 +200,14 @@ class TeamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
+
         fields = ('id', 'name', 'logo', 'address', 'team_owner', 'team_owner_id', 'projects', 'users', 'sites',
                   'parent')
+
+        extra_kwargs = {
+            'parent': {'write_only': True},
+        }
+
 
     def get_team_owner(self, obj):
         return obj.owner.get_full_name() if obj.owner else None
