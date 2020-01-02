@@ -10,11 +10,13 @@ from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from django.contrib.gis.geos import Point
 from rest_framework.response import Response
 from onadata.apps.fv3.permissions.super_admin import SuperAdminPermission
+from onadata.apps.fv3.permissions.super_organization import SuperOrganizationAdminPermission
 
 from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
     OrganizationFormLibrarySerializer
 from onadata.apps.fv3.serializer import TeamSerializer
+from onadata.apps.logger.models import XForm
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -109,8 +111,44 @@ class ManageTeamsView(APIView):
             FieldSightXF.objects.filter(project_id__in=projects, id__in=library_forms).update(is_deleted=True,
                                                                                               is_deployed=False)
 
+            return Response(status=status.HTTP_200_OK, data={'detail': 'successfully removed.'})
+
+
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'team_ids or team_id '
+                                                                                'field is required.'})
+
+
+class ManageSuperOrganizationLibraryView(APIView):
+
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
+
+    def get(self, request, pk, *args,  **kwargs):
+        my_forms = XForm.objects.filter(user=request.user, deleted_xform=None)
+        selected_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk).values('xf_id', 'xf__title')
+        selected_form_ids = [form['xf_id'] for form in selected_org_forms if 'xf_id' in form]
+        forms = my_forms.exclude(id__in=selected_form_ids).values('id', 'title')
+        return Response(status=status.HTTP_200_OK, data={'forms': forms, 'selected_forms': selected_org_forms})
+
+    def post(self, request, pk, format=None):
+        xf_ids = request.data.get('xf_ids', None)
+        xf_id = request.data.get('xf_id', None)
+        org_forms_list = []
+        if xf_ids:
+            for org_form in xf_ids:
+                org_form_lib = OrganizationFormLibrary(xf_id=org_form, organization_id=pk)
+                org_forms_list.append(org_form_lib)
+            OrganizationFormLibrary.objects.bulk_create(org_forms_list)
+
+            return Response(status=status.HTTP_201_CREATED, data={'detail': 'successfully created.'})
+
+        elif xf_id:
+            OrganizationFormLibrary.objects.create(xf_id=xf_id, organization_id=pk)
+            return Response(status=status.HTTP_200_OK, data={'detail': 'successfully removed.'})
+
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'xf_ids or xf_id '
                                                                                 'field is required.'})
 
 
@@ -126,6 +164,9 @@ class OrganizationFormLibraryVS(viewsets.ModelViewSet):
         if not org:
             return []
         return self.queryset.filter(organization=org)
+
+    def perform_create(self, serializer):
+        return serializer.save(organization_id=self.request.query_params.get('org'))
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

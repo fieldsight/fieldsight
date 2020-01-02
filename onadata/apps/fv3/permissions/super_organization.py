@@ -7,7 +7,7 @@ from onadata.apps.fieldsight.models import Project
 
 class SuperOrganizationAdminPermission(permissions.BasePermission):
     """
-    Project and site level view by forms and status permission.
+    super org admin permission
     """
 
     def has_permission(self, request, view):
@@ -15,3 +15,12 @@ class SuperOrganizationAdminPermission(permissions.BasePermission):
 
         if request.is_super_admin:
             return True
+
+        user_role_as_super_org_admin = request.roles.filter(super_organization_id=organization,
+                                                            group__name="Super Organization Admin")
+        if user_role_as_super_org_admin:
+            return True
+
+        else:
+            return False
+
