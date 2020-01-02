@@ -23,6 +23,7 @@ from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATIO
     FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA
 from ..eventlog.models import CeleryTaskProgress
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.reporting.tasks import new_export
 
 
 class ReportingProjectFormData(APIView):
@@ -482,7 +483,7 @@ class ReportExportView(APIView):
     permission_classes = [IsAuthenticated, ReportingSettingsPermissions]
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
 
-    def post(self, request, pk, *args,  **kwargs):
+    def get(self, request, pk, *args,  **kwargs):
 
         report_obj = ReportSettings.objects.get(id=pk)
 
@@ -491,7 +492,7 @@ class ReportExportView(APIView):
         if export_type == 'excel':
             task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=26, content_object=report_obj)
             if task_obj:
-
+                new_export.delay(report_obj.id, task_obj.id)
                 return Response(status=status.HTTP_201_CREATED, data={'detail': 'The excel report is being generated. '
                                                                                 'You will be notified after the report '
                                                                                 'is generated.'})

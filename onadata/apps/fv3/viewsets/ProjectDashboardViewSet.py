@@ -2,6 +2,7 @@ import datetime
 import json
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Count, Case, When, F, IntegerField
 from django.shortcuts import get_object_or_404
 from django.http import Http404
 from django.conf import settings
@@ -21,7 +22,7 @@ from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermiss
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
     ProgressGeneralFormSerializer, ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer, \
-    SitelistForMetasLinkSerializer
+    SitelistForMetasLinkSerializer, StageFormSerializer
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions, \
     SupervisorPermission
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
@@ -310,15 +311,37 @@ class SupervisorProjectDashboardView(APIView):
         total_submissions = outstanding + flagged + approved + rejected,
         total_sites = obj.sites.filter(is_active=True, is_survey=False, site__isnull=True).count()
         total_regions = obj.project_region.filter(is_active=True, parent__isnull=True).count()
-        project_managers_qs = obj.project_roles.select_related("user", "user__user_profile").filter(
-            ended_at__isnull=True,
-            group__name="Project Manager")
+        project_users = obj.project_roles.select_related("user", "user__user_profile", "group").\
+            filter(ended_at__isnull=True).distinct('user')
 
         users = [{'id': role.user.id, 'full_name': role.user.get_full_name(),
-                  'profile_picture': role.user.user_profile.profile_picture.url, 'role': 'Project Manager'} for role in
-                 project_managers_qs]
+                  'profile_picture': role.user.user_profile.profile_picture.url, 'role': role.group.name} for role in
+                 project_users]
+
+        general_forms = FieldSightXF.objects.filter(project_id=project_id, is_staged=False, is_scheduled=False,
+                                                     is_deleted=False, is_survey=False).\
+            select_related('xf', 'project').prefetch_related('project_form_instances').\
+            annotate(response_count=Count(Case(When(project_form_instances__is_deleted=False,
+                                                    then=F('project_form_instances')), output_field=IntegerField(),),
+                                          distinct=True), form_id=F('xf_id'),  title=F('xf__title')).\
+            values('form_id', 'response_count', 'title')
+
+        schedule_forms = Schedule.objects.filter(project_id=project_id, schedule_forms__isnull=False,
+                                                 schedule_forms__is_deleted=False).\
+            select_related('schedule_forms', 'schedule_forms__xf').\
+            prefetch_related('schedule_forms__project_form_instances').\
+            annotate(response_count=Count(Case(When(schedule_forms__project_form_instances__is_deleted=False,
+                                                    then=F('schedule_forms__project_form_instances')),
+                                               output_field=IntegerField(),), distinct=True),
+                     form_id=F('schedule_forms__xf_id'), title=F('schedule_forms__xf__title')).\
+            values('form_id', 'response_count', 'title')
+
+        stage_queryset = Stage.objects.filter(stage__isnull=True, project_id=project_id).\
+            order_by('order', 'date_created')
+        stage_forms = StageFormSerializer(stage_queryset, many=True).data
 
         return Response({'total_submissions': total_submissions[0],
                          'total_sites': total_sites,
                          'total_regions': total_regions,
-                         'users': users})
+                         'users': users, 'forms': {'general_forms': general_forms, 'scheduled_forms': schedule_forms,
+                                                   'staged_forms': stage_forms}})

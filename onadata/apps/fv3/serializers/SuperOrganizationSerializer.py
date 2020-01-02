@@ -53,7 +53,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
         #     'user_id').count()
 
 
-class OrganizationFormLibrarySerializer(serializers.Serializer):
+class OrganizationFormLibrarySerializer(serializers.ModelSerializer):
     xf_title = serializers.SerializerMethodField()
 
     class Meta:

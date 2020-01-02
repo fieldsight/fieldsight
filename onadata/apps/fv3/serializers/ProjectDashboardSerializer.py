@@ -3,6 +3,7 @@ import json
 
 from collections import OrderedDict
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -377,3 +378,48 @@ class SitelistForMetasLinkSerializer(serializers.ModelSerializer):
         return obj.identifier
 
 
+class SubStageFormSerializer(serializers.ModelSerializer):
+    title = serializers.SerializerMethodField()
+    response_count = serializers.SerializerMethodField()
+    form_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+        fields = ('id', 'name', 'order', 'title', 'response_count',
+                  'form_id')
+
+    def get_form_id(self, obj):
+        return obj.stage_forms.xf.id
+
+    def get_title(self, obj):
+        return obj.stage_forms.xf.title
+
+    def get_response_count(self, obj):
+
+        try:
+            fsxf = FieldSightXF.objects.get(stage=obj)
+            count = fsxf.project_form_instances.count()
+            return count
+
+        except ObjectDoesNotExist:
+            return 0
+
+
+class StageFormSerializer(serializers.ModelSerializer):
+    sub_stages = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+        fields = ('id', 'name', 'sub_stages')
+
+    def get_sub_stages(self, obj):
+        queryset = Stage.objects.filter(stage__isnull=False)
+
+        stage_id = obj.id
+        queryset = queryset.filter(stage__id=stage_id)
+
+        queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf'). \
+            prefetch_related('stage_forms__site_form_instances')
+
+        data = SubStageFormSerializer(queryset, many=True).data
+        return data
