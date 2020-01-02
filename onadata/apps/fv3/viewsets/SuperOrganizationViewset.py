@@ -103,6 +103,11 @@ class ManageTeamsView(APIView):
 
         elif team_id:
             Organization.objects.get(id=team_id).update(parent_id=None)
+            projects = Project.objects.filter(organization__id=team_id).values_list('id', flat=True)
+            library_forms = OrganizationFormLibrary.objects.filter(organization=pk).values_list('xf', flat=True)
+
+            FieldSightXF.objects.filter(project_id__in=projects, id__in=library_forms).update(is_deleted=True,
+                                                                                              is_deployed=False)
 
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'team_ids or team_id '
