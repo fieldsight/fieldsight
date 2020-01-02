@@ -104,7 +104,7 @@ class ManageTeamsView(APIView):
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
 
         elif team_id:
-            Organization.objects.get(id=team_id).update(parent_id=None)
+            Organization.objects.filter(id=team_id).update(parent_id=None)
             projects = Project.objects.filter(organization__id=team_id).values_list('id', flat=True)
             library_forms = OrganizationFormLibrary.objects.filter(organization=pk).values_list('xf', flat=True)
 
@@ -144,7 +144,7 @@ class ManageSuperOrganizationLibraryView(APIView):
             return Response(status=status.HTTP_201_CREATED, data={'detail': 'successfully created.'})
 
         elif xf_id:
-            OrganizationFormLibrary.objects.create(xf_id=xf_id, organization_id=pk)
+            OrganizationFormLibrary.objects.filter(xf_id=xf_id, organization_id=pk).update(deleted=True)
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully removed.'})
 
         else:
