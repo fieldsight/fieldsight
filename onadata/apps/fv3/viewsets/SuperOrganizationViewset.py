@@ -129,7 +129,8 @@ class ManageSuperOrganizationLibraryView(APIView):
         selected_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk).values('xf_id', 'xf__title')
         selected_form_ids = [form['xf_id'] for form in selected_org_forms if 'xf_id' in form]
         forms = my_forms.exclude(id__in=selected_form_ids).values('id', 'title')
-        return Response(status=status.HTTP_200_OK, data={'forms': forms, 'selected_forms': selected_org_forms})
+        selected_forms = [{'id': form['xf_id'], 'title': form['xf__title']} for form in selected_org_forms]
+        return Response(status=status.HTTP_200_OK, data={'forms': forms, 'selected_forms': selected_forms})
 
     def post(self, request, pk, format=None):
         xf_ids = request.data.get('xf_ids', None)
