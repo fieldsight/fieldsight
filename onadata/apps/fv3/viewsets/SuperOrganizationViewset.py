@@ -91,6 +91,9 @@ class ManageTeamsView(APIView):
         team_id = request.data.get('team_id', None)
 
         if team_ids:
+            """
+                Add teams in super organization
+            """
             Organization.objects.filter(id__in=team_ids).update(parent_id=pk)
             projects = Project.objects.filter(organization__id__in=team_ids)
             library_forms = OrganizationFormLibrary.objects.filter(organization=pk)
@@ -100,10 +103,14 @@ class ManageTeamsView(APIView):
                     fsxf = FieldSightXF(xf=lf.xf, project=p, is_deployed=True)
                     fsxf_list.append(fsxf)
             FieldSightXF.objects.bulk_create(fsxf_list)
-
-            return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
+            selected_teams_qs = Organization.objects.filter(parent_id=pk)
+            selected_teams = TeamSerializer(selected_teams_qs, many=True).data
+            return Response(status=status.HTTP_200_OK, data=selected_teams)
 
         elif team_id:
+            """
+                Remove team from super organization
+            """
             Organization.objects.filter(id=team_id).update(parent_id=None)
             projects = Project.objects.filter(organization__id=team_id).values_list('id', flat=True)
             library_forms = OrganizationFormLibrary.objects.filter(organization=pk).values_list('xf', flat=True)
@@ -112,7 +119,6 @@ class ManageTeamsView(APIView):
                                                                                               is_deployed=False)
 
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully removed.'})
-
 
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'team_ids or team_id '
@@ -137,14 +143,22 @@ class ManageSuperOrganizationLibraryView(APIView):
         xf_id = request.data.get('xf_id', None)
         org_forms_list = []
         if xf_ids:
+            """
+                Add forms in super organization form library
+            """
             for org_form in xf_ids:
                 org_form_lib = OrganizationFormLibrary(xf_id=org_form, organization_id=pk)
                 org_forms_list.append(org_form_lib)
             OrganizationFormLibrary.objects.bulk_create(org_forms_list)
 
-            return Response(status=status.HTTP_201_CREATED, data={'detail': 'successfully created.'})
+            selected_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk).values('xf_id', 'xf__title')
+            selected_forms = [{'id': form['xf_id'], 'title': form['xf__title']} for form in selected_org_forms]
+            return Response(status=status.HTTP_201_CREATED, data=selected_forms)
 
         elif xf_id:
+            """
+                Remove form from super organization library
+            """
             OrganizationFormLibrary.objects.filter(xf_id=xf_id, organization_id=pk).update(deleted=True)
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully removed.'})
 
