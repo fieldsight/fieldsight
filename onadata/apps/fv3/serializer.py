@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from onadata.apps.fieldsight.models import Project, Organization, Region, Site, Sector, SiteType,  ProjectLevelTermsAndLabels, SuperOrganization
 from onadata.apps.fieldsight.serializers.SiteSerializer import SiteTypeSerializer
+from onadata.apps.userrole.models import UserRole
 
 
 class Base64ImageField(serializers.ImageField):
@@ -233,52 +234,34 @@ class TeamSerializer(serializers.ModelSerializer):
 
 class SuperOrganizationSerializer(serializers.ModelSerializer):
     total_sites = serializers.SerializerMethodField()
-    submissions = serializers.SerializerMethodField()
     contact = serializers.SerializerMethodField()
     projects = serializers.SerializerMethodField()
-    total_projects = serializers.SerializerMethodField()
-    total_users = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
     map = serializers.SerializerMethodField()
-    total_teams = serializers.SerializerMethodField()
     teams = serializers.SerializerMethodField()
+    total_users = serializers.SerializerMethodField()
+    admins = serializers.SerializerMethodField()
 
     class Meta:
         model = SuperOrganization
-        fields = ('id', 'name', 'phone', 'country', 'additional_desc', 'logo',
-                  'total_teams', 'email', 'total_sites', 'total_projects',
-                  'total_users', 'submissions', 'contact', 'projects',
-                  'breadcrumbs', 'teams', 'map')
-        read_only_fields = ('total_teams', 'total_sites', 'contact',
-                            'projects', 'total_projects', 'total_users', 'map',
-                            'breadcrumbs', 'submissions')
-
-    def get_submissions(self, obj):
-        outstanding, flagged, approved, rejected = obj.get_submissions_count()
-        total_submissions = flagged + approved + rejected + outstanding
-        submissions = {'total_submissions': total_submissions,
-                       'pending': outstanding, 'flagged': flagged,
-                       'approved': approved, 'rejected': rejected}
-        return submissions
+        fields = ('id', 'name', 'phone', 'country', 'additional_desc', 'logo', 'email', 'total_sites', 'contact',
+                  'projects', 'breadcrumbs', 'teams', 'map', 'total_users', 'admins')
+        read_only_fields = ('total_sites', 'contact', 'projects', 'map', 'total_users', 'breadcrumbs', 'admins')
 
     def get_teams(self, obj):
-        qs = Project.objects.filter(is_active=True, organization__parent=obj)
-        teams = []
-        for i in qs:
-            teams.append({'id': i.id, 'name': i.name, 'logo': i.logo.url,
-                          'address': i.address})
+
+        teams = obj.organizations.all().values('id', 'name', 'logo', 'address')
 
         return teams
 
-    def get_total_teams(self, obj):
-        return Organization.objects.filter(parent=obj).count()
+    def get_projects(self, obj):
+
+        projects = Project.objects.filter(organization__parent=obj).values('id', 'name', 'logo', 'address')
+        return projects
 
     def get_total_sites(self, obj):
-        total_sites = Site.objects.filter(is_survey=False, is_active=True).\
-            count()
-        # total_sites = Site.objects.filter(project__organization__parent=obj,
-        #                                   is_survey=False, is_active=True). \
-        #     count()
+        total_sites = Site.objects.filter(project__organization__parent=obj).count()
+
         return total_sites
 
     def get_contact(self, obj):
@@ -288,46 +271,37 @@ class SuperOrganizationSerializer(serializers.ModelSerializer):
 
         return contact
 
-    def get_projects(self, obj):
-        qs = Project.objects.filter(is_active=True)
-        # qs = Project.objects.filter(is_active=True, organization__parent=obj)
-        projects = []
-        for i in qs:
-            projects.append({'id': i.id, 'name': i.name, 'logo': i.logo.url,
-                             'address': i.address})
-
-        return projects
-
-    def get_total_projects(self, obj):
-        total_projects = Project.objects.filter(is_active=True).count()
-        # total_projects = Project.objects.filter(is_active=True,
-        #                                         organization__parent=obj). \
-        #     count()
-        return total_projects
-
     def get_total_users(self, obj):
-        return User.objects.filter(is_superuser=False).count()
-        # return obj.organization_roles.filter(ended_at__isnull=True).\
-        #     distinct('user_id').count()
+        team_ids = obj.organizations.values_list('id', flat=True)
+        total_users = UserRole.objects.select_related('user', 'user__profile').\
+            filter(organization_id__in=team_ids, ended_at=None).distinct('user_id').count()
+
+        return total_users
+
+    def get_admins(self, obj):
+        total_users = obj.super_organization_roles.select_related('user', 'user__user_profile').\
+            filter(ended_at=None, group__name="Super Organization Admin")
+
+        data = [{'id': admin.user.id, 'full_name': admin.user.get_full_name(), 'email': admin.user.email,
+                 'profile': admin.user.user_profile.profile_picture.url} for admin in total_users]
+
+        return data
 
     def get_breadcrumbs(self, obj):
         request = self.context['request']
         if request.is_super_admin:
             return {'name': obj.name,
-                    'super_organizations': 'SuperOrganization',
-                    'super_organization_url':
-                        '/fieldsight/application/#/SuperOrganizations'}
+                    'teams': 'Teams',
+                    'teams_url': '/fieldsight/application/#/teams'
+                    }
 
         else:
             return {'name': obj.name}
 
     def get_map(self, obj):
-        org_obj = Organization.objects.filter(parent=obj).count()
-        sites = Site.objects.filter(project=org_obj,
-                                    is_survey=False,
-                                    is_active=True).exclude(
-            location=None)[:100]
-        data = serialize('custom_geojson', sites, geometry_field='location',
+
+        projects = Project.objects.filter(organization__parent=obj).exclude(location=None)[:100]
+        data = serialize('custom_geojson', projects, geometry_field='location',
                          fields=('name', 'public_desc', 'additional_desc',
                                  'address', 'location', 'phone', 'id'))
 

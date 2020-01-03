@@ -62,7 +62,8 @@ class TeamSerializer(serializers.ModelSerializer):
         return projects
 
     def get_admin(self, obj):
-        admin_queryset = obj.organization_roles.filter(ended_at__isnull=True, group__name="Organization Admin")
+        admin_queryset = obj.organization_roles.select_related('user', 'user__user_profile').\
+            filter(ended_at__isnull=True, group__name="Organization Admin")
 
         data = [{'id': admin.user.id, 'full_name': admin.user.get_full_name(), 'email': admin.user.email, 'profile':
             admin.user.user_profile.profile_picture.url} for admin in admin_queryset]
