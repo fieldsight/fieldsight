@@ -2622,7 +2622,9 @@ def update_metas_in_sites(pk, start, end):
             start:end]
     print("updating site Metas batch for project ", pk, start, end)
     SiteMetaAttrAnsHistory.objects.bulk_create(
-        [SiteMetaAttrAnsHistory(site=site, meta_attributes_ans=site.all_ma_ans) for site in sites])
+        [SiteMetaAttrAnsHistory(site=site,
+                                meta_attributes_ans=site.all_ma_ans,
+                                status=3) for site in sites])
     for site in sites:
         old_all_ma_ans = copy.deepcopy(site.all_ma_ans)
         metas = get_site_meta_ans(site.id)

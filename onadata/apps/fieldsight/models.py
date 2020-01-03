@@ -878,7 +878,8 @@ class SiteProgressHistory(models.Model):
 
 META_CHANGE_STATUS = (
     (1, 'By submission'),
-    (2, 'By change in meta attributes')
+    (2, 'By change in meta attributes'),
+    (3, 'Meta Generation')
 )
 
 
