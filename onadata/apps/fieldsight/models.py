@@ -125,6 +125,9 @@ class SuperOrganization(models.Model):
         if self.location:
             return self.location.x
 
+    def getname(self):
+        return self.name
+
     def get_absolute_url(self):
         return "/fieldsight/application/#/super-team-dashboard/{}".format(self.pk)
 
@@ -756,7 +759,9 @@ class UserInvite(models.Model):
     site = models.ManyToManyField(Site, related_name='invite_site_roles')
     project = models.ManyToManyField(Project, related_name='invite_project_roles')
     regions = models.ManyToManyField(Region, related_name='invite_region_roles')
-    organization = models.ForeignKey(Organization, related_name='invite_organization_roles')
+    organization = models.ForeignKey(Organization, related_name='invite_organization_roles', null=True, blank=True)
+    super_organization = models.ForeignKey(SuperOrganization, related_name='invite_super_organization_roles',
+                                           null=True, blank=True)
     logs = GenericRelation('eventlog.FieldSightLog')
 
     def __unicode__(self):

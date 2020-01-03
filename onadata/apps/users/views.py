@@ -877,7 +877,12 @@ def accept_all_invitations(request, username):
         site = None
         project = None
         region = None
-        if invitation.group.name == "Organization Admin":
+
+        if invitation.group.name == "Super Organization Admin":
+            noti_type = 41
+            content = invitation.super_organization
+
+        elif invitation.group.name == "Organization Admin":
             noti_type = 1
             content = invitation.organization
 
@@ -948,6 +953,7 @@ def accept_all_invitations(request, username):
             content = invitation.project.all()[0]
 
         noti = invitation.logs.create(source=user, type=noti_type, title="new Role",
+                                      super_organization=invitation.super_organization,
                                       organization=invitation.organization,
                                       extra_message=extra_msg, project=project, site=site, content_object=content,
                                       extra_object=invitation.by_user,
