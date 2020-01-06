@@ -133,7 +133,6 @@ def site_report(report_obj):
     user_metrics, site_info_metrics = separate_metrics(attributes)
 
 
-
     selected_metas = ['Slip_Number', '3rd_Installment__CM_']
     form_metrics = {'form_id': 73732, 'metrices': []}
     form_information = [{'form_id': 73732, 'question': 'status_cbi/va/member_16_59', 'metrices': []}]
