@@ -32,7 +32,7 @@ def new_export(report_id, task_id):
     task.save()
     try:
         report_obj = ReportSettings.objects.get(pk=report_id)
-        if report_obj.type == 1:
+        if report_obj.type == 0:
             df = site_report(report_obj)
             xls_url = save_file(df,  "custom_report/", "site_report" + uuid4().hex)
         elif report_obj.type == 4:
