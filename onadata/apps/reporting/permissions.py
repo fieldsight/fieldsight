@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-from onadata.apps.fieldsight.models import Project
+from onadata.apps.fieldsight.models import Project, Organization
 from .models import ReportSettings
 
 
@@ -17,6 +17,16 @@ class ReportingProjectFormsPermissions(permissions.BasePermission):
 
         if project is not None:
             organization_id = project.organization_id
+
+            organization = Organization.objects.get(id=organization_id)
+
+            if organization.parent:
+                if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                                  group__name="Super Organization Admin"). \
+                        values_list('super_organization_id', flat=True):
+
+                    return True
+
             user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                        group__name="Organization Admin")
 
@@ -42,6 +52,15 @@ class ReportingProjectFormsPermissions(permissions.BasePermission):
 
         if project is not None:
             organization_id = project.organization_id
+
+            organization = Organization.objects.get(id=organization_id)
+
+            if organization.parent:
+                if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                                  group__name="Super Organization Admin"). \
+                        values_list('super_organization_id', flat=True):
+                    return True
+
             user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                        group__name="Organization Admin")
 

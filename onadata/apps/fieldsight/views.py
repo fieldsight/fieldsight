@@ -253,6 +253,16 @@ class ProjectDashboard(TemplateView):
         if user_role:
             return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
         organization_id = Project.objects.get(pk=project_id).organization.id
+
+        organization = Organization.objects.get(id=organization_id)
+        organization_id = organization.id
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
+
         user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
 
         if user_role_asorgadmin:

@@ -12,7 +12,7 @@ from django.core.serializers import serialize
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
-from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site
+from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site, Organization
 from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule
 from onadata.apps.fv3.role_api_permissions import check_del_site_perm
 from onadata.apps.fv3.serializer import Base64ImageField
@@ -87,11 +87,18 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
         is_project_manager = False
         organization_id = obj.organization.id
+        org = Organization.objects.get(id=organization_id)
         user_role_as_manager = request.roles.filter(project_id=obj.id, group__name="Project Manager")
         user_role_as_team_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
 
         if user_role_as_manager or request.is_super_admin or user_role_as_team_admin:
             is_project_manager = True
+
+        elif org.parent:
+            if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                     group__name="Super Organization Admin").\
+                    values_list('super_organization_id', flat=True):
+                is_project_manager = True
 
         return is_project_manager
 
@@ -238,6 +245,12 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         request = self.context['request']
         if request.roles.filter(group__name="Organization Admin", organization=organization) or request.is_super_admin:
             organization_url = organization.get_absolute_url()
+
+        elif organization.parent:
+                if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                         group__name="Super Organization Admin"). \
+                        values_list('super_organization_id', flat=True):
+                    organization_url = organization.get_absolute_url()
 
         return {'name': project, 'organization': organization.name, 'organization_url': organization_url}
 
