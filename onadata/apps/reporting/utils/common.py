@@ -12,8 +12,6 @@ def separate_metrices(attributes):
                 default_metrics.append(a)
             elif a['category'] == 'users':
                 user_metrics.append(a)
-            elif a['category'] == 'site_information':
-                site_info_metrics.append(a)
         elif a.get('value'):
             value = a['value']
             if value.get('selectedQuestion'):
@@ -23,6 +21,9 @@ def separate_metrices(attributes):
                     individual_form_metrics.append(a)
                 else:
                     raise ValueError
+            elif value.get('category') == "site_information":
+                site_info_metrics.append(a)
+
             else:
                 raise ValueError
         else:
