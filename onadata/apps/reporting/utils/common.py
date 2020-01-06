@@ -34,6 +34,4 @@ def separate_metrics(attributes):
             raise ValueError
     for d in default_metrics:
         default_metrics_code.append(d['code'])
-
-
     return default_metrics_code, individual_form_metrics, form_information_metrics, user_metrics, site_info_metrics

@@ -130,19 +130,27 @@ def site_report(report_obj):
     project_id = report_obj.project_id
     attributes = report_obj.attributes
     default_metrics, individual_form_metrics, form_information_metrics,\
-    user_metrics, site_info_metrics = separate_metrics(attributes)
+        user_metrics, site_info_metrics = separate_metrics(attributes)
+    selected_metas = []
+    for meta in site_info_metrics:
+        selected_metas.append(meta['code'])
 
+    if selected_metas:
+        query = Site.objects.filter(project_id=project_id).values(
+            'id', 'identifier', 'name', 'current_progress', 'all_ma_ans')
+        df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress', 'all_ma_ans'])
+        df.columns = ['site', 'identifier', 'name', 'current_progress', 'all_ma_ans']
+        meta_objects = [df, pd.DataFrame(df['all_ma_ans'].tolist())][selected_metas]
+        df = pd.concat(meta_objects, axis=1).drop('all_ma_ans', axis=1)
+    else:
+        query = Site.objects.filter(project_id=project_id).values(
+            'id', 'identifier', 'name', 'current_progress')
+        df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress'])
+        df.columns = ['site', 'identifier', 'name', 'current_progress']
 
-    selected_metas = ['Slip_Number', '3rd_Installment__CM_']
+    return df
     form_metrics = {'form_id': 73732, 'metrices': []}
     form_information = [{'form_id': 73732, 'question': 'status_cbi/va/member_16_59', 'metrices': []}]
-    query = Site.objects.filter(project_id=project_id).values(
-        'id', 'identifier', 'name', 'current_progress', 'all_ma_ans')
-    df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress', 'all_ma_ans'])
-    df.columns = ['site', 'identifier', 'name', 'current_progress', 'all_ma_ans']
-    meta_objects = [df, pd.DataFrame(df['all_ma_ans'].tolist())] #[selected_metas]]
-    df = pd.concat(meta_objects, axis=1).drop('all_ma_ans', axis=1)
-    return df
 
     query_submissions = FInstance.objects.filter(
         Q(project_fxf__project=project_id) |
