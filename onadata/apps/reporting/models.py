@@ -19,9 +19,9 @@ REPORT_TYPES = (
 METRICES_DATA = [
     {'code': 'num_sites', 'label': _('Number of Sites'), 'types': [1, 2, 3, 4, 5],
      'category': 'default'},
-    {'code': 'num_regions', 'label': _('Number of Regions'), 'types': [0, 2, 3, 4, 5],
+    {'code': 'num_regions', 'label': _('Number of Regions'), 'types': [2, 3, 4, 5],
      'category': 'default'},
-    {'code': 'num_projects', 'label': _('Number of Projects'), 'types': [0, 1, 3, 4, 5],
+    {'code': 'num_projects', 'label': _('Number of Projects'), 'types': [3, 4, 5],
      'category': 'default'},
     {'code': 'sites_visited', 'label': _('Sites Visited'), 'types': [0, 1, 2, 3, 4, 5],
      'category': 'default'},
