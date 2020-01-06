@@ -140,7 +140,7 @@ def site_report(report_obj):
             'id', 'identifier', 'name', 'current_progress', 'all_ma_ans')
         df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress', 'all_ma_ans'])
         df.columns = ['site', 'identifier', 'name', 'current_progress', 'all_ma_ans']
-        meta_objects = [df, pd.DataFrame(df['all_ma_ans'].tolist())][selected_metas]
+        meta_objects = [df, pd.DataFrame(df['all_ma_ans'].tolist())[selected_metas]]
         df = pd.concat(meta_objects, axis=1).drop('all_ma_ans', axis=1)
     else:
         query = Site.objects.filter(project_id=project_id).values(
