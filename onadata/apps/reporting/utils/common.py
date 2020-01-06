@@ -1,5 +1,5 @@
 
-def separate_metrices(attributes):
+def separate_metrics(attributes):
     default_metrics = []
     individual_form_metrics = []
     form_information_metrics = []

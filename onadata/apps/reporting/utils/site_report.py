@@ -3,7 +3,7 @@ from django.db.models import Q
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
-from onadata.apps.reporting.utils.common import separate_metrices
+from onadata.apps.reporting.utils.common import separate_metrics
 from onadata.apps.userrole.models import UserRole
 
 
@@ -130,7 +130,7 @@ def site_report(report_obj):
     project_id = report_obj.project_id
     attributes = report_obj.attributes
     default_metrics, individual_form_metrics, form_information_metrics,\
-    user_metrics, site_info_metrics = separate_metrices(attributes)
+    user_metrics, site_info_metrics = separate_metrics(attributes)
 
 
 
