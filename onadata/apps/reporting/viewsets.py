@@ -13,7 +13,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework import viewsets
 
-from onadata.apps.fieldsight.models import Project, Site, Region
+from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
     exportProjectSiteResponses, form_status_map
@@ -431,6 +431,7 @@ def metrics_data(request, pk):
     form_question_answer_status_form_metas = []
     report_types = [{'id': rep_type[0], 'name': rep_type[1]} for rep_type in REPORT_TYPES]
     regions = Region.objects.filter(project=project, is_active=True).values('id', 'name')
+    site_types = SiteType.objects.filter(project=project).values('id', 'name')
 
     for meta in meta_attributes:
 
@@ -478,6 +479,7 @@ def metrics_data(request, pk):
 
     return Response(status=status.HTTP_200_OK, data={'report_types': report_types,
                                                      'regions': regions,
+                                                     'site_types': site_types,
                                                      'metrics': metrics, 'meta_attributes': meta_attributes,
                                                      'form_types': form_types})
 

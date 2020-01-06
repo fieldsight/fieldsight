@@ -204,19 +204,22 @@ FILTER_METRICS_DATA = [
     {'code': 'regions', 'label': _('Regions'), 'types':  [0],
      'category': 'filter'},
 
+    {'code': 'site_types', 'label': _('Site Types'), 'types': [0],
+     'category': 'filter'},
+
     {'code': 'user_roles', 'label': _('User Roles'), 'types':  [4],
      'category': 'filter'},
 
     {'code': 'time_period', 'label': _('Time Period'), 'types':  [5],
      'category': 'filter'},
 
-    {'code': 'site_information', 'label': _('Site Information'), 'types':  [0, 1, 3, 4, 5],
+    {'code': 'site_information', 'label': _('Site Information'), 'types':  [3],
      'category': 'filter'},
 
-    {'code': 'value', 'label': _('Value'), 'types':  [0, 1, 3, 4, 5],
+    {'code': 'value', 'label': _('Value'), 'types':  [3],
      'category': 'filter'},
 
-    {'code': 'sub_group', 'label': _('Sub Group'), 'types':  [0, 1, 3, 4, 5],
+    {'code': 'sub_group', 'label': _('Sub Group'), 'types':  [3],
      'category': 'filter'},
 ]
 
