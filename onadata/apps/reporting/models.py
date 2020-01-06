@@ -19,9 +19,9 @@ REPORT_TYPES = (
 METRICES_DATA = [
     {'code': 'num_sites', 'label': _('Number of Sites'), 'types': [1, 2, 3, 4, 5],
      'category': 'default'},
-    {'code': 'num_regions', 'label': _('Number of Regions'), 'types': [0, 2, 3, 4, 5],
+    {'code': 'num_regions', 'label': _('Number of Regions'), 'types': [2, 3, 4, 5],
      'category': 'default'},
-    {'code': 'num_projects', 'label': _('Number of Projects'), 'types': [0, 1, 3, 4, 5],
+    {'code': 'num_projects', 'label': _('Number of Projects'), 'types': [3, 4, 5],
      'category': 'default'},
     {'code': 'sites_visited', 'label': _('Sites Visited'), 'types': [0, 1, 2, 3, 4, 5],
      'category': 'default'},
@@ -139,31 +139,31 @@ USERS_METRICS_DATA = [
 ]
 
 SITE_INFORMATION_VALUES_METRICS_DATA = [
-    {'code': 'actual', 'label': _('Actual'), 'types': [0, 1, 2],
+    {'code': 'actual', 'label': _('Actual'), 'types': [0],
      'category': 'site_information'},
 
-    {'code': 'average', 'label': _('Average'), 'types': [1, 2],
+    {'code': 'average', 'label': _('Average'), 'types': [3, 2],
      'category': 'site_information'},
 
-    {'code': 'sum', 'label': _('Sum'), 'types': [1, 2],
+    {'code': 'sum', 'label': _('Sum'), 'types': [3, 2],
      'category': 'site_information'},
 
-    {'code': 'maximum', 'label': _('Maximum'), 'types': [1, 2],
+    {'code': 'maximum', 'label': _('Maximum'), 'types': [3, 2],
      'category': 'site_information'},
 
-    {'code': 'minimum', 'label': _('Minimum'), 'types': [1, 2],
+    {'code': 'minimum', 'label': _('Minimum'), 'types': [3, 2],
      'category': 'site_information'},
 
-    {'code': 'most_common', 'label': _('Most Common'), 'types': [1, 2],
+    {'code': 'most_common', 'label': _('Most Common'), 'types': [3, 2],
      'category': 'site_information'},
 
-    {'code': 'count', 'label': _('Count'), 'types': [1, 2],
+    {'code': 'count', 'label': _('Count'), 'types': [3, 2],
      'category': 'site_information'},
 
-    {'code': 'count_distinct', 'label': _('Count Distinct'), 'types': [1, 2],
+    {'code': 'count_distinct', 'label': _('Count Distinct'), 'types': [3, 2],
      'category': 'site_information'},
 
-    {'code': 'all_values', 'label': _('All Values'), 'types': [1, 2],
+    {'code': 'all_values', 'label': _('All Values'), 'types': [3, 2],
      'category': 'site_information'},
 ]
 

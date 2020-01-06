@@ -3,6 +3,7 @@ from django.db.models import Q
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
+from onadata.apps.reporting.utils.common import separate_metrics
 from onadata.apps.userrole.models import UserRole
 
 
@@ -127,16 +128,29 @@ def generate_form_information(form_id, question, df, df_sub_form_data):
 
 def site_report(report_obj):
     project_id = report_obj.project_id
-    selected_metas = ['Slip_Number', '3rd_Installment__CM_']
+    attributes = report_obj.attributes
+    default_metrics, individual_form_metrics, form_information_metrics,\
+        user_metrics, site_info_metrics = separate_metrics(attributes)
+    selected_metas = []
+    for meta in site_info_metrics:
+        selected_metas.append(meta['code'])
+
+    if selected_metas:
+        query = Site.objects.filter(project_id=project_id).values(
+            'id', 'identifier', 'name', 'current_progress', 'all_ma_ans')
+        df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress', 'all_ma_ans'])
+        df.columns = ['site', 'identifier', 'name', 'current_progress', 'all_ma_ans']
+        meta_objects = [df, pd.DataFrame(df['all_ma_ans'].tolist())][selected_metas]
+        df = pd.concat(meta_objects, axis=1).drop('all_ma_ans', axis=1)
+    else:
+        query = Site.objects.filter(project_id=project_id).values(
+            'id', 'identifier', 'name', 'current_progress')
+        df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress'])
+        df.columns = ['site', 'identifier', 'name', 'current_progress']
+
+    return df
     form_metrics = {'form_id': 73732, 'metrices': []}
     form_information = [{'form_id': 73732, 'question': 'status_cbi/va/member_16_59', 'metrices': []}]
-    query = Site.objects.filter(project_id=project_id).values(
-        'id', 'identifier', 'name', 'current_progress', 'all_ma_ans')
-    df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress', 'all_ma_ans'])
-    df.columns = ['site', 'identifier', 'name', 'current_progress', 'all_ma_ans']
-    meta_objects = [df, pd.DataFrame(df['all_ma_ans'].tolist())] #[selected_metas]]
-    df = pd.concat(meta_objects, axis=1).drop('all_ma_ans', axis=1)
-    return df
 
     query_submissions = FInstance.objects.filter(
         Q(project_fxf__project=project_id) |
