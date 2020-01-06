@@ -148,7 +148,30 @@ def site_report(report_obj):
         df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress'])
         df.columns = ['site', 'identifier', 'name', 'current_progress']
 
+    query_role = UserRole.objects.filter(project=report_obj.project_id, site__isnull=False).values("site", "group", "ended_at")
+    df_role = pd.DataFrame(list(query_role), columns=["site", "group", "ended_at"])
+    active_df = df_role[~df_role.ended_at.isnull()]
+    if 'active_users' in user_metrics:
+        active_users = active_df.groupby('site').size().to_frame("active_users").reset_index()
+        df = df.merge(active_users, on="site", how="left")
+    if 'no_of_site_supervisor' in user_metrics:
+        users_site_sup = df_role[df_role.group == 4].groupby('site').size().to_frame("no_of_site_supervisor").reset_index()
+        df = df.merge(users_site_sup, on="site", how="left")
+    if 'no_of_site_reviewer' in user_metrics:
+        users_site_rev = df_role[df_role.group == 3].groupby('site').size().to_frame("no_of_site_reviewer").reset_index()
+        df = df.merge(users_site_rev, on="site", how="left")
+    if 'no_of_active_site_supervisor' in user_metrics:
+        active_users_site_sup = active_df[active_df.group == 4].groupby('site').size().to_frame(
+            "no_of_active_site_supervisor").reset_index()
+        df = df.merge(active_users_site_sup, on="site", how="left")
+    if 'no_of_active_site_reviewer' in user_metrics:
+        active_users_site_rev = active_df[active_df.group == 3].groupby('site').size().to_frame(
+            "active_users_rev").reset_index()
+        df = df.merge(active_users_site_rev, on="site", how="left")
+
     return df
+
+
     form_metrics = {'form_id': 73732, 'metrices': []}
     form_information = [{'form_id': 73732, 'question': 'status_cbi/va/member_16_59', 'metrices': []}]
 
@@ -187,19 +210,7 @@ def site_report(report_obj):
     for form_id in [form_information['form_id']]:
         df = generate_form_information(form_id, form_information['question'], df, df_submissions_form_answer)
 
-    query_role = UserRole.objects.filter(project=137, site__isnull=False).values("site", "group", "ended_at")
-    df_role = pd.DataFrame(list(query_role), columns=["site", "group", "ended_at"])
-    active_df = df_role[~df_role.ended_at.isnull()]
-    active_users = active_df.groupby('site').size().to_frame("active_users").reset_index()
-    users_site_sup = df_role[df_role.group == 4].groupby('site').size().to_frame("users_supervisor").reset_index()
-    users_site_rev = df_role[df_role.group == 3].groupby('site').size().to_frame("users_rev").reset_index()
-    active_users_site_sup = active_df[active_df.group == 4].groupby('site').size().to_frame("active_users_supervisor").reset_index()
-    active_users_site_rev = active_df[active_df.group == 3].groupby('site').size().to_frame("active_users_rev").reset_index()
-    df = df.merge(active_users, on="site", how="left")
-    df = df.merge(users_site_sup, on="site", how="left")
-    df = df.merge(users_site_rev, on="site", how="left")
-    df = df.merge(active_users_site_sup, on="site", how="left")
-    df = df.merge(active_users_site_rev, on="site", how="left")
+
 
     df = df.replace("Nan", 0)
     return df

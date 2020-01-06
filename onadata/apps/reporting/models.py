@@ -121,7 +121,7 @@ USERS_METRICS_DATA = [
      'types': [1, 2, 3, 5], 'category': 'users'},
     {'code': 'no_of_site_supervisor', 'label': _('Number of Site Supervisor'),
      'types': [0, 1, 2, 3, 5], 'category': 'users'},
-    {'code': 'no_of_reviewer', 'label': _('Number of Reviewer'), 'types': [0, 1, 2, 3, 5], 'category': 'users'},
+    {'code': 'no_of_site_reviewer', 'label': _('Number of Reviewer'), 'types': [0, 1, 2, 3, 5], 'category': 'users'},
     {'code': 'no_of_active_organization_admin', 'label': _('Number of Active Organization Admin'),
      'types': [3, 5], 'category': 'users'},
     {'code': 'no_of_active_project_manager', 'label': _('Number of Active Project Manager'),
@@ -134,7 +134,7 @@ USERS_METRICS_DATA = [
      'types': [1, 2, 3, 5], 'category': 'users'},
     {'code': 'no_of_active_site_supervisor', 'label': _('Number of Active Site Supervisor'),
      'types': [0, 1, 2, 3, 5], 'category': 'users'},
-    {'code': 'no_of_active_reviewer', 'label': _('Number of Active Reviewer'),
+    {'code': 'no_of_active_site_reviewer', 'label': _('Number of Active Reviewer'),
      'types': [0, 1, 2, 3, 5], 'category': 'users'}
 ]
 
