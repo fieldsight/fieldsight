@@ -17,7 +17,10 @@ def separate_metrices(attributes):
             if value.get('selectedQuestion'):
                 if value['selectedQuestion']['form']['category'] == "form_information":
                     form_information_metrics.append(a)
-                elif value['selectedIndividualForm']['form']['category'] == "individual_form":
+                else:
+                    raise ValueError
+            elif value.get('selectedIndividualForm'):
+                if value['selectedIndividualForm']['category'] == "individual_form":
                     individual_form_metrics.append(a)
                 else:
                     raise ValueError
