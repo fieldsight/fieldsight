@@ -179,7 +179,7 @@ urlpatterns = [
     url(r'^manage/people/project/(?P<pk>\d+)/$', ManagePeopleProjectView.as_view(), name='manage-people-project'),
     url(r'^manage/people/organization/(?P<pk>\d+)/$', ManagePeopleOrganizationView.as_view(),
         name='manage-people-organization'),
-    url(r'^manage/people/super-organization/(?P<pk>\d+)/$', ManagePeopleSuperOrganizationView.as_view(),
+    url(r'^manage/people/organization-users/(?P<pk>\d+)/$', ManagePeopleSuperOrganizationView.as_view(),
         name='manage_people_super_organization'),
 
     url(r'^multi-user-assign-site/(?P<pk>\d+)/$', MultiUserAssignSiteView.as_view(), name='multi_user_site_assign'),
