@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-from onadata.apps.fieldsight.models import Project
+from onadata.apps.fieldsight.models import Project, Organization
 from onadata.apps.fsforms.models import ReportSyncSettings
 
 
@@ -12,6 +12,14 @@ def check_manager_or_admin_perm(request, project_id):
         return True
 
     project = Project.objects.get(pk=project_id)
+    organization = project.organization
+
+    if organization.parent:
+        if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                          group__name="Super Organization Admin"). \
+                values_list('super_organization_id', flat=True):
+            return True
+
     user_role_asorgadmin = request.roles.filter(
         organization_id=project.organization_id,
         group__name="Organization Admin")
@@ -57,6 +65,15 @@ class ReportSyncSettingsViewPermission(permissions.BasePermission):
 
         if project_id:
             project = Project.objects.get(pk=project_id)
+
+            organization = project.organization
+
+            if organization.parent:
+                if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                                  group__name="Super Organization Admin"). \
+                        values_list('super_organization_id', flat=True):
+                    return True
+
             user_role_asorgadmin = request.roles.filter(
                 organization_id=project.organization_id,
                 group__name="Organization Admin")

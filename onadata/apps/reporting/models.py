@@ -197,6 +197,30 @@ FORM_INFORMATION_VALUES_METRICS_DATA = [
 ]
 
 
+FILTER_METRICS_DATA = [
+    {'code': 'projects', 'label': _('Project'), 'types': [1, 3, 4, 5],
+     'category': 'filter'},
+
+    {'code': 'regions', 'label': _('Regions'), 'types':  [0],
+     'category': 'filter'},
+
+    {'code': 'user_roles', 'label': _('User Roles'), 'types':  [4],
+     'category': 'filter'},
+
+    {'code': 'time_period', 'label': _('Time Period'), 'types':  [5],
+     'category': 'filter'},
+
+    {'code': 'site_information', 'label': _('Site Information'), 'types':  [0, 1, 3, 4, 5],
+     'category': 'filter'},
+
+    {'code': 'value', 'label': _('Value'), 'types':  [0, 1, 3, 4, 5],
+     'category': 'filter'},
+
+    {'code': 'sub_group', 'label': _('Sub Group'), 'types':  [0, 1, 3, 4, 5],
+     'category': 'filter'},
+]
+
+
 class ReportSettings(models.Model):
     type = models.IntegerField(default=0, choices=REPORT_TYPES)
     description = models.TextField()
@@ -204,6 +228,7 @@ class ReportSettings(models.Model):
     owner = models.ForeignKey(User, related_name="report_settings", on_delete=models.CASCADE)
     shared_with = models.ManyToManyField(User, related_name="shared_report_settings", blank=True)
     attributes = JSONField(default=dict)
+    filter = JSONField(default=dict)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="report_settings")
     add_to_templates = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

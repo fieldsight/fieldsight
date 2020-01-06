@@ -13,14 +13,14 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework import viewsets
 
-from onadata.apps.fieldsight.models import Project, Site
+from onadata.apps.fieldsight.models import Project, Site, Region
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
     exportProjectSiteResponses, form_status_map
 from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
 from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
-    FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA
+    FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA, FILTER_METRICS_DATA
 from ..eventlog.models import CeleryTaskProgress
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.reporting.tasks import new_export
@@ -430,6 +430,7 @@ def metrics_data(request, pk):
     meta_attributes = project.site_meta_attributes
     form_question_answer_status_form_metas = []
     report_types = [{'id': rep_type[0], 'name': rep_type[1]} for rep_type in REPORT_TYPES]
+    regions = Region.objects.filter(project=project, is_active=True).values('id', 'name')
 
     for meta in meta_attributes:
 
@@ -468,6 +469,7 @@ def metrics_data(request, pk):
     metrics.extend(INDIVIDUAL_FORM_METRICS_DATA)
     metrics.extend(SITE_INFORMATION_VALUES_METRICS_DATA)
     metrics.extend(FORM_INFORMATION_VALUES_METRICS_DATA)
+    metrics.extend(FILTER_METRICS_DATA)
     form_types = [{'id': 1, 'code': 'general', 'label': 'General Forms'},
                   {'id': 2, 'code': 'scheduled', 'label': 'Scheduled Forms'},
                   {'id': 3, 'code': 'stage', 'label': 'Staged Forms'},
@@ -475,6 +477,7 @@ def metrics_data(request, pk):
                   ]
 
     return Response(status=status.HTTP_200_OK, data={'report_types': report_types,
+                                                     'regions': regions,
                                                      'metrics': metrics, 'meta_attributes': meta_attributes,
                                                      'form_types': form_types})
 

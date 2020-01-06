@@ -25,7 +25,15 @@ class ViewDataPermission(permissions.BasePermission):
             except ObjectDoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
-            organization_id = project.organization_id
+            organization = project.organization
+            organization_id = organization.id
+
+            if organization.parent:
+                if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                                  group__name="Super Organization Admin"). \
+                        values_list('super_organization_id', flat=True):
+                    return True
+
             user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                        group__name="Organization Admin")
 

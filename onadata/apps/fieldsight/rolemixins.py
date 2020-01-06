@@ -176,7 +176,15 @@ class ReadonlyProjectLevelRoleMixin(LoginRequiredMixin):
         if user_role:
             return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
-        organization_id = Project.objects.get(pk=project_id).organization.id
+        organization = Project.objects.get(pk=project_id).organization
+        organization_id = organization.id
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args,
+                                                                           **kwargs)
+
         user_role_asorgadmin = request.roles.filter(organization_id = organization_id, group__name="Organization Admin")
         
         if user_role_asorgadmin:
@@ -286,8 +294,16 @@ class DonorRoleMixin(LoginRequiredMixin):
         
         if user_role:
             return super(DonorRoleMixin, self).dispatch(request, *args, **kwargs)
-        organization_id = Project.objects.get(pk=project_id).organization.id
-        user_role_asorgadmin = request.roles.filter(user_id = user_id, organization_id = organization_id, group_id=1)
+        organization = Project.objects.get(pk=project_id).organization
+        organization_id = organization.id
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin").\
+                    values_list('super_organization_id', flat=True):
+                return True
+
+        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
         
         if user_role_asorgadmin:
             return super(DonorRoleMixin, self).dispatch(request, *args, **kwargs)
