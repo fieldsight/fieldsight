@@ -362,8 +362,16 @@ class ReviewerRoleMixin(LoginRequiredMixin):
             if user_role_region_reviewer:
                 return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
 
-        organization_id = project.organization.id
-        user_role_asorgadmin = request.roles.filter(user_id = user_id, organization_id = organization_id, group_id=1)
+        org = project.organization
+        organization_id = org.id
+
+        if org.parent:
+            if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                     group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
+
+        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id = organization_id, group_id=1)
         if user_role_asorgadmin:
             return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
 

@@ -215,7 +215,15 @@ class SitePermissions(permissions.BasePermission):
             return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
         if site is not None:
-            organization_id = site.project.organization_id
+            org = site.project.organization
+            organization_id = org.id
+
+            if org.parent:
+                if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                         group__name="Super Organization Admin"). \
+                        values_list('super_organization_id', flat=True):
+                    return True
+
             user_role_org_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
 
             if user_role_org_admin:
@@ -279,7 +287,15 @@ class SiteSubmissionPermission(permissions.BasePermission):
                 except ObjectDoesNotExist:
                     return Response({"message": "Site Id does not exist."}, status=status.HTTP_204_NO_CONTENT)
 
-                organization_id = site.project.organization_id
+                org = site.project.organization
+                organization_id = org.id
+
+                if org.parent:
+                    if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                             group__name="Super Organization Admin"). \
+                            values_list('super_organization_id', flat=True):
+                        return True
+
                 user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                            group__name="Organization Admin")
 
@@ -340,7 +356,15 @@ def check_site_permission(request, pk):
         except ObjectDoesNotExist:
             return Response({"message": "Site Id does not exist."}, status=status.HTTP_204_NO_CONTENT)
 
-        organization_id = site.project.organization_id
+        org = site.project.organization
+        organization_id = org.id
+
+        if org.parent:
+            if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                     group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return True
+
         user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                    group__name="Organization Admin")
 
@@ -397,7 +421,15 @@ def has_write_permission_in_site(request, pk):
         except ObjectDoesNotExist:
             return Response({"message": "Site Id does not exist."}, status=status.HTTP_204_NO_CONTENT)
 
-        organization_id = site.project.organization_id
+        org = site.project.organization
+        organization_id = org.id
+
+        if org.parent:
+            if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                     group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return True
+
         user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                    group__name="Organization Admin")
 
@@ -643,7 +675,15 @@ class SiteFormPermissions(permissions.BasePermission):
                     return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
                 if project is not None:
-                    organization_id = project.organization_id
+                    org = project.organization
+                    organization_id = org.id
+
+                    if org.parent:
+                        if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                                 group__name="Super Organization Admin"). \
+                                values_list('super_organization_id', flat=True):
+                            return True
+
                     user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                                group__name="Organization Admin")
 
@@ -668,7 +708,15 @@ class SiteFormPermissions(permissions.BasePermission):
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
             if site is not None:
-                organization_id = site.project.organization_id
+                org = site.project.organization
+                organization_id = org.id
+
+                if org.parent:
+                    if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                             group__name="Super Organization Admin"). \
+                            values_list('super_organization_id', flat=True):
+                        return True
+
                 user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                            group__name="Organization Admin")
 
@@ -727,7 +775,15 @@ class SiteFormPermissions(permissions.BasePermission):
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
             if site is not None:
-                organization_id = site.project.organization_id
+                org = site.project.organization
+                organization_id = org.id
+
+                if org.parent:
+                    if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                             group__name="Super Organization Admin"). \
+                            values_list('super_organization_id', flat=True):
+                        return True
+
                 user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                            group__name="Organization Admin")
 
@@ -787,7 +843,15 @@ class SiteFormPermissions(permissions.BasePermission):
                 return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
             if project is not None:
-                organization_id = project.organization_id
+                org = project.organization
+                organization_id = org.id
+
+                if org.parent:
+                    if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                             group__name="Super Organization Admin"). \
+                            values_list('super_organization_id', flat=True):
+                        return True
+
                 user_role_org_admin = request.roles.filter(organization_id=organization_id,
                                                            group__name="Organization Admin")
 

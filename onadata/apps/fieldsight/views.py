@@ -360,7 +360,15 @@ class SiteDashboardView(TemplateView):
         region = site.region
         user_id = request.user.id
 
-        organization_id = Site.objects.get(pk=site_id).project.organization_id
+        organization = Site.objects.get(pk=site_id).project.organization
+        organization_id = organization.id
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
+
         user_role_org_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
         if user_role_org_admin:
             return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
