@@ -321,17 +321,15 @@ def site_report(report_obj):
     df_submissions_form_answers = pd.DataFrame(list(query_submissions_form),
                                                columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
     for form_id, question_dict in information_form_dict.items():
-        form_label = information_form_name_dict['form_id'] + "/"
+        form_label = information_form_name_dict[form_id] + "/"
         form_submissions = df_submissions_form_answers[df_submissions_form_answers.project_fxf == int(form_id)]
-        df_submissions_form_answer = pd.concat([form_submissions.drop('instance__json', axis=1),
-                                     form_submissions['instance__json'].apply(pd.Series)], axis=1)
-        question_objects = [form_submissions, pd.DataFrame(form_submissions['form_submissions'].tolist())[question_dict.keys()]]
+        question_objects = [form_submissions, pd.DataFrame(form_submissions['instance__json'].tolist())[question_dict.keys()]]
         form_submissions = pd.concat(question_objects, axis=1).drop('instance__json', axis=1)
         for question, metrices_codes in question_dict.items():
             df = generate_form_information(form_label, question, df, form_submissions, metrices_codes)
 
     #reorder cols
-    columns_name = list(df.columns) #ordered metrices codes
+    columns_name = list(df.columns)  #ordered metrices codes
     df = df[columns_name]
 
     df = df.replace("Nan", 0)
