@@ -790,7 +790,7 @@ class FullMapViewMixin(LoginRequiredMixin):
             return super(FullMapViewMixin, self).dispatch(request, *args, **kwargs)
             
         user_id = request.user.id
-        user_role = request.roles.filter(user_id = user_id, group_id__in=[7, 1, 2])
+        user_role = request.roles.filter(user_id=user_id, group_id__in=[7, 1, 2, 11])
         
         if user_role:
             return super(FullMapViewMixin, self).dispatch(request, *args, **kwargs)
