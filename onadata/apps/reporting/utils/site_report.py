@@ -282,7 +282,7 @@ def site_report(report_obj):
     individual_form_dict = {}
     individual_form_name_dict = {}
     for individual_form_metric in individual_form_metrics:
-        code = individual_form_metric['value']['code']
+        code = individual_form_metric['value']['selectedIndividualForm']['code']
         key = individual_form_metric['value']['selectedForm']['id']
         form_name = individual_form_metric['value']['selectedForm']['title']
         if key not in individual_form_dict:
@@ -309,7 +309,9 @@ def site_report(report_obj):
     # for form_id in [form_information['form_id']]:
     #     df = generate_form_information(form_id, form_information['question'], df, df_submissions_form_answer)
 
-
+    #reorder cols
+    columns_name = list(df.columns) #ordered metrices codes
+    df = df[columns_name]
 
     df = df.replace("Nan", 0)
     return df
