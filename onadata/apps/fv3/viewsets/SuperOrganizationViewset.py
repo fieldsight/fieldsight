@@ -162,7 +162,6 @@ class ManageSuperOrganizationLibraryView(APIView):
                                                        schedule_level_id=schedule_level_id,
                                                        date_range_start=date_range_start,
                                                        date_range_end=date_range_end,
-                                                       selected_days=selected_days,
                                                        default_submission_status=default_submission_status,
                                                        frequency=frequency,
                                                        month_day=month_day
