@@ -141,13 +141,33 @@ class ManageSuperOrganizationLibraryView(APIView):
     def post(self, request, pk, format=None):
         xf_ids = request.data.get('xf_ids', None)
         xf_id = request.data.get('xf_id', None)
+        form_type = request.data.get('form_type', None)
+        schedule_level_id = request.data.get('schedule_level_id', None)
+        date_range_start = request.data.get('date_range_start', None)
+        date_range_end = request.data.get('date_range_end', None)
+        selected_days = request.data.get('selected_days', None)
+        default_submission_status = request.data.get('default_submission_status', None)
+        frequency = request.data.get('frequency', None)
+        month_day = request.data.get('month_day', None)
+
         org_forms_list = []
         if xf_ids:
             """
                 Add forms in super organization form library
             """
             for org_form in xf_ids:
-                org_form_lib = OrganizationFormLibrary(xf_id=org_form, organization_id=pk)
+                org_form_lib = OrganizationFormLibrary(xf_id=org_form,
+                                                       organization_id=pk,
+                                                       form_type=form_type,
+                                                       schedule_level_id=schedule_level_id,
+                                                       date_range_start=date_range_start,
+                                                       date_range_end=date_range_end,
+                                                       selected_days=selected_days,
+                                                       default_submission_status=default_submission_status,
+                                                       frequency=frequency,
+                                                       month_day=month_day
+
+                                                       )
                 org_forms_list.append(org_form_lib)
             OrganizationFormLibrary.objects.bulk_create(org_forms_list)
 
