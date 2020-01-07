@@ -153,6 +153,12 @@ class ManageSuperOrganizationLibraryView(APIView):
         frequency = request.data.get('frequency', None)
         month_day = request.data.get('month_day', None)
 
+        if date_range_start:
+            date_range_start = datetime.strptime(date_range_start, "%Y-%m-%d")
+
+        if date_range_end:
+            date_range_end = datetime.strptime(date_range_end, "%Y-%m-%d")
+
         if selected_days:
             selected_days_objs = []
             selected_days = ast.literal_eval(selected_days)
