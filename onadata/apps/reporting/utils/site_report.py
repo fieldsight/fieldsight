@@ -101,7 +101,7 @@ def generate_default_metrices(df, df_submissions, df_reviews, metrices_list):
             df = df.merge(submissions_rejected_ever, on="site", how="left")
         except:
             df['no_rejected_submissions_ever'] = 0
-        return df
+    return df
 
 
 def generate_form_metrices(form_name, df, df_submissions, df_reviews, metrices_list):
@@ -183,7 +183,7 @@ def generate_form_metrices(form_name, df, df_submissions, df_reviews, metrices_l
             df = df.merge(submissions_rejected_ever, on="site", how="left")
         except:
             df[form_name + 'form_submissions_rejected_ever'] = 0
-        return df
+    return df
 
 
 def generate_form_information(form_id, question, df, df_sub_form_data):
