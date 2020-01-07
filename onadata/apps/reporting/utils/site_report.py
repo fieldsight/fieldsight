@@ -186,34 +186,36 @@ def generate_form_metrices(form_name, df, df_submissions, df_reviews, metrices_l
     return df
 
 
-def generate_form_information(form_id, question, df, df_sub_form_data):
-    form_id = str(form_id)
-    df_submissions_form_most_recent = df_sub_form_data.loc[df_sub_form_data.groupby('site').date.idxmax()]
-    df_submissions_form_most_recent_question = df_submissions_form_most_recent[['site', question]]
+def generate_form_information(form_label, question, df, df_sub_form_data, metrice_codes):
+    if "form_info_most_recent" in metrice_codes:
+        df_submissions_form_most_recent = df_sub_form_data.loc[df_sub_form_data.groupby('site').date.idxmax()]
+        df_submissions_form_most_recent_question = df_submissions_form_most_recent[['site', question]]
+        df = df.merge(df_submissions_form_most_recent_question, on="site", how="left")
 
-    df_sub_form_data[question] = pd.to_numeric(
+    if False:
+        df_sub_form_data[question] = pd.to_numeric(
         df_sub_form_data[question], errors='coerce')
 
-    average_value = df_sub_form_data.groupby('site')[question].mean().to_frame(form_id + question + '-average').reset_index()
-    sum_value = df_sub_form_data.groupby('site')[question].sum().to_frame(form_id + question + '-sum').reset_index()
-    max_value = df_sub_form_data.groupby('site')[question].max().to_frame(form_id + question + '-max').reset_index()
-    min_value = df_sub_form_data.groupby('site')[question].min().to_frame(form_id + question + '-min').reset_index()
-    count_value = df_sub_form_data.groupby('site')[question].size().to_frame(form_id + question + '-count').reset_index()
-    count_value_distinct = df_sub_form_data.groupby('site')[question].nunique().to_frame(form_id + question + '-count-distinct').reset_index()
-    common = df_sub_form_data.groupby('site')[question].apply(pd.Series.mode).to_frame(form_id + question + "-common").reset_index()
-    df_question_distinct = df_sub_form_data.groupby(['site', question])['site', question].size().to_frame(
-        form_id + question + 'dd').reset_index()
-    df_question_distinct[form_id + question + "-distinct-sub"] = df_question_distinct[form_id + question + 'dd']
+        average_value = df_sub_form_data.groupby('site')[question].mean().to_frame(form_label + question + '-average').reset_index()
+        sum_value = df_sub_form_data.groupby('site')[question].sum().to_frame(form_label + question + '-sum').reset_index()
+        max_value = df_sub_form_data.groupby('site')[question].max().to_frame(form_label + question + '-max').reset_index()
+        min_value = df_sub_form_data.groupby('site')[question].min().to_frame(form_label + question + '-min').reset_index()
+        count_value = df_sub_form_data.groupby('site')[question].size().to_frame(form_label + question + '-count').reset_index()
+        count_value_distinct = df_sub_form_data.groupby('site')[question].nunique().to_frame(form_label + question + '-count-distinct').reset_index()
+        common = df_sub_form_data.groupby('site')[question].apply(pd.Series.mode).to_frame(form_label + question + "-common").reset_index()
+        df_question_distinct = df_sub_form_data.groupby(['site', question])['site', question].size().to_frame(
+            form_label + question + 'dd').reset_index()
+        df_question_distinct[form_label + question + "-distinct-sub"] = df_question_distinct[form_label + question + 'dd']
 
-    df = df.merge(df_submissions_form_most_recent_question, on="site", how="left")
-    df = df.merge(average_value, on="site", how="left")
-    df = df.merge(sum_value, on="site", how="left")
-    df = df.merge(max_value, on="site", how="left")
-    df = df.merge(min_value, on="site", how="left")
-    df = df.merge(count_value, on="site", how="left")
-    df = df.merge(count_value_distinct, on="site", how="left")
-    df = df.merge(common, on="site", how="left")
-    df = df.merge(df_question_distinct, on="site", how="left")
+
+        df = df.merge(average_value, on="site", how="left")
+        df = df.merge(sum_value, on="site", how="left")
+        df = df.merge(max_value, on="site", how="left")
+        df = df.merge(min_value, on="site", how="left")
+        df = df.merge(count_value, on="site", how="left")
+        df = df.merge(count_value_distinct, on="site", how="left")
+        df = df.merge(common, on="site", how="left")
+        df = df.merge(df_question_distinct, on="site", how="left")
     return df
 
 
@@ -296,18 +298,37 @@ def site_report(report_obj):
         form_name = individual_form_name_dict[form_id]
         df = generate_form_metrices(form_name, df, form_submissions, df_reviews, metrices_list)
 
-    # query_submissions_form = FInstance.objects.filter(
-    #    project_fxf__in=[form_information['form_id']]).select_related(
-    #    'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
-    # df_submissions_form_answers = pd.DataFrame(list(query_submissions_form),
-    #                                          columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
-    # df_submissions_form_answer = df_submissions_form_answers[df_submissions_form_answers.project_fxf == form_information['form_id']]
-    # df_submissions_form_answer = pd.concat([df_submissions_form_answer.drop('instance__json', axis=1),
-    #                              df_submissions_form_answer['instance__json'].apply(pd.Series)], axis=1)
-    #
-    # # form submission answer of a question
-    # for form_id in [form_information['form_id']]:
-    #     df = generate_form_information(form_id, form_information['question'], df, df_submissions_form_answer)
+    information_form_dict = {}
+    information_form_name_dict = {}
+    for individual_form_metric in form_information_metrics:
+        code = individual_form_metric['value']['selectedQuestion']['form']['code']
+        question = individual_form_metric['value']['selectedQuestion']['name']
+        key = individual_form_metric['value']['selectedForm']['id']
+        form_name = individual_form_metric['value']['selectedForm']['title']
+        if key not in information_form_dict:
+            information_form_dict[key] = {question: [code]}
+        else:
+            if question not in information_form_dict[key]:
+                information_form_dict[key][question] = [code]
+            else:
+                information_form_dict[key][question].append(code)
+
+        information_form_name_dict[key] = form_name
+
+    query_submissions_form = FInstance.objects.filter(
+       project_fxf__in=information_form_dict.keys()).select_related(
+       'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
+    df_submissions_form_answers = pd.DataFrame(list(query_submissions_form),
+                                               columns=["pk", 'site', 'project_fxf', 'instance__json', "date"])
+    for form_id, question_dict in information_form_dict.items():
+        form_label = information_form_name_dict['form_id'] + "/"
+        form_submissions = df_submissions_form_answers[df_submissions_form_answers.project_fxf == int(form_id)]
+        df_submissions_form_answer = pd.concat([form_submissions.drop('instance__json', axis=1),
+                                     form_submissions['instance__json'].apply(pd.Series)], axis=1)
+        question_objects = [form_submissions, pd.DataFrame(form_submissions['form_submissions'].tolist())[question_dict.keys()]]
+        form_submissions = pd.concat(question_objects, axis=1).drop('instance__json', axis=1)
+        for question, metrices_codes in question_dict.items():
+            df = generate_form_information(form_label, question, df, form_submissions, metrices_codes)
 
     #reorder cols
     columns_name = list(df.columns) #ordered metrices codes
