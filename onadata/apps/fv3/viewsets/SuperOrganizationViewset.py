@@ -1,5 +1,6 @@
 import ast
 
+from datetime import datetime
 from django.db.models import Count
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -147,15 +148,18 @@ class ManageSuperOrganizationLibraryView(APIView):
         schedule_level_id = request.data.get('schedule_level_id', None)
         date_range_start = request.data.get('date_range_start', None)
         date_range_end = request.data.get('date_range_end', None)
-        selected_days = ast.literal_eval(request.data.get('selected_days', None))
+        selected_days = request.data.get('selected_days', None)
         default_submission_status = request.data.get('default_submission_status', None)
         frequency = request.data.get('frequency', None)
         month_day = request.data.get('month_day', None)
 
-        selected_days_objs = []
-
-        for days in selected_days:
-            selected_days_objs.append(days)
+        if selected_days:
+            selected_days_objs = []
+            selected_days = ast.literal_eval(selected_days)
+            for days in selected_days:
+                selected_days_objs.append(days)
+        else:
+            selected_days_objs = []
 
         if xf_ids:
             """
