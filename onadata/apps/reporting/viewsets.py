@@ -16,7 +16,7 @@ from rest_framework import viewsets
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
-    exportProjectSiteResponses, form_status_map
+    exportProjectSiteResponses, form_status_map, exportLogs, exportProjectUserstatistics, exportProjectstatistics
 from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
 from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
@@ -225,6 +225,68 @@ class GenerateStandardReports(APIView):
             else:
                 status, data = 401, {'detail': 'Error occured please try again.'}
             return Response(status=status, data=data)
+
+        elif report_type == 'logs':
+            user = self.request.user
+            data = request.data
+            reportType = data.get('type')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            if reportType == "Project":
+                obj = get_object_or_404(Project, pk=self.kwargs.get('pk'))
+            else:
+                obj = get_object_or_404(Site, pk=self.kwargs.get('pk'))
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, content_object=obj, task_type=12)
+            if task_obj:
+                task = exportLogs.delay(task_obj.pk, self.kwargs.get('pk'), reportType, start_date, end_date)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'status': 'true',
+                                     'message': 'Success, the report is being generated. You will be notified after '
+                                                'the report is generated.'}
+            else:
+                status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
+            return Response(data, status=status)
+
+        elif report_type == 'user_activity_report':
+
+            user = request.user
+            data = request.data
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, task_type=16, content_object=project)
+            if task_obj:
+                task = exportProjectUserstatistics.delay(task_obj.pk, project.id, start_date, end_date)
+                task_obj.task_id = task.id
+                task_obj.save()
+                data = {'status': 'true',
+                        'message': 'User Activity report is being generated. You will be notified upon completion.'}
+            else:
+                data = {'status': 'false', 'message': 'Report cannot be generated a the moment.'}
+            return Response(data, status=200)
+
+        elif report_type == 'activity_report':
+            user = self.request.user
+            data = request.data
+            reportType = data.get('type')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=11)
+            if task_obj:
+                task = exportProjectstatistics.delay(task_obj.pk, self.kwargs.get('pk'), reportType, start_date,
+                                                     end_date)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'status': 'true',
+                                     'message': 'Success, the report is being generated. You will be notified after '
+                                                'the report is generated.'}
+            else:
+                status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
+            return Response(data, status=status)
 
 
 class PreviewStandardReports(APIView):
