@@ -221,3 +221,13 @@ class OrganizationFormLibraryVS(viewsets.ModelViewSet):
         instance.deleted = True
         instance.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class GetOrganizationLocation(APIView):
+    authentication_classes = (BasicAuthentication,)
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
+
+    def get(self, request, pk, *args, **kwargs):
+        location = SuperOrganization.objects.get(id=pk).location
+
+        return Response(status=status.HTTP_200_OK, data={'location': str(location)})

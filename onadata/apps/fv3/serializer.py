@@ -245,7 +245,7 @@ class SuperOrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = SuperOrganization
         fields = ('id', 'name', 'phone', 'country', 'additional_desc', 'logo', 'email', 'total_sites', 'contact',
-                  'projects', 'breadcrumbs', 'teams', 'map', 'total_users', 'admins')
+                  'projects', 'breadcrumbs', 'teams', 'map', 'total_users', 'admins', 'location')
         read_only_fields = ('total_sites', 'contact', 'projects', 'map', 'total_users', 'breadcrumbs', 'admins')
 
     def get_teams(self, obj):
