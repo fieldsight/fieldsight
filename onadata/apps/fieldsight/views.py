@@ -253,6 +253,16 @@ class ProjectDashboard(TemplateView):
         if user_role:
             return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
         organization_id = Project.objects.get(pk=project_id).organization.id
+
+        organization = Organization.objects.get(id=organization_id)
+        organization_id = organization.id
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
+
         user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
 
         if user_role_asorgadmin:
@@ -350,7 +360,15 @@ class SiteDashboardView(TemplateView):
         region = site.region
         user_id = request.user.id
 
-        organization_id = Site.objects.get(pk=site_id).project.organization_id
+        organization = Site.objects.get(pk=site_id).project.organization
+        organization_id = organization.id
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
+
         user_role_org_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
         if user_role_org_admin:
             return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
@@ -4364,7 +4382,8 @@ def project_dashboard_peoples(request, pk):
 @api_view(["GET"])
 def project_managers(request, pk):
 
-    users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk, user_roles__group_id__in=[4, 9]).distinct('id')
+    users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk,
+                                user_roles__group_id__in=[4, 9]).distinct('id')
     user_data = []
     for user in users:
         user_data.append(dict(label=user.get_full_name(),

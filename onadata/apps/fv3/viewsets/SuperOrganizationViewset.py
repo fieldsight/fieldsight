@@ -1,3 +1,6 @@
+import ast
+
+from datetime import datetime
 from django.db.models import Count
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -132,28 +135,105 @@ class ManageSuperOrganizationLibraryView(APIView):
 
     def get(self, request, pk, *args,  **kwargs):
         my_forms = XForm.objects.filter(user=request.user, deleted_xform=None)
-        selected_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk).values('xf_id', 'xf__title')
-        selected_form_ids = [form['xf_id'] for form in selected_org_forms if 'xf_id' in form]
-        forms = my_forms.exclude(id__in=selected_form_ids).values('id', 'title')
-        selected_forms = [{'id': form['xf_id'], 'title': form['xf__title']} for form in selected_org_forms]
-        return Response(status=status.HTTP_200_OK, data={'forms': forms, 'selected_forms': selected_forms})
+        selected_form_ids = []
+        selected_general_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=0,
+                                                                            deleted=False)
+        selected_scheduled_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=1,
+                                                                              deleted=False)
+        scheduled_forms = []
+        general_forms = []
+
+        for general_form in selected_general_org_forms:
+            selected_form_ids.append(general_form.id)
+            general_forms.append({'id': general_form.xf.id,
+                                  'title': general_form.xf.title,
+                                  'form_type': general_form.get_form_type_display(),
+                                  'default_submission_status': general_form.get_default_submission_status_display()
+                                  })
+
+        for scheduled_form in selected_scheduled_org_forms:
+            selected_form_ids.append(scheduled_form.id)
+            scheduled_forms.append({'id': scheduled_form.xf.id,
+                                    'title': scheduled_form.xf.title,
+                                    'form_type': scheduled_form.get_form_type_display(),
+                                    'default_submission_status': scheduled_form.get_default_submission_status_display(),
+                                    'scheduled_type': scheduled_form.get_schedule_level_id_display(),
+                                    'start_date': scheduled_form.date_range_start,
+                                    'end_date': scheduled_form.date_range_end
+
+                                    })
+
+        forms = my_forms.exclude(id__in=list(selected_form_ids)).values('id', 'title')
+
+        return Response(status=status.HTTP_200_OK, data={'forms': forms,
+                                                         'selected_forms':
+                                                             {'general_forms': general_forms,
+                                                              'scheduled_forms': scheduled_forms}})
 
     def post(self, request, pk, format=None):
         xf_ids = request.data.get('xf_ids', None)
         xf_id = request.data.get('xf_id', None)
-        org_forms_list = []
+        form_type = request.data.get('form_type', None)
+        schedule_level_id = request.data.get('schedule_level_id', None)
+        date_range_start = request.data.get('date_range_start', None)
+        date_range_end = request.data.get('date_range_end', None)
+        selected_days = request.data.get('selected_days', None)
+        default_submission_status = request.data.get('default_submission_status', None)
+        frequency = request.data.get('frequency', None)
+        month_day = request.data.get('month_day', None)
+
+        if date_range_start:
+            date_range_start = datetime.strptime(date_range_start, "%Y-%m-%d")
+
+        if date_range_end:
+            date_range_end = datetime.strptime(date_range_end, "%Y-%m-%d")
+
+        if selected_days:
+            selected_days_objs = []
+            for days in selected_days:
+                selected_days_objs.append(days)
+        else:
+            selected_days_objs = []
+
         if xf_ids:
             """
                 Add forms in super organization form library
             """
             for org_form in xf_ids:
-                org_form_lib = OrganizationFormLibrary(xf_id=org_form, organization_id=pk)
-                org_forms_list.append(org_form_lib)
-            OrganizationFormLibrary.objects.bulk_create(org_forms_list)
+                org_form_lib = OrganizationFormLibrary.objects.create(xf_id=org_form,
+                                                                      organization_id=pk,
+                                                                      form_type=form_type,
+                                                                      schedule_level_id=schedule_level_id,
+                                                                      date_range_start=date_range_start,
+                                                                      date_range_end=date_range_end,
+                                                                      default_submission_status=default_submission_status,
+                                                                      frequency=frequency,
+                                                                      month_day=month_day
+                                                                      )
+                org_form_lib.selected_days.add(*selected_days_objs)
 
-            selected_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk).values('xf_id', 'xf__title')
-            selected_forms = [{'id': form['xf_id'], 'title': form['xf__title']} for form in selected_org_forms]
-            return Response(status=status.HTTP_201_CREATED, data=selected_forms)
+            selected_general_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=0,
+                                                                                deleted=False)
+            selected_scheduled_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=1,
+                                                                                  deleted=False)
+
+            general_forms = [{'id': general_form.xf.id,
+                              'title': general_form.xf.title,
+                              'form_type': general_form.get_form_type_display(),
+                              'default_submission_status': general_form.get_default_submission_status_display()
+                              } for general_form in selected_general_org_forms]
+
+            scheduled_forms = [{'id': scheduled_form.xf.id,
+                                'title': scheduled_form.xf.title,
+                                'form_type': scheduled_form.get_form_type_display(),
+                                'default_submission_status': scheduled_form.get_default_submission_status_display(),
+                                'scheduled_type': scheduled_form.get_schedule_level_id_display(),
+                                'start_date': scheduled_form.date_range_start,
+                                'end_date': scheduled_form.date_range_end}
+                               for scheduled_form in selected_scheduled_org_forms]
+
+            return Response(status=status.HTTP_201_CREATED, data={'general_forms': general_forms,
+                                                                  'scheduled_forms': scheduled_forms})
 
         elif xf_id:
             """
@@ -188,3 +268,13 @@ class OrganizationFormLibraryVS(viewsets.ModelViewSet):
         instance.deleted = True
         instance.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class GetOrganizationLocation(APIView):
+    authentication_classes = (BasicAuthentication,)
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
+
+    def get(self, request, pk, *args, **kwargs):
+        location = SuperOrganization.objects.get(id=pk).location
+
+        return Response(status=status.HTTP_200_OK, data={'location': str(location)})

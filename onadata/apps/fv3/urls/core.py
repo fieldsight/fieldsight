@@ -98,7 +98,7 @@ urlpatterns = [
 
     url(r'^api/super-organization-form/$', OrganizationViewSet.as_view({'get' : 'list', 'post': 'create'}),
         name='super_organization_form'),
-    url(r'^api/super-organization-lists/(?P<pk>\d+)/$', OrganizationViewSet.as_view({'get' : 'retrieve'}),
+    url(r'^api/super-organization-lists/(?P<pk>\d+)/$', OrganizationViewSet.as_view({'get' : 'retrieve', 'put': 'update'}),
         name='super_organization_lists'),
 ]
 
