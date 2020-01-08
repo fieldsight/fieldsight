@@ -231,6 +231,32 @@ def generate_form_information(form_label, question, df, df_sub_form_data, metric
 def site_report(report_obj):
     project_id = report_obj.project_id
     attributes = report_obj.attributes
+    filters = report_obj.filter
+    regions = filters['regions']
+    site_types = filters['site_types']
+    region_filters = []
+    if regions:
+        if isinstance(regions, list):
+            for r in regions:
+                region_filters.append(r['id'])
+        elif isinstance(regions, dict):
+            region_filters.append(regions['id'])
+    type_filters = []
+    if site_types:
+        if isinstance(site_types, list):
+            for t in site_types:
+                type_filters.append(t['id'])
+        elif isinstance(regions, dict):
+            type_filters.append(site_types['id'])
+
+    site_filter = {}
+    foreign_key_site_filter = {}
+    if region_filters:
+        site_filter['region__id__in'] = region_filters
+        foreign_key_site_filter['site__region__id__in'] = region_filters
+    if type_filters:
+        site_filter['type__id__in'] = type_filters
+        foreign_key_site_filter['site__type__id__in'] = type_filters
     default_metrics, individual_form_metrics, form_information_metrics,\
         user_metrics, site_info_metrics = separate_metrics(attributes)
     selected_metas = []
@@ -238,21 +264,22 @@ def site_report(report_obj):
         selected_metas.append(meta['code'])
 
     if selected_metas:
-        query = Site.objects.filter(project_id=project_id).values(
+        query = Site.objects.filter(**site_filter).filter(project_id=project_id).values(
             'id', 'identifier', 'name', 'current_progress', 'all_ma_ans')
         df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress', 'all_ma_ans'])
         df.columns = ['site', 'identifier', 'name', 'progress', 'all_ma_ans']
         meta_objects = [df, pd.DataFrame(df['all_ma_ans'].tolist())[selected_metas]]
         df = pd.concat(meta_objects, axis=1).drop('all_ma_ans', axis=1)
     else:
-        query = Site.objects.filter(project_id=project_id).values(
+        query = Site.objects.filter(**site_filter).filter(project_id=project_id).values(
             'id', 'identifier', 'name', 'current_progress')
         df = pd.DataFrame(list(query), columns=['id', 'identifier', 'name', 'current_progress'])
         df.columns = ['site', 'identifier', 'name', 'progress']
     if "progress" not in default_metrics:
         del df['progress']
 
-    query_role = UserRole.objects.filter(project=report_obj.project_id, site__isnull=False).values("site", "group", "ended_at")
+    query_role = UserRole.objects.filter(**foreign_key_site_filter).filter(
+        project=report_obj.project_id, site__isnull=False).values("site", "group", "ended_at")
     df_role = pd.DataFrame(list(query_role), columns=["site", "group", "ended_at"])
     active_df = df_role[~df_role.ended_at.isnull()]
     if 'active_users' in user_metrics:
@@ -273,13 +300,13 @@ def site_report(report_obj):
             "active_users_rev").reset_index()
         df = df.merge(active_users_site_rev, on="site", how="left")
 
-    query_submissions = FInstance.objects.filter(
+    query_submissions = FInstance.objects.filter(**foreign_key_site_filter).filter(
         Q(project_fxf__project=project_id) |
         Q(site_fxf__site__project=project_id)
     ).values("pk", "site", "project_fxf", "form_status", "date")
     df_submissions = pd.DataFrame(
         list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "date"])
-    query_reviews = InstanceStatusChanged.objects.filter(
+    query_reviews = InstanceStatusChanged.objects.filter(**foreign_key_site_filter).filter(
         Q(finstance__project_fxf__project=project_id) |
         Q(finstance__site_fxf__site__project=project_id)
     ).values(
@@ -324,7 +351,7 @@ def site_report(report_obj):
 
         information_form_name_dict[key] = form_name
 
-    query_submissions_form = FInstance.objects.filter(
+    query_submissions_form = FInstance.objects.filter(**foreign_key_site_filter).filter(
        project_fxf__in=information_form_dict.keys()).select_related(
        'instance').values("pk", "site", 'project_fxf', "instance__json", "date")
     df_submissions_form_answers = pd.DataFrame(list(query_submissions_form),
