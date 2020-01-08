@@ -20,13 +20,20 @@ class BarGenerator(object):
             self.data[progress_range] +=1
 
     def get_range(self, progress):
-        if progress == 0: return self.data.keys()[0]
-        if progress in range(1,20): return self.data.keys()[1]
-        if progress in range(20,40): return self.data.keys()[2]
-        if progress in range(40,60): return self.data.keys()[3]
-        if progress in range(60,80): return self.data.keys()[4]
-        if progress in range(80,100): return self.data.keys()[5]
-        if progress == 100: return self.data.keys()[6]
+        if progress == 0:
+            return self.data.keys()[0]
+        elif progress < 20:
+            return self.data.keys()[1]
+        elif progress < 40:
+            return self.data.keys()[2]
+        elif progress < 60:
+            return self.data.keys()[3]
+        if progress < 80:
+            return self.data.keys()[4]
+        if progress < 100:
+            return self.data.keys()[5]
+        if progress >= 100:
+            return self.data.keys()[6]
 
 
 class ProgressBarGenerator(object):
