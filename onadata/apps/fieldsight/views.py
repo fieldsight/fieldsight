@@ -2006,9 +2006,9 @@ def senduserinvite(request):
             invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32),
                                 group=group, organization_id=organization_id)
         invite.save()
-        invite.organization = organization_id
-        invite.project = project_id
-        invite.site = site_id
+        invite.organization_id = organization_id
+        invite.project_id = project_id
+        invite.site_id = site_id
         current_site = get_current_site(request)
 
         if len(invite.project.all()) > 0:
