@@ -44,6 +44,7 @@ FORM_STATUS = [(0, 'Pending'), (1, 'Rejected'),
 
 REPORT_TYPE = [('site_info', 'Site Info'), ('site_progress', 'Site Progress'), ('form', 'Form')]
 SCHEDULED_TYPE = [(0, 'Manual'), (1, 'Daily'), (2, 'Weekly'), (3, 'Monthly')]
+FORM_TYPE = [(0, 'General'), (1, 'Scheduled')]
 
 
 class FormGroup(models.Model):
@@ -300,6 +301,16 @@ class ActiveOrgLibs(models.Manager):
 class OrganizationFormLibrary(models.Model):
     xf = models.ForeignKey(XForm, related_name="library_forms")
     organization = models.ForeignKey(SuperOrganization, related_name="library_forms")
+    form_type = models.IntegerField(default=0, choices=FORM_TYPE)
+    date_range_start = models.DateField(default=datetime.date.today, null=True, blank=True)
+    date_range_end = models.DateField(default=datetime.date.today, null=True, blank=True)
+    selected_days = models.ManyToManyField(Days,
+                                           related_name='library_forms', blank=True)
+    schedule_level_id = models.IntegerField(default=0, choices=SCHEDULED_LEVEL, null=True, blank=True)
+    default_submission_status = models.IntegerField(default=0,
+                                                    choices=FORM_STATUS)
+    frequency = models.IntegerField(default=0, null=True, blank=True)
+    month_day = models.IntegerField(default=0, null=True, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     deleted = models.BooleanField(default=False)
     objects = ActiveOrgLibs()

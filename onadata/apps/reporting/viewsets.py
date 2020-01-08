@@ -13,14 +13,14 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework import viewsets
 
-from onadata.apps.fieldsight.models import Project, Site
+from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
-    exportProjectSiteResponses, form_status_map
+    exportProjectSiteResponses, form_status_map, exportLogs, exportProjectUserstatistics, exportProjectstatistics
 from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
 from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
-    FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA
+    FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA, FILTER_METRICS_DATA
 from ..eventlog.models import CeleryTaskProgress
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.reporting.tasks import new_export
@@ -226,6 +226,68 @@ class GenerateStandardReports(APIView):
                 status, data = 401, {'detail': 'Error occured please try again.'}
             return Response(status=status, data=data)
 
+        elif report_type == 'logs':
+            user = self.request.user
+            data = request.data
+            reportType = data.get('type')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            if reportType == "Project":
+                obj = get_object_or_404(Project, pk=self.kwargs.get('pk'))
+            else:
+                obj = get_object_or_404(Site, pk=self.kwargs.get('pk'))
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, content_object=obj, task_type=12)
+            if task_obj:
+                task = exportLogs.delay(task_obj.pk, self.kwargs.get('pk'), reportType, start_date, end_date)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'status': 'true',
+                                     'message': 'Success, the report is being generated. You will be notified after '
+                                                'the report is generated.'}
+            else:
+                status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
+            return Response(data, status=status)
+
+        elif report_type == 'user_activity_report':
+
+            user = request.user
+            data = request.data
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, task_type=16, content_object=project)
+            if task_obj:
+                task = exportProjectUserstatistics.delay(task_obj.pk, project.id, start_date, end_date)
+                task_obj.task_id = task.id
+                task_obj.save()
+                data = {'status': 'true',
+                        'message': 'User Activity report is being generated. You will be notified upon completion.'}
+            else:
+                data = {'status': 'false', 'message': 'Report cannot be generated a the moment.'}
+            return Response(data, status=200)
+
+        elif report_type == 'activity_report':
+            user = self.request.user
+            data = request.data
+            reportType = data.get('type')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=11)
+            if task_obj:
+                task = exportProjectstatistics.delay(task_obj.pk, self.kwargs.get('pk'), reportType, start_date,
+                                                     end_date)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'status': 'true',
+                                     'message': 'Success, the report is being generated. You will be notified after '
+                                                'the report is generated.'}
+            else:
+                status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
+            return Response(data, status=status)
+
 
 class PreviewStandardReports(APIView):
     permission_classes = [IsAuthenticated, ReportingProjectFormsPermissions]
@@ -430,6 +492,8 @@ def metrics_data(request, pk):
     meta_attributes = project.site_meta_attributes
     form_question_answer_status_form_metas = []
     report_types = [{'id': rep_type[0], 'name': rep_type[1]} for rep_type in REPORT_TYPES]
+    regions = Region.objects.filter(project=project, is_active=True).values('id', 'name')
+    site_types = SiteType.objects.filter(project=project).values('id', 'name')
 
     for meta in meta_attributes:
 
@@ -468,6 +532,7 @@ def metrics_data(request, pk):
     metrics.extend(INDIVIDUAL_FORM_METRICS_DATA)
     metrics.extend(SITE_INFORMATION_VALUES_METRICS_DATA)
     metrics.extend(FORM_INFORMATION_VALUES_METRICS_DATA)
+    metrics.extend(FILTER_METRICS_DATA)
     form_types = [{'id': 1, 'code': 'general', 'label': 'General Forms'},
                   {'id': 2, 'code': 'scheduled', 'label': 'Scheduled Forms'},
                   {'id': 3, 'code': 'stage', 'label': 'Staged Forms'},
@@ -475,6 +540,8 @@ def metrics_data(request, pk):
                   ]
 
     return Response(status=status.HTTP_200_OK, data={'report_types': report_types,
+                                                     'regions': regions,
+                                                     'site_types': site_types,
                                                      'metrics': metrics, 'meta_attributes': meta_attributes,
                                                      'form_types': form_types})
 

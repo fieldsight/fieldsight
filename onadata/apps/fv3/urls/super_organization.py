@@ -3,7 +3,7 @@ from django.conf.urls import url, include
 from rest_framework import routers
 
 from onadata.apps.fv3.viewsets.SuperOrganizationViewset import SuperOrganizationListView, ManageTeamsView, \
-    OrganizationViewSet, OrganizationFormLibraryVS, ManageSuperOrganizationLibraryView
+    OrganizationViewSet, OrganizationFormLibraryVS, ManageSuperOrganizationLibraryView, GetOrganizationLocation
 
 
 router = routers.DefaultRouter()
@@ -23,4 +23,6 @@ super_organization_urlpatterns = [
         name='super_organizations_lib'),
     url(r'^api/super_organizations_library/(?P<pk>\d+)/$', OrganizationFormLibraryVS.as_view({'post': 'destroy'}),
         name='super_organizations_lib_del'),
+    url(r'^api/get-organization-location/(?P<pk>\d+)/$', GetOrganizationLocation.as_view(),
+        name='get_org_location'),
 ]

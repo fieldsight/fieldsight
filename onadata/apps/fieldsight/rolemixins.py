@@ -56,8 +56,14 @@ class OrganizationRoleMixin(LoginRequiredMixin):
         if request.is_super_admin:
             return super(OrganizationRoleMixin, self).dispatch(request, *args, **kwargs)
         organization_id = self.kwargs.get('pk')
+        obj = Organization.objects.get(id=organization_id)
         user_id = request.user.id
-        user_role = request.roles.filter(organization_id = organization_id, group_id=1)
+        if obj.parent:
+            if obj.parent.id in request.roles.filter(super_organization=obj.parent,
+                                                     group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(OrganizationRoleMixin, self).dispatch(request, *args, **kwargs)
+        user_role = request.roles.filter(organization_id=organization_id, group_id=1)
         if user_role:
             return super(OrganizationRoleMixin, self).dispatch(request, *args, **kwargs)
         raise PermissionDenied()
@@ -96,6 +102,14 @@ class ProjectRoleMixin(LoginRequiredMixin):
         if user_role:
             return super(ProjectRoleMixin, self).dispatch(request, *args, **kwargs)
         organization_id = Project.objects.get(pk=project_id).organization.id
+        organization = Organization.objects.get(id=organization_id)
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin").\
+                    values_list('super_organization_id', flat=True):
+                return super(ProjectRoleMixin, self).dispatch(request, *args, **kwargs)
+
         user_role_asorgadmin = request.roles.filter(user_id = user_id, organization_id = organization_id, group_id=1)
         
         if user_role_asorgadmin:
@@ -162,7 +176,15 @@ class ReadonlyProjectLevelRoleMixin(LoginRequiredMixin):
         if user_role:
             return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args, **kwargs)
 
-        organization_id = Project.objects.get(pk=project_id).organization.id
+        organization = Project.objects.get(pk=project_id).organization
+        organization_id = organization.id
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(ReadonlyProjectLevelRoleMixin, self).dispatch(request, is_donor_only=False, *args,
+                                                                           **kwargs)
+
         user_role_asorgadmin = request.roles.filter(organization_id = organization_id, group__name="Organization Admin")
         
         if user_role_asorgadmin:
@@ -272,8 +294,16 @@ class DonorRoleMixin(LoginRequiredMixin):
         
         if user_role:
             return super(DonorRoleMixin, self).dispatch(request, *args, **kwargs)
-        organization_id = Project.objects.get(pk=project_id).organization.id
-        user_role_asorgadmin = request.roles.filter(user_id = user_id, organization_id = organization_id, group_id=1)
+        organization = Project.objects.get(pk=project_id).organization
+        organization_id = organization.id
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin").\
+                    values_list('super_organization_id', flat=True):
+                return True
+
+        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
         
         if user_role_asorgadmin:
             return super(DonorRoleMixin, self).dispatch(request, *args, **kwargs)
@@ -332,8 +362,16 @@ class ReviewerRoleMixin(LoginRequiredMixin):
             if user_role_region_reviewer:
                 return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
 
-        organization_id = project.organization.id
-        user_role_asorgadmin = request.roles.filter(user_id = user_id, organization_id = organization_id, group_id=1)
+        org = project.organization
+        organization_id = org.id
+
+        if org.parent:
+            if org.parent.id in request.roles.filter(super_organization=org.parent,
+                                                     group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
+
+        user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id = organization_id, group_id=1)
         if user_role_asorgadmin:
             return super(ReviewerRoleMixin, self).dispatch(request, *args, **kwargs)
 
@@ -752,7 +790,7 @@ class FullMapViewMixin(LoginRequiredMixin):
             return super(FullMapViewMixin, self).dispatch(request, *args, **kwargs)
             
         user_id = request.user.id
-        user_role = request.roles.filter(user_id = user_id, group_id__in=[7, 1, 2])
+        user_role = request.roles.filter(user_id=user_id, group_id__in=[7, 1, 2, 11])
         
         if user_role:
             return super(FullMapViewMixin, self).dispatch(request, *args, **kwargs)
