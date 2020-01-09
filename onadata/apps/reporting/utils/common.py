@@ -223,41 +223,61 @@ def generate_form_metrices(form_name, df, df_submissions, df_reviews, metrices_l
 
 def generate_form_information(form_label, question, df, df_sub_form_data, metrice_codes, report_type):
     if "form_info_most_recent" in metrice_codes:
-        df_submissions_form_most_recent = df_sub_form_data.loc[df_sub_form_data.groupby(report_type).date.idxmax()]
-        df_submissions_form_most_recent_question = df_submissions_form_most_recent[[report_type, question]]
-        df_submissions_form_most_recent_question.columns = [report_type, form_label + question + "/form_info_most_recent"]
-        df = df.merge(df_submissions_form_most_recent_question, on=report_type, how="left")
+        if df_sub_form_data.empty:
+            df[report_type, form_label + question + "/form_info_most_recent"] = "no submission"
+        else:
+            df_submissions_form_most_recent = df_sub_form_data.loc[df_sub_form_data.groupby(report_type).date.idxmax()]
+            df_submissions_form_most_recent_question = df_submissions_form_most_recent[[report_type, question]]
+            df_submissions_form_most_recent_question.columns = [report_type, form_label + question + "/form_info_most_recent"]
+            df = df.merge(df_submissions_form_most_recent_question, on=report_type, how="left")
     if "form_info_most_common" in metrice_codes:
-        common = df_sub_form_data.groupby(report_type)[question].apply(pd.Series.mode).to_frame(form_label + question + "form_info_most_common").reset_index()
-        df = df.merge(common, on=report_type, how="left")
+        if df_sub_form_data.empty:
+            df[report_type, form_label + question + "/form_info_most_common"] = "no submission"
+        else:
+            common = df_sub_form_data.groupby(report_type)[question].apply(pd.Series.mode).to_frame(form_label + question + "form_info_most_common").reset_index()
+            df = df.merge(common, on=report_type, how="left")
     # if "form_info_all_values" in metrice_codes:
     #     df_question_distinct = df_sub_form_data.groupby([report_type, question])[report_type, question].size().to_frame(
     #         form_label + question + 'dd').reset_index()
     #     df_question_distinct[form_label + question + "/form_info_all_values"] = df_question_distinct[form_label + question + 'dd']
     #     df = df.merge(df_question_distinct, on=report_type, how="left")
 
-    int_metrices = set(["form_info_average", "form_info_sum", "form_info_maximum", "form_info_minimum", "form_info_count", "form_info_count_distinct"])
-    set_selected_metrices = set(metrice_codes)
-    if int_metrices.intersection(set_selected_metrices):
-        df_sub_form_data[question] = pd.to_numeric(df_sub_form_data[question], errors='coerce')
+    if df_sub_form_data.empty:
         if "form_info_average" in metrice_codes:
-            average_value = df_sub_form_data.groupby(report_type)[question].mean().to_frame(form_label + question + '/form_info_average').reset_index()
-            df = df.merge(average_value, on=report_type, how="left")
+            df[report_type, form_label + question + "/form_info_average"] = 0
         if "form_info_sum" in metrice_codes:
-            sum_value = df_sub_form_data.groupby(report_type)[question].sum().to_frame(form_label + question + '/form_info_sum').reset_index()
-            df = df.merge(sum_value, on=report_type, how="left")
+            df[report_type, form_label + question + "/form_info_sum"] = 0
         if "form_info_maximum" in metrice_codes:
-            max_value = df_sub_form_data.groupby(report_type)[question].max().to_frame(form_label + question + '/form_info_maximum').reset_index()
-            df = df.merge(max_value, on=report_type, how="left")
+            df[report_type, form_label + question + "/form_info_maximum"] = 0
         if "form_info_minimum" in metrice_codes:
-            min_value = df_sub_form_data.groupby(report_type)[question].min().to_frame(form_label + question + '/form_info_minimum').reset_index()
-            df = df.merge(min_value, on=report_type, how="left")
+            df[report_type, form_label + question + "/form_info_minimum"] = 0
         if "form_info_count" in metrice_codes:
-            count_value = df_sub_form_data.groupby(report_type)[question].size().to_frame(form_label + question + '/form_info_count').reset_index()
-            df = df.merge(count_value, on=report_type, how="left")
+            df[report_type, form_label + question + "/form_info_count"] = 0
         if "form_info_count_distinct" in metrice_codes:
-            count_value_distinct = df_sub_form_data.groupby(report_type)[question].nunique().to_frame(
-                form_label + question + '/form_info_count_distinct').reset_index()
-            df = df.merge(count_value_distinct, on=report_type, how="left")
+            df[report_type, form_label + question + "/form_info_count_distinct"] = 0
+    else:
+        int_metrices = set(["form_info_average", "form_info_sum", "form_info_maximum", "form_info_minimum", "form_info_count", "form_info_count_distinct"])
+        set_selected_metrices = set(metrice_codes)
+        if int_metrices.intersection(set_selected_metrices):
+            df_sub_form_data[question] = pd.to_numeric(df_sub_form_data[question], errors='coerce')
+            if "form_info_average" in metrice_codes:
+                average_value = df_sub_form_data.groupby(report_type)[question].mean().to_frame(form_label + question + '/form_info_average').reset_index()
+                df = df.merge(average_value, on=report_type, how="left")
+            if "form_info_sum" in metrice_codes:
+                sum_value = df_sub_form_data.groupby(report_type)[question].sum().to_frame(form_label + question + '/form_info_sum').reset_index()
+                df = df.merge(sum_value, on=report_type, how="left")
+            if "form_info_maximum" in metrice_codes:
+                max_value = df_sub_form_data.groupby(report_type)[question].max().to_frame(form_label + question + '/form_info_maximum').reset_index()
+                df = df.merge(max_value, on=report_type, how="left")
+            if "form_info_minimum" in metrice_codes:
+                min_value = df_sub_form_data.groupby(report_type)[question].min().to_frame(form_label + question + '/form_info_minimum').reset_index()
+                df = df.merge(min_value, on=report_type, how="left")
+            if "form_info_count" in metrice_codes:
+                count_value = df_sub_form_data.groupby(report_type)[question].size().to_frame(form_label + question + '/form_info_count').reset_index()
+                df = df.merge(count_value, on=report_type, how="left")
+            if "form_info_count_distinct" in metrice_codes:
+                count_value_distinct = df_sub_form_data.groupby(report_type)[question].nunique().to_frame(
+                    form_label + question + '/form_info_count_distinct').reset_index()
+                df = df.merge(count_value_distinct, on=report_type, how="left")
 
     return df

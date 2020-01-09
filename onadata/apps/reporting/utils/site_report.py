@@ -142,10 +142,12 @@ def site_report(report_obj):
     for form_id, question_dict in information_form_dict.items():
         form_label = information_form_name_dict[form_id] + "/"
         form_submissions = df_submissions_form_answers[df_submissions_form_answers.project_fxf == int(form_id)]
-        question_objects = [form_submissions, pd.DataFrame(form_submissions['instance__json'].tolist())[question_dict.keys()]]
-        form_submissions = pd.concat(question_objects, axis=1).drop('instance__json', axis=1)
+        if not form_submissions.empty:
+            question_objects = [form_submissions, pd.DataFrame(form_submissions['instance__json'].tolist())[question_dict.keys()]]
+            form_submissions = pd.concat(question_objects, axis=1).drop('instance__json', axis=1)
         for question, metrices_codes in question_dict.items():
             df = generate_form_information(form_label, question, df, form_submissions, metrices_codes, "site")
+
 
     #reorder cols
     columns_name = list(df.columns)  #ordered metrices codes
