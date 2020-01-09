@@ -77,7 +77,7 @@ class SuperOrganizationListView(APIView):
 class ManageTeamsView(APIView):
 
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    permission_classes = [IsAuthenticated, SuperAdminPermission]
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
     def get(self, request, pk, *args,  **kwargs):
         queryset = Organization.objects.all()
@@ -136,10 +136,12 @@ class ManageSuperOrganizationLibraryView(APIView):
     def get(self, request, pk, *args,  **kwargs):
         my_forms = XForm.objects.filter(user=request.user, deleted_xform=None)
         selected_form_ids = []
-        selected_general_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=0,
-                                                                            deleted=False)
-        selected_scheduled_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=1,
-                                                                              deleted=False)
+        selected_general_org_forms = OrganizationFormLibrary.objects.select_related('xf').filter(organization_id=pk,
+                                                                                                 form_type=0,
+                                                                                                 deleted=False)
+        selected_scheduled_org_forms = OrganizationFormLibrary.objects.select_related('xf').filter(organization_id=pk,
+                                                                                                   form_type=1,
+                                                                                                   deleted=False)
         scheduled_forms = []
         general_forms = []
 
@@ -159,7 +161,7 @@ class ManageSuperOrganizationLibraryView(APIView):
                                     'default_submission_status': scheduled_form.get_default_submission_status_display(),
                                     'scheduled_type': scheduled_form.get_schedule_level_id_display(),
                                     'start_date': scheduled_form.date_range_start,
-                                    'end_date': scheduled_form.date_range_end
+                                    'end_date': scheduled_form.date_range_end,
 
                                     })
 
@@ -197,20 +199,19 @@ class ManageSuperOrganizationLibraryView(APIView):
 
         if xf_ids:
             """
-                Add forms in super organization form library
+                Add form in super organization form library
             """
-            for org_form in xf_ids:
-                org_form_lib = OrganizationFormLibrary.objects.create(xf_id=org_form,
-                                                                      organization_id=pk,
-                                                                      form_type=form_type,
-                                                                      schedule_level_id=schedule_level_id,
-                                                                      date_range_start=date_range_start,
-                                                                      date_range_end=date_range_end,
-                                                                      default_submission_status=default_submission_status,
-                                                                      frequency=frequency,
-                                                                      month_day=month_day
-                                                                      )
-                org_form_lib.selected_days.add(*selected_days_objs)
+            org_form_lib = OrganizationFormLibrary.objects.create(xf_id=xf_ids,
+                                                                  organization_id=pk,
+                                                                  form_type=form_type,
+                                                                  schedule_level_id=schedule_level_id,
+                                                                  date_range_start=date_range_start,
+                                                                  date_range_end=date_range_end,
+                                                                  default_submission_status=default_submission_status,
+                                                                  frequency=frequency,
+                                                                  month_day=month_day
+                                                                  )
+            org_form_lib.selected_days.add(*selected_days_objs)
 
             selected_general_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=0,
                                                                                 deleted=False)
@@ -271,7 +272,6 @@ class OrganizationFormLibraryVS(viewsets.ModelViewSet):
 
 
 class GetOrganizationLocation(APIView):
-    authentication_classes = (BasicAuthentication,)
     permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
     def get(self, request, pk, *args, **kwargs):

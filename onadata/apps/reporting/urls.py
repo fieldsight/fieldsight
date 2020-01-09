@@ -1,6 +1,6 @@
 from django.conf.urls import url, include
 from .viewsets import ReportingProjectFormData, ReportSettingsViewSet, metrics_data, GenerateStandardReports, \
-    PreviewStandardReports, ReportExportView
+    PreviewStandardReports, ReportExportView, ReportActionView
 
 urlpatterns = [
 
@@ -14,6 +14,7 @@ urlpatterns = [
     url(r'preview-standard-reports/(?P<pk>\d+)/$', PreviewStandardReports.as_view(),
         name='preview_standard_reports'),
     url(r'metrics-data/(?P<pk>\d+)/$', metrics_data, name='metrics_data'),
-    url(r'export/(?P<pk>\d+)/$', ReportExportView.as_view(), name='report_export')
+    url(r'export/(?P<pk>\d+)/$', ReportExportView.as_view(), name='report_export'),
+    url(r'report-action/(?P<pk>\d+)/$', ReportActionView.as_view(), name='report_action')
 
 ]

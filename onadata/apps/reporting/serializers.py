@@ -26,6 +26,7 @@ class StageFormSerializer(serializers.ModelSerializer):
 
 class ReportSettingsSerializer(serializers.ModelSerializer):
     owner_full_name = serializers.SerializerMethodField(read_only=True)
+    shared_with = serializers.SerializerMethodField()
     attributes = serializers.JSONField()
     filter = serializers.JSONField(default=dict)
 
@@ -36,6 +37,11 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
 
     def get_owner_full_name(self, obj):
         return obj.owner.get_full_name()
+
+    def get_shared_with(self, obj):
+        users = []
+        [users.append(user.get_full_name()) for user in obj.shared_with.all()]
+        return users
 
 
 class PreviewSiteInformationSerializer(serializers.ModelSerializer):
