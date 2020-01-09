@@ -31,12 +31,15 @@ def site_report(report_obj):
 
     site_filter = {}
     foreign_key_site_filter = {}
+    review_site_filter = {}
     if region_filters:
         site_filter['region__id__in'] = region_filters
         foreign_key_site_filter['site__region__id__in'] = region_filters
+        review_site_filter['finstance__site__region__id__in'] = region_filters
     if type_filters:
         site_filter['type__id__in'] = type_filters
         foreign_key_site_filter['site__type__id__in'] = type_filters
+        review_site_filter['finstance__site__region__id__in'] = type_filters
     default_metrics, individual_form_metrics, form_information_metrics,\
         user_metrics, site_info_metrics = separate_metrics(attributes)
     selected_metas = []
@@ -86,7 +89,7 @@ def site_report(report_obj):
     ).values("pk", "site", "project_fxf", "form_status", "date")
     df_submissions = pd.DataFrame(
         list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "date"])
-    query_reviews = InstanceStatusChanged.objects.filter(**foreign_key_site_filter).filter(
+    query_reviews = InstanceStatusChanged.objects.filter(**review_site_filter).filter(
         Q(finstance__project_fxf__project=project_id) |
         Q(finstance__site_fxf__site__project=project_id)
     ).values(
