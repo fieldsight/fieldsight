@@ -252,7 +252,7 @@ class ViewStageFormSerializer(serializers.ModelSerializer):
     def get_sub_stages(self, obj):
         site_id = self.context.get('site', False)
         is_project = self.context.get('is_project', False)
-        queryset = Stage.objects.filter(stage__isnull=False)
+        queryset = Stage.objects.filter(stage__isnull=False).exclude(stage_forms__isnull=True)
 
         stage_id = obj.id
         queryset = queryset.filter(stage__id=stage_id)

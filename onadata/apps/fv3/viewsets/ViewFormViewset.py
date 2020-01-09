@@ -221,7 +221,7 @@ class ProjectSiteResponsesView(APIView):
                     prefetch_related('stage_forms__project_form_instances', 'stage_forms__xf__fshistory')\
                     .filter(stage_forms__is_staged=True, stage_forms__is_scheduled=False,
                             stage_forms__is_survey=False, stage_forms__is_deleted=True, stage_forms__project_id=project)
-                stage_deleted_forms = ViewSubStageFormSerializer(stage_deleted_qs, context={'is_project': is_project},
+                stage_deleted_forms = ViewStageFormSerializer(stage_deleted_qs, context={'is_project': is_project},
                                                               many=True).data
                 project = Project.objects.get(id=project)
 
