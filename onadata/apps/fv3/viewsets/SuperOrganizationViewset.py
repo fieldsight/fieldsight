@@ -273,7 +273,6 @@ class OrganizationFormLibraryVS(viewsets.ModelViewSet):
 
 
 class GetOrganizationLocation(APIView):
-    authentication_classes = (BasicAuthentication,)
     permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
     def get(self, request, pk, *args, **kwargs):

@@ -856,6 +856,21 @@ class TeamsViewset(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, SuperUserPermissions]
     pagination_class = TeamsPagination
 
+    # def list(self, request, *args, **kwargs):
+    #
+    #     queryset = self.filter_queryset(self.get_queryset())
+    #     organizations = SuperOrganization.objects.all().annotate(teams=Count('organizations')). \
+    #         values('id', 'name', 'teams')
+    #     page = self.paginate_queryset(queryset)
+    #
+    #     if page is not None:
+    #         serializer = self.get_serializer(page, many=True)
+    #         return self.get_paginated_response({'teams': serializer.data, 'organizations': organizations,
+    #                                             })
+    #
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     return Response(serializer.data)
+
 
 class TeamFormViewset(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
