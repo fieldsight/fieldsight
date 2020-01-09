@@ -245,7 +245,7 @@ class ReportSettings(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return "/fieldsight/application/#/team-dashboard/{}".format(self.pk)
+        return "/fieldsight/application/#/report-dashboard/{}".format(self.pk)
 
 
 
