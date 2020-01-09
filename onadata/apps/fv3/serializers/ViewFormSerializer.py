@@ -252,7 +252,7 @@ class ViewStageFormSerializer(serializers.ModelSerializer):
     def get_sub_stages(self, obj):
         site_id = self.context.get('site', False)
         is_project = self.context.get('is_project', False)
-        queryset = Stage.objects.filter(stage__isnull=False)
+        queryset = Stage.objects.filter(stage__isnull=False).exclude(stage_forms__isnull=True)
 
         stage_id = obj.id
         queryset = queryset.filter(stage__id=stage_id)
@@ -281,8 +281,7 @@ class ViewStageFormSerializer(serializers.ModelSerializer):
             queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf',
                                                                                  'stage_forms__xf__user', 'site',
                                                                                  'project'). \
-                prefetch_related('stage_forms__site_form_instances', 'stage_forms__xf__fshistory').\
-                exclude(stage_forms__isnull=True)
+                prefetch_related('stage_forms__site_form_instances', 'stage_forms__xf__fshistory')
 
             data = ViewSubStageFormSerializer(queryset, many=True, context={'site': site_id}).data
 
