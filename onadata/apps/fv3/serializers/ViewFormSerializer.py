@@ -281,7 +281,8 @@ class ViewStageFormSerializer(serializers.ModelSerializer):
             queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf',
                                                                                  'stage_forms__xf__user', 'site',
                                                                                  'project'). \
-                prefetch_related('stage_forms__site_form_instances', 'stage_forms__xf__fshistory')
+                prefetch_related('stage_forms__site_form_instances', 'stage_forms__xf__fshistory').\
+                exclude(stage_forms__isnull=True)
 
             data = ViewSubStageFormSerializer(queryset, many=True, context={'site': site_id}).data
 
