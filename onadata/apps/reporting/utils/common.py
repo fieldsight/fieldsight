@@ -224,15 +224,15 @@ def generate_form_metrices(form_name, df, df_submissions, df_reviews, metrices_l
 def generate_form_information(form_label, question, df, df_sub_form_data, metrice_codes, report_type):
     if "form_info_most_recent" in metrice_codes:
         if df_sub_form_data.empty:
-            df[report_type, form_label + question + "/form_info_most_recent"] = "no submission"
+            df[form_label + question + "/form_info_most_recent"] = "no submission"
         else:
             df_submissions_form_most_recent = df_sub_form_data.loc[df_sub_form_data.groupby(report_type).date.idxmax()]
             df_submissions_form_most_recent_question = df_submissions_form_most_recent[[report_type, question]]
-            df_submissions_form_most_recent_question.columns = [report_type, form_label + question + "/form_info_most_recent"]
+            df_submissions_form_most_recent_question.columns = [form_label + question + "/form_info_most_recent"]
             df = df.merge(df_submissions_form_most_recent_question, on=report_type, how="left")
     if "form_info_most_common" in metrice_codes:
         if df_sub_form_data.empty:
-            df[report_type, form_label + question + "/form_info_most_common"] = "no submission"
+            df[form_label + question + "/form_info_most_common"] = "no submission"
         else:
             common = df_sub_form_data.groupby(report_type)[question].apply(pd.Series.mode).to_frame(form_label + question + "form_info_most_common").reset_index()
             df = df.merge(common, on=report_type, how="left")
@@ -244,17 +244,17 @@ def generate_form_information(form_label, question, df, df_sub_form_data, metric
 
     if df_sub_form_data.empty:
         if "form_info_average" in metrice_codes:
-            df[report_type, form_label + question + "/form_info_average"] = 0
+            df[form_label + question + "/form_info_average"] = 0
         if "form_info_sum" in metrice_codes:
-            df[report_type, form_label + question + "/form_info_sum"] = 0
+            df[form_label + question + "/form_info_sum"] = 0
         if "form_info_maximum" in metrice_codes:
-            df[report_type, form_label + question + "/form_info_maximum"] = 0
+            df[form_label + question + "/form_info_maximum"] = 0
         if "form_info_minimum" in metrice_codes:
-            df[report_type, form_label + question + "/form_info_minimum"] = 0
+            df[form_label + question + "/form_info_minimum"] = 0
         if "form_info_count" in metrice_codes:
-            df[report_type, form_label + question + "/form_info_count"] = 0
+            df[form_label + question + "/form_info_count"] = 0
         if "form_info_count_distinct" in metrice_codes:
-            df[report_type, form_label + question + "/form_info_count_distinct"] = 0
+            df[form_label + question + "/form_info_count_distinct"] = 0
     else:
         int_metrices = set(["form_info_average", "form_info_sum", "form_info_maximum", "form_info_minimum", "form_info_count", "form_info_count_distinct"])
         set_selected_metrices = set(metrice_codes)
