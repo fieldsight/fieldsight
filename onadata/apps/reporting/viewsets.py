@@ -1,6 +1,7 @@
 import ast, gc
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.db.models import Case, When, Sum, IntegerField
@@ -107,6 +108,7 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         type = self.request.query_params.get('type')
+
         if type == 'custom':
             custom_data = {
                 'custom_reports': ReportSettingsSerializer(self.get_queryset(), many=True).data
@@ -566,3 +568,37 @@ class ReportExportView(APIView):
 
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'export_type params is required.'})
+
+
+class ReportActionView(APIView):
+    permission_classes = [IsAuthenticated, ReportingSettingsPermissions]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def post(self, request, pk, *args,  **kwargs):
+
+        action_type = self.request.data.get('action_type', None)
+        shared_users = self.request.data.get('shared_users', None)
+
+        try:
+            report_obj = ReportSettings.objects.get(id=pk)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Report not found.'})
+
+        if action_type == 'add_to_templates':
+            report_obj.add_to_templates = True
+            report_obj.save()
+
+            response_status, data = status.HTTP_200_OK, {'detail': 'successfully added to Templates.'}
+
+        elif action_type == 'share':
+            shared_users = ast.literal_eval(shared_users)
+            report_obj.shared_with.add(*shared_users)
+            report_obj.save()
+
+            response_status, data = status.HTTP_200_OK, {'detail': 'successfully shared with users'}
+
+        else:
+            response_status, data = status.HTTP_400_BAD_REQUEST, {'detail': 'required fields is add_to_templates'
+                                                                            ' or share.'}
+
+        return Response(status=response_status, data=data)
