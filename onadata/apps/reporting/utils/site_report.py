@@ -12,8 +12,8 @@ def site_report(report_obj):
     project_id = report_obj.project_id
     attributes = report_obj.attributes
     filters = report_obj.filter
-    regions = filters['regions']
-    site_types = filters['site_types']
+    regions = filters.get('regions')
+    site_types = filters.get('site_types')
     region_filters = []
     if regions:
         if isinstance(regions, list):
