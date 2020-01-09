@@ -20,7 +20,8 @@ def save_file(df, directory, filename):
         os.makedirs(settings.MEDIA_ROOT + directory)
     xls = df.to_excel(settings.MEDIA_ROOT + directory + filename + ".xls")
     # return xls
-    # xls_url = default_storage.save(, ContentFile(xls))
+    xls_url = default_storage.save(directory + filename + ".xls", ContentFile(xls))
+    return xls_url
     return directory + filename + ".xls"
 
 
@@ -34,7 +35,7 @@ def new_export(report_id, task_id):
         report_obj = ReportSettings.objects.get(pk=report_id)
         if report_obj.type == 0:
             df = site_report(report_obj)
-            xls_url = save_file(df,  "custom_report/", "site_report" + uuid4().hex)
+            xls_url = save_file(df,  "custom_report/", "site_report/" + uuid4().hex)
         elif report_obj.type == 4:
             df = user_report(report_obj)
             xls_url = save_file(df, "custom_report/", "user_report" + uuid4().hex)
@@ -43,7 +44,7 @@ def new_export(report_id, task_id):
         task.save()
         task.logs.create(source=task.user, type=32, title="Report generation",
                                 recipient=task.user, content_object=task, extra_object=task.content_object,
-                                extra_message=" <a href='" + task.file.url + "'> Custom Report  </a> generation with title ")
+                                extra_message=" <a href='" + task.file.url + "'> Custom Report File  </a>  with title ")
     except Exception as e:
         task.description = "ERROR: " + str(e.message)
         task.status = 3
