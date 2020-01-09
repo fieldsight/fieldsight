@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import os
 import time
+from io import BytesIO
 from uuid import uuid4
 
 from celery import shared_task
@@ -18,11 +19,16 @@ from onadata.apps.reporting.utils.user_report import user_report
 def save_file(df, directory, filename):
     if not os.path.exists(settings.MEDIA_ROOT + directory):
         os.makedirs(settings.MEDIA_ROOT + directory)
-    xls = df.to_excel(settings.MEDIA_ROOT + directory + filename + ".xls")
-    # return xls
-    xls_url = default_storage.save(directory + filename + ".xls", ContentFile(xls))
-    return xls_url
-    return directory + filename + ".xls"
+    df.to_excel(settings.MEDIA_ROOT + directory + filename + ".xls")
+    with open("media/" + directory + filename, 'rb') as fin:
+        buffer_file = BytesIO(fin.read())
+        buffer_file.seek(0)
+        path = default_storage.save(
+            "media/" + directory + filename,
+            ContentFile(buffer_file.getvalue())
+        )
+        buffer_file.close()
+    return path
 
 
 @shared_task()
@@ -35,10 +41,10 @@ def new_export(report_id, task_id):
         report_obj = ReportSettings.objects.get(pk=report_id)
         if report_obj.type == 0:
             df = site_report(report_obj)
-            xls_url = save_file(df,  "custom_report/", "site_report/" + uuid4().hex)
+            xls_url = save_file(df,  "custom_report/", "site_report_" + uuid4().hex)
         elif report_obj.type == 4:
             df = user_report(report_obj)
-            xls_url = save_file(df, "custom_report/", "user_report" + uuid4().hex)
+            xls_url = save_file(df, "custom_report/", "user_report_" + uuid4().hex)
         task.file.name = xls_url
         task.status = 2
         task.save()
@@ -46,7 +52,7 @@ def new_export(report_id, task_id):
                                 recipient=task.user, content_object=task, extra_object=task.content_object,
                                 extra_message=" <a href='" + task.file.url + "'> Custom Report File  </a>  with title ")
     except Exception as e:
-        task.description = "ERROR: " + str(e.message)
+        task.description = "ERROR: " + str(e)
         task.status = 3
         task.save()
         task.logs.create(source=task.user, type=432, title="Report generation",
