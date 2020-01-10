@@ -113,8 +113,17 @@ def my_roles(request):
 
                                                                    ).distinct('organization')
     teams = MyRolesSerializer(teams, many=True, context={'user': request.user})
+    organizations = user.user_roles.filter(group__name="Super Organization Admin", ended_at=None).\
+        values('super_organization__id', 'super_organization__name', 'super_organization__address',
+               'super_organization__logo')
 
+    my_organizations = [{'id': org['super_organization__id'],
+                         'name': org['super_organization__name'],
+                         'address': org['super_organization__address'],
+                         'logo': org['super_organization__logo']
+                         }
 
+                        for org in organizations]
 
     if user_id is not None:
         invitations = []
@@ -125,7 +134,8 @@ def my_roles(request):
                                                                                    is_used=False, is_declied=False)
         invitations_serializer = UserInvitationSerializer(invitations, many=True, context={'request': request})
 
-    return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data})
+    return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data,
+                     'my_organizations': my_organizations})
 
 
 @permission_classes([IsAuthenticated])
