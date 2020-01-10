@@ -114,6 +114,8 @@ def my_roles(request):
                                                                    ).distinct('organization')
     teams = MyRolesSerializer(teams, many=True, context={'user': request.user})
 
+
+
     if user_id is not None:
         invitations = []
         invitations_serializer = UserInvitationSerializer(invitations, many=True, context={'request': request})
@@ -372,9 +374,17 @@ class AcceptInvite(APIView):
                         invitation.save()
 
         if not project_ids:
-            userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
-                                                               organization=invitation.organization, project=None,
-                                                               site=None, region=None)
+            if invitation.group.name == 'Super Organization Admin':
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                   super_organization=invitation.super_organization,
+                                                                   organization=None, project=None, site=None,
+                                                                   region=None)
+
+            if invitation.group.name == 'Organization Admin':
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                   organization=invitation.organization, project=None,
+                                                                   site=None, region=None)
+
             if invitation.group_id == 1:
                 permission = Permission.objects.filter(codename='change_finstance')
                 user.user_permissions.add(permission[0])
@@ -385,7 +395,12 @@ class AcceptInvite(APIView):
         site = None
         project = None
         region = None
-        if invitation.group.name == "Organization Admin":
+
+        if invitation.group.name == "Super Organization Admin":
+            noti_type = 41
+            content = invitation.super_organization
+
+        elif invitation.group.name == "Organization Admin":
             noti_type = 1
             content = invitation.organization
 
