@@ -954,23 +954,21 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, ]
 
     def create(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=False)
-            self.object = self.perform_create(serializer)
-            self.object.owner = self.request.user
-            self.object.date_created = timezone.now()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.object = self.perform_create(serializer)
+        self.object.owner = self.request.user
+        self.object.date_created = timezone.now()
+        self.object.save()
+        longitude = request.data.get('longitude', None)
+        latitude = request.data.get('latitude', None)
+        if latitude and longitude is not None:
+            p = Point(round(float(longitude), 6), round(float(latitude), 6),
+                      srid=4326)
+            self.object.location = p
             self.object.save()
-            longitude = request.data.get('longitude', None)
-            latitude = request.data.get('latitude', None)
-            if latitude and longitude is not None:
-                p = Point(round(float(longitude), 6), round(float(latitude), 6),
-                          srid=4326)
-                self.object.location = p
-                self.object.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"test", str(e)})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
     def perform_create(self, serializer):
         return serializer.save()
