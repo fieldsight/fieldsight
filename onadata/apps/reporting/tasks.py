@@ -50,7 +50,7 @@ def new_export(report_id, task_id):
         task.save()
         task.logs.create(source=task.user, type=32, title="Report generation",
                                 recipient=task.user, content_object=task, extra_object=task.content_object,
-                                extra_message=" <a href='" + task.file.url + "'> Custom Report File  </a>  with title ")
+                                extra_message="Custom " + report_obj.get_type_display() + " Report  <a href='" + task.file.url + "'> Download </a>  with title ")
     except Exception as e:
         task.description = "ERROR: " + str(e)
         task.status = 3
