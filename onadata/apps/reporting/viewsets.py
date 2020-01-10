@@ -175,6 +175,7 @@ class GenerateStandardReports(APIView):
             sync_to_drive = data.get('sync_to_drive', False)
 
             task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
+
             if task_obj:
                 task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), region_ids, site_type_ids,
                                                     sync_to_drive)
