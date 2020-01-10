@@ -14,12 +14,13 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework import viewsets
 
+from onadata.apps.eventlog.views import TaskListViewSet
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
     exportProjectSiteResponses, form_status_map, exportLogs, exportProjectUserstatistics, exportProjectstatistics
 from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
-from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions
+from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions, ReportingLogsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
     FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA, FILTER_METRICS_DATA
 from ..eventlog.models import CeleryTaskProgress
@@ -564,6 +565,7 @@ class ReportExportView(APIView):
             if task_obj:
                 task = new_export.delay(report_obj.id, task_obj.id)
                 task_obj.task_id = task.id
+                task_obj.save()
                 return Response(status=status.HTTP_201_CREATED, data={'detail': 'The excel report is being generated. '
                                                                                 'You will be notified after the report '
                                                                                 'is generated.'})
@@ -602,5 +604,14 @@ class ReportActionView(APIView):
         else:
             response_status, data = status.HTTP_400_BAD_REQUEST, {'detail': 'required fields is add_to_templates'
                                                                             ' or share.'}
-
         return Response(status=response_status, data=data)
+
+
+class ReportTaskLogViewset(TaskListViewSet):
+    permission_classes = [ReportingLogsPermissions]
+
+    def get_queryset(self):
+        id = self.request.query_params.get('id')
+        if id:
+            return self.queryset.filter(object_id=id)
+        return []

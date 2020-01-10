@@ -105,3 +105,34 @@ class ReportingSettingsPermissions(permissions.BasePermission):
                 return True
 
         return False
+
+
+class ReportingLogsPermissions(permissions.BasePermission):
+    """
+    Custom Report File Log permission
+    """
+
+    def has_permission(self, request, view):
+
+        if request.is_super_admin:
+            return True
+
+        obj = ReportSettings.objects.get(id=request.query_params.get('id', None))
+
+        project = obj.project
+
+        if project is not None:
+            organization_id = project.organization_id
+            user_role_org_admin = request.roles.filter(organization_id=organization_id,
+                                                       group__name="Organization Admin")
+
+            if user_role_org_admin:
+                return True
+
+            user_role_as_manager = request.roles.filter(project_id=project.id, group__name__in=["Project Manager",
+                                                                                                "Project Donor"])
+
+            if user_role_as_manager:
+                return True
+
+        return False
