@@ -561,7 +561,8 @@ class ReportExportView(APIView):
         if export_type == 'excel':
             task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=26, content_object=report_obj)
             if task_obj:
-                new_export.delay(report_obj.id, task_obj.id)
+                task = new_export.delay(report_obj.id, task_obj.id)
+                task_obj.task_id = task.id
                 return Response(status=status.HTTP_201_CREATED, data={'detail': 'The excel report is being generated. '
                                                                                 'You will be notified after the report '
                                                                                 'is generated.'})
