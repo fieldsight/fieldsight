@@ -123,7 +123,7 @@ def site_report(report_obj):
         code = individual_form_metric['value']['selectedQuestion']['form']['code']
         question = individual_form_metric['value']['selectedQuestion']['name']
         key = individual_form_metric['value']['selectedForm']['id']
-        form_name = individual_form_metric['value']['selectedForm']['name']
+        form_name = individual_form_metric['value']['selectedForm']['title']
         if key not in information_form_dict:
             information_form_dict[key] = {question: [code]}
         else:
