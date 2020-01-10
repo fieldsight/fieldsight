@@ -62,10 +62,18 @@ class MyRegionSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         user = self.context['request'].user
-        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name__in=["Project Manager", "Project Donor"], project=obj.project)|
-                                                                         Q(group__name="Organization Admin",
-                                                                           organization=obj.project.organization, ended_at=None))\
-            .exists()
+
+        org = obj.project.organization
+
+        if org.parent:
+            super_org = org.parent
+        else:
+            super_org = None
+
+        is_project_manager_or_team_admin = user.user_roles.all().\
+            filter(Q(group__name__in=["Project Manager", "Project Donor"], project=obj.project) |
+                   Q(group__name="Super Organization Admin", super_organization=super_org) |
+                   Q(group__name="Organization Admin", organization=obj.project.organization, ended_at=None)).exists()
 
         if is_project_manager_or_team_admin:
             group = None
@@ -101,9 +109,19 @@ class MySiteSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         user = self.context['request'].user
-        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name="Project Manager", project=obj.project)|
-                                                          Q(group__name="Organization Admin", organization=obj.project.organization),
-                                                                        ended_at=None).exists()
+        org = obj.project.organization
+
+        if org.parent:
+            super_org = org.parent
+
+        else:
+            super_org = None
+
+        is_project_manager_or_team_admin = user.user_roles.all().\
+            filter(Q(group__name="Project Manager", project=obj.project) |
+                   Q(group__name="Super Organization Admin", super_organization=super_org) |
+                   Q(group__name="Organization Admin", organization=obj.project.organization), ended_at=None).exists()
+
         is_project_donor = user.user_roles.all().filter(group__name="Project Donor", project=obj.project,
                                                         ended_at=None).exists()
         if is_project_manager_or_team_admin:
@@ -191,13 +209,19 @@ class MyRolesSerializer(serializers.ModelSerializer):
 
     def get_has_organization_access(self, obj):
         user = self.context['user']
-        if obj.organization_id in user.user_roles.filter(group__name="Organization Admin", ended_at=None).values_list('organization_id', flat=True):
-            has_access = True
+
+        if obj.organization.parent:
+            if obj.organization.parent.id in user.user_roles.filter(super_organization=obj.organization.parent,
+                                                                    group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return True
+
+        elif obj.organization_id in user.user_roles.filter(group__name="Organization Admin", ended_at=None).\
+                values_list('organization_id', flat=True):
+            return True
 
         else:
-            has_access = False
-
-        return has_access
+            return False
 
     def get_projects(self, obj):
         user = self.context['user']
