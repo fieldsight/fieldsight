@@ -267,9 +267,9 @@ class MyRolesSerializer(serializers.ModelSerializer):
 
 
 class UserInvitationSerializer(serializers.ModelSerializer):
-    group = serializers.CharField(source='group.name')
-    by_user = serializers.CharField(source='by_user.username')
-    current_user = serializers.SerializerMethodField()
+    group = serializers.SerializerMethodField(read_only=True)
+    by_user = serializers.CharField(source='by_user.username', read_only=True)
+    current_user = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = UserInvite
@@ -278,6 +278,18 @@ class UserInvitationSerializer(serializers.ModelSerializer):
     def get_current_user(self, obj):
         request = self.context.get('request')
         return request.user.username
+
+    def get_group(self, obj):
+        if obj.group.name == 'Organization Admin':
+            group = 'Team Admin'
+
+        elif obj.group.name == 'Super Organization Admin':
+            group = 'Organization Admin'
+
+        else:
+            group = obj.group.name
+
+        return group
 
 
 class LatestSubmissionSerializer(serializers.ModelSerializer):
