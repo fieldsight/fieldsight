@@ -15,6 +15,7 @@ REPORT_TYPES = (
     (5, 'Time Series'),
                 )
 
+REPORT_TYPES_DICT = dict(list(REPORT_TYPES))
 
 METRICES_DATA = [
     {'code': 'num_sites', 'label': _('Number of Sites'), 'types': [1, 2, 3, 4, 5],
@@ -246,6 +247,10 @@ class ReportSettings(models.Model):
 
     def get_absolute_url(self):
         return "/fieldsight/application/#/report-dashboard/{}".format(self.pk)
+
+    def get_type_display(self):
+        return REPORT_TYPES_DICT[self.type]
+
 
 
 
