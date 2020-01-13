@@ -9,6 +9,7 @@ from onadata.apps.fieldsight.models import Organization, Site, Project
 from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.subscriptions.models import Package, Subscription
 from onadata.apps.geo.models import GeoLayer
+from onadata.apps.userrole.models import UserRole
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -119,7 +120,7 @@ class TeamProjectSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'address', 'logo', 'total_users', 'total_submissions', 'total_regions', 'total_sites')
 
     def get_total_users(self, obj):
-        users = obj.project_roles.filter(ended_at=None).distinct('user').count()
+        users = obj.project_roles.distinct('user').count()
 
         return users
 

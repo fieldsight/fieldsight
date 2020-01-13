@@ -758,6 +758,7 @@ def users(request):
     site = request.query_params.get('site', None)
     project = request.query_params.get('project', None)
     team = request.query_params.get('team', None)
+    organization = request.query_params.get('organization', None)
 
     if site is not None:
             try:
@@ -787,6 +788,7 @@ def users(request):
             else:
                 return Response(status=status.HTTP_403_FORBIDDEN,
                                 data={"detail": "You do not have permission to perform this action."})
+
     elif project is not None:
         try:
             project = Project.objects.get(id=project)
@@ -820,8 +822,27 @@ def users(request):
         return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'team': team.name, 'team_url':
             team.get_absolute_url()}})
 
+    elif organization is not None:
+        try:
+            organization = SuperOrganization.objects.get(id=organization)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        queryset = UserRole.objects.select_related('user').filter(super_organization=organization,
+                                                                  ended_at__isnull=True).distinct('user_id')
+
+        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
+                 'email': user_obj.user.email,
+                 'profile_picture': user_obj.user.user_profile.profile_picture.url,
+                 'role': get_user_roles(user_obj, organization)}
+                for user_obj in queryset]
+
+        return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'organization': organization.name,
+                                                        'organization_url': organization.get_absolute_url()}})
     else:
-        return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site id or project id or team id is required.'})
+        return Response(status=status.HTTP_404_NOT_FOUND, data={'detail':
+                                                                    'site id or project id or team id or organization '
+                                                                    'id is required.'})
 
 
 # def mvt_tiles(request, zoom, x, y):
