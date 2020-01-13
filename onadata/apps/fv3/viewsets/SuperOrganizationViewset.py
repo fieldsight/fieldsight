@@ -1,7 +1,7 @@
 import ast
 
 from datetime import datetime
-from django.db.models import Count
+from django.db.models import Count, Prefetch
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
@@ -19,7 +19,9 @@ from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
     OrganizationFormLibrarySerializer
 from onadata.apps.fv3.serializer import TeamSerializer
+from onadata.apps.fv3.serializers.TeamSerializer import TeamProjectSerializer
 from onadata.apps.logger.models import XForm
+from onadata.apps.userrole.models import UserRole
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -278,3 +280,41 @@ class GetOrganizationLocation(APIView):
         location = SuperOrganization.objects.get(id=pk).location
 
         return Response(status=status.HTTP_200_OK, data={'location': str(location)})
+
+
+class OrganizationProjectsViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Project.objects.all()
+    serializer_class = TeamProjectSerializer
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
+
+    def get_queryset(self):
+        return self.queryset.filter(organization__parent__id=self.kwargs.get('pk'))
+
+    def list(self, request, *args, **kwargs):
+        projects = self.serializer_class(self.get_queryset(), many=True).data
+        organization = SuperOrganization.objects.get(id=self.kwargs.get('pk'))
+
+        data = {'projects': projects, 'breadcrumbs': {'name': 'Organizations', 'organization': organization.name,
+                                                      'organization_url': organization.get_absolute_url()}}
+
+        return Response(data)
+
+
+class OrganizationTeamsViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Organization.objects.select_related('owner').prefetch_related('projects')
+    serializer_class = TeamSerializer
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
+
+    def get_queryset(self):
+        return self.queryset.filter(parent_id=self.kwargs.get('pk'))
+
+    def list(self, request, *args, **kwargs):
+        organization = SuperOrganization.objects.get(id=self.kwargs.get('pk'))
+
+        queryset = self.filter_queryset(self.get_queryset())
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'teams': serializer.data, 'breadcrumbs': {'name': 'Teams list',
+                                                                   'organization': organization.name,
+                                                                   'organization_url': organization.get_absolute_url()}})
+
