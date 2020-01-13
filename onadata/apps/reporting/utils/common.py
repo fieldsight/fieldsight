@@ -614,8 +614,14 @@ def generate_form_information(form_label, question, df, df_sub_form_data, metric
     return df
 
 
-def ordered_columns_from_metrics(attributes):
+def ordered_columns_from_metrics(report_obj):
+    attributes = report_obj.attributes
     columns = []
+    if report_obj.type == 0:
+        columns = ['identifier', 'name']
+    elif report_obj.type == 4:
+        columns = ['username', 'email']
+        
     for a in attributes:
         category = a.get('category')
         if category:

@@ -150,7 +150,7 @@ def site_report(report_obj):
 
 
     #reorder cols
-    columns_name = ordered_columns_from_metrics(attributes)  #ordered metrices codes
+    columns_name = ordered_columns_from_metrics(report_obj)  #ordered metrices codes
     df = df[columns_name]
 
     df = df.replace("Nan", 0)
