@@ -71,7 +71,7 @@ METRICES_DATA = [
     {'code': 'no_resolved_submissions_current', 'label': _('Number of Resolved Submissions (Current)'),
      'types': [0, 1, 2, 3, 4, 5], 'category': 'default'},
     {'code': 'no_resolved_submissions_ever', 'label': _('Number of Resolved Submissions (Ever)'),
-     'types': [0, 1, 2, 3, 4, 5], 'category': 'default'},
+     'types': [], 'category': 'default'},
     {'code': 'submissions_flagged_by_user', 'label': _('Number of Submissions Flagged'),
      'types': [4], 'category': 'default'},
     {'code': 'submissions_rejected_by_user', 'label': _('Number of Submissions Rejected'),
@@ -93,8 +93,8 @@ INDIVIDUAL_FORM_METRICS_DATA = [
        'category': 'individual_form'},
       {'code': 'form_no_rejected_submissions_current', 'label': _('Number of Rejected Submissions (Current)'), 'types': [0, 1, 2, 3, 4, 5],
        'category': 'individual_form'},
-      # {'code': 'form_no_resolved_submissions_current', 'label': _('Number of Resolved Submissions (Current)'), 'types': [0, 1, 2, 3, 4, 5],
-      #  'category': 'individual_form'},
+      {'code': 'form_no_resolved_submissions_current', 'label': _('Number of Resolved Submissions (Current)'), 'types': [],
+       'category': 'individual_form'},
       {'code': 'form_no_submissions_reviewed', 'label': _('Submissions Reviewed'), 'types': [0, 1, 2, 3, 4, 5],
        'category': 'individual_form'},
       {'code': 'form_no_submissions_flagged_ever', 'label': _('Submissions Flagged (Ever)'), 'types': [0, 1, 2, 3, 4, 5],
@@ -164,7 +164,7 @@ SITE_INFORMATION_VALUES_METRICS_DATA = [
     {'code': 'count_distinct', 'label': _('Count Distinct'), 'types': [3, 2],
      'category': 'site_information'},
 
-    {'code': 'all_values', 'label': _('All Values'), 'types': [3, 2],
+    {'code': 'all_values', 'label': _('All Values'), 'types': [],
      'category': 'site_information'},
 ]
 
@@ -193,7 +193,7 @@ FORM_INFORMATION_VALUES_METRICS_DATA = [
     {'code': 'form_info_count_distinct', 'label': _('Count Distinct'), 'types': [0, 1, 2],
      'category': 'form_information'},
 
-    {'code': 'form_info_all_values', 'label': _('All Values'), 'types': [0, 1, 2],
+    {'code': 'form_info_all_values', 'label': _('All Values'), 'types': [],
      'category': 'form_information'},
 ]
 
