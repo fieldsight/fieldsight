@@ -15,8 +15,7 @@ class ProjectsitesPagination(PageNumberPagination):
 
 
 class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Site.objects.filter(site__isnull=True).select_related('project',
-                                                            'region', 'type')
+    queryset = Site.objects.filter(site__isnull=True).select_related('project', 'region', 'type')
     serializer_class = ProjectSitesListSerializer
     permission_classes = [IsAuthenticated, ProjectDonorApiPermissions]
     pagination_class = ProjectsitesPagination

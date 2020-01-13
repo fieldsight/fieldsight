@@ -152,8 +152,7 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         return total_sites
 
     def get_project_managers(self, obj):
-        project_managers_qs = obj.project_roles.select_related("user", "user__user_profile").filter(ended_at__isnull=True,
-                                                                                                    group__name="Project Manager")
+        project_managers_qs = obj.project_user_roles
 
         project_managers = [{'id': role.user.id, 'full_name': role.user.get_full_name(), 'email': role.user.email,
                              'profile_picture': role.user.user_profile.profile_picture.url} for role in
