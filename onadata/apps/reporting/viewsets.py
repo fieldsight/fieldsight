@@ -216,6 +216,7 @@ class GenerateStandardReports(APIView):
             end_date = data.get('end_date')
             region_ids = data.get('regions', None)
             site_type_ids = data.get('siteTypes', None)
+
             project = get_object_or_404(Project, pk=self.kwargs.get('pk'))
 
             task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=3)
@@ -230,7 +231,7 @@ class GenerateStandardReports(APIView):
                 status, data = 401, {'detail': 'Error occured please try again.'}
             return Response(status=status, data=data)
 
-        elif report_type == 'logs':
+        elif report_type == 'project_logs':
             user = self.request.user
             data = request.data
             reportType = data.get('type')
@@ -260,6 +261,8 @@ class GenerateStandardReports(APIView):
             data = request.data
             start_date = data.get('start_date')
             end_date = data.get('end_date')
+
+            print('datattatata', data)
 
             task_obj = CeleryTaskProgress.objects.create(user=user, task_type=16, content_object=project)
             if task_obj:

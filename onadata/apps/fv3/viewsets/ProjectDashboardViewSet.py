@@ -2,7 +2,7 @@ import datetime
 import json
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count, Case, When, F, IntegerField
+from django.db.models import Count, Case, When, F, IntegerField, Prefetch
 from django.shortcuts import get_object_or_404
 from django.http import Http404
 from django.conf import settings
@@ -28,6 +28,7 @@ from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, S
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import Instance
 from onadata.apps.fieldsight.tasks import UnassignAllSiteRoles
+from onadata.apps.userrole.models import UserRole
 
 
 class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
@@ -36,7 +37,14 @@ class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
 
     def get_queryset(self):
-        return self.queryset
+
+        return self.queryset.prefetch_related(Prefetch(
+            'project_roles',
+            queryset=UserRole.objects.select_related("user", "user__user_profile").filter(ended_at__isnull=True,
+                                                                                          group__name="Project Manager"),
+            to_attr='project_user_roles'
+
+        ))
 
     def get_serializer_context(self):
         return {'request': self.request}

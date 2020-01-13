@@ -7,7 +7,7 @@ from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.views import APIView
 
-from onadata.apps.fieldsight.models import SuperOrganization, Organization, Project
+from onadata.apps.fieldsight.models import SuperOrganization, Organization, Project, Site, Region
 from rest_framework.permissions import IsAuthenticated
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from django.contrib.gis.geos import Point
@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from onadata.apps.fv3.permissions.super_admin import SuperAdminPermission
 from onadata.apps.fv3.permissions.super_organization import SuperOrganizationAdminPermission
 
-from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF
+from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF, FInstance
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
     OrganizationFormLibrarySerializer
 from onadata.apps.fv3.serializer import TeamSerializer
@@ -288,7 +288,20 @@ class OrganizationProjectsViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
     def get_queryset(self):
-        return self.queryset.filter(organization__parent__id=self.kwargs.get('pk'))
+        return self.queryset.prefetch_related(Prefetch(
+            'project_roles',
+            queryset=UserRole.objects.filter(ended_at=None).distinct('user')
+        ), Prefetch(
+            'project_instances',
+            queryset=FInstance.objects.filter(is_deleted=False)
+
+        ), Prefetch(
+            'project_region',
+            queryset=Region.objects.filter(is_active=True, parent__isnull=True)
+        ), Prefetch(
+            'sites',
+            queryset=Site.objects.filter(is_active=True, is_survey=False, site__isnull=True)
+        )).filter(organization__parent__id=self.kwargs.get('pk'), is_active=True)
 
     def list(self, request, *args, **kwargs):
         projects = self.serializer_class(self.get_queryset(), many=True).data

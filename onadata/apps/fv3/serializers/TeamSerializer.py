@@ -120,21 +120,21 @@ class TeamProjectSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'address', 'logo', 'total_users', 'total_submissions', 'total_regions', 'total_sites')
 
     def get_total_users(self, obj):
-        users = obj.project_roles.distinct('user').count()
+        users = obj.project_roles.count()
 
         return users
 
     def get_total_submissions(self, obj):
-        instances = obj.project_instances.filter(is_deleted=False).count()
+        instances = obj.project_instances.count()
         return instances
 
     def get_total_regions(self, obj):
-        regions = obj.project_region.filter(is_active=True, parent__isnull=True).count()
+        regions = obj.project_region.count()
 
         return regions
 
     def get_total_sites(self, obj):
-        sites = obj.sites.filter(is_active=True, is_survey=False, site__isnull=True).count()
+        sites = obj.sites.count()
 
         return sites
 
