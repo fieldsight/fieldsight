@@ -31,7 +31,7 @@ def save_file(df, directory, filename):
     return path
 
 
-@shared_task()
+@shared_task(time_limit=600, max_retries=2, soft_time_limit=600)
 def new_export(report_id, task_id):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_id)
