@@ -281,3 +281,36 @@ def generate_form_information(form_label, question, df, df_sub_form_data, metric
                 df = df.merge(count_value_distinct, on=report_type, how="left")
 
     return df
+
+
+def ordered_columns_from_metrics(attributes):
+    columns = []
+    for a in attributes:
+        category = a.get('category')
+        if category:
+            if a['category'] == 'default':
+                columns.append(a['code'])
+            elif a['category'] == 'users':
+                columns.append(a['code'])
+        elif a.get('value'):
+            value = a['value']
+            if value.get('selectedQuestion'):
+                if value['selectedQuestion']['form']['category'] == "form_information":
+                    code = value['selectedQuestion']['code']
+                    question = value['selectedQuestion']['name']
+                    form_title = value['selectedForm']['title']
+                    columns.append(form_title + "/" + question + "/" + code)
+                else:
+                    raise ValueError
+            elif value.get('selectedIndividualForm'):
+                code = value['selectedIndividualForm']['code']
+                form_title = value['selectedForm']['title']
+                columns.append(form_title + "/" + code)
+            elif value.get('category') == "site_information":
+                columns.append(a['code'])
+
+            else:
+                raise ValueError
+        else:
+            raise ValueError
+    return columns
