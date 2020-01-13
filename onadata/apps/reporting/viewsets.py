@@ -614,7 +614,7 @@ class ReportTaskLogViewset(TaskListViewSet):
     permission_classes = [ReportingLogsPermissions]
 
     def get_queryset(self):
-        id = self.request.query_params.get('id')
-        if id:
-            return self.queryset.filter(object_id=id)
+        object_id = self.request.query_params.get('id')
+        if object_id:
+            return self.queryset.filter(task_type=26, object_id=object_id)
         return []
