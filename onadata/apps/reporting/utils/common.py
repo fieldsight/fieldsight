@@ -612,7 +612,7 @@ def ordered_columns_from_metrics(attributes):
             value = a['value']
             if value.get('selectedQuestion'):
                 if value['selectedQuestion']['form']['category'] == "form_information":
-                    code = value['selectedQuestion']['code']
+                    code = value['selectedQuestion']['form']['code']
                     question = value['selectedQuestion']['name']
                     form_title = value['selectedForm']['title']
                     columns.append(form_title + "/" + question + "/" + code)
