@@ -426,6 +426,21 @@ def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, rep
         except:
             df['no_resolved_submissions_ever'] = 0
 
+    if "no_resolved_submissions_current" in metrices_list:
+        try:
+            approved_submissions = df_submissions_status_index.loc[1]
+            df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 3]]
+            approved_submissions_with_resolved = approved_submissions.assign(
+                resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
+            approved_submissions_with_resolved_only = approved_submissions_with_resolved[
+                approved_submissions_with_resolved["resolved"]]
+            submissions_resolved_ever = approved_submissions_with_resolved_only.groupby([report_type]).size().to_frame(
+                'no_resolved_submissions_current').reset_index()
+
+            df = df.merge(submissions_resolved_ever, on=report_type, how="left")
+        except:
+            df['no_resolved_submissions_current'] = 0
+
     if "no_pending_submissions_ever" in metrices_list:
         try:
             submissions_pending_ever = df_reviews_old_status_index.loc[0].groupby(report_type).size().to_frame('no_pending_submissions_ever').reset_index()
