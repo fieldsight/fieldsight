@@ -4,7 +4,7 @@ from django.db.models import Q
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
 from onadata.apps.reporting.utils.common import separate_metrics, generate_default_metrices, generate_form_metrices, \
-    generate_form_information
+    generate_form_information, ordered_columns_from_metrics
 from onadata.apps.userrole.models import UserRole
 
 
@@ -150,7 +150,7 @@ def site_report(report_obj):
 
 
     #reorder cols
-    columns_name = list(df.columns)  #ordered metrices codes
+    columns_name = ordered_columns_from_metrics(attributes)  #ordered metrices codes
     df = df[columns_name]
 
     df = df.replace("Nan", 0)
