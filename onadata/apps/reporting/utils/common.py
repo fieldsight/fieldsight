@@ -361,7 +361,7 @@ def separate_metrics(attributes):
 def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, report_type):
     if "sites_visited" in metrices_list:
         df_visits = df_submissions.date.apply(lambda dt: dt.date()).groupby(
-            [df_submissions[report_type]]).nunique().to_frame('site_visited').reset_index()
+            [df_submissions[report_type]]).nunique().to_frame('sites_visited').reset_index()
         df = df.merge(df_visits, on=report_type, how="left")
 
     if "sites_reviewed" in metrices_list:
@@ -425,6 +425,21 @@ def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, rep
             df = df.merge(submissions_resolved_ever, on=report_type, how="left")
         except:
             df['no_resolved_submissions_ever'] = 0
+
+    if "no_resolved_submissions_current" in metrices_list:
+        try:
+            approved_submissions = df_submissions_status_index.loc[1]
+            df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 3]]
+            approved_submissions_with_resolved = approved_submissions.assign(
+                resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
+            approved_submissions_with_resolved_only = approved_submissions_with_resolved[
+                approved_submissions_with_resolved["resolved"]]
+            submissions_resolved_ever = approved_submissions_with_resolved_only.groupby([report_type]).size().to_frame(
+                'no_resolved_submissions_current').reset_index()
+
+            df = df.merge(submissions_resolved_ever, on=report_type, how="left")
+        except:
+            df['no_resolved_submissions_current'] = 0
 
     if "no_pending_submissions_ever" in metrices_list:
         try:
@@ -599,8 +614,14 @@ def generate_form_information(form_label, question, df, df_sub_form_data, metric
     return df
 
 
-def ordered_columns_from_metrics(attributes):
+def ordered_columns_from_metrics(report_obj):
+    attributes = report_obj.attributes
     columns = []
+    if report_obj.type == 0:
+        columns = ['identifier', 'name']
+    elif report_obj.type == 4:
+        columns = ['username', 'email']
+        
     for a in attributes:
         category = a.get('category')
         if category:
@@ -612,7 +633,7 @@ def ordered_columns_from_metrics(attributes):
             value = a['value']
             if value.get('selectedQuestion'):
                 if value['selectedQuestion']['form']['category'] == "form_information":
-                    code = value['selectedQuestion']['code']
+                    code = value['selectedQuestion']['form']['code']
                     question = value['selectedQuestion']['name']
                     form_title = value['selectedForm']['title']
                     columns.append(form_title + "/" + question + "/" + code)

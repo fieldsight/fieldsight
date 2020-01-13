@@ -4,7 +4,7 @@ from django.db.models import Q
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
 from onadata.apps.reporting.utils.common import separate_metrics, generate_default_metrices, generate_form_metrices, \
-    generate_form_information
+    generate_form_information, ordered_columns_from_metrics
 from onadata.apps.userrole.models import UserRole
 
 
@@ -80,7 +80,7 @@ def site_report(report_obj):
         df = df.merge(active_users_site_sup, on="site", how="left")
     if 'no_of_active_site_reviewer' in user_metrics:
         active_users_site_rev = active_df[active_df.group == 3].groupby('site').size().to_frame(
-            "active_users_rev").reset_index()
+            "no_of_active_site_reviewer").reset_index()
         df = df.merge(active_users_site_rev, on="site", how="left")
 
     query_submissions = FInstance.objects.filter(**foreign_key_site_filter).filter(
@@ -150,7 +150,7 @@ def site_report(report_obj):
 
 
     #reorder cols
-    columns_name = list(df.columns)  #ordered metrices codes
+    columns_name = ordered_columns_from_metrics(report_obj)  #ordered metrices codes
     df = df[columns_name]
 
     df = df.replace("Nan", 0)
