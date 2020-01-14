@@ -9,6 +9,8 @@ from onadata.apps.userrole.models import UserRole
 
 
 def site_report(report_obj):
+    if not report_obj.type == 0:
+        raise ValueError("report type must be site for site report")
     project_id = report_obj.project_id
     attributes = report_obj.attributes
     filters = report_obj.filter

@@ -44,9 +44,21 @@ def separate_metrics(attributes):
 
 def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, report_type):
     if "sites_visited" in metrices_list:
-        df_visits = df_submissions.date.apply(lambda dt: dt.date()).groupby(
-            [df_submissions[report_type]]).nunique().to_frame('site_visited').reset_index()
-        df = df.merge(df_visits, on=report_type, how="left")
+        if report_type == "user":
+            df_submissions_duplicated = df_submissions.date.apply(lambda dt: dt.date()).duplicated(["date", "user", "site"])
+            unique_visits = df_submissions[~df_submissions_duplicated]
+            df_visits = unique_visits.groupby("user").size().to_frame("site_visited").reset_index()
+            df = df.merge(df_visits, on=report_type, how="left")
+        else:
+            df_visits = df_submissions.date.apply(lambda dt: dt.date()).groupby(
+                [df_submissions[report_type]]).nunique().to_frame('site_visited').reset_index()
+            df = df.merge(df_visits, on=report_type, how="left")
+
+
+    # if "regions_visited" in metrices_list:
+    #     df_visits = df_submissions.date.apply(lambda dt: dt.date()).groupby(
+    #         [df_submissions['region']]).nunique().to_frame('regions_visited').reset_index()
+    #     df = df.merge(df_visits, on=report_type, how="left")
 
     if "sites_reviewed" in metrices_list:
         df_reviews_count = df_reviews.groupby(report_type).size().to_frame('sites_reviewed').reset_index()
@@ -615,6 +627,7 @@ def generate_form_information(form_label, question, df, df_sub_form_data, metric
 
 
 def ordered_columns_from_metrics(report_obj):
+    #Todo columns label not code for display
     attributes = report_obj.attributes
     columns = []
     if report_obj.type == 0:
@@ -645,7 +658,6 @@ def ordered_columns_from_metrics(report_obj):
                 columns.append(form_title + "/" + code)
             elif value.get('category') == "site_information":
                 columns.append(a['code'])
-
             else:
                 raise ValueError
         else:

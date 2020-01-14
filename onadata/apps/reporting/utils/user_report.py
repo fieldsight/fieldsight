@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from django.contrib.auth.models import User
 from django.db.models import Q
 
@@ -9,6 +10,8 @@ from onadata.apps.userrole.models import UserRole
 
 
 def user_report(report_obj):
+    if not report_obj.type == 4:
+        raise ValueError("report type must be user for user report")
     project_id = report_obj.project_id
     attributes = report_obj.attributes
     filters = report_obj.filter
@@ -25,16 +28,16 @@ def user_report(report_obj):
     df_role = pd.DataFrame(list(query_role), columns=["user", "site", "project", "region"])
 
     if "num_sites" in default_metrics:
-        num_of_sites = df_role.groupby(['user']).agg({'site': lambda x: x.nunique()}).reset_index()
+        num_of_sites = df_role.groupby('user').site.count().to_frame("num_sites").reset_index()
         num_of_sites.columns = ["user", "num_sites"]
         df = df.merge(num_of_sites, on="user", how="left")
     if "num_projects" in default_metrics:
-        num_of_projects = df_role.groupby(['user']).agg({'project': lambda x: x.nunique()}).reset_index()
-        num_of_projects.columns = ["user", "num_projects"]
-        df = df.merge(num_of_projects, on="user", how="left")
+        num_projects = df_role.dropna(subset=['site', 'region']).groupby("user").project.count().to_frame(
+            "num_projects").reset_index()
+        df = df.merge(num_projects, on="user", how="left")
     if "num_regions" in default_metrics:
-        num_of_regions = df_role.groupby(['user']).agg({'region': lambda x: x.nunique()}).reset_index()
-        num_of_regions.columns = ["user", "num_regions"]
+        # df_role[~np.isfinite(df_role['site'])]
+        num_of_regions = df_role.dropna(subset=['site']).groupby("user").region.count().to_frame("num_projects").reset_index()
         df = df.merge(num_of_regions, on="user", how="left")
 
     query_submissions = FInstance.objects.filter(
@@ -73,4 +76,7 @@ def user_report(report_obj):
         df = generate_form_metrices(form_name, df, form_submissions, df_reviews, metrices_list, "site")
 
     df = df.replace("NaN", 0)
+    # reorder cols
+    columns_name = ordered_columns_from_metrics(report_obj)  # ordered metrices codes
+    df = df[columns_name]
     return df
