@@ -886,21 +886,21 @@ class TeamFormViewset(viewsets.ModelViewSet):
                                        format(self.request.user, self.object.name))
 
         user = self.request.user
-        user_id = User.objects.get(username=user).id
+        # user_id = User.objects.get(username=user).id
         profile = user.user_profile
         if not profile.organization:
             profile.organization = self.object
             profile.save()
 
         # subscribed to free plan
-        if not user.is_superuser:
-            free_package = Package.objects.get(plan=0)
-            customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
-            Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer,
-                                        initiated_on=datetime.now(),
-                                        package=free_package, organization=self.object)
-            user_id = user_id
-            email_after_subscribed_plan.delay(user_id)
+        # if not user.is_superuser:
+        #     free_package = Package.objects.get(plan=0)
+        #     customer = Customer.objects.create(user=self.request.user, stripe_cust_id="free_cust_id")
+        #     Subscription.objects.create(stripe_sub_id="free_plan", stripe_customer=customer,
+        #                                 initiated_on=datetime.now(),
+        #                                 package=free_package, organization=self.object)
+        #     user_id = user_id
+        #     email_after_subscribed_plan.delay(user_id)
 
         project = Project.objects.get(name="Example Project", organization_id=self.object.id)
         sites = Site.objects.filter(project=project)
