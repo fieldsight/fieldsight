@@ -43,12 +43,14 @@ def get_user_roles(role_obj, obj):
     elif isinstance(obj, Organization):
         roles = queryset.filter(organization=obj, group__name="Organization Admin").\
             values_list('group__name', flat=True)
+        roles = ['Team Admin' if role == 'Organization Admin' else role for role in roles]
 
     elif isinstance(obj, SuperOrganization):
         teams = Organization.objects.filter(parent=obj, is_active=True).values_list('id', flat=True)
-        roles = queryset.filter(Q(super_organization=obj, group__name='Super Organization Admin') |
-                                Q(organization_id__in=teams)).values_list('group__name', flat=True)
-
+        roles = queryset.filter(group__name='Super Organization Admin').filter(Q(super_organization=obj) |
+                                                                               Q(organization_id__in=teams)).\
+            values_list('group__name', flat=True)
+        roles = ['Organization Admin' if role == 'Super Organization Admin' else role for role in roles]
     else:
         roles = ''
 
