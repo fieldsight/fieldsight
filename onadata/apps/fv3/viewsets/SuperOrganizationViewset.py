@@ -307,7 +307,7 @@ class OrganizationProjectsViewSet(viewsets.ReadOnlyModelViewSet):
         projects = self.serializer_class(self.get_queryset(), many=True).data
         organization = SuperOrganization.objects.get(id=self.kwargs.get('pk'))
 
-        data = {'projects': projects, 'breadcrumbs': {'name': 'Organizations', 'organization': organization.name,
+        data = {'projects': projects, 'breadcrumbs': {'name': 'Projects', 'organization': organization.name,
                                                       'organization_url': organization.get_absolute_url()}}
 
         return Response(data)
