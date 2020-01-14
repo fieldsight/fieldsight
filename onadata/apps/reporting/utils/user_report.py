@@ -25,13 +25,16 @@ def user_report(report_obj):
     df_role = pd.DataFrame(list(query_role), columns=["user", "site", "project", "region"])
 
     if "num_sites" in default_metrics:
-        num_of_sites = df_role.groupby('user')['site'].size().to_frame("num_sites").reset_index()
+        num_of_sites = df_role.groupby(['user']).agg({'site': lambda x: x.nunique()}).reset_index()
+        num_of_sites.columns = ["user", "num_sites"]
         df = df.merge(num_of_sites, on="user", how="left")
     if "num_projects" in default_metrics:
-        num_of_projects = df_role.groupby('user')['project'].size().to_frame("num_projects").reset_index()
+        num_of_projects = df_role.groupby(['user']).agg({'project': lambda x: x.nunique()}).reset_index()
+        num_of_projects.columns = ["user", "num_projects"]
         df = df.merge(num_of_projects, on="user", how="left")
     if "num_regions" in default_metrics:
-        num_of_regions = df_role.groupby('user')['region'].size().to_frame("num_regions").reset_index()
+        num_of_regions = df_role.groupby(['user']).agg({'region': lambda x: x.nunique()}).reset_index()
+        num_of_regions.columns = ["user", "num_regions"]
         df = df.merge(num_of_regions, on="user", how="left")
 
     query_submissions = FInstance.objects.filter(
