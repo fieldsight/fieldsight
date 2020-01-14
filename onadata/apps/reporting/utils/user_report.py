@@ -33,7 +33,7 @@ def user_report(report_obj):
         num_of_projects.columns = ["user", "num_projects"]
         df = df.merge(num_of_projects, on="user", how="left")
     if "num_regions" in default_metrics:
-        num_of_regions = df_role.groupby(['user']).agg({'regions': lambda x: x.nunique()}).reset_index()
+        num_of_regions = df_role.groupby(['user']).agg({'region': lambda x: x.nunique()}).reset_index()
         num_of_regions.columns = ["user", "num_regions"]
         df = df.merge(num_of_regions, on="user", how="left")
 
