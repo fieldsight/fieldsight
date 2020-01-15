@@ -423,6 +423,7 @@ def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, rep
             df['no_rejected_submissions_current'] = 0
 
     df_reviews_old_status_index = df_reviews.set_index('old_status')
+    df_reviews_new_status_index = df_reviews.set_index('new_status')
     if "no_resolved_submissions_ever" in metrices_list:
         try:
             approved_submissions = df_submissions_status_index.loc[3]
@@ -458,20 +459,20 @@ def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, rep
 
     if "no_approved_submissions_ever" in metrices_list:
         try:
-            submissions_approved_ever = df_reviews_old_status_index.loc[1].groupby(report_type).size().to_frame('no_approved_submissions_ever').reset_index()
+            submissions_approved_ever = df_submissions[df_submissions.form_status == 3].groupby(report_type).size().to_frame('no_approved_submissions_ever').reset_index()
             df = df.merge(submissions_approved_ever, on=report_type, how="left")
         except:
             df['no_approved_submissions_ever'] = 0
 
     if "no_flagged_submissions_ever" in metrices_list:
         try:
-            submissions_flagged_ever = df_reviews_old_status_index.loc[2].groupby(report_type).size().to_frame('no_flagged_submissions_ever').reset_index()
+            submissions_flagged_ever = df_reviews_new_status_index.loc[2].groupby(report_type).size().to_frame('no_flagged_submissions_ever').reset_index()
             df = df.merge(submissions_flagged_ever, on=report_type, how="left")
         except:
             df['no_flagged_submissions_ever'] = 0
     if "no_rejected_submissions_ever" in metrices_list:
         try:
-            submissions_rejected_ever = df_reviews_old_status_index.loc[3].groupby(report_type).size().to_frame('no_rejected_submissions_ever').reset_index()
+            submissions_rejected_ever = df_reviews_new_status_index.loc[1].groupby(report_type).size().to_frame('no_rejected_submissions_ever').reset_index()
             df = df.merge(submissions_rejected_ever, on=report_type, how="left")
         except:
             df['no_rejected_submissions_ever'] = 0
