@@ -423,15 +423,12 @@ def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, rep
             df['no_rejected_submissions_current'] = 0
 
     df_reviews_old_status_index = df_reviews.set_index('old_status')
+    df_reviews_new_status_index = df_reviews.set_index('new_status')
     if "no_resolved_submissions_ever" in metrices_list:
         try:
-            approved_submissions = df_submissions_status_index.loc[1]
-            df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 3]]
-            approved_submissions_with_resolved = approved_submissions.assign(
-                resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
-            approved_submissions_with_resolved_only = approved_submissions_with_resolved[
-                approved_submissions_with_resolved["resolved"]]
-            submissions_resolved_ever = approved_submissions_with_resolved_only.groupby([report_type]).size().to_frame(
+            approved_submissions = df_submissions_status_index.loc[3]
+            df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 1]]
+            submissions_resolved_ever = df_flagged_or_rejected[df_flagged_or_rejected.finstance.isin(approved_submissions.pk)].groupby('user').size().to_frame(
                 'no_resolved_submissions_ever').reset_index()
 
             df = df.merge(submissions_resolved_ever, on=report_type, how="left")
@@ -440,8 +437,8 @@ def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, rep
 
     if "no_resolved_submissions_current" in metrices_list:
         try:
-            approved_submissions = df_submissions_status_index.loc[1]
-            df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 3]]
+            approved_submissions = df_submissions_status_index.loc[3]
+            df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 1]]
             approved_submissions_with_resolved = approved_submissions.assign(
                 resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
             approved_submissions_with_resolved_only = approved_submissions_with_resolved[
@@ -462,20 +459,20 @@ def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, rep
 
     if "no_approved_submissions_ever" in metrices_list:
         try:
-            submissions_approved_ever = df_reviews_old_status_index.loc[1].groupby(report_type).size().to_frame('no_approved_submissions_ever').reset_index()
+            submissions_approved_ever = df_submissions[df_submissions.form_status == 3].groupby(report_type).size().to_frame('no_approved_submissions_ever').reset_index()
             df = df.merge(submissions_approved_ever, on=report_type, how="left")
         except:
             df['no_approved_submissions_ever'] = 0
 
     if "no_flagged_submissions_ever" in metrices_list:
         try:
-            submissions_flagged_ever = df_reviews_old_status_index.loc[2].groupby(report_type).size().to_frame('no_flagged_submissions_ever').reset_index()
+            submissions_flagged_ever = df_reviews_new_status_index.loc[2].groupby(report_type).size().to_frame('no_flagged_submissions_ever').reset_index()
             df = df.merge(submissions_flagged_ever, on=report_type, how="left")
         except:
             df['no_flagged_submissions_ever'] = 0
     if "no_rejected_submissions_ever" in metrices_list:
         try:
-            submissions_rejected_ever = df_reviews_old_status_index.loc[3].groupby(report_type).size().to_frame('no_rejected_submissions_ever').reset_index()
+            submissions_rejected_ever = df_reviews_new_status_index.loc[1].groupby(report_type).size().to_frame('no_rejected_submissions_ever').reset_index()
             df = df.merge(submissions_rejected_ever, on=report_type, how="left")
         except:
             df['no_rejected_submissions_ever'] = 0
@@ -499,7 +496,7 @@ def generate_form_metrices(form_name, df, df_submissions, df_reviews, metrices_l
             df[form_name + 'form_no_pending_submissions_current'] = 0
     if "form_no_approved_submissions_current" in metrices_list:
         try:
-            submissions_approved = df_submissions_status_index.loc[1].groupby([report_type]).size().to_frame(
+            submissions_approved = df_submissions_status_index.loc[3].groupby([report_type]).size().to_frame(
                 form_name + 'form_no_approved_submissions_current').reset_index()
             df = df.merge(submissions_approved, on=report_type, how="left")
         except:
@@ -513,7 +510,7 @@ def generate_form_metrices(form_name, df, df_submissions, df_reviews, metrices_l
             df[form_name + 'form_no_flagged_submissions_current'] = 0
     if "form_no_rejected_submissions_current" in metrices_list:
         try:
-            submissions_rejected = df_submissions_status_index.loc[3].groupby([report_type]).size().to_frame(
+            submissions_rejected = df_submissions_status_index.loc[1].groupby([report_type]).size().to_frame(
                 form_name + 'form_no_rejected_submissions_current').reset_index()
             df = df.merge(submissions_rejected, on=report_type, how="left")
         except:
@@ -544,20 +541,20 @@ def generate_form_metrices(form_name, df, df_submissions, df_reviews, metrices_l
 
     if "form_submissions_approved_ever" in metrices_list:
         try:
-            submissions_approved_ever = df_reviews_old_status_index.loc[1].groupby(report_type).size().to_frame(form_name +'form_submissions_approved_ever').reset_index()
+            submissions_approved_ever = df_reviews_old_status_index.loc[3].groupby(report_type).size().to_frame(form_name + 'form_submissions_approved_ever').reset_index()
             df = df.merge(submissions_approved_ever, on=report_type, how="left")
         except:
             df['form_submissions_approved_ever'] = 0
 
     if "form_no_submissions_flagged_ever" in metrices_list:
         try:
-            submissions_flagged_ever = df_reviews_old_status_index.loc[2].groupby(report_type).size().to_frame(form_name +'form_no_submissions_flagged_ever').reset_index()
+            submissions_flagged_ever = df_reviews_old_status_index.loc[2].groupby(report_type).size().to_frame(form_name + 'form_no_submissions_flagged_ever').reset_index()
             df = df.merge(submissions_flagged_ever, on=report_type, how="left")
         except:
             df[form_name + 'form_no_submissions_flagged_ever'] = 0
     if "form_submissions_rejected_ever" in metrices_list:
         try:
-            submissions_rejected_ever = df_reviews_old_status_index.loc[3].groupby(report_type).size().to_frame(form_name + 'form_submissions_rejected_ever').reset_index()
+            submissions_rejected_ever = df_reviews_old_status_index.loc[1].groupby(report_type).size().to_frame(form_name + 'form_submissions_rejected_ever').reset_index()
             df = df.merge(submissions_rejected_ever, on=report_type, how="left")
         except:
             df[form_name + 'form_submissions_rejected_ever'] = 0

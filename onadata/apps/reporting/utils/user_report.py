@@ -5,7 +5,8 @@ from django.db.models import Q
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
-from onadata.apps.reporting.utils.common import separate_metrics, generate_default_metrices, generate_form_metrices
+from onadata.apps.reporting.utils.common import separate_metrics, generate_default_metrices, generate_form_metrices, \
+    ordered_columns_from_metrics
 from onadata.apps.userrole.models import UserRole
 
 
@@ -37,16 +38,28 @@ def user_report(report_obj):
         df = df.merge(num_projects, on="user", how="left")
     if "num_regions" in default_metrics:
         # df_role[~np.isfinite(df_role['site'])]
-        num_of_regions = df_role.dropna(subset=['site']).groupby("user").region.count().to_frame("num_projects").reset_index()
+        num_of_regions = df_role.dropna(subset=['site']).groupby("user").region.count().to_frame("num_regions").reset_index()
         df = df.merge(num_of_regions, on="user", how="left")
 
     query_submissions = FInstance.objects.filter(
         Q(project_fxf__project=project_id) |
         Q(site_fxf__site__project=project_id)
-    ).values("pk", "site", "project_fxf", "form_status", "submitted_by", "date")
+    ).values("pk", "site", "project_fxf", "form_status", "submitted_by", "date", "site__current_progress")
     df_submissions = pd.DataFrame(
-        list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date"])
-    df_submissions.columns = ["pk", "site", "project_fxf", "form_status", "user", "date"]
+        list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date", "site__current_progress"])
+    df_submissions.columns = ["pk", "site", "project_fxf", "form_status", "user", "date", "progress"]
+
+    if "progress_avg" in default_metrics:
+        progress_avg = df_submissions.groupby('user').progress.mean().to_frame("progress_avg").reset_index()
+        df = df.merge(progress_avg, on="user", how="left")
+
+    if "progress_max" in default_metrics:
+        progress_max = df_submissions.groupby('user').progress.max().to_frame("progress_max").reset_index()
+        df = df.merge(progress_max, on="user", how="left")
+
+    if "progress_min" in default_metrics:
+        progress_min = df_submissions.groupby('user').progress.min().to_frame("progress_min").reset_index()
+        df = df.merge(progress_min, on="user", how="left")
     query_reviews = InstanceStatusChanged.objects.filter(
         Q(finstance__project_fxf__project=project_id) |
         Q(finstance__site_fxf__site__project=project_id)
@@ -55,6 +68,47 @@ def user_report(report_obj):
     df_reviews = pd.DataFrame(list(query_reviews),
                               columns=["pk", "new_status", "old_status", "user", "finstance"])
     df_reviews.columns = ["pk", "new_status", "old_status", "user", "finstance"]
+    df_reviews_old_status_index = df_reviews.set_index('old_status')
+
+    if "submissions_flagged_by_user" in default_metrics:
+        try:
+            _submissions = df_submissions_status_index.loc[2]
+            submissions_flagged_by_user =_submissions.groupby(
+                'user').size().to_frame("submissions_flagged_by_user").reset_index()
+            df.merge(submissions_flagged_by_user, on="user", how="left")
+        except:
+            df["submissions_flagged_by_user"] = 0
+
+    if "submissions_rejected_by_user" in default_metrics:
+        try:
+            _submissions = df_submissions_status_index.loc[1]
+            submissions_rejected_by_user = _submissions.groupby(
+                'user').size().to_frame("submissions_rejected_by_user").reset_index()
+            df.merge(submissions_rejected_by_user, on="user", how="left")
+        except:
+            df["submissions_rejected_by_user"] = 0
+
+    if "submissions_approved_by_user" in default_metrics:
+        try:
+            _submissions = df_submissions_status_index.loc[3]
+            submissions_approved_by_user = _submissions.groupby(
+                'user').size().to_frame("submissions_approved_by_user").reset_index()
+            df.merge(submissions_approved_by_user, on="user", how="left")
+        except:
+            df["submissions_approved_by_user"] = 0
+
+    if "submissions_resolved_by_user" in default_metrics:
+        try:
+            df_submissions_status_index = df_submissions.set_index('form_status')
+            approved_submissions = df_submissions_status_index.loc[3]
+            df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 1]]
+            submissions_resolved_ever = df_flagged_or_rejected[
+                df_flagged_or_rejected.finstance.isin(approved_submissions.pk)].groupby('user').size().to_frame(
+                'submissions_resolved_by_user').reset_index()
+
+            df = df.merge(submissions_resolved_ever, on="user", how="left")
+        except:
+            df['submissions_resolved_by_user'] = 0
 
     df = generate_default_metrices(df, df_submissions, df_reviews, default_metrics, "user")
 
@@ -78,5 +132,6 @@ def user_report(report_obj):
     df = df.replace("NaN", 0)
     # reorder cols
     columns_name = ordered_columns_from_metrics(report_obj)  # ordered metrices codes
+    # code to label column
     df = df[columns_name]
     return df
