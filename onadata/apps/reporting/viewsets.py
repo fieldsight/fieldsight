@@ -598,7 +598,6 @@ class ReportActionView(APIView):
 
         elif action_type == 'share':
             shared_users = self.request.data.get('shared_users', None)
-            shared_users = ast.literal_eval(shared_users)
             report_obj.shared_with.add(*shared_users)
             report_obj.save()
 
