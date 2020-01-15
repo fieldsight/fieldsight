@@ -38,7 +38,7 @@ def user_report(report_obj):
         df = df.merge(num_projects, on="user", how="left")
     if "num_regions" in default_metrics:
         # df_role[~np.isfinite(df_role['site'])]
-        num_of_regions = df_role.dropna(subset=['site']).groupby("user").region.count().to_frame("num_projects").reset_index()
+        num_of_regions = df_role.dropna(subset=['site']).groupby("user").region.count().to_frame("num_regions").reset_index()
         df = df.merge(num_of_regions, on="user", how="left")
 
     query_submissions = FInstance.objects.filter(
