@@ -112,15 +112,34 @@ def clone_form(project_id, task_id):
     try:
         super_org = organization.parent
         library_forms = super_org.library_forms.filter(deleted=False)
+
         fsxf_list = []
+
         for lf in library_forms:
-            fsxf = FieldSightXF(xf=lf.xf,project=project, is_deployed=True)
-            fsxf_list.append(fsxf)
+            if lf.form_type == 0:
+                fsxf = FieldSightXF(xf=lf.xf, project=project, is_deployed=True,
+                                    default_submission_status=lf.default_submission_status)
+                fsxf_list.append(fsxf)
+            else:
+                scheduled_obj = Schedule.objects.\
+                    create(project=project, date_range_start=lf.date_range_start,
+                           date_range_end=lf.date_range_end,
+                           schedule_level_id=lf.schedule_level_id, frequency=lf.frequency,
+                           month_day=lf.month_day)
+                scheduled_obj.selected_days.add(*lf.selected_days.values_list('id', flat=True))
+                scheduled_obj.save()
+
+                scheduled_fxf = FieldSightXF(xf=lf.xf, project=project, is_deployed=True,
+                                             is_scheduled=True,
+                                             default_submission_status=lf.default_submission_status,
+                                             schedule=scheduled_obj)
+                fsxf_list.append(scheduled_fxf)
+
         FieldSightXF.objects.bulk_create(fsxf_list)
+
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception as e:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
-
 
 
 # task to share the form for all the project managers of a project where the form is assigned

@@ -583,8 +583,7 @@ class ReportActionView(APIView):
 
     def post(self, request, pk, *args,  **kwargs):
 
-        action_type = self.request.data.get('action_type', None)
-        shared_users = self.request.data.get('shared_users', None)
+        action_type = self.request.query_params.get('action_type', None)
 
         try:
             report_obj = ReportSettings.objects.get(id=pk)
@@ -598,6 +597,7 @@ class ReportActionView(APIView):
             response_status, data = status.HTTP_200_OK, {'detail': 'successfully added to Templates.'}
 
         elif action_type == 'share':
+            shared_users = self.request.data.get('shared_users', None)
             shared_users = ast.literal_eval(shared_users)
             report_obj.shared_with.add(*shared_users)
             report_obj.save()
