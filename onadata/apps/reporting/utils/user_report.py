@@ -44,10 +44,19 @@ def user_report(report_obj):
     query_submissions = FInstance.objects.filter(
         Q(project_fxf__project=project_id) |
         Q(site_fxf__site__project=project_id)
-    ).values("pk", "site", "project_fxf", "form_status", "submitted_by", "date")
+    ).values("pk", "site", "project_fxf", "form_status", "submitted_by", "date", "site__current_progress")
     df_submissions = pd.DataFrame(
-        list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date"])
-    df_submissions.columns = ["pk", "site", "project_fxf", "form_status", "user", "date"]
+        list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date", "site__current_progress"])
+    df_submissions.columns = ["pk", "site", "project_fxf", "form_status", "user", "date", "progress"]
+
+    if "progress_avg" in default_metrics:
+        pass
+
+    if "progress_max" in default_metrics:
+        pass
+
+    if "progress_min" in default_metrics:
+        pass
     query_reviews = InstanceStatusChanged.objects.filter(
         Q(finstance__project_fxf__project=project_id) |
         Q(finstance__site_fxf__site__project=project_id)
@@ -56,6 +65,18 @@ def user_report(report_obj):
     df_reviews = pd.DataFrame(list(query_reviews),
                               columns=["pk", "new_status", "old_status", "user", "finstance"])
     df_reviews.columns = ["pk", "new_status", "old_status", "user", "finstance"]
+
+    if "submissions_flagged_by_user" in default_metrics:
+        pass
+
+    if "submissions_rejected_by_user" in default_metrics:
+        pass
+
+    if "submissions_approved_by_user" in default_metrics:
+        pass
+
+    if "submissions_resolved_by_user" in default_metrics:
+        pass
 
     df = generate_default_metrices(df, df_submissions, df_reviews, default_metrics, "user")
 
