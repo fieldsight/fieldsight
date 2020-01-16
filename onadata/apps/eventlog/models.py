@@ -237,6 +237,7 @@ class CeleryTaskProgress(models.Model):
         (24, 'Update and Create History of Site Meta-attributes Answers'),
         (25, 'Update Site Information on Submission'),
         (26, 'Export Report in excel'),
+        (27, 'Add default forms in Projects'),
 
     )
     task_id = models.CharField(max_length=255, blank=True, null=True)

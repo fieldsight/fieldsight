@@ -7,6 +7,7 @@ from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.views import APIView
 
+from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fieldsight.models import SuperOrganization, Organization, Project, Site, Region
 from rest_framework.permissions import IsAuthenticated
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
@@ -22,6 +23,7 @@ from onadata.apps.fv3.serializer import TeamSerializer
 from onadata.apps.fv3.serializers.TeamSerializer import TeamProjectSerializer
 from onadata.apps.logger.models import XForm
 from onadata.apps.userrole.models import UserRole
+from onadata.apps.fieldsight.tasks import add_forms_in_projects
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -148,7 +150,7 @@ class ManageSuperOrganizationLibraryView(APIView):
         general_forms = []
 
         for general_form in selected_general_org_forms:
-            selected_form_ids.append(general_form.id)
+            selected_form_ids.append(general_form.xf.id)
             general_forms.append({'id': general_form.xf.id,
                                   'title': general_form.xf.title,
                                   'form_type': general_form.get_form_type_display(),
@@ -156,7 +158,7 @@ class ManageSuperOrganizationLibraryView(APIView):
                                   })
 
         for scheduled_form in selected_scheduled_org_forms:
-            selected_form_ids.append(scheduled_form.id)
+            selected_form_ids.append(scheduled_form.xf.id)
             scheduled_forms.append({'id': scheduled_form.xf.id,
                                     'title': scheduled_form.xf.title,
                                     'form_type': scheduled_form.get_form_type_display(),
@@ -214,6 +216,12 @@ class ManageSuperOrganizationLibraryView(APIView):
                                                                   month_day=month_day
                                                                   )
             org_form_lib.selected_days.add(*selected_days_objs)
+            org_form_lib.save()
+            task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=27, content_object=org_form_lib)
+            if task_obj:
+                task = add_forms_in_projects.delay(org_form_lib.id, task_obj.id)
+                task_obj.task_id = task.id
+                task_obj.save()
 
             selected_general_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=0,
                                                                                 deleted=False)
