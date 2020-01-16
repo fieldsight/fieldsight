@@ -182,8 +182,9 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                     form_ids.append(str(ss.stage_forms.id))
                     query[str(ss.stage_forms.id)] = Sum(
                         Case(
-                        When(site_instances__project_fxf_id=ss.stage_forms.id, then=1),
-                        default=0, output_field=IntegerField()
+                            When(Q(site_instances__project_fxf_id=ss.stage_forms.id) & Q(
+                                site_instances__is_deleted=False), then=1),
+                            default=0, output_field=IntegerField()
                         ))
 
         query['flagged'] = Sum(
