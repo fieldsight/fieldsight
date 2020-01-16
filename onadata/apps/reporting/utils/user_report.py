@@ -76,7 +76,7 @@ def user_report(report_obj):
             _submissions = df_submissions_status_index.loc[2]
             submissions_flagged_by_user =_submissions.groupby(
                 'user').size().to_frame("submissions_flagged_by_user").reset_index()
-            df.merge(submissions_flagged_by_user, on="user", how="left")
+            df = df.merge(submissions_flagged_by_user, on="user", how="left")
         except:
             df["submissions_flagged_by_user"] = 0
 
@@ -85,7 +85,7 @@ def user_report(report_obj):
             _submissions = df_submissions_status_index.loc[1]
             submissions_rejected_by_user = _submissions.groupby(
                 'user').size().to_frame("submissions_rejected_by_user").reset_index()
-            df.merge(submissions_rejected_by_user, on="user", how="left")
+            df = df.merge(submissions_rejected_by_user, on="user", how="left")
         except:
             df["submissions_rejected_by_user"] = 0
 
@@ -94,7 +94,7 @@ def user_report(report_obj):
             _submissions = df_submissions_status_index.loc[3]
             submissions_approved_by_user = _submissions.groupby(
                 'user').size().to_frame("submissions_approved_by_user").reset_index()
-            df.merge(submissions_approved_by_user, on="user", how="left")
+            df = df.merge(submissions_approved_by_user, on="user", how="left")
         except:
             df["submissions_approved_by_user"] = 0
 
