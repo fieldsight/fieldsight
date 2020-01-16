@@ -69,6 +69,7 @@ def user_report(report_obj):
                               columns=["pk", "new_status", "old_status", "user", "finstance"])
     df_reviews.columns = ["pk", "new_status", "old_status", "user", "finstance"]
     df_reviews_old_status_index = df_reviews.set_index('old_status')
+    df_submissions_status_index = df_submissions.set_index('form_status')
 
     if "submissions_flagged_by_user" in default_metrics:
         try:
@@ -99,7 +100,7 @@ def user_report(report_obj):
 
     if "submissions_resolved_by_user" in default_metrics:
         try:
-            df_submissions_status_index = df_submissions.set_index('form_status')
+
             approved_submissions = df_submissions_status_index.loc[3]
             df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 1]]
             submissions_resolved_ever = df_flagged_or_rejected[
@@ -127,7 +128,7 @@ def user_report(report_obj):
     for form_id, metrices_list in individual_form_dict.items():
         form_submissions = df_submissions[df_submissions.project_fxf == form_id]
         form_name = individual_form_name_dict[form_id]
-        df = generate_form_metrices(form_name, df, form_submissions, df_reviews, metrices_list, "site")
+        df = generate_form_metrices(form_name, df, form_submissions, df_reviews, metrices_list, "user")
 
     df = df.replace("NaN", 0)
     # reorder cols
