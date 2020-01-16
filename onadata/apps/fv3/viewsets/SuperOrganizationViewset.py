@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from onadata.apps.fv3.permissions.super_admin import SuperAdminPermission
 from onadata.apps.fv3.permissions.super_organization import SuperOrganizationAdminPermission
 
-from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF, FInstance
+from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF, FInstance, Schedule
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
     OrganizationFormLibrarySerializer
 from onadata.apps.fv3.serializer import TeamSerializer
@@ -102,13 +102,30 @@ class ManageTeamsView(APIView):
                 Add teams in super organization
             """
             Organization.objects.filter(id__in=team_ids).update(parent_id=pk)
+
             projects = Project.objects.filter(organization__id__in=team_ids)
             library_forms = OrganizationFormLibrary.objects.filter(organization=pk)
             fsxf_list = []
-            for p in projects:
-                for lf in library_forms:
-                    fsxf = FieldSightXF(xf=lf.xf, project=p, is_deployed=True)
-                    fsxf_list.append(fsxf)
+            for project in projects:
+                for obj in library_forms:
+                    if obj.form_type == 0:
+                        fsxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
+                                            default_submission_status=obj.default_submission_status)
+                        fsxf_list.append(fsxf)
+                    else:
+                        scheduled_obj = Schedule.objects. \
+                            create(project=project, date_range_start=obj.date_range_start,
+                                   date_range_end=obj.date_range_end,
+                                   schedule_level_id=obj.schedule_level_id, frequency=obj.frequency,
+                                   month_day=obj.month_day)
+                        scheduled_obj.selected_days.add(*obj.selected_days.values_list('id', flat=True))
+                        scheduled_obj.save()
+                        scheduled_fxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
+                                                     is_scheduled=True,
+                                                     default_submission_status=obj.default_submission_status,
+                                                     schedule=scheduled_obj)
+                        fsxf_list.append(scheduled_fxf)
+
             FieldSightXF.objects.bulk_create(fsxf_list)
             selected_teams_qs = Organization.objects.filter(parent_id=pk)
             selected_teams = TeamSerializer(selected_teams_qs, many=True).data
