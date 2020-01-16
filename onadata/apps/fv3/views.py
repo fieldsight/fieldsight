@@ -79,10 +79,19 @@ def supervisor_projects(request):
     "Projects where a user is assigned as Region Supervisor or Site Supervisor"
 
     projects = Project.objects.filter(pk__in=project_ids).select_related('organization').prefetch_related(
-        Prefetch("project_region", queryset=Region.objects.filter(pk__in=regions)),
-        Prefetch("types", queryset=SiteType.objects.filter(deleted=False)),
-
-    )
+        Prefetch("project_region",
+                 queryset=Region.objects.filter(pk__in=regions)),
+        Prefetch("project_region",
+                 queryset=Region.objects.filter(is_active=True, parent__isnull=True),
+                 to_attr="regions"
+                 ),
+        Prefetch("types",
+                 queryset=SiteType.objects.filter(deleted=False)),
+        Prefetch("sites",
+                 queryset=Site.objects.filter(is_survey=False, site__isnull=True)),
+        Prefetch("project_roles",
+                 queryset=UserRole.objects.filter(ended_at__isnull=True, group__name="Project Manager")
+                 ),)
     "Distinct Projects Where a user can be site supervisor or region reviewer"
 
     site_supervisor_role = UserRole.objects.filter(user=request.user,
