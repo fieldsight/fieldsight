@@ -28,7 +28,7 @@ from django.contrib.auth.models import User, Group
 from onadata.apps.fieldsight.fs_exports.formParserForExcelReport import parse_form_response
 from io import BytesIO
 from django.shortcuts import get_object_or_404
-from onadata.apps.fsforms.models import FieldSightXF, FInstance, Stage
+from onadata.apps.fsforms.models import FieldSightXF, FInstance, Stage, OrganizationFormLibrary, Schedule
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Prefetch, F
@@ -2701,3 +2701,37 @@ def update_metas_in_sites(pk, start, end):
         if metas != old_all_ma_ans:
             site.all_ma_ans = metas
             site.save()
+
+
+@shared_task(max_retries=5)
+def add_forms_in_projects(org_form_lib_id, task_id):
+    time.sleep(10)
+    obj = OrganizationFormLibrary.objects.get(id=org_form_lib_id)
+    try:
+        projects = Project.objects.filter(organization__parent=obj.organization)
+        fsxf_list = []
+        if obj.form_type == 0:
+            for project in projects:
+                fsxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
+                                    default_submission_status=obj.default_submission_status)
+                fsxf_list.append(fsxf)
+        else:
+            for project in projects:
+                scheduled_obj = Schedule.objects. \
+                    create(project=project, date_range_start=obj.date_range_start,
+                           date_range_end=obj.date_range_end,
+                           schedule_level_id=obj.schedule_level_id, frequency=obj.frequency,
+                           month_day=obj.month_day)
+                scheduled_obj.selected_days.add(*obj.selected_days.values_list('id', flat=True))
+                scheduled_obj.save()
+                scheduled_fxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
+                                             is_scheduled=True,
+                                             default_submission_status=obj.default_submission_status,
+                                             schedule=scheduled_obj)
+                fsxf_list.append(scheduled_fxf)
+
+        FieldSightXF.objects.bulk_create(fsxf_list)
+
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception as e:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
