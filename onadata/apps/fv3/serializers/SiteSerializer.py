@@ -315,9 +315,9 @@ class StageFormSerializer(serializers.ModelSerializer):
         fields = ('name', 'sub_stages')
 
     def get_sub_stages(self, obj):
-        data = [{'sub_stage_name': form.name,'form_name': form.stage_forms.xf.title, 'new_submission_url': settings.SITE_URL + '/forms/new/' +
-                                                                               str(self.context['site_id']) + '/'+str(form.stage_forms.id)}
-                for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')]
+        data = [{'sub_stage_name': form.name, 'form_name': form.stage_forms.xf.title,
+                 'new_submission_url': settings.SITE_URL + '/forms/new/' + str(self.context['site_id']) + '/'+str(form.stage_forms.id)}
+                for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf').filter(stage_forms__is_deployed=True)]
         return data
 
 

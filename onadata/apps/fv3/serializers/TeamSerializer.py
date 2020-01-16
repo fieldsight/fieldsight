@@ -92,18 +92,22 @@ class TeamSerializer(serializers.ModelSerializer):
         return json.loads(data)
 
     def get_package_details(self, obj):
-        request = self.context['request']
-        has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=request.user,
-                                    organization=obj).exists()
-        if not request.user.is_superuser and obj.owner == request.user and has_user_free_package:
-            packages_qs = Package.objects.all()
-            packages = [{'plan': package.get_plan_display(), 'submissions': package.submissions, 'total_charge':
-                package.total_charge, 'extra_submissions_charge': package.extra_submissions_charge, 'period_type':
-                package.get_period_type_display()} for package in packages_qs]
-            return packages
+        packages = []
+
+        return packages
+        # request = self.context['request']
+        # has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=request.user,
+        #                             organization=obj).exists()
+        # if not request.user.is_superuser and obj.owner == request.user and has_user_free_package:
+        #     packages_qs = Package.objects.all()
+        #     packages = [{'plan': package.get_plan_display(), 'submissions': package.submissions, 'total_charge':
+        #         package.total_charge, 'extra_submissions_charge': package.extra_submissions_charge, 'period_type':
+        #         package.get_period_type_display()} for package in packages_qs]
+        #     return packages
 
     def get_stripe_token(self, obj):
-        return settings.STRIPE_PUBLISHABLE_KEY
+        # return settings.STRIPE_PUBLISHABLE_KEY
+        return ''
 
 
 class TeamProjectSerializer(serializers.ModelSerializer):
