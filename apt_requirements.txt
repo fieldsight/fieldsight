@@ -1,3 +1,4 @@
 ghostscript
 gettext
 nano
+screen
