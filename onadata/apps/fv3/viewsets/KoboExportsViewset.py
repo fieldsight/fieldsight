@@ -26,6 +26,7 @@ class BinaryFileRenderer(BaseRenderer):
     def render(self, data, media_type=None, renderer_context=None):
         return data
 
+
 class ExportViewSet(viewsets.ModelViewSet):
     queryset = Export.objects.all().order_by("-created_on")
     serializer_class = ExportSerializer
@@ -46,7 +47,7 @@ class ExportViewSet(viewsets.ModelViewSet):
             self.queryset = self.queryset.filter(fsxf=fsxf, site=id)
         if version:
             return self.queryset.filter(version=version)
-        return self.queryset
+        return self.queryset[:15]
 
     def create(self, request, *args, **kwargs):
         params = self.request.query_params
@@ -98,7 +99,7 @@ class ExportViewSet(viewsets.ModelViewSet):
         }
 
         create_async_export(fsxf.xf, 'xls', query, force_xlsx, options, is_project, fsxf.id, site_id, version, False)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': 'Your Download Has Been Started'}, status=status.HTTP_200_OK)
 
     # @detail_route(methods=['get'], renderer_classes=(BinaryFileRenderer,))
     def retrieve(self, request, *args, **kwargs):
@@ -116,5 +117,5 @@ class ExportViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = Export.objects.get(pk=kwargs['pk'])
         self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': 'Your Export Has Been Deleted'}, status=status.HTTP_200_OK)
 

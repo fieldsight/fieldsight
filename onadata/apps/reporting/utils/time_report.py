@@ -1,7 +1,7 @@
 import datetime
 
 import pandas as pd
-from onadata.apps.fieldsight.models import Site, Region, Project
+from onadata.apps.fieldsight.models import Site, Region, Project, SiteProgressHistory
 from onadata.apps.fsforms.models import FInstance, InstanceStatusChanged
 from onadata.apps.reporting.utils.common import separate_metrics
 
@@ -68,9 +68,27 @@ def time_report(report_obj):
             sites_reviewed = sites_reviewed.set_index('date_only')
             df = pd.concat([df, sites_reviewed], axis=1)
 
+        if set(['progress_avg', 'progress_max', 'progress_min']).intersection(set(default_metrics)):
+            progress_query = SiteProgressHistory.objects.filter().values('date', 'progress')
+            df_progress = pd.DataFrame(list(progress_query), columns=['date', 'progress'])
+            if "progress_avg" in default_metrics:
+                progress_avg = df_progress.groupby(pd.Grouper(key='date', freq='1D')).mean()
+                progress_avg.columns = ['progress_avg']
+                df = pd.concat([df, progress_avg], axis=1)
+            if "progress_max" in default_metrics:
+                progress_max = df_progress.groupby(pd.Grouper(key='date', freq='1D')).max()
+                progress_max.columns = ['progress_max']
+                df = pd.concat([df, progress_max], axis=1)
+
+            if "progress_min" in default_metrics:
+                progress_min = df_progress.groupby(pd.Grouper(key='date', freq='1D')).min()
+                progress_min.columns = ['progress_min']
+                df = pd.concat([df, progress_min], axis=1)
+
         df = df.fillna(0)
         df.index = df.index.date
         df.index.name = "date"
+        df = df.reset_index()
         return df
 
 
