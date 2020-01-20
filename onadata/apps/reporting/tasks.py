@@ -13,6 +13,7 @@ from django.core.files.storage import default_storage
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.reporting.models import ReportSettings
 from onadata.apps.reporting.utils.site_report import site_report
+from onadata.apps.reporting.utils.time_report import time_report
 from onadata.apps.reporting.utils.user_report import user_report
 
 
@@ -45,6 +46,9 @@ def new_export(report_id, task_id):
         elif report_obj.type == 4:
             df = user_report(report_obj)
             xls_url = save_file(df, "custom_report/", "user_report_" + uuid4().hex + ".xlsx")
+        elif report_obj.type == 5:
+            df = time_report(report_obj)
+            xls_url = save_file(df, "custom_report/", "time_report_" + uuid4().hex + ".xlsx")
         task.file.name = xls_url
         task.status = 2
         task.save()
