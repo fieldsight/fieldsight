@@ -74,19 +74,19 @@ def time_report(report_obj):
             if "progress_avg" in default_metrics:
                 progress_avg = df_progress.groupby(pd.Grouper(key='date', freq='1D')).mean()
                 progress_avg.columns = ['progress_avg']
-                progress_avg.index.tz = None
+                progress_avg.index = progress_avg.index.date
 
                 df = pd.concat([df, progress_avg], axis=1)
             if "progress_max" in default_metrics:
                 progress_max = df_progress.groupby(pd.Grouper(key='date', freq='1D')).max()
                 progress_max.columns = ['progress_max']
-                progress_avg.index.tz = None
+                progress_max.index = progress_max.index.date
                 df = pd.concat([df, progress_max], axis=1)
 
             if "progress_min" in default_metrics:
                 progress_min = df_progress.groupby(pd.Grouper(key='date', freq='1D')).min()
                 progress_min.columns = ['progress_min']
-                progress_min.index.tz = None
+                progress_min.index = progress_min.index.date
                 df = pd.concat([df, progress_min], axis=1)
 
         df = df.fillna(0)
