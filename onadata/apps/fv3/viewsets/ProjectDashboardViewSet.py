@@ -88,7 +88,7 @@ class ProjectSurveyFormsViewSet(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
         surveys = FieldSightXF.objects.filter(is_staged=False, is_scheduled=False, is_deleted=False,
-                                              project_id=project_id, is_survey=True)
+                                              project_id=project_id, is_survey=True, is_deployed=True)
 
         data = [{'form_name': obj.xf.title, 'new_submission_url': '/forms/new/0/' + str(obj.id)} for obj in surveys]
 

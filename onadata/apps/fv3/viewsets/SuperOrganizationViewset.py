@@ -156,13 +156,12 @@ class ManageSuperOrganizationLibraryView(APIView):
 
     def get(self, request, pk, *args,  **kwargs):
         my_forms = XForm.objects.filter(user=request.user, deleted_xform=None)
+        queryset = OrganizationFormLibrary.objects.select_related('xf')
         selected_form_ids = []
-        selected_general_org_forms = OrganizationFormLibrary.objects.select_related('xf').filter(organization_id=pk,
-                                                                                                 form_type=0,
-                                                                                                 deleted=False)
-        selected_scheduled_org_forms = OrganizationFormLibrary.objects.select_related('xf').filter(organization_id=pk,
-                                                                                                   form_type=1,
-                                                                                                   deleted=False)
+        selected_general_org_forms = queryset.filter(organization_id=pk, form_type=0, deleted=False)
+        selected_scheduled_org_forms = queryset.filter(organization_id=pk, form_type=1, deleted=False)
+        organization_library_forms = queryset.filter(organization_id=pk, deleted=False, is_form_library=True)
+        organization_library_forms = [{'id': form.xf.id, 'title': form.xf.title} for form in organization_library_forms]
         scheduled_forms = []
         general_forms = []
 
@@ -191,7 +190,9 @@ class ManageSuperOrganizationLibraryView(APIView):
         return Response(status=status.HTTP_200_OK, data={'forms': forms,
                                                          'selected_forms':
                                                              {'general_forms': general_forms,
-                                                              'scheduled_forms': scheduled_forms}})
+                                                              'scheduled_forms': scheduled_forms},
+                                                         'organization_library_forms': organization_library_forms},
+                        )
 
     def post(self, request, pk, format=None):
         xf_ids = request.data.get('xf_ids', None)
@@ -204,6 +205,7 @@ class ManageSuperOrganizationLibraryView(APIView):
         default_submission_status = request.data.get('default_submission_status', None)
         frequency = request.data.get('frequency', None)
         month_day = request.data.get('month_day', None)
+        is_form_library = request.data.get('is_form_library', False)
 
         if date_range_start:
             date_range_start = datetime.strptime(date_range_start, "%Y-%m-%d")
@@ -218,7 +220,7 @@ class ManageSuperOrganizationLibraryView(APIView):
         else:
             selected_days_objs = []
 
-        if xf_ids:
+        if xf_ids and is_form_library is False:
             """
                 Add form in super organization form library
             """
@@ -230,7 +232,8 @@ class ManageSuperOrganizationLibraryView(APIView):
                                                                   date_range_end=date_range_end,
                                                                   default_submission_status=default_submission_status,
                                                                   frequency=frequency,
-                                                                  month_day=month_day
+                                                                  month_day=month_day,
+                                                                  is_form_library=is_form_library
                                                                   )
             org_form_lib.selected_days.add(*selected_days_objs)
             org_form_lib.save()
@@ -262,6 +265,24 @@ class ManageSuperOrganizationLibraryView(APIView):
 
             return Response(status=status.HTTP_201_CREATED, data={'general_forms': general_forms,
                                                                   'scheduled_forms': scheduled_forms})
+
+        elif xf_ids and is_form_library:
+            org_form_lib_objs = []
+            for xf_id in xf_ids:
+                org_form_lib = OrganizationFormLibrary(xf_id=xf_id,
+                                                       organization_id=pk,
+                                                       is_form_library=is_form_library
+
+                                                       )
+                org_form_lib_objs.append(org_form_lib)
+            OrganizationFormLibrary.objects.bulk_create(org_form_lib_objs)
+            organization_library_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, deleted=False,
+                                                                                is_form_library=True)
+            organization_library_forms = [{'id': form.xf.id, 'title': form.xf.title} for form in
+                                          organization_library_forms]
+
+            return Response(status=status.HTTP_201_CREATED,
+                            data={'organization_library_forms': organization_library_forms})
 
         elif xf_id:
             """

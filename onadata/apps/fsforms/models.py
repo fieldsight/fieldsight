@@ -47,6 +47,14 @@ SCHEDULED_TYPE = [(0, 'Manual'), (1, 'Daily'), (2, 'Weekly'), (3, 'Monthly')]
 FORM_TYPE = [(0, 'General'), (1, 'Scheduled')]
 
 
+class Days(models.Model):
+    day = models.CharField(max_length=9)
+    index = models.IntegerField()
+
+    def __unicode__(self):
+        return getattr(self, "day", "")
+
+
 class FormGroup(models.Model):
     name = models.CharField(max_length=256, unique=True)
     description = models.TextField(blank=True, null=True)
@@ -73,6 +81,32 @@ class ActiveStagesManager(models.Manager):
         return super(ActiveStagesManager, self).get_queryset(
 
         ).filter(is_deleted=False)
+
+
+class ActiveOrgLibs(models.Manager):
+    def get_queryset(self):
+        return super(ActiveOrgLibs, self).get_queryset(
+
+        ).filter(deleted=False)
+
+
+class OrganizationFormLibrary(models.Model):
+    xf = models.ForeignKey(XForm, related_name="library_forms")
+    organization = models.ForeignKey(SuperOrganization, related_name="library_forms")
+    form_type = models.IntegerField(default=0, choices=FORM_TYPE)
+    date_range_start = models.DateField(default=datetime.date.today, null=True, blank=True)
+    date_range_end = models.DateField(default=datetime.date.today, null=True, blank=True)
+    selected_days = models.ManyToManyField(Days,
+                                           related_name='library_forms', blank=True)
+    schedule_level_id = models.IntegerField(default=0, choices=SCHEDULED_LEVEL, null=True, blank=True)
+    default_submission_status = models.IntegerField(default=0,
+                                                    choices=FORM_STATUS)
+    frequency = models.IntegerField(default=0, null=True, blank=True)
+    month_day = models.IntegerField(default=0, null=True, blank=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    deleted = models.BooleanField(default=False)
+    is_form_library = models.BooleanField(default=False)
+    objects = ActiveOrgLibs()
 
 
 class Stage(models.Model):
@@ -237,14 +271,6 @@ class Stage(models.Model):
         return getattr(self, "name", "")
 
 
-class Days(models.Model):
-    day = models.CharField(max_length=9)
-    index = models.IntegerField()
-
-    def __unicode__(self):
-        return getattr(self, "day", "")
-
-
 class Schedule(models.Model):
     name = models.CharField("Schedule Name",
                             max_length=256, blank=True, null=True)
@@ -252,6 +278,8 @@ class Schedule(models.Model):
                              related_name="schedules", null=True, blank=True)
     project = models.ForeignKey(Project,
                                 related_name="schedules", null=True, blank=True)
+    organization_form_lib = models.ForeignKey(OrganizationFormLibrary, related_name="schedules",
+                                              null=True, blank=True)
     date_range_start = models.DateField(default=datetime.date.today)
     date_range_end = models.DateField(default=datetime.date.today)
     selected_days = models.ManyToManyField(Days,
@@ -291,37 +319,14 @@ class DeletedXForm(models.Model):
     date_created = models.DateTimeField(auto_now=True)
 
 
-class ActiveOrgLibs(models.Manager):
-    def get_queryset(self):
-        return super(ActiveOrgLibs, self).get_queryset(
-
-        ).filter(deleted=False)
-
-
-class OrganizationFormLibrary(models.Model):
-    xf = models.ForeignKey(XForm, related_name="library_forms")
-    organization = models.ForeignKey(SuperOrganization, related_name="library_forms")
-    form_type = models.IntegerField(default=0, choices=FORM_TYPE)
-    date_range_start = models.DateField(default=datetime.date.today, null=True, blank=True)
-    date_range_end = models.DateField(default=datetime.date.today, null=True, blank=True)
-    selected_days = models.ManyToManyField(Days,
-                                           related_name='library_forms', blank=True)
-    schedule_level_id = models.IntegerField(default=0, choices=SCHEDULED_LEVEL, null=True, blank=True)
-    default_submission_status = models.IntegerField(default=0,
-                                                    choices=FORM_STATUS)
-    frequency = models.IntegerField(default=0, null=True, blank=True)
-    month_day = models.IntegerField(default=0, null=True, blank=True)
-    date_created = models.DateTimeField(auto_now_add=True)
-    deleted = models.BooleanField(default=False)
-    objects = ActiveOrgLibs()
-
-
 class FieldSightXF(models.Model):
     xf = models.ForeignKey(XForm, related_name="field_sight_form")
     site = models.ForeignKey(Site, related_name="site_forms", null=True,
                              blank=True)
     project = models.ForeignKey(Project, related_name="project_forms",
                                 null=True, blank=True)
+    organization_form_lib = models.ForeignKey(OrganizationFormLibrary, related_name="organization_forms",
+                                              null=True, blank=True)
     is_staged = models.BooleanField(default=False)
     is_scheduled = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now=True)
@@ -637,8 +642,9 @@ class FInstance(models.Model):
     site_fxf = models.ForeignKey(FieldSightXF, null=True,
                                  related_name='site_form_instances',
                                  on_delete=models.SET_NULL)
-    project_fxf = models.ForeignKey(FieldSightXF, null=True,
+    project_fxf = models.ForeignKey(FieldSightXF, null=True, blank=True,
                                     related_name='project_form_instances')
+
     form_status = models.IntegerField(null=True,
                                       blank=True, choices=FORM_STATUS)
     comment = models.TextField(null=True, blank=True)

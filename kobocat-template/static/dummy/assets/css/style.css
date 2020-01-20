@@ -1,7 +1,7 @@
 /*!Theme Name: Field Sight Dashboard
 Theme URI: http://fieldsight.org
 Author: Bikrant Giri
-Author URI: https://bikrantgiri.com.np
+Author URI: https://naxa.com.np
 Description: Dashboard for Field Sight
 Version: 1.0
 */html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-weight:inherit;font-style:inherit;font-size:100%;font-family:inherit;vertical-align:baseline}html:focus,body:focus,div:focus,span:focus,applet:focus,object:focus,iframe:focus,h1:focus,h2:focus,h3:focus,h4:focus,h5:focus,h6:focus,p:focus,blockquote:focus,pre:focus,a:focus,abbr:focus,acronym:focus,address:focus,big:focus,cite:focus,code:focus,del:focus,dfn:focus,em:focus,font:focus,img:focus,ins:focus,kbd:focus,q:focus,s:focus,samp:focus,small:focus,strike:focus,strong:focus,sub:focus,sup:focus,tt:focus,var:focus,dl:focus,dt:focus,dd:focus,ol:focus,ul:focus,li:focus,fieldset:focus,form:focus,label:focus,legend:focus,table:focus,caption:focus,tbody:focus,tfoot:focus,thead:focus,tr:focus,th:focus,td:focus{outline:0}body{line-height:1}ol,ul{list-style:none}table{border-collapse:separate;border-spacing:0}caption,th,td{text-align:left;font-weight:normal}blockquote,q{quotes:"" ""}blockquote:before,blockquote:after,q:before,q:after{content:""}/*!
@@ -82,3 +82,22 @@ color:#28a745;
 .load-body section.panel .table a button.btn.btn-danger{
 color:#dc3545;
 }
+.sec-right{
+position:relative}
+.source-code{
+    position: absolute;
+    right: .6125rem;
+    bottom: -.5rem;
+    color:#c3c3c3;
+    font-size: .6125rem;
+
+    }
+    .source-code a{
+    color: #c3c3c3;
+    font-size: .6125rem;
+
+    }
+   .source-code a i{
+    font-size:1rem;
+    margin-right:.25rem}
+    }

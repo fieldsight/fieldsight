@@ -94,38 +94,38 @@ class TeamOwnerAccount(APIView):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
-        if request.user == team.owner:
-
-            try:
-                customer = Customer.objects.get(user=self.request.user)
-                email = customer.user.email
-            except ObjectDoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
-            if not customer.stripe_cust_id == 'free_cust_id':
-                stripe_customer = stripe.Customer.retrieve(customer.stripe_cust_id)
-                card = stripe_customer.sources.data[0].last4
-            else:
-                card = ''
-                email = ''
-
-            subscribed_package = Subscription.objects.select_related('package', 'stripe_customer').get(stripe_customer=customer)
-            has_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user,
-                                                           organization=team).exists()
-            if has_free_package:
-                period_type = 'Year'
-
-            else:
-                period_type = subscribed_package.package.get_period_type_display()
-
-            return Response(status=status.HTTP_200_OK, data={'has_free_package': has_free_package, "team_owner": True,
-                                                             'key': settings.STRIPE_PUBLISHABLE_KEY
-            if not has_free_package else None, 'subscribed_package': {'plan': subscribed_package.package.get_plan_display(),
-                                                                                    'total_charge': subscribed_package.package.total_charge,
-                                                                                    'period_type': period_type,
-                 'total_submissions': subscribed_package.package.submissions}, 'account_information': {'card': card, 'email': email}
-                                                             if not has_free_package else None})
-        else:
-            return Response(status=status.HTTP_200_OK, data={"team_owner": False})
+        # if request.user == team.owner:
+        #
+        #     try:
+        #         customer = Customer.objects.get(user=self.request.user)
+        #         email = customer.user.email
+        #     except ObjectDoesNotExist:
+        #         return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+        #     if not customer.stripe_cust_id == 'free_cust_id':
+        #         stripe_customer = stripe.Customer.retrieve(customer.stripe_cust_id)
+        #         card = stripe_customer.sources.data[0].last4
+        #     else:
+        #         card = ''
+        #         email = ''
+        #
+        #     subscribed_package = Subscription.objects.select_related('package', 'stripe_customer').get(stripe_customer=customer)
+        #     has_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user,
+        #                                                    organization=team).exists()
+        #     if has_free_package:
+        #         period_type = 'Year'
+        #
+        #     else:
+        #         period_type = subscribed_package.package.get_period_type_display()
+        #
+        #     return Response(status=status.HTTP_200_OK, data={'has_free_package': has_free_package, "team_owner": True,
+        #                                                      'key': settings.STRIPE_PUBLISHABLE_KEY
+        #     if not has_free_package else None, 'subscribed_package': {'plan': subscribed_package.package.get_plan_display(),
+        #                                                                             'total_charge': subscribed_package.package.total_charge,
+        #                                                                             'period_type': period_type,
+        #          'total_submissions': subscribed_package.package.submissions}, 'account_information': {'card': card, 'email': email}
+        #                                                      if not has_free_package else None})
+        # else:
+        return Response(status=status.HTTP_200_OK, data={"team_owner": False})
 
     def post(self, request, pk, format=None):
         """

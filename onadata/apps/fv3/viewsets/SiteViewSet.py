@@ -88,8 +88,9 @@ class SiteForms(APIView):
                 project_id = get_object_or_404(Site, pk=int(site_id)).project.id
 
                 if query_params == 'general':
-                    generals = FieldSightXF.objects.select_related('xf').filter(is_staged=False, is_deleted=False, is_scheduled=False,
-                                                           is_survey=False). \
+                    generals = FieldSightXF.objects.select_related('xf').filter(is_staged=False, is_deleted=False,
+                                                                                is_scheduled=False, is_survey=False,
+                                                                                is_deployed=True). \
                         filter(Q(site__id=site_id, from_project=False) | Q(project__id=project_id))
 
                     data = [{'form_name': obj.xf.title, 'new_submission_url':
@@ -99,10 +100,11 @@ class SiteForms(APIView):
 
                 elif query_params == 'scheduled':
 
-                    schedules = Schedule.objects.prefetch_related('schedule_forms__xf').filter(schedule_forms__is_deleted=False,
-                                                        schedule_forms__isnull=False).filter(
-                        Q(site__id=site_id, schedule_forms__from_project=False)
-                        | Q(project__id=project_id))
+                    schedules = Schedule.objects.prefetch_related('schedule_forms__xf').\
+                        filter(schedule_forms__is_deleted=False, schedule_forms__isnull=False,
+                               schedule_forms__is_deployed=True).\
+                        filter(Q(site__id=site_id, schedule_forms__from_project=False) |
+                               Q(project__id=project_id))
 
                     data = [{'form_name': obj.schedule_forms.xf.title, 'new_submission_url':
                              settings.SITE_URL + '/forms/new/' + str(site_id) + '/' + str(obj.schedule_forms.id)} for obj in schedules]
@@ -114,14 +116,11 @@ class SiteForms(APIView):
 
                     if site.type:
                         project_id = site.project.id
-                        stages_queryset = Stage.objects.filter(stage__isnull=True).filter(Q(site__id=site_id,
-                                                     project_stage_id=0)
-                                                   | Q
-                                                   (Q(project__id=project_id) &
-                                                    Q(tags__contains=[site.type_id])) |
-                                                   Q(Q(project__id=project_id)
-                                                     & Q(tags=[]))
-                                                   )
+                        stages_queryset = Stage.objects.\
+                            filter(stage__isnull=True).filter(Q(site__id=site_id, project_stage_id=0) |
+                                                              Q (Q(project__id=project_id) &
+                                                                 Q(tags__contains=[site.type_id])) |
+                                                              Q(Q(project__id=project_id) & Q(tags=[])))
                     else:
                         project_id = site.project.id
                         stages_queryset = Stage.objects.filter(stage__isnull=True).filter(
@@ -132,7 +131,8 @@ class SiteForms(APIView):
                     return Response({'stage_forms': stages.data})
 
                 else:
-                    return Response(data="Form of type " + str(query_params) + " not found.", status=status.HTTP_204_NO_CONTENT)
+                    return Response(data="Form of type " + str(query_params) + " not found.",
+                                    status=status.HTTP_204_NO_CONTENT)
 
             except Exception as e:
                 return Response(data=str(e), status=status.HTTP_204_NO_CONTENT)

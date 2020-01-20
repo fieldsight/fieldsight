@@ -181,28 +181,27 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                     ss_index.append(str(ss.stage_forms.id))
                     form_ids.append(str(ss.stage_forms.id))
                     query[str(ss.stage_forms.id)] = Sum(
-                        Case(
-                            When(site_instances__project_fxf_id=ss.stage_forms.id,
+                        Case(When(site_instances__project_fxf_id=ss.stage_forms.id,
                                 site_instances__is_deleted=False, then=1),
                             default=0, output_field=IntegerField()
+
                         ))
 
         query['flagged'] = Sum(
             Case(
-                When(site_instances__form_status=2, site_instances__project_fxf_id__in=form_ids,site_instances__is_deleted=False, then=1),
-                default=0, output_field=IntegerField()
+                When(site_instances__form_status=2, site_instances__project_fxf_id__in=form_ids,site_instances__is_deleted=False, then=1), default=0, output_field=IntegerField()
             ))
 
         query['rejected'] = Sum(
             Case(
-                When(site_instances__form_status=1, site_instances__project_fxf_id__in=form_ids,site_instances__is_deleted=False, then=1),
-                default=0, output_field=IntegerField()
+
+                When(site_instances__form_status=1, site_instances__project_fxf_id__in=form_ids,
+                     site_instances__is_deleted=False, then=1), default=0, output_field=IntegerField()
             ))
          
         query['submission'] = Sum(
-            Case(
-                When(site_instances__project_fxf_id__in=form_ids, site_instances__is_deleted=False, then=1),
-                default=0, output_field=IntegerField()
+            Case(When(site_instances__project_fxf_id__in=form_ids,
+                     site_instances__is_deleted=False, then=1), default=0, output_field=IntegerField()
             ))
 
         head_row.extend(["Site Visits", "Submission Count", "Flagged Submission", "Rejected Submission"])
@@ -2695,7 +2694,9 @@ def update_metas_in_sites(pk, start, end):
             start:end]
     print("updating site Metas batch for project ", pk, start, end)
     SiteMetaAttrAnsHistory.objects.bulk_create(
-        [SiteMetaAttrAnsHistory(site=site, meta_attributes_ans=site.all_ma_ans) for site in sites])
+        [SiteMetaAttrAnsHistory(site=site,
+                                meta_attributes_ans=site.all_ma_ans,
+                                status=3) for site in sites])
     for site in sites:
         old_all_ma_ans = copy.deepcopy(site.all_ma_ans)
         metas = get_site_meta_ans(site.id)
