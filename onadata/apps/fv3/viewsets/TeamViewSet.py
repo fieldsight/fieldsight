@@ -181,7 +181,6 @@ class AddTeamProjectViewset(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         instance = self.perform_create(serializer)
 
-
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                      description="Auto Clone and Deployment of Forms",
                                                      task_type=15, content_object=instance.organization)

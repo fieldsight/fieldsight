@@ -234,12 +234,21 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
         instance.date_created = date_created_override
         instance.save()
     if instance.xform is not None:
+        fs_organization = None
+        fs_organization_uuid = None
         if fs_poj_id:
             fs_poj_id = str(fs_poj_id)
+            fxf = FieldSightXF.objects.get(id=fs_poj_id)
+            if fxf.organization_form_lib:
+                fs_organization = fxf.organization_form_lib.organization_id
+                fs_organization_uuid = fs_poj_id
+
         pi, created = FieldSightParsedInstance.get_or_create(instance,
                                                              update_data={'fs_uuid': fxid, 'fs_status': 0,
-                                                                          'fs_site':site, 'fs_project':project,
-                                                                          'fs_project_uuid':fs_poj_id})
+                                                                          'fs_site': site, 'fs_project': project,
+                                                                          'fs_project_uuid': fs_poj_id,
+                                                                          'fs_organization': fs_organization,
+                                                                          'fs_organization_uuid': fs_organization_uuid})
         if not created:
             pi.save(async=False)
     return instance

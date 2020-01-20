@@ -271,6 +271,11 @@ class Stage(models.Model):
         return getattr(self, "name", "")
 
 
+class ScheduleManager(models.Manager):
+    def get_queryset(self):
+        return super(ScheduleManager, self).get_queryset().filter(is_deleted=False)
+
+
 class Schedule(models.Model):
     name = models.CharField("Schedule Name",
                             max_length=256, blank=True, null=True)
@@ -288,7 +293,10 @@ class Schedule(models.Model):
     schedule_level_id = models.IntegerField(default=0, choices=SCHEDULED_LEVEL)
     frequency = models.IntegerField(default=0)
     month_day = models.IntegerField(default=0)
+    is_deleted = models.BooleanField(default=False)
+    objects = ScheduleManager()
     date_created = models.DateTimeField(auto_now_add=True)
+
     logs = GenericRelation('eventlog.FieldSightLog')
 
     class Meta:
@@ -639,11 +647,15 @@ class FInstance(models.Model):
     site = models.ForeignKey(Site, null=True, related_name='site_instances')
     project = models.ForeignKey(Project, null=True,
                                 related_name='project_instances')
+    organization = models.ForeignKey(SuperOrganization, null=True, blank=True,
+                                     related_name='organization_instances')
     site_fxf = models.ForeignKey(FieldSightXF, null=True,
                                  related_name='site_form_instances',
                                  on_delete=models.SET_NULL)
     project_fxf = models.ForeignKey(FieldSightXF, null=True, blank=True,
                                     related_name='project_form_instances')
+    organization_fxf = models.ForeignKey(FieldSightXF, null=True, blank=True,
+                                         related_name='organization_form_instances')
 
     form_status = models.IntegerField(null=True,
                                       blank=True, choices=FORM_STATUS)
@@ -820,6 +832,11 @@ def submission_saved(sender, instance, created,  **kwargs):
         instance.site.save()
         from onadata.apps.fsforms.tasks import update_progress
         update_progress.delay(instance.site_id, instance.project_fxf_id, instance.instance.json)
+    elif instance.project_fxf is not None:
+        if instance.project_fxf.organization_form_lib is not None:
+            instance.organization_fxf = instance.project_fxf
+            instance.organization = instance.project_fxf.organization_form_lib.organization
+            instance.save()
     elif instance.site is not None:
         instance.site.current_status = instance.form_status
         instance.site.save()

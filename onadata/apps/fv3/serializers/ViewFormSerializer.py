@@ -434,10 +434,12 @@ class SubmissionsVersionSerializer(serializers.ModelSerializer):
     total_submissions = serializers.SerializerMethodField()
     overidden_date = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
+    version_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = XformHistory
-        fields = ('id', 'title', 'version', 'overidden_date', 'total_submissions', 'last_response', 'download_url')
+        fields = ('id', 'title', 'version', 'overidden_date', 'total_submissions', 'last_response', 'download_url',
+                  'version_id')
 
     def get_overidden_date(self, obj):
         return obj.date.strftime("%b %d, %Y at %I:%M %p")
@@ -493,4 +495,10 @@ class SubmissionsVersionSerializer(serializers.ModelSerializer):
                                                               form_version)
 
             return url
+
+    def get_version_id(self, obj):
+        form_version = obj.version
+
+        return form_version
+
 
