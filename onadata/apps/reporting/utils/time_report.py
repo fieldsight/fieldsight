@@ -63,7 +63,7 @@ def time_report(report_obj):
             df_site_reviewed = pd.DataFrame(list(site_reviewed_query), columns=['date'])
             sites_reviewed = df_site_reviewed.groupby(pd.Grouper(
                 key='date', freq='1D')).size().to_frame("sites_reviewed").reset_index()
-            sites_reviewed['date_only'] = sites_reviewed.instance__date_created.dt.date
+            sites_reviewed['date_only'] = sites_reviewed.date.dt.date
             del sites_reviewed['date']
             sites_reviewed = sites_reviewed.set_index('date_only')
             df = pd.concat([df, sites_reviewed], axis=1)
