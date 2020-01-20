@@ -69,8 +69,9 @@ def time_report(report_obj):
             df = pd.concat([df, sites_reviewed], axis=1)
 
         df = df.fillna(0)
-        df.index.name = "Date"
+        df.index.name = "date"
         df.reset_index()
+        df['date'] = df.date.dt.date
         return df
 
 
