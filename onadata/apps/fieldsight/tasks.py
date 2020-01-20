@@ -2715,7 +2715,9 @@ def add_forms_in_projects(org_form_lib_id, task_id):
         if obj.form_type == 0:
             for project in projects:
                 fsxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
-                                    default_submission_status=obj.default_submission_status)
+                                    default_submission_status=obj.default_submission_status,
+                                    organization_form_lib=obj
+                                    )
                 fsxf_list.append(fsxf)
         else:
             for project in projects:
@@ -2723,17 +2725,29 @@ def add_forms_in_projects(org_form_lib_id, task_id):
                     create(project=project, date_range_start=obj.date_range_start,
                            date_range_end=obj.date_range_end,
                            schedule_level_id=obj.schedule_level_id, frequency=obj.frequency,
-                           month_day=obj.month_day)
+                           month_day=obj.month_day, organization_form_lib=obj)
                 scheduled_obj.selected_days.add(*obj.selected_days.values_list('id', flat=True))
                 scheduled_obj.save()
                 scheduled_fxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
                                              is_scheduled=True,
                                              default_submission_status=obj.default_submission_status,
-                                             schedule=scheduled_obj)
+                                             schedule=scheduled_obj, organization_form_lib=obj)
                 fsxf_list.append(scheduled_fxf)
 
         FieldSightXF.objects.bulk_create(fsxf_list)
 
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception as e:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
+
+
+@shared_task(max_retries=5)
+def remove_organization_forms(org_form_lib_id, task_id):
+    time.sleep(10)
+    obj = OrganizationFormLibrary.objects.get(id=org_form_lib_id)
+    try:
+        FieldSightXF.objects.filter(organization_form_lib=obj).update(is_deleted=True)
+        Schedule.objects.filter(organization_form_lib=obj).update(is_deleted=True)
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception as e:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))

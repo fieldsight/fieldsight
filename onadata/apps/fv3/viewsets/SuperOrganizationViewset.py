@@ -1,7 +1,7 @@
 import ast
 
 from datetime import datetime
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, F
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
@@ -23,7 +23,7 @@ from onadata.apps.fv3.serializer import TeamSerializer
 from onadata.apps.fv3.serializers.TeamSerializer import TeamProjectSerializer
 from onadata.apps.logger.models import XForm
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fieldsight.tasks import add_forms_in_projects
+from onadata.apps.fieldsight.tasks import add_forms_in_projects, remove_organization_forms
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -156,18 +156,22 @@ class ManageSuperOrganizationLibraryView(APIView):
 
     def get(self, request, pk, *args,  **kwargs):
         my_forms = XForm.objects.filter(user=request.user, deleted_xform=None)
-        queryset = OrganizationFormLibrary.objects.select_related('xf')
+        queryset = OrganizationFormLibrary.objects.select_related('xf').filter(organization_id=pk, deleted=False)
         selected_form_ids = []
-        selected_general_org_forms = queryset.filter(organization_id=pk, form_type=0, deleted=False)
-        selected_scheduled_org_forms = queryset.filter(organization_id=pk, form_type=1, deleted=False)
-        organization_library_forms = queryset.filter(organization_id=pk, deleted=False, is_form_library=True)
-        organization_library_forms = [{'id': form.xf.id, 'title': form.xf.title} for form in organization_library_forms]
+        selected_general_org_forms = queryset.filter(form_type=0)
+        selected_scheduled_org_forms = queryset.filter(form_type=1)
+        organization_library_forms = queryset.filter(is_form_library=True)
+        organization_library_forms = [{'id': form.id, 'xf_id': form.xf.id, 'title': form.xf.title}
+                                      for form in organization_library_forms]
+        selected_organization_library_forms = [{'id': form.id, 'xf_id': form.xf.id, 'title': form.xf.title}
+                                               for form in queryset]
         scheduled_forms = []
         general_forms = []
 
         for general_form in selected_general_org_forms:
             selected_form_ids.append(general_form.xf.id)
-            general_forms.append({'id': general_form.xf.id,
+            general_forms.append({'xf_id': general_form.xf.id,
+                                  'id': general_form.id,
                                   'title': general_form.xf.title,
                                   'form_type': general_form.get_form_type_display(),
                                   'default_submission_status': general_form.get_default_submission_status_display()
@@ -175,7 +179,8 @@ class ManageSuperOrganizationLibraryView(APIView):
 
         for scheduled_form in selected_scheduled_org_forms:
             selected_form_ids.append(scheduled_form.xf.id)
-            scheduled_forms.append({'id': scheduled_form.xf.id,
+            scheduled_forms.append({'xf_id': scheduled_form.xf.id,
+                                    'id': scheduled_form.id,
                                     'title': scheduled_form.xf.title,
                                     'form_type': scheduled_form.get_form_type_display(),
                                     'default_submission_status': scheduled_form.get_default_submission_status_display(),
@@ -185,18 +190,21 @@ class ManageSuperOrganizationLibraryView(APIView):
 
                                     })
 
-        forms = my_forms.exclude(id__in=list(selected_form_ids)).values('id', 'title')
+        forms = my_forms.exclude(id__in=list(selected_form_ids)).annotate(xf_id=F('id')).values('xf_id', 'title')
 
         return Response(status=status.HTTP_200_OK, data={'forms': forms,
                                                          'selected_forms':
                                                              {'general_forms': general_forms,
                                                               'scheduled_forms': scheduled_forms},
-                                                         'organization_library_forms': organization_library_forms},
+                                                         'organization_library_forms': organization_library_forms,
+                                                         'selected_organization_library_forms':
+                                                             selected_organization_library_forms
+                                                         },
                         )
 
     def post(self, request, pk, format=None):
         xf_ids = request.data.get('xf_ids', None)
-        xf_id = request.data.get('xf_id', None)
+        id = request.data.get('id', None)
         form_type = request.data.get('form_type', None)
         schedule_level_id = request.data.get('schedule_level_id', None)
         date_range_start = request.data.get('date_range_start', None)
@@ -206,6 +214,7 @@ class ManageSuperOrganizationLibraryView(APIView):
         frequency = request.data.get('frequency', None)
         month_day = request.data.get('month_day', None)
         is_form_library = request.data.get('is_form_library', False)
+        print('form type', form_type)
 
         if date_range_start:
             date_range_start = datetime.strptime(date_range_start, "%Y-%m-%d")
@@ -222,7 +231,7 @@ class ManageSuperOrganizationLibraryView(APIView):
 
         if xf_ids and is_form_library is False:
             """
-                Add form in super organization form library
+                Add default form in super organization
             """
             org_form_lib = OrganizationFormLibrary.objects.create(xf_id=xf_ids,
                                                                   organization_id=pk,
@@ -237,11 +246,6 @@ class ManageSuperOrganizationLibraryView(APIView):
                                                                   )
             org_form_lib.selected_days.add(*selected_days_objs)
             org_form_lib.save()
-            task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=27, content_object=org_form_lib)
-            if task_obj:
-                task = add_forms_in_projects.delay(org_form_lib.id, task_obj.id)
-                task_obj.task_id = task.id
-                task_obj.save()
 
             selected_general_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=0,
                                                                                 deleted=False)
@@ -267,6 +271,10 @@ class ManageSuperOrganizationLibraryView(APIView):
                                                                   'scheduled_forms': scheduled_forms})
 
         elif xf_ids and is_form_library:
+            """
+                Add library form in super organization
+            """
+            print('is_Form library', is_form_library)
             org_form_lib_objs = []
             for xf_id in xf_ids:
                 org_form_lib = OrganizationFormLibrary(xf_id=xf_id,
@@ -284,15 +292,22 @@ class ManageSuperOrganizationLibraryView(APIView):
             return Response(status=status.HTTP_201_CREATED,
                             data={'organization_library_forms': organization_library_forms})
 
-        elif xf_id:
+        elif id:
             """
-                Remove form from super organization library
+                Remove default/library form super organization.
             """
-            OrganizationFormLibrary.objects.filter(xf_id=xf_id, organization_id=pk).update(deleted=True)
+            org_form_obj = OrganizationFormLibrary.objects.get(id=id, organization_id=pk)
+            org_form_obj.deleted = True
+            org_form_obj.save()
+            task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=27, content_object=org_form_obj)
+            if task_obj:
+                task = add_forms_in_projects.delay(org_form_obj.id, task_obj.id)
+                task_obj.task_id = task.id
+                task_obj.save()
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully removed.'})
 
         else:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'xf_ids or xf_id '
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'xf_ids or id '
                                                                                 'field is required.'})
 
 

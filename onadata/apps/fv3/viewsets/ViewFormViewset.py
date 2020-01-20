@@ -662,7 +662,7 @@ class SubmissionsVersions(APIView):
             serializer = SubmissionsVersionSerializer(versions, many=True, context={'is_project': 1, 'fsf': fsf})
             latest = {'title': fsf.xf.title, 'version': 'Latest', 'overidden_date': 'Latest', 'last_response': date,
                       'total_submissions': count, 'download_url': '/{}/exports/{}/xls/1/{}/0/{}/'.\
-                    format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)}
+                    format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version), 'version_id': form_version}
             return Response(status=status.HTTP_200_OK, data={'data': {'latest': latest, 'versions': serializer.data,
                                                                       'breadcrumbs':
                                                                           self.get_breadcrumbs(True, project, fsf)}})
