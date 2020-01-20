@@ -25,7 +25,6 @@ def time_report(report_obj):
             num_sites = df_site.groupby(pd.Grouper(key='date_created', freq='1D')).size().to_frame("num_sites").reset_index()
             num_sites['date_only'] = num_sites.date_created.dt.date
             num_sites = num_sites.set_index('date_only')
-            num_sites.reindex(date_index, fill_value=0)
             df = pd.concat([df, num_sites], axis=1)
         return df
 
