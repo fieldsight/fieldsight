@@ -12,6 +12,7 @@ from django.core.files.storage import default_storage
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.reporting.models import ReportSettings
+from onadata.apps.reporting.utils.excel_utils import to_excel_auto_width
 from onadata.apps.reporting.utils.site_report import site_report
 from onadata.apps.reporting.utils.time_report import time_report
 from onadata.apps.reporting.utils.user_report import user_report
@@ -20,7 +21,8 @@ from onadata.apps.reporting.utils.user_report import user_report
 def save_file(df, directory, filename):
     if not os.path.exists(settings.MEDIA_ROOT + directory):
         os.makedirs(settings.MEDIA_ROOT + directory)
-    df.to_excel(settings.MEDIA_ROOT + directory + filename)
+    to_excel_auto_width(settings.MEDIA_ROOT + directory + filename, df)
+    # df.to_excel(settings.MEDIA_ROOT + directory + filename)
     with open("media/" + directory + filename, 'rb') as fin:
         buffer_file = BytesIO(fin.read())
         buffer_file.seek(0)
