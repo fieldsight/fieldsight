@@ -155,16 +155,18 @@ class ManageSuperOrganizationLibraryView(APIView):
     permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
     def get(self, request, pk, *args,  **kwargs):
-        my_forms = XForm.objects.filter(user=request.user, deleted_xform=None)
         queryset = OrganizationFormLibrary.objects.select_related('xf').filter(organization_id=pk, deleted=False)
+        org_form_lib_ids = queryset.values_list('xf_id', flat=True)
+        my_forms = XForm.objects.filter(user=request.user, deleted_xform=None).exclude(id__in=org_form_lib_ids)
+
         selected_form_ids = []
-        selected_general_org_forms = queryset.filter(form_type=0)
-        selected_scheduled_org_forms = queryset.filter(form_type=1)
+        selected_general_org_forms = queryset.filter(form_type=0, is_form_library=False)
+        selected_scheduled_org_forms = queryset.filter(form_type=1,  is_form_library=False)
         organization_library_forms = queryset.filter(is_form_library=True)
         organization_library_forms = [{'id': form.id, 'xf_id': form.xf.id, 'title': form.xf.title}
                                       for form in organization_library_forms]
         selected_organization_library_forms = [{'id': form.id, 'xf_id': form.xf.id, 'title': form.xf.title}
-                                               for form in queryset]
+                                               for form in queryset.distinct('xf_id')]
         scheduled_forms = []
         general_forms = []
 
@@ -196,7 +198,7 @@ class ManageSuperOrganizationLibraryView(APIView):
                                                          'selected_forms':
                                                              {'general_forms': general_forms,
                                                               'scheduled_forms': scheduled_forms},
-                                                         'organization_library_forms': organization_library_forms,
+                                                             'organization_library_forms': organization_library_forms,
                                                          'selected_organization_library_forms':
                                                              selected_organization_library_forms
                                                          },
@@ -214,7 +216,6 @@ class ManageSuperOrganizationLibraryView(APIView):
         frequency = request.data.get('frequency', None)
         month_day = request.data.get('month_day', None)
         is_form_library = request.data.get('is_form_library', False)
-        print('form type', form_type)
 
         if date_range_start:
             date_range_start = datetime.strptime(date_range_start, "%Y-%m-%d")
@@ -233,6 +234,7 @@ class ManageSuperOrganizationLibraryView(APIView):
             """
                 Add default form in super organization
             """
+
             org_form_lib = OrganizationFormLibrary.objects.create(xf_id=xf_ids,
                                                                   organization_id=pk,
                                                                   form_type=form_type,
@@ -246,6 +248,12 @@ class ManageSuperOrganizationLibraryView(APIView):
                                                                   )
             org_form_lib.selected_days.add(*selected_days_objs)
             org_form_lib.save()
+
+            task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=27, content_object=org_form_lib)
+            if task_obj:
+                task = add_forms_in_projects.delay(org_form_lib.id, task_obj.id)
+                task_obj.task_id = task.id
+                task_obj.save()
 
             selected_general_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=0,
                                                                                 deleted=False)
@@ -274,12 +282,13 @@ class ManageSuperOrganizationLibraryView(APIView):
             """
                 Add library form in super organization
             """
-            print('is_Form library', is_form_library)
+
             org_form_lib_objs = []
             for xf_id in xf_ids:
                 org_form_lib = OrganizationFormLibrary(xf_id=xf_id,
                                                        organization_id=pk,
-                                                       is_form_library=is_form_library
+                                                       is_form_library=is_form_library,
+                                                       form_type=2
 
                                                        )
                 org_form_lib_objs.append(org_form_lib)
@@ -299,11 +308,7 @@ class ManageSuperOrganizationLibraryView(APIView):
             org_form_obj = OrganizationFormLibrary.objects.get(id=id, organization_id=pk)
             org_form_obj.deleted = True
             org_form_obj.save()
-            task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=27, content_object=org_form_obj)
-            if task_obj:
-                task = add_forms_in_projects.delay(org_form_obj.id, task_obj.id)
-                task_obj.task_id = task.id
-                task_obj.save()
+
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully removed.'})
 
         else:

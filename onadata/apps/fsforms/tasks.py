@@ -111,7 +111,7 @@ def clone_form(project_id, task_id):
     organization = project.organization
     try:
         super_org = organization.parent
-        library_forms = super_org.library_forms.filter(deleted=False)
+        library_forms = super_org.library_forms.filter(deleted=False, form_type__in=[0, 1])
 
         fsxf_list = []
 
