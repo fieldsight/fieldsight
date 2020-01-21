@@ -303,7 +303,7 @@ def time_report(report_obj):
         df = df.fillna(0)
         df.index = df.index.date
         df.index.name = "date"
-        df = df.reset_index()
+        df.reset_index(level="date", inplace=True)
         return df
 
 
