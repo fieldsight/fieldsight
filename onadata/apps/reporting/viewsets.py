@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.db.models import Case, When, Sum, IntegerField
+from django.contrib.auth.models import Group
 
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.decorators import permission_classes, api_view
@@ -546,11 +547,16 @@ def metrics_data(request, pk):
                   {'id': 4, 'code': 'survey', 'label': 'Survey Forms'},
                   ]
 
+    user_roles = Group.objects.filter(name__in=['Region Supervisor', 'Region Reviewer', 'Site Supervisor',
+                                                'Reviewer']).values('id', 'name')
+
     return Response(status=status.HTTP_200_OK, data={'report_types': report_types,
                                                      'regions': regions,
                                                      'site_types': site_types,
                                                      'metrics': metrics, 'meta_attributes': meta_attributes,
-                                                     'form_types': form_types})
+                                                     'form_types': form_types,
+                                                     'user_roles': user_roles
+                                                     })
 
 
 class ReportExportView(APIView):
