@@ -89,6 +89,65 @@ def time_report(report_obj):
                 progress_min.index = progress_min.index.date
                 df = pd.concat([df, progress_min], axis=1)
 
+            if 'no_submissions' in default_metrics:
+                no_submissions_query = FInstance.objects.values('instance__date_created')
+                df_no_submissions = pd.DataFrame(list(no_submissions_query), columns=['instance__date_created'])
+                no_submissions = df_no_submissions.groupby(pd.Grouper(
+                    key='instance__date_created', freq='1D')).size().to_frame("no_submissions").reset_index()
+                no_submissions['date_only'] = no_submissions.instance__date_created.dt.date
+                del no_submissions['instance__date_created']
+                no_submissions = no_submissions.set_index('date_only')
+                df = pd.concat([df, no_submissions], axis=1)
+
+            if "no_pending_submissions_ever" in default_metrics:
+                no_pending_submissions_ever_query = InstanceStatusChanged.objects.filter(new_status=0).values('date')
+                df_no_pending_submissions_ever = pd.DataFrame(list(no_pending_submissions_ever_query), columns=['date'])
+                no_pending_submissions_ever = df_no_pending_submissions_ever.groupby(pd.Grouper(
+                    key='date', freq='1D')).size().to_frame("no_pending_submissions_ever").reset_index()
+                no_pending_submissions_ever['date_only'] = no_pending_submissions_ever.date.dt.date
+                del no_pending_submissions_ever['date']
+                no_pending_submissions_ever = no_pending_submissions_ever.set_index('date_only')
+                df = pd.concat([df, no_pending_submissions_ever], axis=1)
+
+            if "no_approved_submissions_ever" in default_metrics:
+                no_approved_submissions_ever_query = InstanceStatusChanged.objects.filter(new_status=3).values('date')
+                df_no_approved_submissions_ever = pd.DataFrame(list(no_approved_submissions_ever_query), columns=['date'])
+                no_approved_submissions_ever = df_no_approved_submissions_ever.groupby(pd.Grouper(
+                    key='date', freq='1D')).size().to_frame("no_approved_submissions_ever").reset_index()
+                no_approved_submissions_ever['date_only'] = no_approved_submissions_ever.date.dt.date
+                del no_approved_submissions_ever['date']
+                no_approved_submissions_ever = no_approved_submissions_ever.set_index('date_only')
+                df = pd.concat([df, no_approved_submissions_ever], axis=1)
+            if "no_flagged_submissions_ever" in default_metrics:
+                no_flagged_submissions_ever_query = InstanceStatusChanged.objects.filter(new_status=3).values('date')
+                df_no_flagged_submissions_ever = pd.DataFrame(list(no_flagged_submissions_ever_query), columns=['date'])
+                no_flagged_submissions_ever = df_no_flagged_submissions_ever.groupby(pd.Grouper(
+                    key='date', freq='1D')).size().to_frame("no_flagged_submissions_ever").reset_index()
+                no_flagged_submissions_ever['date_only'] = no_flagged_submissions_ever.date.dt.date
+                del no_flagged_submissions_ever['date']
+                no_flagged_submissions_ever = no_flagged_submissions_ever.set_index('date_only')
+                df = pd.concat([df, no_flagged_submissions_ever], axis=1)
+            if "no_rejected_submissions_ever" in default_metrics:
+                no_rejected_submissions_ever = InstanceStatusChanged.objects.filter(new_status=2).values('date')
+                df_no_rejected_submissions_ever = pd.DataFrame(list(no_rejected_submissions_ever), columns=['date'])
+                no_rejected_submissions_ever = df_no_rejected_submissions_ever.groupby(pd.Grouper(
+                    key='date', freq='1D')).size().to_frame("no_rejected_submissions_ever").reset_index()
+                no_rejected_submissions_ever['date_only'] = no_rejected_submissions_ever.date.dt.date
+                del no_rejected_submissions_ever['date']
+                no_rejected_submissions_ever = no_rejected_submissions_ever.set_index('date_only')
+                df = pd.concat([df, no_rejected_submissions_ever], axis=1)
+
+            if "no_resolved_submissions_ever" in default_metrics:
+                #Get pk of instances F which are approved in Finstance, get date of resolved.
+                no_rejected_submissions_ever = InstanceStatusChanged.objects.filter(new_status=3).values('date')
+                df_no_flagged_submissions_ever = pd.DataFrame(list(no_rejected_submissions_ever), columns=['date'])
+                no_flagged_submissions_ever = df_no_flagged_submissions_ever.groupby(pd.Grouper(
+                    key='date', freq='1D')).size().to_frame("no_flagged_submissions_ever").reset_index()
+                no_flagged_submissions_ever['date_only'] = no_flagged_submissions_ever.date.dt.date
+                del no_flagged_submissions_ever['date']
+                no_flagged_submissions_ever = no_flagged_submissions_ever.set_index('date_only')
+                df = pd.concat([df, no_flagged_submissions_ever], axis=1)
+
         df = df.fillna(0)
         df.index = df.index.date
         df.index.name = "date"
