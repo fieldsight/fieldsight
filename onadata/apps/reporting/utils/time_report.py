@@ -93,9 +93,9 @@ def time_report(report_obj):
             query_submissions = FInstance.objects.filter().filter(
                 Q(project_fxf__project=report_obj.project_id) |
                 Q(site_fxf__site__project=report_obj.project_id)
-            ).values("pk",  "date", "instance__date_created")
+            ).values("pk",  "date", "instance__date_created", "form_status")
             df_submissions = pd.DataFrame(
-                list(query_submissions), columns=["pk", "date", "instance__date_created"])
+                list(query_submissions), columns=["pk", "date", "instance__date_created", "form_status"])
 
             if 'no_submissions' in default_metrics:
                 df_no_submissions = df_submissions
@@ -108,7 +108,7 @@ def time_report(report_obj):
 
             if "no_pending_submissions_ever" in default_metrics:
                 
-                df_no_pending_submissions_ever = df_submissions[df_submissions.new_status == 0]
+                df_no_pending_submissions_ever = df_submissions[df_submissions.form_status == 0]
                 no_pending_submissions_ever = df_no_pending_submissions_ever.groupby(pd.Grouper(
                     key='date', freq='1D')).size().to_frame("no_pending_submissions_ever").reset_index()
                 no_pending_submissions_ever['date_only'] = no_pending_submissions_ever.date.dt.date
@@ -117,7 +117,7 @@ def time_report(report_obj):
                 df = pd.concat([df, no_pending_submissions_ever], axis=1)
 
             if "no_approved_submissions_ever" in default_metrics:
-                df_no_approved_submissions_ever = df_submissions[df_submissions.new_status == 3]
+                df_no_approved_submissions_ever = df_submissions[df_submissions.form_status == 3]
                 no_approved_submissions_ever = df_no_approved_submissions_ever.groupby(pd.Grouper(
                     key='date', freq='1D')).size().to_frame("no_approved_submissions_ever").reset_index()
                 no_approved_submissions_ever['date_only'] = no_approved_submissions_ever.date.dt.date
@@ -125,7 +125,7 @@ def time_report(report_obj):
                 no_approved_submissions_ever = no_approved_submissions_ever.set_index('date_only')
                 df = pd.concat([df, no_approved_submissions_ever], axis=1)
             if "no_flagged_submissions_ever" in default_metrics:
-                df_no_flagged_submissions_ever = df_submissions[df_submissions.new_status == 3]
+                df_no_flagged_submissions_ever = df_submissions[df_submissions.form_status == 3]
                 no_flagged_submissions_ever = df_no_flagged_submissions_ever.groupby(pd.Grouper(
                     key='date', freq='1D')).size().to_frame("no_flagged_submissions_ever").reset_index()
                 no_flagged_submissions_ever['date_only'] = no_flagged_submissions_ever.date.dt.date
@@ -133,7 +133,7 @@ def time_report(report_obj):
                 no_flagged_submissions_ever = no_flagged_submissions_ever.set_index('date_only')
                 df = pd.concat([df, no_flagged_submissions_ever], axis=1)
             if "no_rejected_submissions_ever" in default_metrics:
-                df_no_rejected_submissions_ever = df_submissions[df_submissions.new_status == 2]
+                df_no_rejected_submissions_ever = df_submissions[df_submissions.form_status == 2]
                 no_rejected_submissions_ever = df_no_rejected_submissions_ever.groupby(pd.Grouper(
                     key='date', freq='1D')).size().to_frame("no_rejected_submissions_ever").reset_index()
                 no_rejected_submissions_ever['date_only'] = no_rejected_submissions_ever.date.dt.date
