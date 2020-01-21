@@ -837,7 +837,9 @@ def users(request):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
 
-        queryset = UserRole.objects.select_related('user').filter(super_organization=organization,
+        team_ids = organization.organizations.all().values_list('id', flat=True)
+        queryset = UserRole.objects.select_related('user').filter(Q(super_organization=organization) |
+                                                                  Q(organization_id__in=team_ids),
                                                                   ended_at__isnull=True).distinct('user_id')
 
         data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
@@ -998,7 +1000,6 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             self.object.location = p
             self.object.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
     def perform_create(self, serializer):
         return serializer.save()

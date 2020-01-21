@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.core.serializers import serialize
 import six, json
 from django.core.files.base import ContentFile
+from django.db.models import Q
 from rest_framework import serializers
 
 
@@ -282,7 +283,9 @@ class SuperOrganizationSerializer(serializers.ModelSerializer):
     def get_total_users(self, obj):
         team_ids = obj.organizations.values_list('id', flat=True)
         total_users = UserRole.objects.select_related('user', 'user__profile').\
-            filter(organization_id__in=team_ids, ended_at=None).distinct('user_id').count()
+            filter(Q(organization_id__in=team_ids)
+                   | Q(super_organization=obj),
+                   ended_at=None).distinct('user_id').count()
 
         return total_users
 
