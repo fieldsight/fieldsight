@@ -200,7 +200,7 @@ FORM_INFORMATION_VALUES_METRICS_DATA = [
 
 
 FILTER_METRICS_DATA = [
-    {'code': 'projects', 'label': _('Project'), 'types': [1, 3, 4, 5],
+    {'code': 'projects', 'label': _('Project'), 'types': [3],
      'category': 'filter'},
 
     {'code': 'regions', 'label': _('Regions'), 'types':  [0],
