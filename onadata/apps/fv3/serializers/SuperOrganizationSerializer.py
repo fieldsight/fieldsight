@@ -11,7 +11,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SuperOrganization
-        fields = ('id', 'name', 'type', 'phone', 'country', 'additional_desc',
+        fields = ('id', 'identifier', 'name', 'type', 'phone', 'country', 'additional_desc',
                   'logo',  'logs', 'total_teams', 'total_projects',
                   'total_users', 'total_organizations')
         read_only_fields = ('total_projects', 'total_teams', 'total_users',
