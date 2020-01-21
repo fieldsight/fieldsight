@@ -299,7 +299,7 @@ def time_report(report_obj):
                 form_name = individual_form_name_dict[form_id]
                 df = generate_form_metrices_time_report(form_name, df, form_submissions, df_reviews, metrices_list)
         columns_name = ordered_columns_from_metrics(report_obj)  # ordered metrices codes
-        df = df[columns_name]
+        # df = df[columns_name]
         df = df.fillna(0)
         df.index = df.index.date
         df.index.name = "date"
