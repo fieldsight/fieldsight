@@ -148,7 +148,7 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
    
     class Meta:
         model = Project
-        fields = ('id', 'name', 'phone', 'email', 'address', 'website', 'donor', 'public_desc', 'logo',
+        fields = ('id', 'identifier', 'name', 'phone', 'email', 'address', 'website', 'donor', 'public_desc', 'logo',
                   'location', 'cluster_sites', 'sector', 'sub_sector', 'organization')
 
 
@@ -218,7 +218,7 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
 
-        fields = ('id', 'name', 'logo', 'address', 'projects', 'users', 'sites',
+        fields = ('id', 'identifier', 'name', 'logo', 'address', 'projects', 'users', 'sites',
                   'parent')
 
         extra_kwargs = {
@@ -253,8 +253,8 @@ class SuperOrganizationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SuperOrganization
-        fields = ('id', 'name', 'phone', 'country', 'additional_desc', 'logo', 'email', 'total_sites', 'contact',
-                  'projects', 'breadcrumbs', 'teams', 'map', 'total_users', 'admins', 'location')
+        fields = ('id', 'identifier', 'name', 'phone', 'country', 'additional_desc', 'logo', 'email', 'total_sites',
+                  'contact', 'projects', 'breadcrumbs', 'teams', 'map', 'total_users', 'admins', 'location')
         read_only_fields = ('total_sites', 'contact', 'projects', 'map', 'total_users', 'breadcrumbs', 'admins')
 
     def get_teams(self, obj):

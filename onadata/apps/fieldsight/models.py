@@ -89,6 +89,7 @@ class ProjectType(models.Model):
 
 class SuperOrganization(models.Model):
     name = models.CharField(max_length=255)
+    identifier = models.CharField("ID", max_length=255, null=True, blank=True)
     phone = models.CharField(
         "Contact Number", max_length=255, blank=True, null=True)
     fax = models.CharField(max_length=255, blank=True, null=True)
@@ -166,6 +167,7 @@ class SuperOrganization(models.Model):
 
 class Organization(models.Model):
     name = models.CharField("Team Name", max_length=255)
+    identifier = models.CharField("ID", max_length=255, null=True, blank=True)
     type = models.ForeignKey(
         OrganizationType, verbose_name='Type of Team', on_delete=models.SET_NULL, blank=True, null=True)
     phone = models.CharField(
@@ -333,6 +335,7 @@ class Project(models.Model):
     ]
 
     name = models.CharField(max_length=255)
+    identifier = models.CharField("ID", max_length=255, null=True, blank=True)
     type = models.ForeignKey(ProjectType, verbose_name='Type of Project', null=True, blank=True)
     sector = models.ForeignKey(Sector, verbose_name='Sector', null=True, blank=True, related_name='project_sector')
     sub_sector = models.ForeignKey(Sector, verbose_name='Sub-Sector', null=True, blank=True, related_name='project_sub_sector')

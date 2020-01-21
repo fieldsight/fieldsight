@@ -67,8 +67,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ('id', 'name', 'address', 'public_desc', 'logo', 'contacts', 'project_activity', 'total_sites',
-                  'total_users', 'project_managers', 'has_region', 'logs', 'form_submissions_chart_data',
+        fields = ('id', 'identifier', 'name', 'address', 'public_desc', 'logo', 'contacts', 'project_activity',
+                  'total_sites', 'total_users', 'project_managers', 'has_region', 'logs', 'form_submissions_chart_data',
                   'site_progress_chart_data', 'map', 'terms_and_labels', 'breadcrumbs', 'is_project_manager')
 
     def get_contacts(self, obj):

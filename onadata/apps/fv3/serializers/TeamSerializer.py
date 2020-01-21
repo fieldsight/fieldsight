@@ -150,7 +150,7 @@ class TeamUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ('id', 'name', 'type', 'phone', 'email', 'address', 'website', 'public_desc', 'logo',
+        fields = ('id', 'name', 'identifier', 'type', 'phone', 'email', 'address', 'website', 'public_desc', 'logo',
                   'location', 'country')
 
 
