@@ -212,7 +212,10 @@ FILTER_METRICS_DATA = [
     {'code': 'user_roles', 'label': _('User Roles'), 'types':  [4],
      'category': 'filter'},
 
-    {'code': 'time_period', 'label': _('Time Period'), 'types':  [5],
+    {'code': 'start_date', 'label': _('Time Period'), 'types':  [5],
+     'category': 'filter'},
+
+    {'code': 'end_date', 'label': _('Time Period'), 'types':  [5],
      'category': 'filter'},
 
     {'code': 'site_information', 'label': _('Site Information'), 'types':  [3],
