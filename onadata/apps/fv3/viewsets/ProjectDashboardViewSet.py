@@ -47,7 +47,11 @@ class ProjectProgressTableViewSet(APIView):
     def get(self, request, *args,  **kwargs):
 
         project_id = self.kwargs.get('pk', None)
-        project_id = get_object_or_404(Project, pk=project_id).id
+
+        try:
+            project_id = Project.objects.get(id=project_id).id
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
 
         generals_queryset = FieldSightXF.objects.select_related('xf', 'project')\
             .filter(is_staged=False, is_scheduled=False, is_deleted=False,
