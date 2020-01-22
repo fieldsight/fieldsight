@@ -57,7 +57,7 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
             submissions_approved_ever = submissions_approved_ever.set_index('date_only')
             df = pd.concat([df, submissions_approved_ever], axis=1)
         except:
-            df['form_submissions_approved_ever'] = 0
+            df[form_name + 'form_submissions_approved_ever'] = 0
 
     if "form_no_submissions_flagged_ever" in metrices_list:
         try:
@@ -68,7 +68,7 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
             form_no_submissions_flagged_ever = form_no_submissions_flagged_ever.set_index('date_only')
             df = pd.concat([df, form_no_submissions_flagged_ever], axis=1)
         except:
-            df['form_no_submissions_flagged_ever'] = 0
+            df[form_name + 'form_no_submissions_flagged_ever'] = 0
 
     if "form_submissions_rejected_ever" in metrices_list:
         try:
@@ -79,7 +79,7 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
             form_submissions_rejected_ever = form_submissions_rejected_ever.set_index('date_only')
             df = pd.concat([df, form_submissions_rejected_ever], axis=1)
         except:
-            df['form_submissions_rejected_ever'] = 0
+            df[form_name + 'form_submissions_rejected_ever'] = 0
     return df
 
 
@@ -368,11 +368,11 @@ def time_report(report_obj):
                 form_name = individual_form_name_dict[form_id]
                 df = generate_form_metrices_time_report(form_name, df, form_submissions, form_reviews, metrices_list)
         columns_name = ordered_columns_from_metrics(report_obj)  # ordered metrices codes
-        df = df[columns_name]
-        df = df.fillna(0)
         df.index = df.index.date
         df.index.name = "date"
         df.reset_index(level="date", inplace=True)
+        df = df[columns_name]
+        df = df.fillna(0)
         return df
 
 
