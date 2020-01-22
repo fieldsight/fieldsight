@@ -198,7 +198,7 @@ def time_report(report_obj):
 
         if 'no_of_region_reviewer' in user_metrics:
             no_of_region_reviewer = df_role[df_role.group == 10].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
-                "no_of_active_region_reviewer").reset_index()
+                "no_of_region_reviewer").reset_index()
             no_of_region_reviewer['date_only'] = no_of_region_reviewer.started_at.dt.date
             del no_of_region_reviewer['started_at']
             no_of_region_reviewer = no_of_region_reviewer.set_index('date_only')
