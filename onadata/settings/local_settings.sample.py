@@ -188,6 +188,8 @@ AWS_S3_REGION_NAME = '*********************'
 AWS_QUERYSTRING_AUTH = False
 AWS_S3_FILE_OVERWRITE = False
 
+MEDIA_LOCATION_URL = 'http://localhost:8000'
+
 #DEBUG = False
 
 #STATIC_ROOT = "/srv/fieldsight/fieldsight-kobocat/onadata/static'"
