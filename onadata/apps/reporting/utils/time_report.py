@@ -123,6 +123,7 @@ def time_report(report_obj):
             del users_site_rev['started_at']
             users_site_rev = users_site_rev.set_index('date_only')
             df = pd.concat([df, users_site_rev], axis=1)
+
         if 'no_of_active_site_supervisor' in user_metrics:
             active_users_site_sup = active_df[active_df.group == 4].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
                 "no_of_active_site_supervisor").reset_index()
@@ -132,12 +133,12 @@ def time_report(report_obj):
             df = pd.concat([df, active_users_site_sup], axis=1)
 
         if 'no_of_active_site_reviewer' in user_metrics:
-            active_users_site_rev = active_df[active_df.group == 3].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
-                "active_users_site_rev").reset_index()
-            active_users_site_rev['date_only'] = active_users_site_rev.started_at.dt.date
-            del active_users_site_rev['started_at']
-            active_users_site_rev = active_users_site_rev.set_index('date_only')
-            df = pd.concat([df, active_users_site_rev], axis=1)
+            no_of_active_site_reviewer = active_df[active_df.group == 3].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
+                "no_of_active_site_reviewer").reset_index()
+            no_of_active_site_reviewer['date_only'] = no_of_active_site_reviewer.started_at.dt.date
+            del no_of_active_site_reviewer['started_at']
+            no_of_active_site_reviewer = no_of_active_site_reviewer.set_index('date_only')
+            df = pd.concat([df, no_of_active_site_reviewer], axis=1)
 
         if 'no_of_project_manager' in user_metrics:
             active_users_project_manager = df_role[df_role.group == 2].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
@@ -149,7 +150,7 @@ def time_report(report_obj):
 
         if 'no_of_project_donor' in user_metrics:
             no_of_project_donor = df_role[df_role.group == 7].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
-                "active_users_site_rev").reset_index()
+                "no_of_project_donor").reset_index()
             no_of_project_donor['date_only'] = no_of_project_donor.started_at.dt.date
             del no_of_project_donor['started_at']
             no_of_project_donor = no_of_project_donor.set_index('date_only')
@@ -179,13 +180,29 @@ def time_report(report_obj):
             no_of_active_region_supervisor = no_of_active_region_supervisor.set_index('date_only')
             df = pd.concat([df, no_of_active_region_supervisor], axis=1)
 
+        if 'no_of_region_supervisor' in user_metrics:
+            no_of_region_supervisor = df_role[df_role.group == 9].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
+                "no_of_region_supervisor").reset_index()
+            no_of_region_supervisor['date_only'] = no_of_region_supervisor.started_at.dt.date
+            del no_of_region_supervisor['started_at']
+            no_of_region_supervisor = no_of_region_supervisor.set_index('date_only')
+            df = pd.concat([df, no_of_region_supervisor], axis=1)
+
         if 'no_of_active_region_reviewer' in user_metrics:
             no_of_active_region_reviewer = active_df[active_df.group == 10].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
                 "no_of_active_region_reviewer").reset_index()
             no_of_active_region_reviewer['date_only'] = no_of_active_region_reviewer.started_at.dt.date
             del no_of_active_region_reviewer['started_at']
             no_of_active_region_reviewer = no_of_active_region_reviewer.set_index('date_only')
-            df = pd.concat([df, no_of_active_region_reviewer], axis=1)
+            df = pd.concat([df, no_of_active_region_reviewer], axis=1)\
+
+        if 'no_of_region_reviewer' in user_metrics:
+            no_of_region_reviewer = df_role[df_role.group == 10].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
+                "no_of_active_region_reviewer").reset_index()
+            no_of_region_reviewer['date_only'] = no_of_region_reviewer.started_at.dt.date
+            del no_of_region_reviewer['started_at']
+            no_of_region_reviewer = no_of_region_reviewer.set_index('date_only')
+            df = pd.concat([df, no_of_region_reviewer], axis=1)
 
         if "num_sites" in default_metrics:
             query = Site.objects.values('id', 'date_created')
