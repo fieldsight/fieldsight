@@ -16,7 +16,7 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
         form_no_submissions = df_submissions.groupby(pd.Grouper(key='date', freq='1D')).size().to_frame(
             form_name + 'form_no_submissions').reset_index()
         form_no_submissions['date_only'] = form_no_submissions.date.dt.date
-        del form_no_submissions['date_created']
+        del form_no_submissions['date']
         form_no_submissions = form_no_submissions.set_index('date_only')
         df = pd.concat([df, form_no_submissions], axis=1)
 
@@ -268,9 +268,9 @@ def time_report(report_obj):
                 finstance__project=report_obj.project_id, old_status__in=[2, 3]).filter(
                 Q(finstance__project_fxf__project=project_id) |
                 Q(finstance__site_fxf__site__project=project_id)
-            ).values("old_status", "date", "finstance")
+            ).values("old_status", "date", "finstance", "finstance__project_fxf")
 
-            df_reviews = pd.DataFrame(list(query_reviews), columns=["old_status" "date", "finstance"])
+            df_reviews = pd.DataFrame(list(query_reviews), columns=["old_status", "date", "finstance", "finstance__project_fxf"])
 
             if 'no_submissions' in default_metrics:
                 df_no_submissions = df_submissions
@@ -347,8 +347,9 @@ def time_report(report_obj):
 
             for form_id, metrices_list in individual_form_dict.items():
                 form_submissions = df_submissions[df_submissions.project_fxf == form_id]
+                form_reviews = df_reviews[df_reviews.finstance__project_fxf == form_id]
                 form_name = individual_form_name_dict[form_id]
-                df = generate_form_metrices_time_report(form_name, df, form_submissions, df_reviews, metrices_list)
+                df = generate_form_metrices_time_report(form_name, df, form_submissions, form_reviews, metrices_list)
         columns_name = ordered_columns_from_metrics(report_obj)  # ordered metrices codes
         df = df[columns_name]
         df = df.fillna(0)
