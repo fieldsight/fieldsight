@@ -1957,6 +1957,7 @@ def senduserinvite(request):
     organization_id = None
     project_id = []
     site_id = []
+    print('datattatat', request.POST)
 
     if RepresentsInt(request.POST.get('super_organization_id')):
         super_organization_id = request.POST.get('super_organization_id')

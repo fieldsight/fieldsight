@@ -658,8 +658,6 @@ class FInstance(models.Model):
                                     related_name='project_form_instances')
     organization_fxf = models.ForeignKey(FieldSightXF, null=True, blank=True,
                                          related_name='organization_form_instances')
-    team_fxf = models.ForeignKey(FieldSightXF, null=True, blank=True,
-                                 related_name='team_form_instances')
 
     form_status = models.IntegerField(null=True,
                                       blank=True, choices=FORM_STATUS)
@@ -836,14 +834,19 @@ def submission_saved(sender, instance, created,  **kwargs):
         instance.site.save()
         from onadata.apps.fsforms.tasks import update_progress
         update_progress.delay(instance.site_id, instance.project_fxf_id, instance.instance.json)
+
     elif instance.project_fxf is not None:
         if instance.project_fxf.organization_form_lib is not None:
             instance.organization_fxf = instance.project_fxf
             instance.organization = instance.project_fxf.organization_form_lib.organization
             instance.save()
+
     elif instance.site is not None:
         instance.site.current_status = instance.form_status
         instance.site.save()
+
+    instance.team = instance.project.team
+    instance.save()
 
 
 class EditedSubmission(models.Model):

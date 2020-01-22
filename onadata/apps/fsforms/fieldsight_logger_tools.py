@@ -29,6 +29,7 @@ from pyxform.xform2json import create_survey_element_from_xml
 import sys
 
 from onadata.apps.fsforms.models import FieldSightXF, FieldSightParsedInstance, FInstance, EditedSubmission
+from onadata.apps.fieldsight.models import Project
 from onadata.apps.fsforms.utils import FIELDSIGHT_XFORM_ID
 from onadata.apps.main.models import UserProfile
 from onadata.apps.logger.models import Attachment
@@ -219,7 +220,8 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
     if not date_created_override:
         date_created_override = get_submission_date_from_xml(xml)
 
-    instance = _get_instance(xml, new_uuid, submitted_by, status, xform, fxid, fs_poj_id, site, project, flagged_instance)
+    instance = _get_instance(xml, new_uuid, submitted_by, status, xform, fxid, fs_poj_id, site, project,
+                             flagged_instance)
 
     for f in media_files:
         Attachment.objects.get_or_create(
@@ -236,7 +238,10 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
     if instance.xform is not None:
         fs_organization = None
         fs_organization_uuid = None
+        proj = Project.objects.get(id=project)
+        fs_team = proj.organization.id
         if fs_poj_id:
+
             fs_poj_id = str(fs_poj_id)
             fxf = FieldSightXF.objects.get(id=fs_poj_id)
             if fxf.organization_form_lib:
@@ -248,7 +253,9 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
                                                                           'fs_site': site, 'fs_project': project,
                                                                           'fs_project_uuid': fs_poj_id,
                                                                           'fs_organization': fs_organization,
-                                                                          'fs_organization_uuid': fs_organization_uuid})
+                                                                          'fs_organization_uuid': fs_organization_uuid,
+                                                                          'fs_team': fs_team
+                                                                          })
         if not created:
             pi.save(async=False)
     return instance

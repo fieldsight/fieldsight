@@ -429,7 +429,8 @@ class FormsView(APIView):
         survey_form_data = SurveyFSXFormSerializer(survey_forms, many=True).data
         stages = Stage.objects.filter(is_deleted=False, stage__isnull=True).filter(
             Q(project__id__in=project_ids) | Q(
-                site__project__id__in=project_ids, project_stage_id=0)).select_related("site").prefetch_related(
+                site__project__id__in=project_ids, project_stage_id=0, site__site_roles__user=request.user)).\
+            select_related("site").prefetch_related(
             Prefetch(
                 'parent',
                 queryset=Stage.objects.filter(stage__isnull=False, is_deleted=False,stage_forms__isnull=False,

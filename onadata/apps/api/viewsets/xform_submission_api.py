@@ -107,6 +107,7 @@ def update_mongo(i):
              'fs_site': x.site_id,
              'fs_organization': None,
              'fs_organization_uuid': None,
+             'fs_team': x.project.organization_id,
 
              })
         if x.project_fxf:

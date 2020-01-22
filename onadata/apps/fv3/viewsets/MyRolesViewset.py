@@ -460,6 +460,8 @@ class AcceptInvite(APIView):
             project = invitation.project.all()[0]
 
         elif invitation.group.name == "Site Supervisor":
+            # import ipdb;ipdb.set_trace()
+
             if invitation.site.all().count() == 1:
                 noti_type = 4
                 content = invitation.site.all()[0]
