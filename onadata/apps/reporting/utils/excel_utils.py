@@ -4,7 +4,7 @@ import pandas as pd
 def to_excel_auto_width(filename, df):
     writer = pd.ExcelWriter(filename, engine='xlsxwriter')
     df.to_excel(writer, index=False)  # send df to writer
-    worksheet = writer.sheets["data"]  # pull worksheet object
+    worksheet = writer.sheets["Sheet1"]  # pull worksheet object
     for idx, col in enumerate(df):  # loop through all columns
         series = df[col]
         max_len = max((
