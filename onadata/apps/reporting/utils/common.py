@@ -631,6 +631,8 @@ def ordered_columns_from_metrics(report_obj):
         columns = ['identifier', 'name']
     elif report_obj.type == 4:
         columns = ['username', 'email']
+    elif report_obj.type == 5:
+        columns = ['date']
         
     for a in attributes:
         category = a.get('category')

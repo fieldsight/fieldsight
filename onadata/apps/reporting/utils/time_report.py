@@ -57,7 +57,7 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
             submissions_approved_ever = submissions_approved_ever.set_index('date_only')
             df = pd.concat([df, submissions_approved_ever], axis=1)
         except:
-            df['form_submissions_approved_ever'] = 0
+            df[form_name + 'form_submissions_approved_ever'] = 0
 
     if "form_no_submissions_flagged_ever" in metrices_list:
         try:
@@ -68,7 +68,7 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
             form_no_submissions_flagged_ever = form_no_submissions_flagged_ever.set_index('date_only')
             df = pd.concat([df, form_no_submissions_flagged_ever], axis=1)
         except:
-            df['form_no_submissions_flagged_ever'] = 0
+            df[form_name + 'form_no_submissions_flagged_ever'] = 0
 
     if "form_submissions_rejected_ever" in metrices_list:
         try:
@@ -79,7 +79,26 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
             form_submissions_rejected_ever = form_submissions_rejected_ever.set_index('date_only')
             df = pd.concat([df, form_submissions_rejected_ever], axis=1)
         except:
-            df['form_submissions_rejected_ever'] = 0
+            df[form_name + 'form_submissions_rejected_ever'] = 0
+
+    if "form_submissions_resolutions_ever" in metrices_list:
+        try:
+
+            approved_submissions = df_submissions_status_index.loc[3]
+            df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 1]]
+
+            approved_submissions_with_resolved = approved_submissions.assign(
+                resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
+            approved_submissions_with_resolved_only = approved_submissions_with_resolved[
+                approved_submissions_with_resolved["resolved"]]
+            submissions_resolved_ever = approved_submissions_with_resolved_only.groupby(pd.Grouper(
+                key='date', freq='1D')).size().to_frame(form_name + "form_submissions_resolutions_ever").reset_index()
+            submissions_resolved_ever['date_only'] = submissions_resolved_ever.date.dt.date
+            del submissions_resolved_ever['date']
+            submissions_resolved_ever = submissions_resolved_ever.set_index('date_only')
+            df = pd.concat([df, submissions_resolved_ever], axis=1)
+        except:
+            df[form_name + 'form_submissions_resolutions_ever'] = 0
     return df
 
 
@@ -198,7 +217,7 @@ def time_report(report_obj):
 
         if 'no_of_region_reviewer' in user_metrics:
             no_of_region_reviewer = df_role[df_role.group == 10].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
-                "no_of_active_region_reviewer").reset_index()
+                "no_of_region_reviewer").reset_index()
             no_of_region_reviewer['date_only'] = no_of_region_reviewer.started_at.dt.date
             del no_of_region_reviewer['started_at']
             no_of_region_reviewer = no_of_region_reviewer.set_index('date_only')
@@ -335,9 +354,11 @@ def time_report(report_obj):
 
             if "no_resolved_submissions_ever" in default_metrics:
                 try:
+                    df_reviews_old_status_index = df_reviews.set_index('old_status')
+                    df_submissions_status_index = df_submissions.set_index('form_status')
+                    approved_submissions = df_submissions_status_index.loc[3]
+                    df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 1]]
 
-                    df_flagged_or_rejected = df_reviews.set_index('old_status')
-                    approved_submissions = df_submissions[df_submissions.new_status == 3]
                     approved_submissions_with_resolved = approved_submissions.assign(
                         resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
                     approved_submissions_with_resolved_only = approved_submissions_with_resolved[
@@ -368,11 +389,11 @@ def time_report(report_obj):
                 form_name = individual_form_name_dict[form_id]
                 df = generate_form_metrices_time_report(form_name, df, form_submissions, form_reviews, metrices_list)
         columns_name = ordered_columns_from_metrics(report_obj)  # ordered metrices codes
-        df = df[columns_name]
-        df = df.fillna(0)
         df.index = df.index.date
         df.index.name = "date"
         df.reset_index(level="date", inplace=True)
+        df = df[columns_name]
+        df = df.fillna(0)
         return df
 
 
