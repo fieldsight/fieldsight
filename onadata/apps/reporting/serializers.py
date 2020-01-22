@@ -44,6 +44,24 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
         return users
 
 
+class ReportSettingsListSerializer(serializers.ModelSerializer):
+    owner_full_name = serializers.SerializerMethodField(read_only=True)
+    shared_with = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReportSettings
+
+        exclude = ('owner', 'project', 'filter', 'attributes')
+
+    def get_owner_full_name(self, obj):
+        return obj.owner.get_full_name()
+
+    def get_shared_with(self, obj):
+        users = []
+        [users.append(user.get_full_name()) for user in obj.shared_with.all()]
+        return users
+
+
 class PreviewSiteInformationSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='region.identifier')
     latitude = serializers.SerializerMethodField()

@@ -20,7 +20,8 @@ from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
     exportProjectSiteResponses, form_status_map, exportLogs, exportProjectUserstatistics, exportProjectstatistics
-from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
+from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer, \
+    ReportSettingsListSerializer
 from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions, ReportingLogsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
     FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA, FILTER_METRICS_DATA
@@ -113,7 +114,7 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
         if type == 'custom':
             custom_data = {
-                'custom_reports': ReportSettingsSerializer(self.get_queryset(), many=True).data
+                'custom_reports': ReportSettingsListSerializer(self.get_queryset(), many=True).data
             }
             custom_data.update({
                 'standard_reports': [{'title': 'Project Summary',

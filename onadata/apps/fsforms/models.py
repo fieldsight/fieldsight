@@ -649,6 +649,8 @@ class FInstance(models.Model):
                                 related_name='project_instances')
     organization = models.ForeignKey(SuperOrganization, null=True, blank=True,
                                      related_name='organization_instances')
+    team = models.ForeignKey(Organization, null=True, blank=True,
+                             related_name='team_instances')
     site_fxf = models.ForeignKey(FieldSightXF, null=True,
                                  related_name='site_form_instances',
                                  on_delete=models.SET_NULL)
@@ -656,6 +658,8 @@ class FInstance(models.Model):
                                     related_name='project_form_instances')
     organization_fxf = models.ForeignKey(FieldSightXF, null=True, blank=True,
                                          related_name='organization_form_instances')
+    team_fxf = models.ForeignKey(FieldSightXF, null=True, blank=True,
+                                 related_name='team_form_instances')
 
     form_status = models.IntegerField(null=True,
                                       blank=True, choices=FORM_STATUS)
