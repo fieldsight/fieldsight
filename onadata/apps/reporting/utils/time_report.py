@@ -98,7 +98,7 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
             submissions_resolved_ever = submissions_resolved_ever.set_index('date_only')
             df = pd.concat([df, submissions_resolved_ever], axis=1)
         except:
-            df['form_submissions_resolutions_ever'] = 0
+            df[form_name + 'form_submissions_resolutions_ever'] = 0
     return df
 
 
