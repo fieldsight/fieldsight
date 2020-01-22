@@ -395,11 +395,20 @@ class StageSerializer(serializers.ModelSerializer):
     sub_stages = SubStageSerializer(many=True, source="parent")
     site_project_id = serializers.SerializerMethodField()
     types = serializers.SerializerMethodField()
+    site = serializers.SerializerMethodField()
 
     class Meta:
         model = Stage
         exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created',
                    'tags',)
+
+    def get_site(self, obj):
+        if obj.site:
+            site = obj.site.id
+        else:
+            site = ""
+
+        return site
 
 
     # def get_substages(self, stage):
