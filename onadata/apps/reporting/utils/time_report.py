@@ -80,6 +80,25 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
             df = pd.concat([df, form_submissions_rejected_ever], axis=1)
         except:
             df[form_name + 'form_submissions_rejected_ever'] = 0
+
+    if "form_submissions_resolutions_ever" in metrices_list:
+        try:
+
+            approved_submissions = df_submissions_status_index.loc[3]
+            df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 1]]
+
+            approved_submissions_with_resolved = approved_submissions.assign(
+                resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
+            approved_submissions_with_resolved_only = approved_submissions_with_resolved[
+                approved_submissions_with_resolved["resolved"]]
+            submissions_resolved_ever = approved_submissions_with_resolved_only.groupby(pd.Grouper(
+                key='date', freq='1D')).size().to_frame(form_name + "form_submissions_resolutions_ever").reset_index()
+            submissions_resolved_ever['date_only'] = submissions_resolved_ever.date.dt.date
+            del submissions_resolved_ever['date']
+            submissions_resolved_ever = submissions_resolved_ever.set_index('date_only')
+            df = pd.concat([df, submissions_resolved_ever], axis=1)
+        except:
+            df['form_submissions_resolutions_ever'] = 0
     return df
 
 
@@ -335,9 +354,11 @@ def time_report(report_obj):
 
             if "no_resolved_submissions_ever" in default_metrics:
                 try:
+                    df_reviews_old_status_index = df_reviews.set_index('old_status')
+                    df_submissions_status_index = df_submissions.set_index('form_status')
+                    approved_submissions = df_submissions_status_index.loc[3]
+                    df_flagged_or_rejected = df_reviews_old_status_index.loc[[2, 1]]
 
-                    df_flagged_or_rejected = df_reviews.set_index('old_status')
-                    approved_submissions = df_submissions[df_submissions.new_status == 3]
                     approved_submissions_with_resolved = approved_submissions.assign(
                         resolved=approved_submissions.pk.isin(df_flagged_or_rejected.finstance))
                     approved_submissions_with_resolved_only = approved_submissions_with_resolved[
