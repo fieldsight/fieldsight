@@ -112,7 +112,7 @@ INDIVIDUAL_FORM_METRICS_DATA = [
 USERS_METRICS_DATA = [
     {'code': 'active_users', 'label': _('Number of Active Users'), 'types': [0, 1, 2, 3, 5], 'category': 'users'},
     {'code': 'no_of_organization_admin', 'label': _('Number of Organization Admin'),
-     'types': [3, 5], 'category': 'users'},
+     'types': [3], 'category': 'users'},
     {'code': 'no_of_project_manager', 'label': _('Number of Project Manager'),
      'types': [2, 3, 5], 'category': 'users'},
     {'code': 'no_of_project_donor', 'label': _('Number of Project Donor'),
@@ -125,7 +125,7 @@ USERS_METRICS_DATA = [
      'types': [0, 1, 2, 3, 5], 'category': 'users'},
     {'code': 'no_of_site_reviewer', 'label': _('Number of Reviewer'), 'types': [0, 1, 2, 3, 5], 'category': 'users'},
     {'code': 'no_of_active_organization_admin', 'label': _('Number of Active Organization Admin'),
-     'types': [3, 5], 'category': 'users'},
+     'types': [3], 'category': 'users'},
     {'code': 'no_of_active_project_manager', 'label': _('Number of Active Project Manager'),
      'types': [2, 3, 5], 'category': 'users'},
     {'code': 'no_of_active_project_donor', 'label': _('Number of Active Project Donor'),

@@ -16,7 +16,7 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
         form_no_submissions = df_submissions.groupby(pd.Grouper(key='date', freq='1D')).size().to_frame(
             form_name + 'form_no_submissions').reset_index()
         form_no_submissions['date_only'] = form_no_submissions.date.dt.date
-        del form_no_submissions['date_created']
+        del form_no_submissions['date']
         form_no_submissions = form_no_submissions.set_index('date_only')
         df = pd.concat([df, form_no_submissions], axis=1)
 
@@ -121,7 +121,7 @@ def time_report(report_obj):
                 "no_of_site_reviewer").reset_index()
             users_site_rev['date_only'] = users_site_rev.started_at.dt.date
             del users_site_rev['started_at']
-            num_regions = users_site_rev.set_index('date_only')
+            users_site_rev = users_site_rev.set_index('date_only')
             df = pd.concat([df, users_site_rev], axis=1)
         if 'no_of_active_site_supervisor' in user_metrics:
             active_users_site_sup = active_df[active_df.group == 4].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
@@ -139,6 +139,54 @@ def time_report(report_obj):
             active_users_site_rev = active_users_site_rev.set_index('date_only')
             df = pd.concat([df, active_users_site_rev], axis=1)
 
+        if 'no_of_project_manager' in user_metrics:
+            active_users_project_manager = df_role[df_role.group == 2].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
+                "no_of_project_manager").reset_index()
+            active_users_project_manager['date_only'] = active_users_project_manager.started_at.dt.date
+            del active_users_project_manager['started_at']
+            active_users_project_manager = active_users_project_manager.set_index('date_only')
+            df = pd.concat([df, active_users_project_manager], axis=1)
+
+        if 'no_of_project_donor' in user_metrics:
+            no_of_project_donor = df_role[df_role.group == 7].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
+                "active_users_site_rev").reset_index()
+            no_of_project_donor['date_only'] = no_of_project_donor.started_at.dt.date
+            del no_of_project_donor['started_at']
+            no_of_project_donor = no_of_project_donor.set_index('date_only')
+            df = pd.concat([df, no_of_project_donor], axis=1)
+
+        if 'no_of_active_project_manager' in user_metrics:
+            no_of_active_project_manager = active_df[active_df.group == 2].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
+                "no_of_active_project_manager").reset_index()
+            no_of_active_project_manager['date_only'] = no_of_active_project_manager.started_at.dt.date
+            del no_of_active_project_manager['started_at']
+            no_of_active_project_manager = no_of_active_project_manager.set_index('date_only')
+            df = pd.concat([df, no_of_active_project_manager], axis=1)
+
+        if 'no_of_active_project_donor' in user_metrics:
+            no_of_active_project_donor = active_df[active_df.group == 7].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
+                "no_of_active_project_donor").reset_index()
+            no_of_active_project_donor['date_only'] = no_of_active_project_donor.started_at.dt.date
+            del no_of_active_project_donor['started_at']
+            no_of_active_project_donor = no_of_active_project_donor.set_index('date_only')
+            df = pd.concat([df, no_of_active_project_donor], axis=1)
+
+        if 'no_of_active_region_supervisor' in user_metrics:
+            no_of_active_region_supervisor = active_df[active_df.group == 9].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
+                "no_of_active_region_supervisor").reset_index()
+            no_of_active_region_supervisor['date_only'] = no_of_active_region_supervisor.started_at.dt.date
+            del no_of_active_region_supervisor['started_at']
+            no_of_active_region_supervisor = no_of_active_region_supervisor.set_index('date_only')
+            df = pd.concat([df, no_of_active_region_supervisor], axis=1)
+
+        if 'no_of_active_region_reviewer' in user_metrics:
+            no_of_active_region_reviewer = active_df[active_df.group == 10].groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
+                "no_of_active_region_reviewer").reset_index()
+            no_of_active_region_reviewer['date_only'] = no_of_active_region_reviewer.started_at.dt.date
+            del no_of_active_region_reviewer['started_at']
+            no_of_active_region_reviewer = no_of_active_region_reviewer.set_index('date_only')
+            df = pd.concat([df, no_of_active_region_reviewer], axis=1)
+
         if "num_sites" in default_metrics:
             query = Site.objects.values('id', 'date_created')
             df_site = pd.DataFrame(list(query), columns=['id', 'date_created'])
@@ -148,6 +196,7 @@ def time_report(report_obj):
             del num_sites['date_created']
             num_sites = num_sites.set_index('date_only')
             df = pd.concat([df, num_sites], axis=1)
+
         if "num_regions" in default_metrics:
             query = Region.objects.values('id', 'date_created')
             df_region = pd.DataFrame(list(query), columns=['id', 'date_created'])
@@ -157,6 +206,7 @@ def time_report(report_obj):
             del num_regions['date_created']
             num_regions = num_regions.set_index('date_only')
             df = pd.concat([df, num_regions], axis=1)
+
         if "num_projects" in default_metrics:
             query = Project.objects.values('id', 'date_created')
             df_project = pd.DataFrame(list(query), columns=['id', 'date_created'])
@@ -166,6 +216,7 @@ def time_report(report_obj):
             del num_projects['date_created']
             num_projects = num_projects.set_index('date_only')
             df = pd.concat([df, num_projects], axis=1)
+
         if "sites_visited" in default_metrics:
             site_visited_query = FInstance.objects.values('instance__date_created')
             df_site_visited = pd.DataFrame(list(site_visited_query), columns=['instance__date_created'])
@@ -217,9 +268,9 @@ def time_report(report_obj):
                 finstance__project=report_obj.project_id, old_status__in=[2, 3]).filter(
                 Q(finstance__project_fxf__project=project_id) |
                 Q(finstance__site_fxf__site__project=project_id)
-            ).values("old_status", "date", "finstance")
+            ).values("old_status", "date", "finstance", "finstance__project_fxf")
 
-            df_reviews = pd.DataFrame(list(query_reviews), columns=["old_status" "date", "finstance"])
+            df_reviews = pd.DataFrame(list(query_reviews), columns=["old_status", "date", "finstance", "finstance__project_fxf"])
 
             if 'no_submissions' in default_metrics:
                 df_no_submissions = df_submissions
@@ -296,8 +347,9 @@ def time_report(report_obj):
 
             for form_id, metrices_list in individual_form_dict.items():
                 form_submissions = df_submissions[df_submissions.project_fxf == form_id]
+                form_reviews = df_reviews[df_reviews.finstance__project_fxf == form_id]
                 form_name = individual_form_name_dict[form_id]
-                df = generate_form_metrices_time_report(form_name, df, form_submissions, df_reviews, metrices_list)
+                df = generate_form_metrices_time_report(form_name, df, form_submissions, form_reviews, metrices_list)
         columns_name = ordered_columns_from_metrics(report_obj)  # ordered metrices codes
         df = df[columns_name]
         df = df.fillna(0)

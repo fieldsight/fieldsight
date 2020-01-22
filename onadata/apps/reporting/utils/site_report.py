@@ -97,8 +97,8 @@ def site_report(report_obj):
     ).values(
         "pk", "finstance__site", "new_status", "old_status", "user", "finstance")
     df_reviews = pd.DataFrame(list(query_reviews),
-                              columns=["pk", "finstance__site", "new_status", "old_status", "user", "finstance"])
-    df_reviews.columns = ["pk", "site", "new_status", "old_status", "user", "finstance"]
+                              columns=["pk", "finstance__site", "new_status", "old_status", "user", "finstance", "finstance__project_fxf"])
+    df_reviews.columns = ["pk", "site", "new_status", "old_status", "user", "finstance", "finstance__project_fxf"]
 
     df = generate_default_metrices(df, df_submissions, df_reviews, default_metrics, "site")
 
@@ -116,8 +116,9 @@ def site_report(report_obj):
 
     for form_id, metrices_list in individual_form_dict.items():
         form_submissions = df_submissions[df_submissions.project_fxf == form_id]
+        form_reviews = df_reviews[df_reviews.finstance__project_fxf == form_id]
         form_name = individual_form_name_dict[form_id]
-        df = generate_form_metrices(form_name, df, form_submissions, df_reviews, metrices_list, "site")
+        df = generate_form_metrices(form_name, df, form_submissions, form_reviews, metrices_list, "site")
 
     information_form_dict = {}
     information_form_name_dict = {}
