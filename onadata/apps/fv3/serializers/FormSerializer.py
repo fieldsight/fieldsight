@@ -236,13 +236,21 @@ class FSXFormSerializer(serializers.ModelSerializer):
     manifestUrl = serializers.SerializerMethodField('get_manifest_url')
     site_project_id = serializers.SerializerMethodField()
     last_submission = serializers.SerializerMethodField()
-
+    site = serializers.SerializerMethodField()
 
     class Meta:
         model = FieldSightXF
         fields = ('id', 'site', 'project', 'site_project_id', 'downloadUrl', 'manifestUrl',
                   'name', 'descriptionText', 'formID',
                   'version', 'hash', 'em', 'settings', 'last_submission')
+
+    def get_site(self, obj):
+        if obj.site:
+            site = obj.site.id
+        else:
+            site = ""
+
+        return site
 
     def get_version(self, obj):
         return get_version(obj.xf.xml)
@@ -296,6 +304,7 @@ class FSXFormSerializer(serializers.ModelSerializer):
 class SurveyFSXFormSerializer(FSXFormSerializer):
     settings = serializers.SerializerMethodField()
     last_submission = serializers.SerializerMethodField()
+    site = serializers.SerializerMethodField()
 
     class Meta:
         model = FieldSightXF
@@ -305,6 +314,14 @@ class SurveyFSXFormSerializer(FSXFormSerializer):
 
     def get_settings(self, obj):
         return None
+
+    def get_site(self, obj):
+        if obj.site:
+            site = obj.site.id
+        else:
+            site = ""
+
+        return site
 
     def get_last_submission(self, obj):
         if obj.project:
@@ -329,6 +346,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
 class SchedueFSXFormSerializer(FSXFormSerializer):
     settings = FormSettingsReadOnlySerializerSchedule(read_only=True)
+    site = serializers.SerializerMethodField()
 
     class Meta:
         model = FieldSightXF
@@ -348,6 +366,14 @@ class SchedueFSXFormSerializer(FSXFormSerializer):
                     return last_sub.date
         except:
             return ""
+
+    def get_site(self, obj):
+        if obj.site:
+            site = obj.site.id
+        else:
+            site = ""
+
+        return site
 
 
 class SubStageSerializer(serializers.ModelSerializer):
@@ -374,6 +400,7 @@ class StageSerializer(serializers.ModelSerializer):
         model = Stage
         exclude = ('shared_level', 'group', 'ready', 'stage', 'date_modified', 'date_created',
                    'tags',)
+
 
     # def get_substages(self, stage):
     #     stages = Stage.objects.filter(stage=stage, is_deleted=False,
