@@ -166,6 +166,7 @@ class TasklLogSerializer(serializers.ModelSerializer):
     source_img = serializers.ReadOnlyField(source='user.user_profile.profile_picture.url', read_only=True)
     get_source_url = serializers.ReadOnlyField()
     get_task_type_display = serializers.ReadOnlyField()
+    get_status_display = serializers.ReadOnlyField()
     get_event_name = serializers.ReadOnlyField()
     get_event_url = serializers.ReadOnlyField()
     terms_and_labels = serializers.SerializerMethodField()
