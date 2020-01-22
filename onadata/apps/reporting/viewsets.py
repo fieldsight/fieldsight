@@ -82,7 +82,7 @@ class ReportingProjectFormData(APIView):
 
 class ReportSettingsViewSet(viewsets.ModelViewSet):
     serializer_class = ReportSettingsSerializer
-    queryset = ReportSettings.objects.all().order_by('-id')
+    queryset = ReportSettings.objects.select_related('owner').prefetch_related('shared_with').order_by('-id')
     permission_classes = [IsAuthenticated, ReportingProjectFormsPermissions]
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
 
