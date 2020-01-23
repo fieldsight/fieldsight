@@ -294,14 +294,9 @@ LOGIN_URL = '/users/accounts/login/'
 # +CELERY_TASK_ALWAYS_EAGER = False
 #
 
-CELERYBEAT_SCHEDULE = {
-    "update-task-on-mathmod.org": {
-        "task": "onadata.apps.fieldsight.tasks.check_usage_rates",
-        "schedule": crontab(minute=0, hour=0),  # execute daily at midnight
 
-    }
-}
+SERVICE_ACCOUNT_JSON = "/service_account.json"
+SERVICE_ACCOUNT_EMAIL = ".iam.gserviceaccount.com"
+REPORT_ACCOUNT_EMAIL = "@gmail.com"
+MEDIA_LOCATION_URL = "media Bucket url"
 
-SERVICE_ACCOUNT_JSON = "****.json"
-SERVICE_ACCOUNT_EMAIL = "sheet********@gmail.com"
-REPORT_ACCOUNT_EMAIL = "******@gmail.com"

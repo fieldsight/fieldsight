@@ -54,7 +54,6 @@ COPY ./requirements/ ${KOBOCAT_TMP_DIR}/base_requirements/
 RUN mkdir -p ${PIP_EDITABLE_PACKAGES_DIR} && \
     pip install --upgrade 'pip>=10,<11' && \
     pip install --src ${PIP_EDITABLE_PACKAGES_DIR}/ -r ${KOBOCAT_TMP_DIR}/base_requirements/base.pip && \
-    pip install --src ${PIP_EDITABLE_PACKAGES_DIR}/ -r ${KOBOCAT_TMP_DIR}/base_requirements/s3.pip && \
         pip install --src ${PIP_EDITABLE_PACKAGES_DIR}/ -r ${KOBOCAT_TMP_DIR}/base_requirements/fieldsight.pip && \
     rm -rf ~/.cache/pip
 

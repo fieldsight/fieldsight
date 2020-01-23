@@ -35,3 +35,5 @@ django-excel==0.0.10
 python-memcached==1.59
 
 django-celery-beat==1.1.1
+
+pip install django-storages[google]
