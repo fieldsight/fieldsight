@@ -47,7 +47,7 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ###########################
-# Install `pip` packages. #
+# Install `pip` packages. #apt-utils
 ###########################
 
 COPY ./requirements/ ${KOBOCAT_TMP_DIR}/base_requirements/
