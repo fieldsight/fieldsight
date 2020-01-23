@@ -688,7 +688,13 @@ class FInstance(models.Model):
             if self.site_fxf:
                 self.form_status = self.site_fxf.default_submission_status
             else:
-                self.form_status = self.project_fxf.default_submission_status                
+                self.form_status = self.project_fxf.default_submission_status
+
+        if self.project_fxf is not None:
+            if self.project_fxf.organization_form_lib is not None:
+                self.organization_fxf = self.project_fxf
+                self.organization = self.project_fxf.organization_form_lib.organization
+        self.team = self.project.organization
         super(FInstance, self).save(*args, **kwargs)  # Call the "real" save() method.
         
     @property
@@ -835,18 +841,10 @@ def submission_saved(sender, instance, created,  **kwargs):
         from onadata.apps.fsforms.tasks import update_progress
         update_progress.delay(instance.site_id, instance.project_fxf_id, instance.instance.json)
 
-    elif instance.project_fxf is not None:
-        if instance.project_fxf.organization_form_lib is not None:
-            instance.organization_fxf = instance.project_fxf
-            instance.organization = instance.project_fxf.organization_form_lib.organization
-            instance.save()
-
     elif instance.site is not None:
         instance.site.current_status = instance.form_status
         instance.site.save()
 
-    instance.team = instance.project.team
-    instance.save()
 
 
 class EditedSubmission(models.Model):
