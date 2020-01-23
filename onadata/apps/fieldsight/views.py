@@ -1957,7 +1957,6 @@ def senduserinvite(request):
     organization_id = None
     project_id = []
     site_id = []
-    print('datattatat', request.POST)
 
     if RepresentsInt(request.POST.get('super_organization_id')):
         super_organization_id = request.POST.get('super_organization_id')
@@ -2006,12 +2005,13 @@ def senduserinvite(request):
         else:
             invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32),
                                 group=group, organization_id=organization_id)
+
         invite.save()
         invite.organization_id = organization_id
-        invite.project_id = project_id
-        invite.site_id = site_id
-        current_site = get_current_site(request)
 
+        invite.project = project_id
+        invite.site = site_id
+        current_site = get_current_site(request)
         if len(invite.project.all()) > 0:
 
             project = get_object_or_404(Project, id=invite.project.all()[0].id)
