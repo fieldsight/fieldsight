@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from onadata.apps.fieldsight.models import SuperOrganization, Site
-from onadata.apps.fsforms.models import OrganizationFormLibrary
+from onadata.apps.fsforms.models import OrganizationFormLibrary, FInstance
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -63,3 +63,51 @@ class OrganizationFormLibrarySerializer(serializers.ModelSerializer):
 
     def get_xf_title(self, obj):
         return obj.xf.title
+
+
+class OrganizationGeneralScheduledFormSerializer(serializers.ModelSerializer):
+    title = serializers.SerializerMethodField(read_only=True)
+    form_type = serializers.SerializerMethodField(read_only=True)
+    default_submission_status = serializers.SerializerMethodField(read_only=True)
+    scheduled_type = serializers.SerializerMethodField(read_only=True)
+    start_date = serializers.SerializerMethodField(read_only=True)
+    end_date = serializers.SerializerMethodField(read_only=True)
+    total_submissions = serializers.SerializerMethodField(read_only=True)
+    last_response_on = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = OrganizationFormLibrary
+        fields = ('id', 'title', 'form_type', 'default_submission_status', 'scheduled_type', 'start_date', 'end_date',
+                  'total_submissions', 'last_response_on')
+
+    def get_title(self, obj):
+        return obj.xf.title
+
+    def get_form_type(self, obj):
+        return obj.get_form_type_display()
+
+    def get_default_submission_status(self, obj):
+        return obj.get_default_submission_status_display()
+
+    def get_scheduled_type(self, obj):
+        return obj.get_schedule_level_id_display()
+
+    def get_start_date(self, obj):
+        return obj.date_range_start
+
+    def get_end_date(self, obj):
+        return obj.date_range_end
+
+    def get_total_submissions(self, obj):
+        fxf_ids = obj.organization_forms.values_list('id', flat=True)
+        instances = FInstance.objects.filter(organization_fxf_id__in=fxf_ids).count()
+        return instances
+
+    def get_last_response_on(self, obj):
+        fxf_ids = obj.organization_forms.values_list('id', flat=True)
+        try:
+            last_response = FInstance.objects.filter(organization_fxf_id__in=fxf_ids).order_by('-pk').values_list(
+                        'date', flat=True)[:1][0]
+        except:
+            last_response = ''
+        return last_response

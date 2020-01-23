@@ -18,12 +18,12 @@ from onadata.apps.fv3.permissions.super_organization import SuperOrganizationAdm
 
 from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF, FInstance, Schedule
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
-    OrganizationFormLibrarySerializer
+    OrganizationFormLibrarySerializer, OrganizationGeneralScheduledFormSerializer
 from onadata.apps.fv3.serializer import TeamSerializer
 from onadata.apps.fv3.serializers.TeamSerializer import TeamProjectSerializer
 from onadata.apps.logger.models import XForm
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fieldsight.tasks import add_forms_in_projects, remove_organization_forms
+from onadata.apps.fieldsight.tasks import add_forms_in_projects
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -167,37 +167,16 @@ class ManageSuperOrganizationLibraryView(APIView):
                                       for form in organization_library_forms]
         selected_organization_library_forms = [{'id': form.id, 'xf_id': form.xf.id, 'title': form.xf.title}
                                                for form in queryset.distinct('xf_id')]
-        scheduled_forms = []
-        general_forms = []
 
-        for general_form in selected_general_org_forms:
-            selected_form_ids.append(general_form.xf.id)
-            general_forms.append({'xf_id': general_form.xf.id,
-                                  'id': general_form.id,
-                                  'title': general_form.xf.title,
-                                  'form_type': general_form.get_form_type_display(),
-                                  'default_submission_status': general_form.get_default_submission_status_display()
-                                  })
-
-        for scheduled_form in selected_scheduled_org_forms:
-            selected_form_ids.append(scheduled_form.xf.id)
-            scheduled_forms.append({'xf_id': scheduled_form.xf.id,
-                                    'id': scheduled_form.id,
-                                    'title': scheduled_form.xf.title,
-                                    'form_type': scheduled_form.get_form_type_display(),
-                                    'default_submission_status': scheduled_form.get_default_submission_status_display(),
-                                    'scheduled_type': scheduled_form.get_schedule_level_id_display(),
-                                    'start_date': scheduled_form.date_range_start,
-                                    'end_date': scheduled_form.date_range_end,
-
-                                    })
+        general_forms = OrganizationGeneralScheduledFormSerializer(selected_general_org_forms, many=True)
+        scheduled_forms = OrganizationGeneralScheduledFormSerializer(selected_scheduled_org_forms, many=True)
 
         forms = my_forms.exclude(id__in=list(selected_form_ids)).annotate(xf_id=F('id')).values('xf_id', 'title')
 
         return Response(status=status.HTTP_200_OK, data={'forms': forms,
                                                          'selected_forms':
-                                                             {'general_forms': general_forms,
-                                                              'scheduled_forms': scheduled_forms},
+                                                             {'general_forms': general_forms.data,
+                                                              'scheduled_forms': scheduled_forms.data},
                                                              'organization_library_forms': organization_library_forms,
                                                          'selected_organization_library_forms':
                                                              selected_organization_library_forms
