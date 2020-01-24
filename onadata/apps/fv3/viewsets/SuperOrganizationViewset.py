@@ -18,7 +18,7 @@ from onadata.apps.fv3.permissions.super_organization import SuperOrganizationAdm
 
 from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF, FInstance, Schedule
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
-    OrganizationFormLibrarySerializer, OrganizationGeneralScheduledFormSerializer
+    OrganizationFormLibrarySerializer, OrganizationGeneralScheduledFormSerializer, OrganizationFormSerializer
 from onadata.apps.fv3.serializer import TeamSerializer
 from onadata.apps.fv3.serializers.TeamSerializer import TeamProjectSerializer
 from onadata.apps.logger.models import XForm
@@ -375,4 +375,27 @@ class OrganizationTeamsViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({'teams': serializer.data, 'breadcrumbs': {'name': 'Teams list',
                                                                    'organization': organization.name,
                                                                    'organization_url': organization.get_absolute_url()}})
+
+
+class OrganizationFormsViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = OrganizationFormLibrary.objects.select_related('xf').\
+        prefetch_related('organization_forms').\
+        prefetch_related(Prefetch('organization_forms__organization_form_instances',
+                                  queryset=FInstance.objects.filter(form_status=0),
+                                  to_attr='pending'
+                                  )).\
+        prefetch_related(Prefetch('organization_forms__organization_form_instances',
+                                  queryset=FInstance.objects.filter(form_status=1),
+                                  to_attr='rejected'
+                                  )).\
+        prefetch_related(Prefetch('organization_forms__organization_form_instances',
+                                  queryset=FInstance.objects.filter(form_status=2),
+                                  to_attr='flagged'
+                                  )).\
+        prefetch_related(Prefetch('organization_forms__organization_form_instances',
+                                  queryset=FInstance.objects.filter(form_status=3),
+                                  to_attr='approved'
+                                  ))
+    serializer_class = OrganizationFormSerializer
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 

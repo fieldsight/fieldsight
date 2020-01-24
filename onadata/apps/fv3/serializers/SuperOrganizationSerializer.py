@@ -1,3 +1,5 @@
+import collections
+
 from rest_framework import serializers
 from onadata.apps.fieldsight.models import SuperOrganization, Site
 from onadata.apps.fsforms.models import OrganizationFormLibrary, FInstance
@@ -111,3 +113,38 @@ class OrganizationGeneralScheduledFormSerializer(serializers.ModelSerializer):
         except:
             last_response = ''
         return last_response
+
+
+class OrganizationFormSerializer(serializers.ModelSerializer):
+    title = serializers.SerializerMethodField(read_only=True)
+    form_type = serializers.SerializerMethodField(read_only=True)
+    submissions = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = OrganizationFormLibrary
+        fields = ('id', 'title', 'form_type', 'submissions')
+
+    def get_title(self, obj):
+        return obj.xf.title
+
+    def get_form_type(self, obj):
+        return obj.get_form_type_display()
+
+    def get_submissions(self, obj):
+
+        data = [{'pending': len(o.pending),
+                 'rejected': len(o.rejected),
+                 'flagged': len(o.flagged),
+                 'approved': len(o.approved)
+                 }
+                for o in obj.organization_forms.all()]
+        if not data:
+            data = [{'pending': 0,
+                     'rejected': 0,
+                     'flagged': 0,
+                     'approved': 0
+                     }]
+        counter = collections.Counter()
+        for d in data:
+            counter.update(d)
+        return counter
