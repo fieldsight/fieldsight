@@ -583,7 +583,7 @@ class AcceptAllInvites(APIView):
                                                                        organization=None, project=None,
                                                                        site=None, region=None)
 
-                if invitation.group.name == 'Organization Admin':
+                if invitation.group.name == 'Organization Admin' and not invitation.teams.all().exists():
                     userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
                                                                        organization=invitation.organization,
                                                                        project=None,
@@ -604,9 +604,14 @@ class AcceptAllInvites(APIView):
                 noti_type = 41
                 content = invitation.super_organization
 
-            elif invitation.group.name == "Organization Admin":
-                noti_type = 1
-                content = invitation.organization
+            elif invitation.group.name == "Organization Admin" and invitation.teams.all().exists():
+                if invitation.teams.all().count() == 1:
+                    noti_type = 1
+                    content = invitation.teams.all()[0]
+                else:
+                    noti_type = 42
+                    extra_msg = invitation.teams.all().count()
+                    content = invitation.teams.all()[0].parent
 
             elif invitation.group.name == "Project Manager":
                 if invitation.project.all().count() == 1:
@@ -665,6 +670,10 @@ class AcceptAllInvites(APIView):
             elif invitation.group.name == "Project Donor":
                 noti_type = 25
                 content = invitation.project.all()[0]
+
+            else:
+                noti_type = None
+                content = None
 
             noti = invitation.logs.create(source=user, type=noti_type, title="new Role",
                                           organization=invitation.organization,
