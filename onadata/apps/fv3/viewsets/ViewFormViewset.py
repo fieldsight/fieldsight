@@ -9,8 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from onadata.apps.fieldsight.models import Project, Site
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, XformHistory
+from onadata.apps.fieldsight.models import Project, Site, SuperOrganization
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, XformHistory, OrganizationFormLibrary
 from onadata.apps.fsforms.reports_util import delete_form_instance
 from onadata.apps.fsforms.templatetags.fs_filters import get_xform_version
 from onadata.apps.fv3.serializers.ViewFormSerializer import ViewGeneralsAndSurveyFormSerializer, \
@@ -463,9 +463,52 @@ class FormSubmissionsView(APIView):
 
     def get(self, request, format=None):
         project = request.query_params.get('project', None)
+        organization = request.query_params.get('organization', None)
+        org_form_lib = request.query_params.get('org_form_lib', None)
         site = request.query_params.get('site', None)
         fsxf_id = request.query_params.get('fsxf_id', None)
         search_param = request.query_params.get('q', None)
+
+        if organization and org_form_lib is not None:
+            try:
+                SuperOrganization.objects.get(id=organization)
+            except Exception as e:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': str(e)})
+
+            is_organization = True
+            try:
+                org_form_lib_obj = OrganizationFormLibrary.objects.get(id=org_form_lib)
+
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+            # if search_param:
+            #     queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').filter(
+            #         Q(project_fxf=fsxf.id) &
+            #         (
+            #                 Q(site__name__icontains=search_param) |
+            #                 Q(site__identifier__icontains=search_param) |
+            #                 Q(submitted_by__first_name__icontains=search_param) |
+            #                 Q(submitted_by__last_name__icontains=search_param)
+            #         )
+            #     )
+            # else:
+            fxf_ids = org_form_lib_obj.organization_forms.values_list('id', flat=True)
+
+            queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').\
+                filter(organization_fxf_id__in=fxf_ids).order_by('-id')
+
+            page = self.paginate_queryset(queryset)
+
+            if page is not None:
+                serializer = FormSubmissionSerializer(page, many=True, context={'is_organization': is_organization})
+                organization = SuperOrganization.objects.filter(id=organization).only('name')
+                form_name = org_form_lib_obj.xf.title
+                return self.get_paginated_response({'data': serializer.data,
+                                                    'form_name': form_name, 'is_survey': False,
+                                                    'form_id_string': org_form_lib_obj.xf.id_string,
+                                                    'query': search_param,
+                                                    'breadcrumbs': self.get_breadcrumbs(False, organization, form_name)
+                                                    })
 
         if project and fsxf_id is not None:
             try:
