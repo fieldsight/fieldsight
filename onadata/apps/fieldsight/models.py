@@ -763,6 +763,7 @@ class UserInvite(models.Model):
     project = models.ManyToManyField(Project, related_name='invite_project_roles')
     regions = models.ManyToManyField(Region, related_name='invite_region_roles')
     organization = models.ForeignKey(Organization, related_name='invite_organization_roles', null=True, blank=True)
+    teams = models.ManyToManyField(Organization, related_name='invite_team_roles')
     super_organization = models.ForeignKey(SuperOrganization, related_name='invite_super_organization_roles',
                                            null=True, blank=True)
     logs = GenericRelation('eventlog.FieldSightLog')

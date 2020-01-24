@@ -1181,7 +1181,7 @@ function multiemailvalidate(entry) {
             return false;
           }
           if(multiemailstatus == true ){
-            self.new_invite({'group':'Project Manager', 'emails':emails, 'levels':[], 'leveltype':'project'});
+            self.new_invite({'group':'Organization Admin', 'emails':emails, 'levels':[], 'leveltype':'team'});
 
             ko.utils.arrayMap(self.all_selected_projects(), function(item) {
                     self.new_invite().levels.push(item.id);
@@ -1477,7 +1477,7 @@ function multiemailvalidate(entry) {
             alert('Contains Invalid Email'); }
     }
     });
-  
+
                
 
   // 

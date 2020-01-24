@@ -1451,8 +1451,6 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                 user = request.user
                 task_obj = CeleryTaskProgress.objects.create(user=user, content_object = obj, task_type=0)
                 if task_obj:
-                    # import ipdb
-                    # ipdb.set_trace()
                     task = bulkuploadsites.delay(task_obj.pk, sites, pk)
                     task_obj.task_id = task.id
                     task_obj.save()
@@ -2084,6 +2082,7 @@ def sendmultiroleuserinvite(request):
     levels =data.get('levels')
     leveltype =data.get('leveltype')
     group = Group.objects.get(name=data.get('group'))
+    print('datattaat', data)
 
     response=""
 
@@ -2094,38 +2093,62 @@ def sendmultiroleuserinvite(request):
         # site_ids = Site.objects.filter(region_id__in=levels).values_list('id', flat=True)
 
         # site_ids = Site.objects.filter(region_id__in=levels).values_list('id', flat=True)
-        site_ids = Site.objects.filter(Q(region_id__in=levels) | Q(region_id__parent__in=levels) | Q(region_id__parent__parent__in=levels)).values_list('id',
-                                                                                                                  flat=True)
+        site_ids = Site.objects.filter(Q(region_id__in=levels) | Q(region_id__parent__in=levels) |
+                                       Q(region_id__parent__parent__in=levels)).values_list('id', flat=True)
 
         region_ids = Region.objects.filter(id__in=levels).values_list('id', flat=True)
+        team_ids = []
 
     elif leveltype == "project":
         project_ids = levels
         organization_id = Project.objects.get(pk=project_ids[0]).organization_id
         site_ids = []
         region_ids = []
+        team_ids = []
 
     elif leveltype == "site":
         site_ids = levels
         site = Site.objects.get(pk=site_ids[0])
         project_ids = [site.project_id]
         region_ids = []
+        team_ids = []
         organization_id = site.project.organization_id
 
+    elif leveltype == "team":
+        team_ids = Organization.objects.filter(id__in=levels).values_list('id', flat=True)
+        project_ids = []
+        site_ids = []
+        region_ids = []
+        organization_id = None
+
+    else:
+        project_ids = []
+        organization_id = None
+        site_ids = []
+        region_ids = []
+        team_ids = []
+
     for email in emails:
-        userinvite = UserInvite.objects.filter(email__iexact=email, organization_id=organization_id, group=group, project__in=project_ids,  site__in=site_ids, is_used=False).exists()
+        userinvite = UserInvite.objects.filter(email__iexact=email, organization_id=organization_id, group=group,
+                                               project__in=project_ids,  site__in=site_ids, is_used=False).exists()
         
         if userinvite:
             response += 'Invite for '+ email + ' in ' + group.name +' role has already been sent.<br>'
             continue
 
-        invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32), group=group, organization_id=organization_id)
+        invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32),
+                            group=group, organization_id=organization_id)
         invite.save()
         invite.project = project_ids
         invite.site = site_ids
         invite.regions = region_ids
-        project = get_object_or_404(Project, id=project_ids[0])
-        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        invite.teams = team_ids
+        try:
+            project = get_object_or_404(Project, id=project_ids[0])
+            terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        except:
+            project = None
+            terms_and_labels = None
 
         current_site = get_current_site(request)
 
@@ -2241,13 +2264,19 @@ class ActivateRole(TemplateView):
             for permission in permissions:
                 user.user_permissions.add(permission)
 
-
             profile, created = UserProfile.objects.get_or_create(user=user, organization=invite.organization)
 
         site_ids = invite.site.all().values_list('pk', flat=True)
         project_ids = invite.project.all().values_list('pk', flat=True)
 
-        if invite.regions.all().values_list('pk', flat=True).exists():
+        if invite.teams.all().values_list('pk', flat=True).exists():
+            teams_id = invite.teams.all().values_list('pk', flat=True)
+            for team_id in teams_id:
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+                                                                   organization_id=team_id)
+            delete_unassigned_group(user)
+
+        elif invite.regions.all().values_list('pk', flat=True).exists():
             regions_id = invite.regions.all().values_list('pk', flat=True)
             for region_id in regions_id:
                 project_id = Region.objects.get(id=region_id).project.id
@@ -2270,12 +2299,23 @@ class ActivateRole(TemplateView):
                     delete_unassigned_group(user)
 
         if not project_ids:
-            userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project=None, site=None, region=None)
+            if invite.group.name == 'Super Organization Admin':
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+                                                                   super_organization=invite.super_organization,
+                                                                   organization=None, project=None, site=None,
+                                                                   region=None)
+
+            if invite.group.name == 'Organization Admin' and not invite.teams.all().exists():
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+                                                                   organization=invite.organization, project=None,
+                                                                   site=None, region=None)
+            # userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+            #                                                    organization=invite.organization,
+            #                                                    project=None, site=None, region=None)
             delete_unassigned_group(user)
             if invite.group_id == 1:
                 permission = Permission.objects.filter(codename='change_finstance')
                 user.user_permissions.add(permission[0])
-
 
         invite.is_used = True
         invite.save()
@@ -2283,9 +2323,20 @@ class ActivateRole(TemplateView):
         site=None
         project=None
         region=None
-        if invite.group.name == "Organization Admin":
-            noti_type = 1
-            content = invite.organization
+
+        if invite.group.name == 'Super Organization Admin':
+            userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+                                                               super_organization=invite.super_organization,
+                                                               organization=None, project=None, site=None,
+                                                               region=None)
+        elif invite.group.name == "Organization Admin" and invite.teams.all().exists():
+            if invite.teams.all().count() == 1:
+                noti_type = 1
+                content = invite.teams.all()[0]
+            else:
+                noti_type = 42
+                extra_msg = invite.teams.all().count()
+                content = invite.teams.all()[0].parent
 
         elif invite.group.name == "Project Manager":
             if invite.project.all().count() == 1:
@@ -2339,28 +2390,21 @@ class ActivateRole(TemplateView):
 
         elif invite.group.name == "Unassigned":
             noti_type = 24
-            # if invite.site.all():
-            #     content = invite.site.all()[0]
-            #     project = invite.project.all()[0]
-            #     site = invite,project.all()[0]
-            # elif invite.project.all().count():
-            #     content = invite.project.all()[0]
-            #     project = invite.project.all()[0]
-            # else:   
             content = invite.organization
 
         elif invite.group.name == "Project Donor":
             noti_type = 25
             content = invite.project.all()[0]
 
-        noti = invite.logs.create(source=user, type=noti_type, title="new Role", organization=invite.organization, extra_message=extra_msg, project=project, site=site, content_object=content, extra_object=invite.by_user,
-                                       description=u"{0} was added as the {1} of {2} by {3}.".
-                                       format(user.username, invite.group.name, content.name, invite.by_user))
-        # result = {}
-        # result['description'] = 'new site {0} deleted by {1}'.format(self.object.name, self.request.user.username)
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("notify-{}".format(self.object.project.organization.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
+        else:
+            noti_type = None
+            content = None
+
+        noti = invite.logs.create(source=user, type=noti_type, title="new Role", organization=invite.organization,
+                                  extra_message=extra_msg, project=project, site=site, content_object=content,
+                                  extra_object=invite.by_user,
+                                  description=u"{0} was added as the {1} of {2} by {3}.".\
+                                  format(user.username, invite.group.name, content.name, invite.by_user))
         return HttpResponseRedirect(reverse('login'))
 
 

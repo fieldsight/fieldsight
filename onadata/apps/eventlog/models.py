@@ -69,6 +69,8 @@ class FieldSightLog(models.Model):
         (429, 'Project SIte Import From Project Name Completed SuccessFully'),
         (430, 'Project SIte Import From number of region in Project Name Completed SuccessFully'),
         (432, 'Report generation failed.'),
+        (42, 'User was added as Team Admin in count teams of organization by Invitor Full Name.'),
+
     )
     
     type = models.IntegerField(default=0, choices=ACTION_TYPES)

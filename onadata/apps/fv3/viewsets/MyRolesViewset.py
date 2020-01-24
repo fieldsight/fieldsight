@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 
-from onadata.apps.fieldsight.models import UserInvite, Region, Project, Site
+from onadata.apps.fieldsight.models import UserInvite, Region, Project, Site, SuperOrganization, Organization
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog
@@ -383,8 +383,14 @@ class AcceptInvite(APIView):
 
         site_ids = invitation.site.all().values_list('pk', flat=True)
         project_ids = invitation.project.all().values_list('pk', flat=True)
-    
-        if invitation.regions.all().values_list('pk', flat=True).exists():
+
+        if invitation.teams.all().values_list('pk', flat=True).exists():
+            teams_id = invitation.teams.all().values_list('pk', flat=True)
+            for team_id in teams_id:
+                userrole, created = UserRole.objects.get_or_create(user=user,
+                                                                   group=invitation.group,
+                                                                   organization_id=team_id)
+        elif invitation.regions.all().values_list('pk', flat=True).exists():
             regions_id = invitation.regions.all().values_list('pk', flat=True)
             for region_id in regions_id:
                 project_id = Region.objects.get(id=region_id).project.id
@@ -415,7 +421,7 @@ class AcceptInvite(APIView):
                                                                    organization=None, project=None, site=None,
                                                                    region=None)
 
-            if invitation.group.name == 'Organization Admin':
+            if invitation.group.name == 'Organization Admin' and not invitation.teams.all().exists():
                 userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
                                                                    organization=invitation.organization, project=None,
                                                                    site=None, region=None)
@@ -435,9 +441,14 @@ class AcceptInvite(APIView):
             noti_type = 41
             content = invitation.super_organization
 
-        elif invitation.group.name == "Organization Admin":
-            noti_type = 1
-            content = invitation.organization
+        elif invitation.group.name == "Organization Admin" and invitation.teams.all().exists():
+            if invitation.teams.all().count() == 1:
+                noti_type = 1
+                content = invitation.teams.all()[0]
+            else:
+                noti_type = 42
+                extra_msg = invitation.teams.all().count()
+                content = invitation.teams.all()[0].parent
 
         elif invitation.group.name == "Project Manager":
             if invitation.project.all().count() == 1:
@@ -498,6 +509,9 @@ class AcceptInvite(APIView):
         elif invitation.group.name == "Project Donor":
             noti_type = 25
             content = invitation.project.all()[0]
+        else:
+            noti_type = None
+            content = None
 
         noti = invitation.logs.create(source=user, type=noti_type, title="new Role",
                                       organization=invitation.organization,
