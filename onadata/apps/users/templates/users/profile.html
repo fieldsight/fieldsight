@@ -71,6 +71,44 @@
 									</div>
 								</div>
 							</div>
+							{% if roles_super_org %}
+							<div class="widget-info margin-top bg-white padding">
+								<div class="widget-head">
+									<h4>{% trans 'Organization Admin At :' %}</h4>
+								</div>
+								<div class="widget-body">
+									<div class="max-260-scroll">
+										<div class="row">
+
+										{% for role in roles_super_org %}
+
+											<div class="col-lg-6 col-md-6 margin-top">
+											<a href="{{role.super_organization.get_absolute_url}}" title="">
+												<div class="project-item-wrap clearfix">
+													<div class="project-logo">
+														<img src="{% if role.super_organization.logo %}{{ role.super_organization.logo.url }}{% else %}{% static 'dummy/assets/img/default_image.png' %}{% endif %}" alt="" width="50" height="50">
+													</div>
+													<div class="project-basic-info">
+														<h4>{{ role.super_organization.name }}</h4>
+														<p>{{ role.super_organization.address }}</p>
+
+													</div>
+													{% if is_super_admin %}
+														<a class="btn btn-sm btn-action btn-xs btn-danger" href="{% url 'users:end_user_role' role.pk %}?next={{ request.path|urlencode }}"><i class="la la-close"></i> remove</a>
+
+													{% endif %}
+												</div>
+												</a>
+											</div>
+										{% endfor %}
+
+
+										</div>
+
+									</div>
+								</div>
+							</div>
+							{% endif %}
 							{% if roles_org %}
 							<div class="widget-info margin-top bg-white padding">
 								<div class="widget-head">

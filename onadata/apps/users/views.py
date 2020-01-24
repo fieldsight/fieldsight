@@ -371,6 +371,16 @@ class MyProfile(SameOrganizationProfileRoleMixin, View):
                 ended_at__isnull=True,
                 organization__is_active=True,
                 group__name="Organization Admin")
+
+            roles_super_org = user.user_roles.select_related('super_organization').filter(
+                super_organization__isnull=False,
+                super_organization__is_active=True,
+                project__isnull=True,
+                site__isnull=True,
+                ended_at__isnull=True,
+                organization__isnull=True,
+                group__name="Super Organization Admin")
+
             roles_project = user.user_roles.select_related('project').filter(
                 organization__isnull=False,
                 project__isnull=False,
@@ -440,16 +450,21 @@ class MyProfile(SameOrganizationProfileRoleMixin, View):
                 own_org_admin = request.user.user_roles.filter(
                     group_id=1, ended_at__isnull=True).values_list(
                     'organization_id', flat=True)
+                own_super_org_admin = request.user.user_roles.filter(
+                    group__name='Super Organization Admin', ended_at__isnull=True).values_list(
+                    'super_organization_id', flat=True)
                 is_super_admin = False
             else:
-                own_manager_roles =[]
+                own_manager_roles = []
                 own_org_admin = []
+                own_super_org_admin = []
                 
                 if request.is_super_admin:
                     is_super_admin = True
                 else:
                     is_super_admin = False
             return render(request, 'users/profile.html', {'obj': profile, 'is_super_admin': is_super_admin,
+
                                                           'own_orgs': own_org_admin, 'own_projects': own_manager_roles,
                                                           'roles_org': roles_org, 'roles_project': roles_project,
                                                           'roles_site': roles_reviewer, 'roles_SA': roles_SA,
@@ -457,6 +472,8 @@ class MyProfile(SameOrganizationProfileRoleMixin, View):
                                                           'roles_region_reviewer': roles_region_reviewer,
                                                           'roles_region_supervisor': roles_region_supervisor,
                                                           'roles_project_doner': roles_doner,
+                                                          'roles_super_org': roles_super_org,
+                                                          'own_super_org_admin': own_super_org_admin
                                                           })
 
 
