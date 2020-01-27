@@ -21,6 +21,7 @@ class Command(BaseCommand):
             instances = Instance.objects.filter(
                 deleted_at__isnull=True, fieldsight_instance__isnull=False,
                 fieldsight_instance__is_deleted=False).order_by('-date_created')[offset:limit]
+            print(offset, limit)
             if instances:
                 for i in instances:
                     d = i.parsed_instance.to_dict_for_mongo()
