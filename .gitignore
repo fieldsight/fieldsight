@@ -23,6 +23,7 @@ build
 /onadata/media
 /onadata/static
 /onadata/settings/local_settings.py
+/onadata/settings/fieldsight_settings.py
 
 .~lock.*
 emails/*
