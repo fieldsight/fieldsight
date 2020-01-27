@@ -60,6 +60,8 @@ RUN mkdir -p ${PIP_EDITABLE_PACKAGES_DIR} && \
 #fix the issue with goes
 RUN cat ./libgeos.py > /usr/local/lib/python2.7/site-packages/django/contrib/gis/geos/libgeos.py
 
+RUN python manage.py collectstatic --noinput
+
 RUN apt-get update --fix-missing && \
   apt-get upgrade -y -o Dpkg::Options::="--force-confold" && \
   apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
