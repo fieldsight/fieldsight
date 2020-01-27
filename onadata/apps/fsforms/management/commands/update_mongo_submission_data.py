@@ -8,12 +8,9 @@ from onadata.apps.viewer.models.parsed_instance import update_mongo_instance
 class Command(BaseCommand):
     help = 'Create mongo submission data from postgres'
 
-    option_list = BaseCommand.option_list + (
-        make_option(
-            '--batchsize',
-            type='int',
-            default=100,
-            help="Number of records to process per query"))
+
+    def add_arguments(self, parser):
+        parser.add_argument('batchsize', type=int)
 
     def handle(self, *args, **kwargs):
         batchsize = kwargs.get("batchsize", 100)
