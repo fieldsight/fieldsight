@@ -10,7 +10,9 @@ ENV KOBOCAT_TMP_DIR=/srv/kobocat_tmp \
     UWSGI_USER=wsgi \
     UWSGI_GROUP=wsgi
 
-RUN apt-get -qq update && \
+RUN apt-get -qq update --fix-missing && \
+    apt-get upgrade -y -o Dpkg::Options::="--force-confold" && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     apt-get -qq -y install \
         binutils \
         default-jre-headless \
@@ -28,7 +30,6 @@ RUN apt-get -qq update && \
         python2.7-dev \
         wget && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     curl -s https://bootstrap.pypa.io/get-pip.py | python && \
     # FIXME: Temporarily install `pip` < v8.1.2 until `pip-tools` is compatible.
     pip install --upgrade pip==8.1.1 && \
@@ -59,3 +60,5 @@ RUN mkdir -p ${PIP_EDITABLE_PACKAGES_DIR} && \
 
 #fix the issue with goes 
 RUN cat ./libgeos.py > /usr/local/lib/python2.7/site-packages/django/contrib/gis/geos/libgeos.py
+
+ENV C_FORCE_ROOT="true"
