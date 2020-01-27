@@ -30,7 +30,7 @@ class Command(BaseCommand):
                                   'fs_status': 0, 'fs_site': x.site_id, 'fs_uuid': x.site_fxf_id})
                         try:
                             synced = update_mongo_instance(d, i.id)
-                            print(synced, "updated in mongo success")
+                            # print(synced, "updated in mongo success")
                         except Exception as e:
                             print(str(e))
                     except Exception as e:
