@@ -556,7 +556,8 @@ def metrics_data(request, pk):
                                                      'site_types': site_types,
                                                      'metrics': metrics, 'meta_attributes': meta_attributes,
                                                      'form_types': form_types,
-                                                     'user_roles': user_roles
+                                                     'user_roles': user_roles,
+                                                     'created_date': project.date_created
                                                      })
 
 
