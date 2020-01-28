@@ -68,4 +68,3 @@ RUN apt-get update --fix-missing && \
 COPY ./onadata/settings/local_settings.sample.py /usr/src/data/onadata/settings/local_settings.py
 COPY ./run_fieldsight.sh /usr/src/data/scripts/run_fieldsight.sh
 
-RUN python manage.py collectstatic --noinput
