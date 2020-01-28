@@ -1,6 +1,8 @@
 import ast
 
 from datetime import datetime
+
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Prefetch, F
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -18,7 +20,8 @@ from onadata.apps.fv3.permissions.super_organization import SuperOrganizationAdm
 
 from onadata.apps.fsforms.models import OrganizationFormLibrary, FieldSightXF, FInstance, Schedule
 from onadata.apps.fv3.serializers.SuperOrganizationSerializer import OrganizationSerializer, \
-    OrganizationFormLibrarySerializer, OrganizationGeneralScheduledFormSerializer, OrganizationFormSerializer
+    OrganizationFormLibrarySerializer, OrganizationGeneralScheduledFormSerializer, OrganizationFormSerializer, \
+    OrganizationProjectsFormSerializer
 from onadata.apps.fv3.serializer import TeamSerializer
 from onadata.apps.fv3.serializers.TeamSerializer import TeamProjectSerializer
 from onadata.apps.logger.models import XForm
@@ -399,3 +402,26 @@ class OrganizationFormsViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrganizationFormSerializer
     permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
+
+class OrganizationProjectsFormsViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Project.objects.select_related('organization')
+    serializer_class = OrganizationProjectsFormSerializer
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
+
+    def get_queryset(self):
+        try:
+            org_lib = OrganizationFormLibrary.objects.get(id=self.kwargs.get('pk'))
+        except ObjectDoesNotExist:
+            return None
+        return self.queryset.prefetch_related(Prefetch(
+            'project_instances',
+            queryset=FInstance.objects.filter(organization_fxf__organization_form_lib_id=self.kwargs.get('pk')),
+            to_attr='project_instances_count'
+
+        )).prefetch_related(Prefetch(
+            'project_instances',
+            queryset=FInstance.objects.filter(organization_fxf__organization_form_lib_id=self.kwargs.get('pk')).\
+                order_by('-pk'),
+            to_attr='last_response'
+
+        )).filter(organization__parent=org_lib.organization)

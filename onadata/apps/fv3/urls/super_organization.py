@@ -4,7 +4,7 @@ from rest_framework import routers
 
 from onadata.apps.fv3.viewsets.SuperOrganizationViewset import SuperOrganizationListView, ManageTeamsView, \
     OrganizationViewSet, OrganizationFormLibraryVS, ManageSuperOrganizationLibraryView, GetOrganizationLocation, \
-    OrganizationProjectsViewSet, OrganizationTeamsViewSet, OrganizationFormsViewSet
+    OrganizationProjectsViewSet, OrganizationTeamsViewSet, OrganizationFormsViewSet, OrganizationProjectsFormsViewSet
 
 
 router = routers.DefaultRouter()
@@ -32,5 +32,7 @@ super_organization_urlpatterns = [
         name='organization_teams'),
     url(r'^api/organization-forms/(?P<pk>\d+)/$', OrganizationFormsViewSet.as_view({'get': 'list'}),
         name='organization_forms'),
+    url(r'^api/organization-project-forms/(?P<pk>\d+)/$', OrganizationProjectsFormsViewSet.as_view({'get': 'list'}),
+        name='organization_projects_forms'),
 
 ]

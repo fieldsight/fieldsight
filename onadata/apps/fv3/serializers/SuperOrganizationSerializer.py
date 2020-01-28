@@ -1,7 +1,7 @@
 import collections
 
 from rest_framework import serializers
-from onadata.apps.fieldsight.models import SuperOrganization, Site
+from onadata.apps.fieldsight.models import SuperOrganization, Site, Project
 from onadata.apps.fsforms.models import OrganizationFormLibrary, FInstance
 
 
@@ -148,3 +148,28 @@ class OrganizationFormSerializer(serializers.ModelSerializer):
         for d in data:
             counter.update(d)
         return counter
+
+
+class OrganizationProjectsFormSerializer(serializers.ModelSerializer):
+    submissions = serializers.SerializerMethodField(read_only=True)
+    team = serializers.SerializerMethodField(read_only=True)
+    last_response_on = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Project
+        fields = ('id', 'name', 'submissions', 'team', 'last_response_on')
+
+    def get_submissions(self, obj):
+
+        return len(obj.project_instances_count)
+
+    def get_team(self, obj):
+        return obj.organization.name
+
+    def get_last_response_on(self, obj):
+        try:
+            last_response = obj.last_response[:1][0].date
+        except:
+            last_response = ''
+
+        return last_response
