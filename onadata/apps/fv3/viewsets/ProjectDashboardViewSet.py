@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
-from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
+from onadata.apps.fieldsight.models import Project, Site, Region, SiteType, ProjectGeoJSON
 from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
 from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermission
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
@@ -353,3 +353,21 @@ class SupervisorProjectDashboardView(APIView):
                          'total_regions': total_regions,
                          'users': users, 'forms': {'general_forms': general_forms, 'scheduled_forms': schedule_forms,
                                                    'staged_forms': stage_forms}})
+
+
+class UpdateProjectGeojson(APIView):
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+    permission_classes = (IsAuthenticated, ProjectDashboardPermissions)
+
+    def post(self, request, *args, **kwargs):
+        project_id = self.kwargs.get('pk', None)
+        project = Project.objects.get(id=project_id)
+
+        try:
+            project_geojson = project.project_geojson
+        except:
+            project_geojson = ProjectGeoJSON.objects.create(project_id=project.id)
+            project_geojson.save()
+        project_geojson.generate_new()
+
+        return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})

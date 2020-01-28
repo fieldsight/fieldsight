@@ -3,7 +3,7 @@ from django.conf.urls import url, include
 from rest_framework import routers
 from onadata.apps.fv3.viewsets.ProjectDashboardViewSet import ProjectDashboardViewSet, ProjectProgressTableViewSet, \
     project_regions_types, ProjectSurveyFormsViewSet, SiteFormViewSet, SitelistForMetasLink, \
-    SupervisorProjectDashboardView
+    SupervisorProjectDashboardView, UpdateProjectGeojson
 
 router = routers.DefaultRouter()
 
@@ -21,6 +21,8 @@ project_dashboard_urlpatterns = [
         name='project_sites_metas'),
     url(r'^api/project-dashboard/(?P<pk>\d+)/$', SupervisorProjectDashboardView.as_view(),
         name='supervisor_project_dashboard'),
+    url(r'^api/update-project-geojson/(?P<pk>\d+)/$', UpdateProjectGeojson.as_view(),
+        name='update_project_geojson'),
 
 ]
 
