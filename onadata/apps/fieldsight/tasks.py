@@ -288,6 +288,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         gc.collect()
 
         p.save_as(array=data, dest_file_name="media/stage-report/{}_stage_data.xls".format(project.id))
+        if not os.path.exists(settings.MEDIA_ROOT + "stage-report"):
+            os.makedirs(settings.MEDIA_ROOT + "stage-report")
         
         with open("media/stage-report/{}_stage_data.xls".format(project.id), 'rb') as fin:
             buffer = BytesIO(fin.read())
