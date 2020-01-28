@@ -65,7 +65,7 @@ RUN apt-get update --fix-missing && \
   apt-get upgrade -y -o Dpkg::Options::="--force-confold" && \
   apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY onadata/settings/local_settings_sample.py /usr/src/data/onadata/settings/local_settings.py
-COPY run_fieldsight.sh /usr/src/data/scripts/run_fieldsight.sh
+COPY ./onadata/settings/local_settings_sample.py /usr/src/data/onadata/settings/local_settings.py
+COPY ./run_fieldsight.sh /usr/src/data/scripts/run_fieldsight.sh
 
 RUN python manage.py collectstatic --noinput
