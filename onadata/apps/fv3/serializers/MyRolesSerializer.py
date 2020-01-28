@@ -193,13 +193,36 @@ class MyRolesSerializer(serializers.ModelSerializer):
     team_url = serializers.SerializerMethodField()
     projects = serializers.SerializerMethodField()
     id = serializers.IntegerField(source='organization.id')
+    organization_name = serializers.SerializerMethodField(read_only=True)
+    has_super_organization_access = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = UserRole
-        fields = ('id', 'name', 'address', 'logo', 'has_organization_access', 'team_url', 'projects')
+        fields = ('id', 'name', 'organization_name', 'address', 'logo', 'has_organization_access',
+                  'has_super_organization_access', 'team_url', 'projects')
 
     def get_name(self, obj):
         return obj.organization.name
+
+    def get_organization_name(self, obj):
+
+        try:
+            organization_name = obj.organization.parent.name
+        except:
+            organization_name = ''
+
+        return organization_name
+
+    def get_has_super_organization_access(self, obj):
+        user = self.context['user']
+
+        if obj.organization.parent:
+            if obj.organization.parent.id in user.user_roles.filter(super_organization=obj.organization.parent,
+                                                                    group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return True
+        else:
+            return False
 
     def get_address(self, obj):
         return obj.organization.address
@@ -229,18 +252,20 @@ class MyRolesSerializer(serializers.ModelSerializer):
 
         if org_admin:
             data = Project.objects.filter(organization=obj.organization, is_active=True)
-            roles = [{'id': r.id, 'name': r.name, 'has_project_access': True, 'project_url': r.get_absolute_url()} for r in data]
+            roles = [{'id': r.id, 'name': r.name, 'has_project_access': True,
+                      'project_url': r.get_absolute_url()} for r in data]
             # roles = [{'id': proj.id, 'name': proj.name, 'project_url': settings.SITE_URL + proj.get_absolute_url()} for proj in data]
 
         else:
-            data = UserRole.objects.filter(user=obj.user, organization=obj.organization).select_related('user', 'group', 'site', 'organization',
-                                                                      'staff_project', 'region').filter(Q(group__name="Project Manager", project__is_active=True)|
-                                                                    Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                    Q(group__name="Reviewer", site__is_active=True)|
-                                                                    Q(group__name="Region Reviewer", region__is_active=True)|
-                                                                    Q(group__name="Region Supervisor", region__is_active=True)|
-                                                                    Q(group__name="Project Donor", project__is_active=True)
-                                                                                                        ).distinct('project')
+            data = UserRole.objects.\
+                filter(user=obj.user, organization=obj.organization).\
+                select_related('user', 'group', 'site', 'organization', 'staff_project', 'region').\
+                filter(Q(group__name="Project Manager", project__is_active=True) |
+                       Q(group__name="Site Supervisor", site__is_active=True) |
+                       Q(group__name="Reviewer", site__is_active=True) |
+                       Q(group__name="Region Reviewer", region__is_active=True) |
+                       Q(group__name="Region Supervisor", region__is_active=True) |
+                       Q(group__name="Project Donor", project__is_active=True)).distinct('project')
             roles = MyProjectSerializer(data, many=True, context={'user': user}).data
         return roles
 

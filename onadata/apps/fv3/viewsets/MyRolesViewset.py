@@ -77,6 +77,20 @@ def my_site_ids(project_obj, user):
     return merge_site_ids
 
 
+def get_teams(user, org_id):
+    my_teams = UserRole.objects.filter(user=user, ended_at=None).filter(
+        Q(group__name="Organization Admin", organization__is_active=True) |
+        Q(group__name="Project Manager", project__is_active=True) |
+        Q(group__name="Project Donor", project__is_active=True) |
+        Q(group__name="Region Supervisor", region__is_active=True) |
+        Q(group__name="Region Reviewer", region__is_active=True) |
+        Q(group__name="Site Supervisor", site__is_active=True) |
+        Q(group__name="Reviewer", site__is_active=True)).distinct('organization').\
+        values_list('organization_id', flat=True)
+
+    return my_teams
+
+
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def my_roles(request):
@@ -126,18 +140,6 @@ def my_roles(request):
 
     teams = MyRolesSerializer(teams, many=True, context={'user': request.user})
 
-    organizations = user.user_roles.filter(group__name="Super Organization Admin", ended_at=None).\
-        values('super_organization__id', 'super_organization__name', 'super_organization__address',
-               'super_organization__logo')
-
-    my_organizations = [{'id': org['super_organization__id'],
-                         'name': org['super_organization__name'],
-                         'address': org['super_organization__address'],
-                         'logo': org['super_organization__logo']
-                         }
-
-                        for org in organizations]
-
     if user_id is not None:
         invitations = []
         invitations_serializer = UserInvitationSerializer(invitations, many=True, context={'request': request})
@@ -147,8 +149,7 @@ def my_roles(request):
                                                                                    is_used=False, is_declied=False)
         invitations_serializer = UserInvitationSerializer(invitations, many=True, context={'request': request})
 
-    return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data,
-                     'my_organizations': my_organizations})
+    return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data})
 
 
 @permission_classes([IsAuthenticated])
