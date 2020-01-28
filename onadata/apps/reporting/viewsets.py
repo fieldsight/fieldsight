@@ -111,6 +111,7 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         type = self.request.query_params.get('type')
+        project = Project.objects.get(id=self.kwargs.get('pk'))
 
         if type == 'custom':
             custom_data = {
@@ -141,7 +142,8 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
 
 
-                                     ]
+                                     ],
+                'created_date': project.date_created
             })
             return Response(custom_data)
         else:

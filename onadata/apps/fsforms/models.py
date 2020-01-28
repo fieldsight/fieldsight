@@ -42,7 +42,7 @@ SCHEDULED_LEVEL = [(0, 'Daily'), (1, 'Weekly'), (2, 'Monthly')]
 FORM_STATUS = [(0, 'Pending'), (1, 'Rejected'),
                (2, 'Flagged'), (3, 'Approved')]
 
-REPORT_TYPE = [('site_info', 'Site Info'), ('site_progress', 'Site Progress'), ('form', 'Form')]
+REPORT_TYPE = [('site_info', 'Site Info'), ('site_progress', 'Site Progress'), ('form', 'Form'),  ('custom', 'Custom')]
 SCHEDULED_TYPE = [(0, 'Manual'), (1, 'Daily'), (2, 'Weekly'), (3, 'Monthly')]
 FORM_TYPE = [(0, 'General'), (1, 'Scheduled')]
 

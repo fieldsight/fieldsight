@@ -2,9 +2,13 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.utils.translation import gettext as _
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 from jsonfield import JSONField
 
 from onadata.apps.fieldsight.models import Project
+from onadata.apps.fsforms.models import ReportSyncSettings
 
 REPORT_TYPES = (
     (0, 'Site'),
@@ -256,5 +260,10 @@ class ReportSettings(models.Model):
         return REPORT_TYPES_DICT[self.type]
 
 
-
+@receiver(post_save, sender=ReportSettings)
+def create_messages(sender, instance, created,  **kwargs):
+    if instance.project and created:
+        sync_settings = ReportSyncSettings(project=instance.project, report_type="custom", schedule_type=0,
+                                           user=instance.owner)
+        sync_settings.save()
 
