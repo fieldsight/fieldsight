@@ -429,7 +429,7 @@ class OrganizationProjectsFormsViewSet(viewsets.ReadOnlyModelViewSet):
             org_lib = OrganizationFormLibrary.objects.get(id=self.kwargs.get('pk'))
         except ObjectDoesNotExist:
             return None
-        return self.queryset.prefetch_related('project_forms').prefetch_related(Prefetch(
+        return self.queryset.prefetch_related(Prefetch(
             'project_instances',
             queryset=FInstance.objects.filter(organization_fxf__organization_form_lib_id=self.kwargs.get('pk')),
             to_attr='project_instances_count'
@@ -440,11 +440,13 @@ class OrganizationProjectsFormsViewSet(viewsets.ReadOnlyModelViewSet):
                 order_by('-pk'),
             to_attr='last_response'
 
-        )).prefetch_related(Prefetch(
-            'project_forms__project_form_instances',
-            queryset=FInstance.objects.filter(form_status=0,
-                                              organization_fxf__organization_form_lib_id=self.kwargs.get('pk')),
-            to_attr='pending'
+        )).prefetch_related('project_forms').\
+            prefetch_related(
+            Prefetch(
+                'project_forms__project_form_instances',
+                queryset=FInstance.objects.filter(form_status=0,
+                                                  organization_fxf__organization_form_lib_id=self.kwargs.get('pk')),
+                to_attr='pending'
         )).prefetch_related(
             Prefetch(
                 'project_forms__project_form_instances',
