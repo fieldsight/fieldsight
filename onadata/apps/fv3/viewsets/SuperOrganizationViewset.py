@@ -158,7 +158,23 @@ class ManageSuperOrganizationLibraryView(APIView):
     permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
     def get(self, request, pk, *args,  **kwargs):
-        queryset = OrganizationFormLibrary.objects.select_related('xf').filter(organization_id=pk, deleted=False)
+        queryset = OrganizationFormLibrary.objects.select_related('xf').prefetch_related(
+            Prefetch('organization_forms__organization_form_instances',
+                     queryset=FInstance.objects.filter(form_status=0),
+                     to_attr='pending'
+                     )).\
+            prefetch_related(Prefetch('organization_forms__organization_form_instances',
+                                      queryset=FInstance.objects.filter(form_status=1),
+                                      to_attr='rejected'
+                                      )).\
+            prefetch_related(Prefetch('organization_forms__organization_form_instances',
+                                      queryset=FInstance.objects.filter(form_status=2),
+                                      to_attr='flagged'
+                                      )).\
+            prefetch_related(Prefetch('organization_forms__organization_form_instances',
+                                      queryset=FInstance.objects.filter(form_status=3),
+                                      to_attr='approved'
+                                      )).filter(organization_id=pk, deleted=False)
         org_form_lib_ids = queryset.values_list('xf_id', flat=True)
         my_forms = XForm.objects.filter(user=request.user, deleted_xform=None).exclude(id__in=org_form_lib_ids)
 
@@ -413,7 +429,7 @@ class OrganizationProjectsFormsViewSet(viewsets.ReadOnlyModelViewSet):
             org_lib = OrganizationFormLibrary.objects.get(id=self.kwargs.get('pk'))
         except ObjectDoesNotExist:
             return None
-        return self.queryset.prefetch_related(Prefetch(
+        return self.queryset.prefetch_related('project_forms').prefetch_related(Prefetch(
             'project_instances',
             queryset=FInstance.objects.filter(organization_fxf__organization_form_lib_id=self.kwargs.get('pk')),
             to_attr='project_instances_count'
@@ -424,4 +440,29 @@ class OrganizationProjectsFormsViewSet(viewsets.ReadOnlyModelViewSet):
                 order_by('-pk'),
             to_attr='last_response'
 
-        )).filter(organization__parent=org_lib.organization)
+        )).prefetch_related(Prefetch(
+            'project_forms__project_form_instances',
+            queryset=FInstance.objects.filter(form_status=0,
+                                              organization_fxf__organization_form_lib_id=self.kwargs.get('pk')),
+            to_attr='pending'
+        )).prefetch_related(
+            Prefetch(
+                'project_forms__project_form_instances',
+                queryset=FInstance.objects.filter(form_status=1,
+                                                  organization_fxf__organization_form_lib_id=self.kwargs.get('pk')),
+                to_attr='rejected'
+                                  )).\
+            prefetch_related(
+            Prefetch(
+                'project_forms__project_form_instances',
+                queryset=FInstance.objects.filter(form_status=2,
+                                                  organization_fxf__organization_form_lib_id=self.kwargs.get('pk')),
+                to_attr='flagged'
+                                  )).\
+            prefetch_related(
+            Prefetch(
+                'project_forms__project_form_instances',
+                queryset=FInstance.objects.filter(form_status=3,
+                                                  organization_fxf__organization_form_lib_id=self.kwargs.get('pk')),
+                to_attr='approved'
+                                  )).filter(organization__parent=org_lib.organization)

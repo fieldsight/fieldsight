@@ -76,11 +76,12 @@ class OrganizationGeneralScheduledFormSerializer(serializers.ModelSerializer):
     end_date = serializers.SerializerMethodField(read_only=True)
     total_submissions = serializers.SerializerMethodField(read_only=True)
     last_response_on = serializers.SerializerMethodField(read_only=True)
+    submissions = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = OrganizationFormLibrary
         fields = ('id', 'title', 'form_type', 'default_submission_status', 'scheduled_type', 'start_date', 'end_date',
-                  'total_submissions', 'last_response_on')
+                  'total_submissions', 'last_response_on', 'submissions')
 
     def get_title(self, obj):
         return obj.xf.title
@@ -105,13 +106,30 @@ class OrganizationGeneralScheduledFormSerializer(serializers.ModelSerializer):
         instances = FInstance.objects.filter(organization_fxf_id__in=fxf_ids).count()
         return instances
 
+    def get_submissions(self, obj):
+        data = [{'pending': len(o.pending),
+                 'rejected': len(o.rejected),
+                 'flagged': len(o.flagged),
+                 'approved': len(o.approved)
+                 }
+                for o in obj.organization_forms.all()]
+        if not data:
+            data = [{'pending': 0,
+                     'rejected': 0,
+                     'flagged': 0,
+                     'approved': 0
+                     }]
+        counter = collections.Counter()
+        for d in data:
+            counter.update(d)
+        return counter
+
     def get_last_response_on(self, obj):
-        fxf_ids = obj.organization_forms.values_list('id', flat=True)
         try:
-            last_response = FInstance.objects.filter(organization_fxf_id__in=fxf_ids).order_by('-pk').values_list(
-                        'date', flat=True)[:1][0]
+            last_response = obj.last_response[:1][0].date
         except:
             last_response = ''
+
         return last_response
 
 
@@ -152,14 +170,15 @@ class OrganizationFormSerializer(serializers.ModelSerializer):
 
 class OrganizationProjectsFormSerializer(serializers.ModelSerializer):
     submissions = serializers.SerializerMethodField(read_only=True)
+    total_submissions = serializers.SerializerMethodField(read_only=True)
     team = serializers.SerializerMethodField(read_only=True)
     last_response_on = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Project
-        fields = ('id', 'name', 'submissions', 'team', 'last_response_on')
+        fields = ('id', 'name', 'submissions', 'team', 'last_response_on', 'total_submissions')
 
-    def get_submissions(self, obj):
+    def get_total_submissions(self, obj):
 
         return len(obj.project_instances_count)
 
@@ -173,3 +192,22 @@ class OrganizationProjectsFormSerializer(serializers.ModelSerializer):
             last_response = ''
 
         return last_response
+
+    def get_submissions(self, obj):
+
+        data = [{'pending': len(o.pending),
+                 'rejected': len(o.rejected),
+                 'flagged': len(o.flagged),
+                 'approved': len(o.approved)
+                 }
+                for o in obj.project_forms.all()]
+        if not data:
+            data = [{'pending': 0,
+                     'rejected': 0,
+                     'flagged': 0,
+                     'approved': 0
+                     }]
+        counter = collections.Counter()
+        for d in data:
+            counter.update(d)
+        return counter

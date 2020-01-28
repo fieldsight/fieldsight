@@ -29,6 +29,7 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
     shared_with = serializers.SerializerMethodField()
     attributes = serializers.JSONField()
     filter = serializers.JSONField(default=dict)
+    created_date = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ReportSettings
@@ -42,6 +43,9 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
         users = []
         [users.append(user.get_full_name()) for user in obj.shared_with.all()]
         return users
+
+    def get_created_date(self, obj):
+        return obj.project.date_created
 
 
 class ReportSettingsListSerializer(serializers.ModelSerializer):
