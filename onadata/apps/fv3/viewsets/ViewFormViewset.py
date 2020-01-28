@@ -442,7 +442,7 @@ class FormSubmissionsView(APIView):
     permission_classes = (IsAuthenticated, ViewDataPermission)
     pagination_class = SubmissionStatusPagination
 
-    def get_breadcrumbs(self, is_project, object, form_name):
+    def get_breadcrumbs(self, is_project, object, form_name, is_organization=False):
         if is_project:
 
             breadcrumbs = {'project_name': object[0].name,
@@ -451,6 +451,16 @@ class FormSubmissionsView(APIView):
                            'responses_url': '/fieldsight/application/#/project-responses/{}/general'.format(object[0].id),
                            'current_page': form_name
                            }
+
+        elif is_organization:
+            breadcrumbs = {'organization_name': object[0].name,
+                           'organization_url': object[0].get_absolute_url(),
+                           'responses': 'Responses',
+                           'responses_url': '/fieldsight/application/#/organization-responses/{}/general'.format(
+                               object[0].id),
+                           'current_page': form_name
+                           }
+
         else:
             breadcrumbs = {'site_name': object[0].name,
                            'site_url': object[0].get_absolute_url(),
@@ -463,17 +473,12 @@ class FormSubmissionsView(APIView):
 
     def get(self, request, format=None):
         project = request.query_params.get('project', None)
-        organization = request.query_params.get('organization', None)
         org_form_lib = request.query_params.get('org_form_lib', None)
         site = request.query_params.get('site', None)
         fsxf_id = request.query_params.get('fsxf_id', None)
         search_param = request.query_params.get('q', None)
 
-        if organization and org_form_lib is not None:
-            try:
-                SuperOrganization.objects.get(id=organization)
-            except Exception as e:
-                return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': str(e)})
+        if org_form_lib is not None:
 
             is_organization = True
             try:
@@ -501,13 +506,14 @@ class FormSubmissionsView(APIView):
 
             if page is not None:
                 serializer = FormSubmissionSerializer(page, many=True, context={'is_organization': is_organization})
-                organization = SuperOrganization.objects.filter(id=organization).only('name')
+                organization = SuperOrganization.objects.filter(id=org_form_lib_obj.organization.id).only('name')
                 form_name = org_form_lib_obj.xf.title
                 return self.get_paginated_response({'data': serializer.data,
                                                     'form_name': form_name, 'is_survey': False,
                                                     'form_id_string': org_form_lib_obj.xf.id_string,
                                                     'query': search_param,
-                                                    'breadcrumbs': self.get_breadcrumbs(False, organization, form_name)
+                                                    'breadcrumbs': self.get_breadcrumbs(False, organization, form_name,
+                                                                                        is_organization=True)
                                                     })
 
         if project and fsxf_id is not None:
