@@ -418,6 +418,9 @@ class OrganizationFormsViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrganizationFormSerializer
     permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
+    def get_queryset(self):
+        return self.queryset.filter(organization_id=self.kwargs.get('pk'), form_type__in=[0, 1])
+
 
 class OrganizationProjectsFormsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Project.objects.select_related('organization')
