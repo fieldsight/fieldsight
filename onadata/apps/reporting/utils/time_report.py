@@ -102,7 +102,7 @@ def generate_form_metrices_time_report(form_name, df, df_submissions, df_reviews
     return df
 
 
-def time_report(report_obj):
+def time_report(report_obj, preview=False):
     if not report_obj.type == 5:
         raise ValueError("report type must be time series for Time series report")
     project_id = report_obj.project_id
@@ -117,11 +117,18 @@ def time_report(report_obj):
     if group_by == "daily":
         date_index = pd.date_range(start_date, end_date, freq='D')
         df = pd.DataFrame({}, index=date_index)
-        query_role = UserRole.objects.filter().filter(
-            project=report_obj.project_id,).values("group", "started_at", "ended_at")
+
+        if preview:
+            query_role = UserRole.objects.filter().filter(
+                project=report_obj.project_id,).values("group", "started_at", "ended_at")[:10]
+        else:
+            query_role = UserRole.objects.filter().filter(
+                project=report_obj.project_id, ).values("group", "started_at", "ended_at")
+
         df_role = pd.DataFrame(list(query_role), columns=["group", "started_at", "ended_at"])
         active_df = df_role[~df_role.ended_at.isnull()]
         if 'active_users' in user_metrics:
+
             active_users = active_df.groupby(pd.Grouper(key='started_at', freq='1D')).size().to_frame(
                 "active_users").reset_index()
             active_users['date_only'] = active_users.started_at.dt.date
@@ -224,7 +231,10 @@ def time_report(report_obj):
             df = pd.concat([df, no_of_region_reviewer], axis=1)
 
         if "num_sites" in default_metrics:
-            query = Site.objects.values('id', 'date_created')
+            if preview:
+                query = Site.objects.values('id', 'date_created')[:10]
+            else:
+                query = Site.objects.values('id', 'date_created')
             df_site = pd.DataFrame(list(query), columns=['id', 'date_created'])
             num_sites = df_site.groupby(pd.Grouper(key='date_created', freq='1D')).size().to_frame(
                 "num_sites").reset_index()
@@ -234,7 +244,11 @@ def time_report(report_obj):
             df = pd.concat([df, num_sites], axis=1)
 
         if "num_regions" in default_metrics:
-            query = Region.objects.values('id', 'date_created')
+            if preview:
+                query = Region.objects.values('id', 'date_created')[:10]
+            else:
+                query = Region.objects.values('id', 'date_created')
+
             df_region = pd.DataFrame(list(query), columns=['id', 'date_created'])
             num_regions = df_region.groupby(pd.Grouper(key='date_created', freq='1D')).size().to_frame(
                 "num_regions").reset_index()
@@ -244,7 +258,11 @@ def time_report(report_obj):
             df = pd.concat([df, num_regions], axis=1)
 
         if "num_projects" in default_metrics:
-            query = Project.objects.values('id', 'date_created')
+            if preview:
+                query = Project.objects.values('id', 'date_created')[:10]
+            else:
+                query = Project.objects.values('id', 'date_created')
+
             df_project = pd.DataFrame(list(query), columns=['id', 'date_created'])
             num_projects = df_project.groupby(pd.Grouper(key='date_created', freq='1D')).size().to_frame(
                 "num_projects").reset_index()
@@ -254,7 +272,11 @@ def time_report(report_obj):
             df = pd.concat([df, num_projects], axis=1)
 
         if "sites_visited" in default_metrics:
-            site_visited_query = FInstance.objects.values('instance__date_created')
+            if preview:
+                site_visited_query = FInstance.objects.values('instance__date_created')[:10]
+            else:
+                site_visited_query = FInstance.objects.values('instance__date_created')
+
             df_site_visited = pd.DataFrame(list(site_visited_query), columns=['instance__date_created'])
             sites_visited = df_site_visited.groupby(pd.Grouper(
                 key='instance__date_created', freq='1D')).size().to_frame("sites_visited").reset_index()
@@ -264,7 +286,11 @@ def time_report(report_obj):
             df = pd.concat([df, sites_visited], axis=1)
 
         if "sites_reviewed" in default_metrics:
-            site_reviewed_query = InstanceStatusChanged.objects.values('date')
+            if preview:
+                site_reviewed_query = InstanceStatusChanged.objects.values('date')[:10]
+            else:
+                site_reviewed_query = InstanceStatusChanged.objects.values('date')
+
             df_site_reviewed = pd.DataFrame(list(site_reviewed_query), columns=['date'])
             sites_reviewed = df_site_reviewed.groupby(pd.Grouper(
                 key='date', freq='1D')).size().to_frame("sites_reviewed").reset_index()
@@ -274,7 +300,12 @@ def time_report(report_obj):
             df = pd.concat([df, sites_reviewed], axis=1)
 
         if set(['progress_avg', 'progress_max', 'progress_min']).intersection(set(default_metrics)):
-            progress_query = SiteProgressHistory.objects.filter().values('date', 'progress')
+
+            if preview:
+                progress_query = SiteProgressHistory.objects.filter().values('date', 'progress')[:10]
+            else:
+                progress_query = SiteProgressHistory.objects.filter().values('date', 'progress')
+
             df_progress = pd.DataFrame(list(progress_query), columns=['date', 'progress'])
             if "progress_avg" in default_metrics:
                 progress_avg = df_progress.groupby(pd.Grouper(key='date', freq='1D')).mean()
@@ -293,18 +324,34 @@ def time_report(report_obj):
                 progress_min.columns = ['progress_min']
                 progress_min.index = progress_min.index.date
                 df = pd.concat([df, progress_min], axis=1)
-            query_submissions = FInstance.objects.filter().filter(
-                Q(project_fxf__project=report_obj.project_id) |
-                Q(site_fxf__site__project=report_obj.project_id)
-            ).values("pk",  "date", "instance__date_created", "form_status", "project_fxf")
+
+            if preview:
+                query_submissions = FInstance.objects.filter().filter(
+                    Q(project_fxf__project=report_obj.project_id) |
+                    Q(site_fxf__site__project=report_obj.project_id)
+                ).values("pk",  "date", "instance__date_created", "form_status", "project_fxf")[:10]
+            else:
+                query_submissions = FInstance.objects.filter().filter(
+                    Q(project_fxf__project=report_obj.project_id) |
+                    Q(site_fxf__site__project=report_obj.project_id)
+                ).values("pk", "date", "instance__date_created", "form_status", "project_fxf")
+
             df_submissions = pd.DataFrame(
                 list(query_submissions), columns=["pk", "date", "instance__date_created", "form_status", "project_fxf"])
 
-            query_reviews = InstanceStatusChanged.objects.filter(
-                finstance__project=report_obj.project_id, old_status__in=[2, 3]).filter(
-                Q(finstance__project_fxf__project=project_id) |
-                Q(finstance__site_fxf__site__project=project_id)
-            ).values("old_status", "date", "finstance", "finstance__project_fxf")
+            if preview:
+                query_reviews = InstanceStatusChanged.objects.filter(
+                    finstance__project=report_obj.project_id, old_status__in=[2, 3]).filter(
+                    Q(finstance__project_fxf__project=project_id) |
+                    Q(finstance__site_fxf__site__project=project_id)
+                ).values("old_status", "date", "finstance", "finstance__project_fxf")[:10]
+
+            else:
+                query_reviews = InstanceStatusChanged.objects.filter(
+                    finstance__project=report_obj.project_id, old_status__in=[2, 3]).filter(
+                    Q(finstance__project_fxf__project=project_id) |
+                    Q(finstance__site_fxf__site__project=project_id)
+                ).values("old_status", "date", "finstance", "finstance__project_fxf")
 
             df_reviews = pd.DataFrame(list(query_reviews), columns=["old_status", "date", "finstance", "finstance__project_fxf"])
 
