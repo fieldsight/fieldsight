@@ -266,6 +266,7 @@ REPORT_ACCOUNT_EMAIL = os.environ.get('REPORT_ACCOUNT_EMAIL', '@gmail.com')
 MEDIA_LOCATION_URL = os.environ.get('MEDIA_LOCATION_URL', 'https://testbucket.gcloud.com/')
 
 
+GS_DEFAULT_ACL = 'publicRead'
 DEFAULT_FILE_STORAGE = os.environ.get('DEFAULT_FILE_STORAGE', 'django.core.files.storage.FileSystemStorage')
 GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', '')
 GS_PROJECT_ID = os.environ.get('GS_PROJECT_ID', '')
