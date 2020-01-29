@@ -642,7 +642,7 @@ class CustomReportPreviewView(APIView):
         report_type = report_obj.type
 
         if report_type == 0:
-            df = site_report(report_obj)
+            df = site_report(report_obj, True)
         elif report_type == 4:
             df = user_report(report_obj)
         elif report_type == 5:
@@ -650,6 +650,6 @@ class CustomReportPreviewView(APIView):
         else:
             df = []
 
-        data = df.to_dict()
+        data = df
 
         return Response(status=status.HTTP_200_OK, data=data)
