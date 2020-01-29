@@ -25,6 +25,9 @@ from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewS
 from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions, ReportingLogsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
     FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA, FILTER_METRICS_DATA
+from .utils.site_report import site_report
+from .utils.time_report import time_report
+from .utils.user_report import user_report
 from ..eventlog.models import CeleryTaskProgress
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.reporting.tasks import new_export
@@ -627,3 +630,26 @@ class ReportTaskLogViewset(TaskListViewSet):
         if object_id:
             return self.queryset.filter(task_type=26, object_id=object_id)
         return []
+
+
+class CustomReportPreviewView(APIView):
+    permission_classes = [IsAuthenticated, ReportingSettingsPermissions]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def get(self, request, pk, *args,  **kwargs):
+
+        report_obj = ReportSettings.objects.get(id=pk)
+        report_type = report_obj.type
+
+        if report_type == 0:
+            df = site_report(report_obj)
+        elif report_type == 4:
+            df = user_report(report_obj)
+        elif report_type == 5:
+            df = time_report(report_obj)
+        else:
+            df = []
+
+        data = df.to_dict()
+
+        return Response(status=status.HTTP_200_OK, data=data)

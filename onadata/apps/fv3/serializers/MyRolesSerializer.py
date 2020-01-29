@@ -195,11 +195,12 @@ class MyRolesSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='organization.id')
     organization_name = serializers.SerializerMethodField(read_only=True)
     has_super_organization_access = serializers.SerializerMethodField(read_only=True)
+    organization_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = UserRole
         fields = ('id', 'name', 'organization_name', 'address', 'logo', 'has_organization_access',
-                  'has_super_organization_access', 'team_url', 'projects')
+                  'has_super_organization_access', 'team_url', 'projects', 'organization_id')
 
     def get_name(self, obj):
         return obj.organization.name
@@ -212,6 +213,15 @@ class MyRolesSerializer(serializers.ModelSerializer):
             organization_name = ''
 
         return organization_name
+
+    def get_organization_id(self, obj):
+
+        try:
+            organization_id = obj.organization.parent.id
+        except:
+            organization_id = ''
+
+        return organization_id
 
     def get_has_super_organization_access(self, obj):
         user = self.context['user']

@@ -1,10 +1,11 @@
 from django.conf.urls import url, include
 from .viewsets import ReportingProjectFormData, ReportSettingsViewSet, metrics_data, GenerateStandardReports, \
-    PreviewStandardReports, ReportExportView, ReportActionView, ReportTaskLogViewset
+    PreviewStandardReports, ReportExportView, ReportActionView, ReportTaskLogViewset, CustomReportPreviewView
 
 urlpatterns = [
 
     url(r'project-form-data/(?P<pk>\d+)/$', ReportingProjectFormData.as_view(), name='reporting_project_form_data'),
+    url(r'preview-custom-report/(?P<pk>\d+)/$', CustomReportPreviewView.as_view(), name='custom_report_preview'),
     url(r'add-report/(?P<pk>\d+)/$', ReportSettingsViewSet.as_view({'post': 'create'}), name='report_add'),
     url(r'reports-list/(?P<pk>\d+)/$', ReportSettingsViewSet.as_view({'get': 'list'}), name='project_reports'),
     url(r'report/(?P<pk>\d+)/$', ReportSettingsViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}),
