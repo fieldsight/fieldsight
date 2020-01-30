@@ -980,7 +980,7 @@ class TeamFormViewset(viewsets.ModelViewSet):
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
-    queryset = SuperOrganization.objects.all()
+    queryset = SuperOrganization.objects.prefetch_related('organization_instances', 'organizations')
     serializer_class = SuperOrganizationSerializer
     authentication_classes = [CsrfExemptSessionAuthentication, ]
     permission_classes = [IsAuthenticated, ]

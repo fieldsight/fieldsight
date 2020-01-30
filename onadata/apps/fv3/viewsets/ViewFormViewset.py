@@ -499,7 +499,7 @@ class FormSubmissionsView(APIView):
             # else:
 
             queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').\
-                filter(organization_fxf__organization_form_lib=org_form_lib_obj, project_id=project).order_by('-id')
+                filter(organization_form_lib=org_form_lib_obj, project_id=project).order_by('-id')
 
             page = self.paginate_queryset(queryset)
 

@@ -250,18 +250,24 @@ class SuperOrganizationSerializer(serializers.ModelSerializer):
     teams = serializers.SerializerMethodField()
     total_users = serializers.SerializerMethodField()
     admins = serializers.SerializerMethodField()
+    total_submissions = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = SuperOrganization
         fields = ('id', 'identifier', 'name', 'phone', 'country', 'additional_desc', 'logo', 'email', 'total_sites',
-                  'contact', 'projects', 'breadcrumbs', 'teams', 'map', 'total_users', 'admins', 'location')
-        read_only_fields = ('total_sites', 'contact', 'projects', 'map', 'total_users', 'breadcrumbs', 'admins')
+                  'contact', 'projects', 'breadcrumbs', 'teams', 'map', 'total_users', 'admins', 'location',
+                  'total_submissions')
+        read_only_fields = ('total_sites', 'contact', 'projects', 'map', 'total_users', 'breadcrumbs', 'admins',
+                            )
 
     def get_teams(self, obj):
 
         teams = obj.organizations.all().values('id', 'name', 'logo', 'address')
 
         return teams
+
+    def get_total_submissions(self, obj):
+        return obj.organization_instances.count()
 
     def get_projects(self, obj):
 
