@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from onadata.apps.fsforms.models import Stage
+from onadata.apps.fsforms.models import Stage, SCHEDULED_TYPE
 from onadata.apps.fieldsight.models import Site
 
 from .models import ReportSettings
@@ -29,6 +29,7 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
     shared_with = serializers.SerializerMethodField()
     attributes = serializers.JSONField()
     filter = serializers.JSONField(default=dict)
+    report_sync_settings = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ReportSettings
@@ -42,6 +43,23 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
         users = []
         [users.append(user.get_full_name()) for user in obj.shared_with.all()]
         return users
+
+    def get_report_sync_settings(self, obj):
+        if obj.report_sync_settings.all():
+            sync = obj.report_sync_settings.all()[0]
+            sync_settings = {'id': sync.id,
+                             'schedule_type': SCHEDULED_TYPE[int(sync.schedule_type)][1],
+                             'last_synced_date': sync.last_synced_date,
+                             'spreadsheet_id': sync.spreadsheet_id,
+                             'range': sync.range,
+                             'grid_id': sync.grid_id,
+                             'day': sync.day
+                             }
+
+        else:
+            sync_settings = {}
+
+        return sync_settings
 
 
 class ReportSettingsListSerializer(serializers.ModelSerializer):

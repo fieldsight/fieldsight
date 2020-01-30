@@ -263,7 +263,7 @@ class ReportSettings(models.Model):
 @receiver(post_save, sender=ReportSettings)
 def create_messages(sender, instance, created,  **kwargs):
     if instance.project and created:
-        sync_settings = ReportSyncSettings(project=instance.project, report_type="custom", schedule_type=0,
-                                           user=instance.owner)
+        sync_settings = ReportSyncSettings(report=instance, project=instance.project, report_type="custom",
+                                           schedule_type=0, user=instance.owner)
         sync_settings.save()
 
