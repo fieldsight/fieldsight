@@ -478,7 +478,7 @@ class FormSubmissionsView(APIView):
         fsxf_id = request.query_params.get('fsxf_id', None)
         search_param = request.query_params.get('q', None)
 
-        if org_form_lib is not None:
+        if org_form_lib and project is not None:
 
             is_organization = True
             try:
@@ -497,10 +497,9 @@ class FormSubmissionsView(APIView):
             #         )
             #     )
             # else:
-            fxf_ids = org_form_lib_obj.organization_forms.values_list('id', flat=True)
 
             queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').\
-                filter(organization_fxf_id__in=fxf_ids).order_by('-id')
+                filter(organization_fxf__organization_form_lib=org_form_lib_obj, project_id=project).order_by('-id')
 
             page = self.paginate_queryset(queryset)
 

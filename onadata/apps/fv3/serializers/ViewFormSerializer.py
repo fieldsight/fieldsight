@@ -391,7 +391,9 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
     def to_representation(self, obj):
         data = super(FormSubmissionSerializer, self).to_representation(obj)
         is_project = self.context.get('is_project', False)
-        if not is_project:
+        is_organization = self.context.get('is_organization', False)
+
+        if not(is_project or is_organization):
             data.pop('site_identifier')
             data.pop('site_name')
         return data
