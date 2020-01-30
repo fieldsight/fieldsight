@@ -119,3 +119,69 @@ class ExportViewSet(viewsets.ModelViewSet):
         self.perform_destroy(instance)
         return Response({'message': 'Your Export Has Been Deleted'}, status=status.HTTP_200_OK)
 
+
+class OrganizationExportViewSet(viewsets.ModelViewSet):
+    queryset = Export.objects.all().order_by("-created_on")
+    serializer_class = ExportSerializer
+    authentication_classes = [CsrfExemptSessionAuthentication, ]
+    permission_classes = [IsAuthenticated, ]
+
+    def get_queryset(self):
+        params = self.request.query_params
+        id = params.get('id')
+        fsxf = params.get('fsxf')
+        is_project = params.get('is_project')
+        version = params.get('version')
+        if not (id and fsxf and is_project):
+            return []
+        if is_project in ["1", True, 1]:
+            self.queryset = self.queryset.filter(fsxf=fsxf)
+        else:
+            self.queryset = self.queryset.filter(fsxf=fsxf, site=id)
+        if version:
+            return self.queryset.filter(version=version)
+        return self.queryset[:15]
+
+    def create(self, request, *args, **kwargs):
+        params = self.request.query_params
+        org_form_lib = params.get('org_form_lib')
+        version = params.get('version', 0)
+
+        if not org_form_lib:
+            return Response({'error': 'Parameters missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+        query = {"fs_organization_uuid": str(org_form_lib)}
+
+        force_xlsx = True
+        if version not in ["0", 0]:
+            query["__version__"] = version
+        deleted_at_query = {
+            "$or": [{"_deleted_at": {"$exists": False}},
+                    {"_deleted_at": None}]
+        }
+        # join existing query with deleted_at_query on an $and
+        query = {"$and": [query, deleted_at_query]}
+        print("query at excel generation", query)
+
+        # export options
+        group_delimiter = request.POST.get("group_delimiter", '/')
+        if group_delimiter not in ['.', '/']:
+            return Response({'error': _("%s is not a valid delimiter" % group_delimiter)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # default is True, so when dont_.. is yes
+        # split_select_multiples becomes False
+        split_select_multiples = request.POST.get(
+            "dont_split_select_multiples", "no") == "no"
+
+        binary_select_multiples = False
+        # external export option
+        meta = request.POST.get("meta")
+        options = {
+            'group_delimiter': group_delimiter,
+            'split_select_multiples': split_select_multiples,
+            'binary_select_multiples': binary_select_multiples,
+            'meta': meta.replace(",", "") if meta else None
+        }
+
+        create_async_export(None, 'xls', query, force_xlsx, options, False, None, None, version, False, org_form_lib)
+        return Response({'message': 'Your Download Has Been Started'}, status=status.HTTP_200_OK)

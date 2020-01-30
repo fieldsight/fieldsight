@@ -246,7 +246,7 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
             fxf = FieldSightXF.objects.get(id=fs_poj_id)
             if fxf.organization_form_lib:
                 fs_organization = fxf.organization_form_lib.organization_id
-                fs_organization_uuid = fxf.organization_form_lib
+                fs_organization_uuid = fxf.organization_form_lib_id
 
         pi, created = FieldSightParsedInstance.get_or_create(instance,
                                                              update_data={'fs_uuid': fxid, 'fs_status': 0,
