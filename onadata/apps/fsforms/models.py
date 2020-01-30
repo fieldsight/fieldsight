@@ -383,7 +383,6 @@ class FieldSightXF(models.Model):
             return self.project_form_instances.order_by('-pk').values(
                 'date')[:1]
 
-
     def get_absolute_url(self):
         if self.project:
             return reverse('forms:setup-forms',
@@ -656,8 +655,9 @@ class FInstance(models.Model):
                                  on_delete=models.SET_NULL)
     project_fxf = models.ForeignKey(FieldSightXF, null=True, blank=True,
                                     related_name='project_form_instances')
-    organization_fxf = models.ForeignKey(FieldSightXF, null=True, blank=True,
-                                         related_name='organization_form_instances')
+
+    organization_form_lib = models.ForeignKey(OrganizationFormLibrary, related_name="organization_form_instances",
+                                              null=True, blank=True)
 
     form_status = models.IntegerField(null=True,
                                       blank=True, choices=FORM_STATUS)
@@ -692,7 +692,7 @@ class FInstance(models.Model):
 
         if self.project_fxf is not None:
             if self.project_fxf.organization_form_lib is not None:
-                self.organization_fxf = self.project_fxf
+                self.organization_form_lib = self.project_fxf.organization_form_lib
                 self.organization = self.project_fxf.organization_form_lib.organization
         self.team = self.project.organization
         super(FInstance, self).save(*args, **kwargs)  # Call the "real" save() method.

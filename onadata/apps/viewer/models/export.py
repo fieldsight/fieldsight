@@ -6,7 +6,7 @@ from django.db import models
 from django.db.models.signals import post_delete
 from django.utils.translation import ugettext as _
 
-from onadata.apps.fsforms.models import FieldSightXF
+from onadata.apps.fsforms.models import FieldSightXF, OrganizationFormLibrary
 from onadata.apps.logger.models import XForm
 
 
@@ -87,6 +87,9 @@ class Export(models.Model):
     export_url = models.URLField(null=True, default=None)
 
     fsxf = models.ForeignKey(FieldSightXF, null=True, blank=True, related_name="exports")
+
+    organization_form_lib = models.ForeignKey(OrganizationFormLibrary, related_name="exports",
+                                              null=True, blank=True)
     site = models.IntegerField(default=0)
     version = models.CharField(max_length=255, null=True, blank=True, default="0")
 

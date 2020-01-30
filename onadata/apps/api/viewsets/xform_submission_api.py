@@ -114,7 +114,7 @@ def update_mongo(i):
             d['fs_project_uuid'] = str(x.project_fxf_id)
             if x.project_fxf.organization_form_lib:
                 d['fs_organization'] = str(x.project_fxf.organization_form_lib.organization_id)
-                d['fs_organization_uuid'] = str(x.project_fxf_id)
+                d['fs_organization_uuid'] = str(x.project_fxf.organization_form_lib)
 
         if x.site_fxf:
             d['fs_uuid'] = str(x.site_fxf_id)

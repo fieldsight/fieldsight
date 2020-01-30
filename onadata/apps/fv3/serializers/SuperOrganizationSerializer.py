@@ -102,27 +102,18 @@ class OrganizationGeneralScheduledFormSerializer(serializers.ModelSerializer):
         return obj.date_range_end
 
     def get_total_submissions(self, obj):
-        fxf_ids = obj.organization_forms.values_list('id', flat=True)
-        instances = FInstance.objects.filter(organization_fxf_id__in=fxf_ids).count()
+        instances = obj.organization_form_instances.count()
         return instances
 
     def get_submissions(self, obj):
-        data = [{'pending': len(o.pending),
-                 'rejected': len(o.rejected),
-                 'flagged': len(o.flagged),
-                 'approved': len(o.approved)
+        data = {'pending': len(obj.pending),
+                 'rejected': len(obj.rejected),
+                 'flagged': len(obj.flagged),
+                 'approved': len(obj.approved)
                  }
-                for o in obj.organization_forms.all()]
-        if not data:
-            data = [{'pending': 0,
-                     'rejected': 0,
-                     'flagged': 0,
-                     'approved': 0
-                     }]
-        counter = collections.Counter()
-        for d in data:
-            counter.update(d)
-        return counter
+
+
+        return data
 
     def get_last_response_on(self, obj):
         try:
@@ -150,22 +141,13 @@ class OrganizationFormSerializer(serializers.ModelSerializer):
 
     def get_submissions(self, obj):
 
-        data = [{'pending': len(o.pending),
-                 'rejected': len(o.rejected),
-                 'flagged': len(o.flagged),
-                 'approved': len(o.approved)
+        data = {'pending': len(obj.pending),
+                 'rejected': len(obj.rejected),
+                 'flagged': len(obj.flagged),
+                 'approved': len(obj.approved)
                  }
-                for o in obj.organization_forms.all()]
-        if not data:
-            data = [{'pending': 0,
-                     'rejected': 0,
-                     'flagged': 0,
-                     'approved': 0
-                     }]
-        counter = collections.Counter()
-        for d in data:
-            counter.update(d)
-        return counter
+
+        return data
 
 
 class OrganizationProjectsFormSerializer(serializers.ModelSerializer):
