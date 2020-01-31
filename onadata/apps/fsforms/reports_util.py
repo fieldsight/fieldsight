@@ -33,6 +33,7 @@ def get_recent_images(site_id):
         attachment = {"_id": url[1],
                       "_attachments": {"download_url": download_url}}
         recent_pictures.append(attachment)
+    return recent_pictures
 
 
 def get_images_for_site(site_id):
@@ -46,21 +47,11 @@ def get_images_for_site(site_id):
         attachment = {"_id": url[1],
                       "_attachments": {"download_url": download_url}}
         recent_pictures.append(attachment)
+    return recent_pictures
 
 
 def get_images_for_site_all(site_id):
-    urls = Attachment.objects.filter(instance__fieldsight_instance__is_deleted=False,
-                                     instance__fieldsight_instance__site=site_id).values_list('media_file', 'instance')
-    BASEURL = DjangoSite.objects.get_current().domain
-    recent_pictures = []
-
-    for url in urls:
-        download_url = 'https://' + BASEURL + '/attachment/medium?media_file=' + url[0]
-        attachment = {
-            "_id": url[1],
-            "_attachments": {"download_url": download_url}
-        }
-        recent_pictures.append(attachment)
+    pass
 
 
 def get_site_responses_coords(site_id):
