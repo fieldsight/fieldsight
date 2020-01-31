@@ -37,21 +37,23 @@ def get_recent_images(site_id):
 
 
 def get_images_for_site(site_id):
-    urls = Attachment.objects.filter(instance__fieldsight_instance__is_deleted=False,
-                              instance__fieldsight_instance__site=site_id).values_list('media_file', 'instance')[:6]
-    BASEURL = DjangoSite.objects.get_current().domain
-    recent_pictures = []
-
-    for url in urls:
-        download_url = 'https://' + BASEURL + '/attachment/medium?media_file=' + url[0]
-        attachment = {"_id": url[1],
-                      "_attachments": {"download_url": download_url}}
-        recent_pictures.append(attachment)
-    return recent_pictures
+    return settings.MONGO_DB.instances.aggregate(
+        [{"$match": {
+            "fs_site": {'$in': [str(site_id), int(site_id)]},
+            '_deleted_at': {'$exists': False}}},
+            {"$unwind": "$_attachments"},
+            {"$match": {"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
+            {"$sort": {"_id": -1}}, {"$limit": 6}])
 
 
 def get_images_for_site_all(site_id):
-    pass
+    return settings.MONGO_DB.instances.aggregate(
+        [{"$match": {
+            "fs_site": {'$in': [str(site_id), int(site_id)]},
+            '_deleted_at': {'$exists': False}}},
+            {"$unwind": "$_attachments"},
+            {"$match": {"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
+            {"$sort": {"_id": -1}}])
 
 
 def get_site_responses_coords(site_id):
