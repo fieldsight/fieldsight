@@ -266,13 +266,13 @@ REPORT_ACCOUNT_EMAIL = os.environ.get('REPORT_ACCOUNT_EMAIL', '@gmail.com')
 MEDIA_LOCATION_URL = os.environ.get('MEDIA_LOCATION_URL', 'https://testbucket.gcloud.com/')
 
 
-GS_DEFAULT_ACL = 'publicRead'
+# GS_DEFAULT_ACL = 'publicRead'
 DEFAULT_FILE_STORAGE = os.environ.get('DEFAULT_FILE_STORAGE', 'django.core.files.storage.FileSystemStorage')
 GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', '')
 GS_PROJECT_ID = os.environ.get('GS_PROJECT_ID', '')
 
 GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', "storage_credentials.json" )
-GS_EXPIRATION = os.environ.get('GS_EXPIRATION', 86400 * 365 * 100)
+GS_EXPIRATION = os.environ.get('GS_EXPIRATION', 86400)
 # Needed when behind load balancer with ssl offloading. an example value is: HTTP_X_FORWARDED_PROTO
 SECURE_PROXY_SSL_HEADER_NAME = os.environ.get('SECURE_PROXY_SSL_HEADER_NAME', '')
 if SECURE_PROXY_SSL_HEADER_NAME:
