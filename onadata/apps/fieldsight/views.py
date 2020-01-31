@@ -88,7 +88,7 @@ from .metaAttribsGenerator import generateSiteMetaAttribs
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from onadata.apps.fsforms.models import SyncSchedule
-
+from onadata.apps.fieldsight.management.commands.add_default_identifier import randomString
 from onadata.libs.utils.image_tools import image_url
 from onadata.apps.logger.models import Attachment
 from django.core.files.storage import get_storage_class
@@ -4833,7 +4833,10 @@ class RequestOrganizationSearchView(TemplateView):
 def auto_create_project_site(instance, created, **kwargs):
     if created:
         project_type_id = ProjectType.objects.first().id
-        project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id,
+        project = Project.objects.create(name="Example Project",
+                                         identifier=randomString(8),
+                                         organization_id=instance.id,
+                                         type_id=project_type_id,
                                          location=instance.location)
         Site.objects.create(name="Example Site", project=project, identifier="example site",
                             location=instance.location)
