@@ -5,6 +5,8 @@ from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Prefetch, F
 from django.utils import timezone
+from django.conf import settings
+
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.views import APIView
@@ -24,9 +26,9 @@ from onadata.apps.fv3.serializers.SuperOrganizationSerializer import Organizatio
     OrganizationProjectsFormSerializer
 from onadata.apps.fv3.serializer import TeamSerializer
 from onadata.apps.fv3.serializers.TeamSerializer import TeamProjectSerializer
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fieldsight.tasks import add_forms_in_projects
+from onadata.apps.fieldsight.tasks import add_forms_in_projects, remove_forms_instances
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -304,6 +306,20 @@ class ManageSuperOrganizationLibraryView(APIView):
                 Remove default/library form super organization.
             """
             org_form_obj = OrganizationFormLibrary.objects.get(id=id, organization_id=pk)
+            if org_form_obj.is_form_library:
+                pass
+            else:
+                if org_form_obj.form_type == 1:
+                    Schedule.objects.filter(organization_form_lib=id).update(is_deleted=True)
+                else:
+                    pass
+                task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=28,
+                                                             content_object=org_form_obj)
+                if task_obj:
+                    task = remove_forms_instances.delay(org_form_obj.id, task_obj.id)
+                    task_obj.task_id = task.id
+                    task_obj.save()
+
             org_form_obj.deleted = True
             org_form_obj.save()
 

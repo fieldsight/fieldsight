@@ -240,6 +240,7 @@ class CeleryTaskProgress(models.Model):
         (25, 'Update Site Information on Submission'),
         (26, 'Export Report in excel'),
         (27, 'Add default forms in Projects'),
+        (28, 'Remove default forms from Organization'),
 
     )
     task_id = models.CharField(max_length=255, blank=True, null=True)

@@ -2706,6 +2706,24 @@ def update_metas_in_sites(pk, start, end):
 
 
 @shared_task(max_retries=5)
+def remove_forms_instances(org_form_lib_id, task_id):
+    time.sleep(5)
+    try:
+        instances = FInstance.objects.filter(organization_form_lib=org_form_lib_id).values_list('instance', flat=True)
+
+        Instance.objects.filter(id__in=instances).update(deleted_at=datetime.datetime.now())
+        FInstance.objects.filter(organization_form_lib=org_form_lib_id).update(is_deleted=True)
+        FieldSightXF.objects.filter(organization_form_lib=org_form_lib_id).update(is_deleted=True)
+
+        result = settings.MONGO_DB.instances.update({"_id": {"$in": list(instances)}},
+                                                    {"$set": {'_deleted_at': datetime.datetime.now()}},
+                                                    multi=True)
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception as e:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
+
+
+@shared_task(max_retries=5)
 def add_forms_in_projects(org_form_lib_id, task_id):
     time.sleep(10)
     obj = OrganizationFormLibrary.objects.get(id=org_form_lib_id)
@@ -2739,7 +2757,6 @@ def add_forms_in_projects(org_form_lib_id, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception as e:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
-
 
 @shared_task(max_retries=5)
 def remove_organization_forms(org_form_lib_id, task_id):

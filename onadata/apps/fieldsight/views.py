@@ -1308,7 +1308,9 @@ class SiteDeleteView(SiteDeleteRoleMixin, View):
 
         FInstance.objects.filter(instance_id__in=instances).update(is_deleted=True)
 
-        task_obj=CeleryTaskProgress.objects.create(user=self.request.user, description="Removal of UserRoles After Site delete", task_type=7, content_object = site)
+        task_obj = CeleryTaskProgress.objects.create(user=self.request.user,
+                                                     description="Removal of UserRoles After Site delete",
+                                                     task_type=7, content_object=site)
 
         if task_obj:
             task = UnassignAllSiteRoles.delay(task_obj.id, site.id)
