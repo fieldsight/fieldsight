@@ -3,6 +3,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 
 from onadata.apps.fieldsight.models import Project
+from onadata.apps.fsforms.models import OrganizationFormLibrary
 
 
 class SuperOrganizationAdminPermission(permissions.BasePermission):
@@ -11,7 +12,10 @@ class SuperOrganizationAdminPermission(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        organization = view.kwargs.get('pk')
+        if view.kwargs.get('pk'):
+            organization = view.kwargs.get('pk')
+        else:
+            organization = OrganizationFormLibrary.objects.get(id=view.kwargs.get('org_form_lib')).organization
 
         if request.is_super_admin:
             return True
@@ -23,4 +27,3 @@ class SuperOrganizationAdminPermission(permissions.BasePermission):
 
         else:
             return False
-

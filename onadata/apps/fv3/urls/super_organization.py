@@ -32,7 +32,7 @@ super_organization_urlpatterns = [
         name='organization_teams'),
     url(r'^api/organization-forms/(?P<pk>\d+)/$', OrganizationFormsViewSet.as_view({'get': 'list'}),
         name='organization_forms'),
-    url(r'^api/organization-project-forms/(?P<pk>\d+)/$', OrganizationProjectsFormsViewSet.as_view({'get': 'list'}),
-        name='organization_projects_forms'),
+    url(r'^api/organization-project-forms/(?P<org_form_lib>\d+)/$',
+        OrganizationProjectsFormsViewSet.as_view({'get': 'list'}), name='organization_projects_forms'),
 
 ]

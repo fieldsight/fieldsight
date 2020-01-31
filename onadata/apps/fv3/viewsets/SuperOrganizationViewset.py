@@ -446,17 +446,17 @@ class OrganizationProjectsFormsViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         try:
-            org_lib = OrganizationFormLibrary.objects.get(id=self.kwargs.get('pk'))
+            org_lib = OrganizationFormLibrary.objects.get(id=self.kwargs.get('org_form_lib'))
         except ObjectDoesNotExist:
             return None
         return self.queryset.prefetch_related(Prefetch(
             'project_instances',
-            queryset=FInstance.objects.filter(organization_form_lib_id=self.kwargs.get('pk')),
+            queryset=FInstance.objects.filter(organization_form_lib_id=self.kwargs.get('org_form_lib')),
             to_attr='project_instances_count'
 
         )).prefetch_related(Prefetch(
             'project_instances',
-            queryset=FInstance.objects.filter(organization_form_lib_id=self.kwargs.get('pk')).\
+            queryset=FInstance.objects.filter(organization_form_lib_id=self.kwargs.get('org_form_lib')).\
                 order_by('-pk'),
             to_attr='last_response'
 
@@ -465,13 +465,13 @@ class OrganizationProjectsFormsViewSet(viewsets.ReadOnlyModelViewSet):
             Prefetch(
                 'project_forms__project_form_instances',
                 queryset=FInstance.objects.filter(form_status=0,
-                                                  organization_form_lib_id=self.kwargs.get('pk')),
+                                                  organization_form_lib_id=self.kwargs.get('org_form_lib')),
                 to_attr='pending'
         )).prefetch_related(
             Prefetch(
                 'project_forms__project_form_instances',
                 queryset=FInstance.objects.filter(form_status=1,
-                                                  organization_form_lib_id=self.kwargs.get('pk')),
+                                                  organization_form_lib_id=self.kwargs.get('org_form_lib')),
                 to_attr='rejected'
                                   )).\
             prefetch_related(
@@ -485,6 +485,6 @@ class OrganizationProjectsFormsViewSet(viewsets.ReadOnlyModelViewSet):
             Prefetch(
                 'project_forms__project_form_instances',
                 queryset=FInstance.objects.filter(form_status=3,
-                                                  organization_form_lib_id=self.kwargs.get('pk')),
+                                                  organization_form_lib_id=self.kwargs.get('org_form_lib')),
                 to_attr='approved'
                                   )).filter(organization__parent=org_lib.organization)
