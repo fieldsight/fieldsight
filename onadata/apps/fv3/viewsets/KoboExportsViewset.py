@@ -10,7 +10,7 @@ from rest_framework.renderers import BaseRenderer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from rest_framework.response import Response
 from django.utils.translation import ugettext as _
-from onadata.apps.fsforms.models import FieldSightXF
+from onadata.apps.fsforms.models import FieldSightXF, OrganizationFormLibrary
 from onadata.apps.fv3.serializers.KoboExportSerializer import ExportSerializer
 from onadata.apps.viewer.models import Export
 from onadata.apps.viewer.tasks import create_async_export
@@ -128,18 +128,10 @@ class OrganizationExportViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         params = self.request.query_params
-        id = params.get('id')
-        fsxf = params.get('fsxf')
-        is_project = params.get('is_project')
-        version = params.get('version')
-        if not (id and fsxf and is_project):
-            return []
-        if is_project in ["1", True, 1]:
-            self.queryset = self.queryset.filter(fsxf=fsxf)
-        else:
-            self.queryset = self.queryset.filter(fsxf=fsxf, site=id)
-        if version:
-            return self.queryset.filter(version=version)
+        org_form_lib = params.get('org_form_lib')
+
+        self.queryset = self.queryset.filter(organization_form_lib_id=org_form_lib)
+
         return self.queryset[:15]
 
     def create(self, request, *args, **kwargs):
@@ -149,8 +141,9 @@ class OrganizationExportViewSet(viewsets.ModelViewSet):
 
         if not org_form_lib:
             return Response({'error': 'Parameters missing'}, status=status.HTTP_400_BAD_REQUEST)
+        xform = OrganizationFormLibrary.objects.get(id=org_form_lib).xf
 
-        query = {"fs_organization_uuid": str(org_form_lib)}
+        query = {"fs_organization_uuid": org_form_lib}
 
         force_xlsx = True
         if version not in ["0", 0]:
@@ -166,7 +159,8 @@ class OrganizationExportViewSet(viewsets.ModelViewSet):
         # export options
         group_delimiter = request.POST.get("group_delimiter", '/')
         if group_delimiter not in ['.', '/']:
-            return Response({'error': _("%s is not a valid delimiter" % group_delimiter)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _("%s is not a valid delimiter" % group_delimiter)},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         # default is True, so when dont_.. is yes
         # split_select_multiples becomes False
@@ -183,5 +177,6 @@ class OrganizationExportViewSet(viewsets.ModelViewSet):
             'meta': meta.replace(",", "") if meta else None
         }
 
-        create_async_export(None, 'xls', query, force_xlsx, options, False, None, None, version, False, org_form_lib)
+        create_async_export(xform, 'xls', query, force_xlsx, options, False, None, None, version, False, None,
+                            org_form_lib)
         return Response({'message': 'Your Download Has Been Started'}, status=status.HTTP_200_OK)

@@ -40,7 +40,7 @@ from onadata.libs.utils.common_tags import (
 from onadata.libs.exceptions import J2XException
 from .analyser_export import generate_analyser
 from onadata.apps.fsforms.XFormMediaAttributes import get_questions_and_media_attributes
-from onadata.apps.fsforms.models import FInstance, XformHistory
+from onadata.apps.fsforms.models import FInstance, XformHistory, OrganizationFormLibrary
 from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.fieldsight.tasks import upload_to_drive
 # this is Mongo Collection where we will store the parsed submissions
@@ -533,8 +533,7 @@ class ExportBuilder(object):
             print(str(e))
         submission_status_dict = {0: 'Pending', 1: 'Rejected', 2: 'Flagged', 3: 'Approved'}
 
-        xform = XForm.objects.get(
-        user__username__iexact=username, id_string__exact=id_string)
+        xform = XForm.objects.get(user__username__iexact=username, id_string__exact=id_string)
 
         question_json = xform.json
         try:
@@ -542,25 +541,34 @@ class ExportBuilder(object):
                 question_json = XformHistory.objects.get(xform=xform, version=__version__).json
         except Exception as e:
             print(str(e))
-        print(filter_query)
+
         try:
-            fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_project_uuid'])
+            fxf_form = OrganizationFormLibrary.objects.get(pk=filter_query['$and'][0]['fs_organization_uuid'])
             if __version__:
-                submissions = fxf_form.project_form_instances.filter(version=__version__).select_related("site").values("form_status","comment", "instance", "site", "site__name", "site__phone", "site__identifier")
+                submissions = fxf_form.organization_form_instances.filter(version=__version__).select_related("site"). \
+                    values("form_status", "comment", "instance", "site", "site__name", "site__phone",
+                           "site__identifier")
             else:
-                submissions =fxf_form.project_form_instances.select_related("site").values("form_status","comment", "instance","site", "site__name", "site__phone", "site__identifier")
-        except Exception as e: # SITE LEVEL FORM
-            fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_uuid'])
-            if __version__:
-                submissions = fxf_form.site_form_instances.filter(version=__version__).select_related("site").values(
-                    "form_status", "comment", "instance", "site", "site__name", "site__phone", "site__identifier")
-            else:
-                submissions = fxf_form.site_form_instances.select_related("site").values("form_status","comment", "instance",
-                                                                                            "site", "site__name",
-                                                                                            "site__phone",
-                                                                                            "site__identifier")
-
-
+                submissions = fxf_form.organization_form_instances.select_related("site"). \
+                    values("form_status", "comment", "instance", "site", "site__name", "site__phone",
+                           "site__identifier")
+        except Exception as e:
+            try:
+                fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_project_uuid'])
+                if __version__:
+                    submissions = fxf_form.project_form_instances.filter(version=__version__).select_related("site").values("form_status","comment", "instance", "site", "site__name", "site__phone", "site__identifier")
+                else:
+                    submissions =fxf_form.project_form_instances.select_related("site").values("form_status","comment", "instance","site", "site__name", "site__phone", "site__identifier")
+            except Exception as e: # SITE LEVEL FORM
+                fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_uuid'])
+                if __version__:
+                    submissions = fxf_form.site_form_instances.filter(version=__version__).select_related("site").values(
+                        "form_status", "comment", "instance", "site", "site__name", "site__phone", "site__identifier")
+                else:
+                    submissions = fxf_form.site_form_instances.select_related("site").values("form_status","comment", "instance",
+                                                                                                "site", "site__name",
+                                                                                                "site__phone",
+                                                                                                "site__identifier")
         [s for s in submissions] # query db
 
         postgres_data = {
