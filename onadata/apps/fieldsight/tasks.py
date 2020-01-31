@@ -2706,18 +2706,43 @@ def update_metas_in_sites(pk, start, end):
 
 
 @shared_task(max_retries=5)
-def remove_forms_instances(org_form_lib_id, task_id):
+def remove_forms_instances(org_form_lib_id, task_id, team_id=None, org_id=None):
     time.sleep(5)
     try:
-        instances = FInstance.objects.filter(organization_form_lib=org_form_lib_id).values_list('instance', flat=True)
+        if team_id and org_id:
+            Organization.objects.filter(id=team_id).update(parent_id=None)
+            projects = Project.objects.filter(organization__id=team_id).values_list('id', flat=True)
+            library_forms = OrganizationFormLibrary.objects.filter(organization=org_id).values_list('id', flat=True)
 
-        Instance.objects.filter(id__in=instances).update(deleted_at=datetime.datetime.now())
-        FInstance.objects.filter(organization_form_lib=org_form_lib_id).update(is_deleted=True)
-        FieldSightXF.objects.filter(organization_form_lib=org_form_lib_id).update(is_deleted=True)
+            FieldSightXF.objects.filter(project_id__in=projects,
+                                        organization_form_lib_id__in=library_forms).\
+                update(is_deleted=True, is_deployed=False)
 
-        result = settings.MONGO_DB.instances.update({"_id": {"$in": list(instances)}},
-                                                    {"$set": {'_deleted_at': datetime.datetime.now()}},
-                                                    multi=True)
+            instances = FInstance.objects.filter(organization_form_lib_id__in=org_form_lib_id,
+                                                 project_id__in=projects).values_list('instance', flat=True)
+            if instances:
+                FInstance.objects.filter(organization_form_lib=org_form_lib_id).update(is_deleted=True)
+            else:
+                pass
+
+        else:
+            instances = FInstance.objects.filter(organization_form_lib=org_form_lib_id).values_list('instance',
+                                                                                                    flat=True)
+
+            FieldSightXF.objects.filter(organization_form_lib=org_form_lib_id).update(is_deleted=True,
+                                                                                      is_deployed=False)
+            if instances:
+                FInstance.objects.filter(organization_form_lib=org_form_lib_id).update(is_deleted=True)
+            else:
+                pass
+        if instances:
+            Instance.objects.filter(id__in=instances).update(deleted_at=datetime.datetime.now())
+            result = settings.MONGO_DB.instances.update({"_id": {"$in": list(instances)}},
+                                                       {"$set": {'_deleted_at': datetime.datetime.now()}},
+                                                       multi=True)
+        else:
+            pass
+
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception as e:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
@@ -2757,6 +2782,7 @@ def add_forms_in_projects(org_form_lib_id, task_id):
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
     except Exception as e:
         CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
+
 
 @shared_task(max_retries=5)
 def remove_organization_forms(org_form_lib_id, task_id):

@@ -140,12 +140,13 @@ class ManageTeamsView(APIView):
             """
                 Remove team from super organization
             """
-            Organization.objects.filter(id=team_id).update(parent_id=None)
-            projects = Project.objects.filter(organization__id=team_id).values_list('id', flat=True)
-            library_forms = OrganizationFormLibrary.objects.filter(organization=pk).values_list('xf', flat=True)
-
-            FieldSightXF.objects.filter(project_id__in=projects, id__in=library_forms).update(is_deleted=True,
-                                                                                              is_deployed=False)
+            org = SuperOrganization.objects.get(id=pk)
+            task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=29,
+                                                         content_object=org)
+            if task_obj:
+                task = remove_forms_instances.delay(None, task_obj.id, team_id, org_id=pk)
+                task_obj.task_id = task.id
+                task_obj.save()
 
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully removed.'})
 
