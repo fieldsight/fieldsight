@@ -448,7 +448,8 @@ class FormSubmissionsView(APIView):
             breadcrumbs = {'project_name': object[0].name,
                            'project_url': object[0].get_absolute_url(),
                            'responses': 'Responses',
-                           'responses_url': '/fieldsight/application/#/project-responses/{}/general'.format(object[0].id),
+                           'responses_url': '/fieldsight/application/#/project-responses/{}/{}/general'.\
+                               format(object[0].id, org_form_lib),
                            'current_page': form_name
                            }
 
@@ -456,8 +457,8 @@ class FormSubmissionsView(APIView):
             breadcrumbs = {'organization_name': object[0].name,
                            'organization_url': object[0].get_absolute_url(),
                            'responses': 'Projects Submissions',
-                           'responses_url': '/fieldsight/application/#/organization-submission/{}'.format(
-                               org_form_lib),
+                           'responses_url': '/fieldsight/application/#/organization-submission/{}/{}'.format(
+                               object[0].id, org_form_lib),
                            'current_page': form_name
                            }
 
