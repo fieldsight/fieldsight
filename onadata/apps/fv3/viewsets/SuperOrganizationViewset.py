@@ -314,7 +314,8 @@ class ManageSuperOrganizationLibraryView(APIView):
             """
             org_form_obj = OrganizationFormLibrary.objects.get(id=id, organization_id=pk)
             if org_form_obj.is_form_library:
-                pass
+                org_form_obj.deleted = True
+                org_form_obj.save()
             else:
                 if org_form_obj.form_type == 1:
                     Schedule.objects.filter(organization_form_lib=id).update(is_deleted=True)
@@ -326,9 +327,8 @@ class ManageSuperOrganizationLibraryView(APIView):
                     task = remove_forms_instances.delay(org_form_obj.id, task_obj.id)
                     task_obj.task_id = task.id
                     task_obj.save()
-
-            org_form_obj.deleted = True
-            org_form_obj.save()
+                org_form_obj.is_form_library = True
+                org_form_obj.save()
 
             return Response(status=status.HTTP_200_OK, data={'detail': 'successfully removed.'})
 
