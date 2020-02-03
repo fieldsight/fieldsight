@@ -45,6 +45,7 @@ from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, Unass
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
+from .permissions.super_organization import SuperOrganizationAdminPermission
 from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
     check_site_permission, SuperUserPermissions, TeamCreationPermission
 from .serializer import TeamSerializer, SuperOrganizationSerializer
@@ -983,7 +984,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = SuperOrganization.objects.prefetch_related('organization_instances', 'organizations')
     serializer_class = SuperOrganizationSerializer
     authentication_classes = [CsrfExemptSessionAuthentication, ]
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

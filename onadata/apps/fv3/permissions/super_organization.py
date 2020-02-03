@@ -15,7 +15,10 @@ class SuperOrganizationAdminPermission(permissions.BasePermission):
         if view.kwargs.get('pk'):
             organization = view.kwargs.get('pk')
         else:
-            organization = OrganizationFormLibrary.objects.get(id=view.kwargs.get('org_form_lib')).organization
+            try:
+                organization = OrganizationFormLibrary.objects.get(id=view.kwargs.get('org_form_lib')).organization
+            except:
+                return False
 
         if request.is_super_admin:
             return True
