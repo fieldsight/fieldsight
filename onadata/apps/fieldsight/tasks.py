@@ -2711,7 +2711,7 @@ def remove_forms_instances(org_form_lib_id, task_id, team_id=None, org_id=None):
     try:
         if team_id and org_id:
             Organization.objects.filter(id=team_id).update(parent_id=None)
-            projects = Project.objects.filter(organization__id=team_id).values_list('id', flat=True)
+            projects = Project.objects.filter(organization_id=team_id).values_list('id', flat=True)
             library_forms = OrganizationFormLibrary.objects.filter(organization=org_id).values_list('id', flat=True)
 
             FieldSightXF.objects.filter(project_id__in=projects,

@@ -114,21 +114,28 @@ class ManageTeamsView(APIView):
             for project in projects:
                 for obj in library_forms:
                     if obj.form_type == 0:
-                        fsxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
-                                            default_submission_status=obj.default_submission_status)
+                        fsxf = FieldSightXF(xf=obj.xf, project=project,
+                                            is_deployed=True,
+                                            default_submission_status=obj.default_submission_status,
+                                            organization_form_lib=obj
+                                            )
                         fsxf_list.append(fsxf)
                     else:
                         scheduled_obj = Schedule.objects. \
                             create(project=project, date_range_start=obj.date_range_start,
                                    date_range_end=obj.date_range_end,
                                    schedule_level_id=obj.schedule_level_id, frequency=obj.frequency,
-                                   month_day=obj.month_day)
+                                   month_day=obj.month_day,
+                                   organization_form_lib=obj
+                                   )
                         scheduled_obj.selected_days.add(*obj.selected_days.values_list('id', flat=True))
                         scheduled_obj.save()
                         scheduled_fxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
                                                      is_scheduled=True,
                                                      default_submission_status=obj.default_submission_status,
-                                                     schedule=scheduled_obj)
+                                                     schedule=scheduled_obj,
+                                                     organization_form_lib=obj
+                                                     )
                         fsxf_list.append(scheduled_fxf)
 
             FieldSightXF.objects.bulk_create(fsxf_list)
@@ -144,7 +151,7 @@ class ManageTeamsView(APIView):
             task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=29,
                                                          content_object=org)
             if task_obj:
-                task = remove_forms_instances.delay(None, task_obj.id, team_id, org_id=pk)
+                task = remove_forms_instances.delay(None, task_obj.id, team_id, pk)
                 task_obj.task_id = task.id
                 task_obj.save()
 
