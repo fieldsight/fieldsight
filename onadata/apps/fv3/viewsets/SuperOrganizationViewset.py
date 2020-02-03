@@ -312,7 +312,10 @@ class ManageSuperOrganizationLibraryView(APIView):
             """
                 Remove default/library form super organization.
             """
-            org_form_obj = OrganizationFormLibrary.objects.get(id=id, organization_id=pk)
+            try:
+                org_form_obj = OrganizationFormLibrary.objects.get(id=id, organization_id=pk)
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
             if org_form_obj.is_form_library:
                 org_form_obj.deleted = True
                 org_form_obj.save()
