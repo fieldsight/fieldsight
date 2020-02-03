@@ -12,6 +12,10 @@ class SuperOrganizationAdminPermission(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
+
+        if request.is_super_admin:
+            return True
+
         if view.kwargs.get('pk'):
             organization = view.kwargs.get('pk')
         else:
@@ -19,9 +23,6 @@ class SuperOrganizationAdminPermission(permissions.BasePermission):
                 organization = OrganizationFormLibrary.objects.get(id=view.kwargs.get('org_form_lib')).organization
             except:
                 return False
-
-        if request.is_super_admin:
-            return True
 
         user_role_as_super_org_admin = request.roles.filter(super_organization_id=organization,
                                                             group__name="Super Organization Admin")
