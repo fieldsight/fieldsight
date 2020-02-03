@@ -52,6 +52,11 @@ class ManageFormsPermission(permissions.BasePermission):
                                                  group__name="Project Manager")
                 if user_role:
                     return True
+
+                user_role_as_supervisor_or_reviewer = request.roles.\
+                    filter(site=site, group__name__in=["Site Supervisor", "Reviewer"])
+                if user_role_as_supervisor_or_reviewer:
+                    return True
         return False
 
 

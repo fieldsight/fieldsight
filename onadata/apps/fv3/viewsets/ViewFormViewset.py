@@ -442,7 +442,7 @@ class FormSubmissionsView(APIView):
     permission_classes = (IsAuthenticated, ViewDataPermission)
     pagination_class = SubmissionStatusPagination
 
-    def get_breadcrumbs(self, is_project, object, form_name, is_organization=False):
+    def get_breadcrumbs(self, is_project, object, form_name, is_organization=False, org_form_lib=None):
         if is_project:
 
             breadcrumbs = {'project_name': object[0].name,
@@ -455,9 +455,9 @@ class FormSubmissionsView(APIView):
         elif is_organization:
             breadcrumbs = {'organization_name': object[0].name,
                            'organization_url': object[0].get_absolute_url(),
-                           'responses': 'Responses',
-                           'responses_url': '/fieldsight/application/#/organization-responses/{}/general'.format(
-                               object[0].id),
+                           'responses': 'Projects Submissions',
+                           'responses_url': '/fieldsight/application/#/organization-submission/{}'.format(
+                               org_form_lib),
                            'current_page': form_name
                            }
 
@@ -512,7 +512,8 @@ class FormSubmissionsView(APIView):
                                                     'form_id_string': org_form_lib_obj.xf.id_string,
                                                     'query': search_param,
                                                     'breadcrumbs': self.get_breadcrumbs(False, organization, form_name,
-                                                                                        is_organization=True)
+                                                                                        is_organization=True,
+                                                                                        org_form_lib=org_form_lib)
                                                     })
 
         if project and fsxf_id is not None:
