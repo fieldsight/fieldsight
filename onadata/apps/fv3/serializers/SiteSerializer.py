@@ -81,6 +81,7 @@ class SiteSerializer(serializers.ModelSerializer):
         flagged = queryset.filter(site__in=total_sites, form_status=2).count()
         rejected = queryset.filter(site__in=total_sites, form_status=1).count()
         approved = queryset.filter(site__in=total_sites, form_status=3).count()
+        import ipdb;ipdb.set_trace()
 
         submissions = {
             'total_submissions': total_submissions, 'pending': outstanding,  'flagged': flagged, 'rejected': rejected,
