@@ -1,6 +1,7 @@
 from django.conf.urls import url, include
 from .viewsets import ReportingProjectFormData, ReportSettingsViewSet, metrics_data, GenerateStandardReports, \
-    PreviewStandardReports, ReportExportView, ReportActionView, ReportTaskLogViewset, CustomReportPreviewView
+    PreviewStandardReports, ReportExportView, ReportActionView, ReportTaskLogViewset, CustomReportPreviewView, \
+    ProjectReportFilterView
 
 urlpatterns = [
 
@@ -18,5 +19,7 @@ urlpatterns = [
     url(r'export/(?P<pk>\d+)/$', ReportExportView.as_view(), name='report_export'),
     url(r'report-action/(?P<pk>\d+)/$', ReportActionView.as_view(), name='report_action'),
     url(r'export/logs/$', ReportTaskLogViewset.as_view({'get': 'list'}), name="task_list"),
+    url(r'project-report-filter/(?P<pk>\d+)/$', ProjectReportFilterView.as_view(),
+        name="project_report_filter"),
 
 ]

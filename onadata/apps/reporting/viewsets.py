@@ -20,6 +20,7 @@ from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
     exportProjectSiteResponses, form_status_map, exportLogs, exportProjectUserstatistics, exportProjectstatistics
+from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions
 from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer, \
     ReportSettingsListSerializer
 from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions, ReportingLogsPermissions
@@ -653,3 +654,29 @@ class CustomReportPreviewView(APIView):
         data = df
 
         return Response(status=status.HTTP_200_OK, data=data)
+
+
+class ProjectReportFilterView(APIView):
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+
+    def get(self, request, pk, *args,  **kwargs):
+
+        try:
+            project_obj = Project.objects.get(id=pk)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
+        user_roles = Group.objects.filter(name__in=['Region Supervisor', 'Region Reviewer', 'Site Supervisor',
+                                                    'Reviewer']).values('id', 'name')
+
+        regions = Region.objects.filter(project=project_obj, is_active=True).values('id', 'name')
+        site_types = SiteType.objects.filter(project=project_obj).values('id', 'name')
+        metrics = []
+        metrics.extend(FILTER_METRICS_DATA)
+        created_date = project_obj.date_created
+
+        return Response(status=status.HTTP_200_OK, data={'user_roles': user_roles,
+                                                         'regions': regions,
+                                                         'site_types': site_types,
+                                                         'metrics': metrics,
+                                                         'created_date': created_date
+                                                         })
