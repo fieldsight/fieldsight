@@ -261,13 +261,13 @@ class ManageSuperOrganizationLibraryView(APIView):
             selected_scheduled_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=1,
                                                                                   deleted=False)
 
-            general_forms = [{'id': general_form.xf.id,
+            general_forms = [{'id': general_form.id,
                               'title': general_form.xf.title,
                               'form_type': general_form.get_form_type_display(),
                               'default_submission_status': general_form.get_default_submission_status_display()
                               } for general_form in selected_general_org_forms]
 
-            scheduled_forms = [{'id': scheduled_form.xf.id,
+            scheduled_forms = [{'id': scheduled_form.id,
                                 'title': scheduled_form.xf.title,
                                 'form_type': scheduled_form.get_form_type_display(),
                                 'default_submission_status': scheduled_form.get_default_submission_status_display(),
@@ -294,9 +294,8 @@ class ManageSuperOrganizationLibraryView(APIView):
                                                        )
                 org_form_lib_objs.append(org_form_lib)
             OrganizationFormLibrary.objects.bulk_create(org_form_lib_objs)
-            organization_library_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, deleted=False,
-                                                                                is_form_library=True)
-            organization_library_forms = [{'id': form.xf.id, 'title': form.xf.title} for form in
+            organization_library_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, deleted=False)
+            organization_library_forms = [{'id': form.id, 'title': form.xf.title} for form in
                                           organization_library_forms]
 
             return Response(status=status.HTTP_201_CREATED,
