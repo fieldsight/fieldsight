@@ -81,7 +81,7 @@ class FieldSightLog(models.Model):
     organization = models.ForeignKey(Organization, related_name="logs", null=True)
     project = models.ForeignKey(Project, related_name="logs", null=True)
     site = models.ForeignKey(Site, related_name="logs", null=True)
-    extra_message = models.TextField(blank=True, null=True)
+    extra_message = models.TextField(blank=True, null=True, max_length=1023)
     extra_json = JSONField(blank=True, null=True, default=None)
     
     recipient = models.ForeignKey(User, related_name='recipent_log', null=True)
