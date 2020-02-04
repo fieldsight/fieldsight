@@ -884,10 +884,24 @@ def project_sites_vt(request, pk, zoom, x, y):
 
 
 class TeamsViewset(viewsets.ReadOnlyModelViewSet):
-    queryset = Organization.objects.select_related('owner').prefetch_related('projects').filter(parent=None)
+    queryset = Organization.objects.select_related('owner').prefetch_related('projects')
     serializer_class = TeamSerializer
     permission_classes = [IsAuthenticated, SuperUserPermissions]
     pagination_class = TeamsPagination
+
+    def get_queryset(self):
+        return self.queryset.filter(parent=None).prefetch_related(
+            Prefetch("organization_roles",
+                     queryset=UserRole.objects.filter(ended_at=None),
+                     to_attr="total_users",
+
+                     ),
+            Prefetch("projects__sites",
+                     queryset=Site.objects.filter(is_survey=False, is_active=True),
+                     to_attr="total_sites"
+                     ),
+
+        )
 
     def list(self, request, *args, **kwargs):
 
@@ -911,6 +925,7 @@ class TeamFormViewset(viewsets.ModelViewSet):
     authentication_classes = [CsrfExemptSessionAuthentication, ]
     permission_classes = [IsAuthenticated, TeamCreationPermission]
     pagination_class = TeamsPagination
+
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

@@ -1,6 +1,7 @@
 import base64
 import imghdr
 import uuid
+import collections
 
 from django.contrib.auth.models import User
 from django.core.serializers import serialize
@@ -211,9 +212,9 @@ class ProjectSitesSerializer(serializers.ModelSerializer):
 
 
 class TeamSerializer(serializers.ModelSerializer):
-    projects = serializers.SerializerMethodField()
-    users = serializers.SerializerMethodField()
-    sites = serializers.SerializerMethodField()
+    projects = serializers.SerializerMethodField(read_only=True)
+    users = serializers.SerializerMethodField(read_only=True)
+    sites = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Organization
@@ -231,14 +232,23 @@ class TeamSerializer(serializers.ModelSerializer):
         return org_projects
 
     def get_sites(self, obj):
-        total_sites = Site.objects.filter(project__organization=obj, is_survey=False, is_active=True).count()
+        total_team_sites = 0
+        try:
+            for o in obj.projects.all():
+                total_team_sites = len(o.total_sites) + total_team_sites
 
-        return total_sites
+            return total_team_sites
+        except:
+            return 0
 
     def get_users(self, obj):
-        users = obj.organization_roles.filter(ended_at__isnull=True).distinct('user').count()
+        users = []
+        try:
+            [users.append(i.user_id) for i in obj.total_users]
 
-        return users
+            return len(set(users))
+        except:
+            return 0
 
 
 class SuperOrganizationSerializer(serializers.ModelSerializer):
