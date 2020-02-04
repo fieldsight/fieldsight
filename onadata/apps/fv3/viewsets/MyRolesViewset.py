@@ -9,9 +9,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.authentication import BasicAuthentication
 
-from rest_framework.decorators import permission_classes, api_view, \
-    authentication_classes
-from rest_framework.generics import UpdateAPIView
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -22,9 +20,8 @@ from onadata.apps.fieldsight.models import UserInvite, Region, Project, Site, Su
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog
-from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, \
-    UserInvitationSerializer, MyRegionSerializer, MySiteSerializer, \
-    ChangePasswordSerializer
+from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, \
+    MyRegionSerializer, MySiteSerializer, ChangePasswordSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import XForm
 
@@ -136,7 +133,12 @@ def my_roles(request):
                Q(group__name="Region Supervisor", region__is_active=True) |
                Q(group__name="Region Reviewer", region__is_active=True) |
                Q(group__name="Site Supervisor", site__is_active=True) |
-               Q(group__name="Reviewer", site__is_active=True)).distinct('organization')
+               Q(group__name="Reviewer", site__is_active=True)).distinct('organization').\
+        values_list('organization_id', flat=True)
+    organizations = UserRole.objects.filter(user=user, ended_at=None, group__name="Super Organization Admin").\
+        values_list('super_organization_id', flat=True)
+
+    teams = Organization.objects.filter(Q(id__in=teams) | Q(parent_id__in=organizations))
 
     teams = MyRolesSerializer(teams, many=True, context={'user': request.user})
 
