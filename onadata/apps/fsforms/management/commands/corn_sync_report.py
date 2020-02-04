@@ -9,9 +9,9 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 
 from onadata.apps.fieldsight.utils.google_sheet_create import generate_site_info, generate_site_progress, \
-    generate_form_report
+    generate_form_report, generate_custom_report
 from onadata.apps.fieldsight.utils.google_sheet_sync import site_information, \
-    progress_information, form_submission
+    progress_information, form_submission, custom_report_values
 from onadata.apps.fsforms.models import ReportSyncSettings
 
 scope = ['https://spreadsheets.google.com/feeds',
@@ -29,6 +29,8 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
         values = progress_information(project.id)
     elif report_type == "form":
         values = form_submission(form_id)
+    elif report_type == "custom":
+        values = custom_report_values(sheet_obj.report)
 
     if len(values) >= 10000:
         total_sites = len(values)
@@ -131,6 +133,8 @@ def create_new_sheet(sheet):
         generate_site_progress(sheet)
     elif sheet.report_type == "form":
         generate_form_report(sheet)
+    elif sheet.report_type == "custom":
+        generate_custom_report(sheet)
 
 
 class Command(BaseCommand):

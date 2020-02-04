@@ -10,7 +10,9 @@ from django.conf import settings
 
 from onadata.apps.fieldsight.models import Project, Site
 from onadata.apps.fsforms.models import FInstance, FieldSightXF
-
+from onadata.apps.reporting.utils.site_report import site_report
+from onadata.apps.reporting.utils.time_report import time_report
+from onadata.apps.reporting.utils.user_report import user_report
 
 form_status_map = ["Pending", "Rejected", "Flagged", "Approved"]
 
@@ -236,4 +238,23 @@ def form_submission(form_id):
     except Exception as e:
         return [[]]
     return [[]]
+
+
+def custom_report_values(report_obj):
+    if report_obj.type == 0:
+        df = site_report(report_obj)
+    elif report_obj.type == 4:
+        df = user_report(report_obj)
+    elif report_obj.type == 5:
+        df = time_report(report_obj)
+    try:
+        print("df shape", df.shape)
+        x, y = df.shape
+        print(" total cell in sheets ==", x * y)
+        values = df.values.tolist()
+        values.insert(0, list(df.columns.values))
+        return values
+    except Exception as e:
+        print(str(e))
+        return [[]]
 

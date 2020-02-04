@@ -31,6 +31,7 @@ def save_file(df, directory, filename):
             ContentFile(buffer_file.getvalue())
         )
         buffer_file.close()
+    os.remove(settings.MEDIA_ROOT + directory + filename)
     return path
 
 
