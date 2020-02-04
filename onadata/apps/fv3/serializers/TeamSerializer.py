@@ -165,8 +165,10 @@ class TeamGeoLayer(serializers.ModelSerializer):
     def get_properties(self, obj):
         if obj.geo_shape_file:
             path = obj.geo_shape_file.url
-            # response = requests.get(path)
-            response = requests.get(settings.SITE_URL + path)
+            try:
+                response = requests.get(path)
+            except Exception as e:
+                response = requests.get(settings.SITE_URL + path)
 
             read_data = json.loads(response.content)
             properties = read_data['features'][0]['properties'].keys()
