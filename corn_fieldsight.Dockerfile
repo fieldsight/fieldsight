@@ -5,6 +5,8 @@ RUN apt-get update --fix-missing && \
   apt-get install -y --no-install-recommends cron && \
   apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+COPY ./onadata/settings/local_settings.sample.py /usr/src/data/onadata/settings/local_settings.py
+
 # Copy fieldsight-cron file to the cron.d directory
 COPY fieldsight_corn /etc/cron.d/fieldsight_corn
 
