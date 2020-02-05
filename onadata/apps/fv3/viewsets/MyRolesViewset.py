@@ -125,8 +125,7 @@ def my_roles(request):
                'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype, 'google_talk': profile_obj.google_talk,
                'can_create_team': can_create_team, 'guide_popup': guide_popup}
 
-    teams = UserRole.objects.filter(user=user, ended_at=None).select_related('user', 'group', 'site', 'organization',
-                                                                      'staff_project', 'region').\
+    teams = UserRole.objects.filter(user=user, ended_at=None).\
         filter(Q(group__name="Organization Admin", organization__is_active=True) |
                Q(group__name="Project Manager", project__is_active=True) |
                Q(group__name="Project Donor", project__is_active=True) |
@@ -138,7 +137,8 @@ def my_roles(request):
     organizations = UserRole.objects.filter(user=user, ended_at=None, group__name="Super Organization Admin").\
         values_list('super_organization_id', flat=True)
 
-    teams = Organization.objects.filter(Q(id__in=teams) | Q(parent_id__in=organizations))
+    teams = Organization.objects.select_related('parent').prefetch_related('projects').\
+        filter(Q(id__in=teams) | Q(parent_id__in=organizations))
 
     teams = MyRolesSerializer(teams, many=True, context={'user': request.user})
 

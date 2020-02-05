@@ -371,10 +371,11 @@ class MyRolesSerializer(serializers.ModelSerializer):
     def get_has_organization_access(self, obj):
         user = self.context['user']
 
-        if obj.parent_id in user.user_roles.filter(super_organization=obj.parent,
-                                                   group__name="Super Organization Admin"). \
-                values_list('super_organization_id', flat=True):
-            return True
+        if obj.parent:
+            if obj.parent_id in user.user_roles.filter(super_organization=obj.parent,
+                                                       group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return True
 
         elif obj.id in user.user_roles.filter(group__name="Organization Admin", ended_at=None).\
                 values_list('organization_id', flat=True):
@@ -388,7 +389,7 @@ class MyRolesSerializer(serializers.ModelSerializer):
         org_admin = self.get_has_organization_access(obj)
 
         if org_admin:
-            data = Project.objects.filter(organization=obj, is_active=True)
+            data = obj.projects.all()
             roles = [{'id': r.id, 'name': r.name, 'has_project_access': True,
                       'project_url': r.get_absolute_url()} for r in data]
         else:
