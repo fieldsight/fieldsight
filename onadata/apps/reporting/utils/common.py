@@ -544,7 +544,7 @@ def generate_form_metrices(form_name, df, df_submissions, df_reviews, metrices_l
             submissions_approved_ever = df_reviews_old_status_index.loc[3].groupby(report_type).size().to_frame(form_name + 'form_submissions_approved_ever').reset_index()
             df = df.merge(submissions_approved_ever, on=report_type, how="left")
         except:
-            df['form_submissions_approved_ever'] = 0
+            df[form_name + 'form_submissions_approved_ever'] = 0
 
     if "form_no_submissions_flagged_ever" in metrices_list:
         try:
