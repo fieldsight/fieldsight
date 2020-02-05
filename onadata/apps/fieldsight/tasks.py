@@ -506,11 +506,10 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
         new_sites = 0
         updated_sites = 0
         with transaction.atomic():
-            i=0
+            i = 0
             interval = count/20
             for site in sites:
                 # time.sleep(0.7)
-                print(i)
                 site = dict((k, v) for k, v in site.iteritems() if v is not '')
 
                 lat = site.get("longitude", 85.3240)
@@ -545,19 +544,13 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                     region = Region.objects.get(identifier=str(region_idf), project = project)
 
                 root_site_identifier = site.get('root_site_identifier', None)
-                print(root_site_identifier)
                 if root_site_identifier:
                     root_site = Site.objects.filter(identifier=root_site_identifier, project=project)
-                    # print("root site ", root_site)
                     if root_site:
                         root_site = root_site[0]
-                        # print("root enable sub site", root_site.enable_subsites, root_site.id)
                         if root_site.enable_subsites:
-                            # print("root enable sub site", root_site.enable_subsites)
                             _site.site = root_site
-                # else:
-                #     _site.site = None
-                        
+
                 _site.region = region
                 _site.name = site.get("name")
                 _site.phone = site.get("phone")
@@ -572,10 +565,10 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
 
                 meta_ques = project.site_meta_attributes
 
-                myanswers = _site.site_meta_attributes_ans
+                myanswers = {}
                 for question in meta_ques:
-                    if question['question_type'] not in ['Form','FormSubStat','FormSubCountQuestion','FormQuestionAnswerStatus']:
-                        myanswers[question['question_name']]=site.get(question['question_name'], "")
+                    if question['question_type'] not in ['Form', 'FormSubStat', 'FormSubCountQuestion', 'FormQuestionAnswerStatus']:
+                        myanswers[question['question_name']] = site.get(question['question_name'], "")
                 
                 _site.site_meta_attributes_ans = myanswers
                 _site.all_ma_ans.update(myanswers)
@@ -597,7 +590,7 @@ def bulkuploadsites(task_prog_obj_id, sites, pk):
                 extra_message = " updated " + str(updated_sites) + " Sites"
             
 
-            noti = project.logs.create(source=task.user, type=12, title="Bulk Sites",
+            project.logs.create(source=task.user, type=12, title="Bulk Sites",
                                        organization=project.organization,
                                        project=project, content_object=project, extra_object=project,
                                        extra_message=extra_message)
