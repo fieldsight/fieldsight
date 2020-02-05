@@ -59,8 +59,29 @@ class ProjectProgressTableViewSet(APIView):
         project_id = get_object_or_404(Project, pk=project_id).id
 
         generals_queryset = FieldSightXF.objects.select_related('xf', 'project')\
-            .filter(is_staged=False, is_scheduled=False, is_deleted=False,
-                                                        project_id=project_id, is_survey=False)
+            .prefetch_related(Prefetch("project_form_instances",
+                                       queryset=FInstance.objects.filter(form_status=0),
+                                       to_attr="pending"
+                                       ),
+                              Prefetch("project_form_instances",
+                                       queryset=FInstance.objects.filter(form_status=1),
+                                       to_attr="rejected"
+                                       ),
+                              Prefetch("project_form_instances",
+                                       queryset=FInstance.objects.filter(form_status=2),
+                                       to_attr="flagged"
+                                       ),
+                              Prefetch("project_form_instances",
+                                       queryset=FInstance.objects.filter(form_status=3),
+                                       to_attr="approved"
+                                       ),
+
+                              Prefetch("project__sites",
+                                       queryset=Site.objects.filter(is_active=True, is_survey=False),
+                                       to_attr="total_sites"
+                                       ),
+                              ).\
+            filter(is_staged=False, is_scheduled=False, is_deleted=False, project_id=project_id, is_survey=False)
         generals = ProgressGeneralFormSerializer(generals_queryset, many=True)
 
         schedules_queryset = Schedule.objects.select_related('project').prefetch_related('schedule_forms')\

@@ -307,17 +307,16 @@ class ProgressGeneralFormSerializer(serializers.ModelSerializer):
         return '/fieldsight/application/#/submission-data/{}/{}' .format(obj.project_id, obj.id)
 
     def get_progress_data(self, obj):
-        project = obj.project
-        total_sites = project.sites.filter(is_active=True, is_survey=False).count()
+        total_sites = []
+        [total_sites.append(i) for i in obj.project.total_sites]
         submission_in_site = obj.project_form_instances.all().distinct('site').count()
 
         try:
-            progress = round((float(submission_in_site)/total_sites)*100, 2)
+            progress = round((float(submission_in_site)/len(total_sites))*100, 2)
         except ZeroDivisionError:
             progress = 0
-        data = [{'pending': obj.project_form_instances.filter(form_status=0).count(), 'rejected': obj.project_form_instances. \
-            filter(form_status=1).count(), 'flagged': obj.project_form_instances.filter(form_status=2).count(),
-                 'approved': obj.project_form_instances.filter(form_status=3).count(), 'progress': progress}
+        data = [{'pending': len(obj.pending), 'rejected': len(obj.rejected), 'flagged': len(obj.flagged),
+                 'approved': len(obj.approved), 'progress': progress}
                 ]
         return data
 
