@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
-from onadata.apps.fieldsight.models import Project, Site, Region, SiteType, ProjectGeoJSON
+from onadata.apps.fieldsight.models import Project, Site, Region, SiteType, ProjectGeoJSON, ProjectLevelTermsAndLabels
 from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
 from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermission
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
@@ -32,19 +32,19 @@ from onadata.apps.userrole.models import UserRole
 
 
 class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Project.objects.select_related('type', 'sector', 'sub_sector', 'organization')
+    queryset = Project.objects.select_related('type', 'sector', 'sub_sector', 'organization', 'terms_and_labels')
     serializer_class = ProjectDashboardSerializer
     permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
 
     def get_queryset(self):
 
-        return self.queryset.prefetch_related(Prefetch(
-            'project_roles',
-            queryset=UserRole.objects.select_related("user", "user__user_profile").filter(ended_at__isnull=True,
-                                                                                          group__name="Project Manager"),
-            to_attr='project_user_roles'
-
-        ))
+        return self.queryset.prefetch_related(
+            Prefetch('project_roles',
+                     queryset=UserRole.objects.select_related("user", "user__user_profile").
+                     filter(ended_at__isnull=True, group__name="Project Manager"),
+                     to_attr='project_user_roles'
+                     ),
+         )
 
     def get_serializer_context(self):
         return {'request': self.request}

@@ -88,10 +88,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     def get_terms_and_labels(self, obj):
 
         if obj.project:
-            terms = ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=obj.project)
-
-            if terms:
-
+            try:
                 return {'site': obj.project.terms_and_labels.site,
                         'sub_site': obj.project.terms_and_labels.sub_site,
                         'donor': obj.project.terms_and_labels.donor,
@@ -101,6 +98,8 @@ class NotificationSerializer(serializers.ModelSerializer):
                         'region_supervisor': obj.project.terms_and_labels.region_supervisor,
                         'region_reviewer': obj.project.terms_and_labels.region_reviewer,
                         }
+            except:
+                return None
 
 
 class TaskSerializer(serializers.ModelSerializer):

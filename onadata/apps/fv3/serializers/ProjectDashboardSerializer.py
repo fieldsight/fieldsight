@@ -26,7 +26,8 @@ class LineChartGeneratorProject(object):
 
     def __init__(self, project):
         self.project = project
-        self.date_list = list(date_range(project.date_created.strftime("%Y%m%d"), datetime.datetime.today().strftime("%Y%m%d"), 6))
+        self.date_list = list(date_range(project.date_created.strftime("%Y%m%d"),
+                                         datetime.datetime.today().strftime("%Y%m%d"), 6))
 
     def get_count(self, date):
         import datetime as dt
@@ -94,11 +95,10 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         if user_role_as_manager or request.is_super_admin or user_role_as_team_admin:
             is_project_manager = True
 
-        elif org.parent:
-            if org.parent.id in request.roles.filter(super_organization=org.parent,
-                                                     group__name="Super Organization Admin").\
-                    values_list('super_organization_id', flat=True):
-                is_project_manager = True
+        elif org.parent_id in request.roles.filter(super_organization_id=org.parent_id,
+                                                   group__name="Super Organization Admin").\
+                values_list('super_organization_id', flat=True):
+            is_project_manager = True
 
         return is_project_manager
 
@@ -206,9 +206,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
     def get_terms_and_labels(self, obj):
 
-        if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=obj).exists():
-
-                return {'site': obj.terms_and_labels.site,
+        try:
+            return {'site': obj.terms_and_labels.site,
                         'donor': obj.terms_and_labels.donor,
                         'site_supervisor': obj.terms_and_labels.site_supervisor,
                         'site_reviewer': obj.terms_and_labels.site_reviewer,
@@ -216,8 +215,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
                         'region_supervisor': obj.terms_and_labels.region_supervisor,
                         'region_reviewer': obj.terms_and_labels.region_reviewer,
                         }
-        else:
-                return {'site': 'Site',
+        except:
+            return {'site': 'Site',
                         'donor': 'Donor',
                         'site_supervisor': 'Site Supervisor',
                         'site_reviewer': 'Site Reviewer',
