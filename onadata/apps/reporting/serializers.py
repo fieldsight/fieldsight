@@ -30,6 +30,7 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
     attributes = serializers.JSONField()
     filter = serializers.JSONField(default=dict)
     report_sync_settings = serializers.SerializerMethodField(read_only=True)
+    datapoints = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ReportSettings
@@ -61,10 +62,14 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
 
         return sync_settings
 
+    def get_datapoints(self, obj):
+        return len(obj.attributes)
+
 
 class ReportSettingsListSerializer(serializers.ModelSerializer):
     owner_full_name = serializers.SerializerMethodField(read_only=True)
     shared_with = serializers.SerializerMethodField()
+    datapoints = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ReportSettings
@@ -78,6 +83,9 @@ class ReportSettingsListSerializer(serializers.ModelSerializer):
         users = []
         [users.append(user.get_full_name()) for user in obj.shared_with.all()]
         return users
+
+    def get_datapoints(self, obj):
+        return len(obj.attributes)
 
 
 class PreviewSiteInformationSerializer(serializers.ModelSerializer):
