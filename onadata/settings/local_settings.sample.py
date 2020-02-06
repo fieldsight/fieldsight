@@ -285,3 +285,17 @@ SECURE_PROXY_SSL_HEADER_NAME = os.environ.get('SECURE_PROXY_SSL_HEADER_NAME', ''
 if SECURE_PROXY_SSL_HEADER_NAME:
     SECURE_PROXY_SSL_HEADER = (SECURE_PROXY_SSL_HEADER_NAME, 'https')
 
+
+CELERY_BEAT_SCHEDULE = {
+    # Periodically mark exports stuck in the "pending" state as "failed"
+    # See https://github.com/kobotoolbox/kobocat/issues/315
+    "update_sheet_in_drive": {
+        "task": "onadata.apps.reporting.tasks.sync_report",
+        "schedule": crontab(), #minute=0, hour=0),  # execute daily at midnight
+        'options': {'queue': 'beat'}
+
+    }
+}
+
+
+
