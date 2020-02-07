@@ -4,7 +4,6 @@ import json
 from collections import OrderedDict
 
 import xlwt
-import stripe
 from django.contrib.contenttypes.models import ContentType
 from django.utils.decorators import method_decorator
 from io import BytesIO
@@ -92,8 +91,6 @@ from onadata.libs.utils.image_tools import image_url
 from onadata.apps.logger.models import Attachment
 from django.core.files.storage import get_storage_class
 from django.core.files.storage import FileSystemStorage
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
 
 @login_required
 def dashboard(request):
@@ -207,7 +204,7 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         line_chart_data = {} #line_chart.data()
         # user = User.objects.filter(pk=self.kwargs.get('pk'))
         roles_org = UserRole.objects.filter(organization_id = self.kwargs.get('pk'), ended_at__isnull=True, group__name="Organization Admin")
-        key = settings.STRIPE_PUBLISHABLE_KEY
+        # key = settings.STRIPE_PUBLISHABLE_KEY
         has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user,
                                                             organization=obj).exists()
         is_owner = obj.owner == self.request.user
@@ -229,7 +226,7 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
             'progress_labels': [] , #bar_graph.data.keys(),
             'roles_org': roles_org,
             'total_submissions': flagged + approved + rejected + outstanding,
-            'key': key,
+            # 'key': key,
             'has_user_free_package': has_user_free_package,
             'is_owner': is_owner
         }

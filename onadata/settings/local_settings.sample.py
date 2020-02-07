@@ -147,71 +147,9 @@ BROKER_URL = CELERY_BROKER_URL
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://redis_main:6379/1')
 
 
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
-STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
-
-#stripe.verify_ssl_certs = False
-
-
-
-MONTHLY_PLANS = {
-         'free_plan': 'free',
-         'starter_plan': 'plan_ElKj8MpQbhOCJC',
-         'basic_plan': 'plan_EieL5uCnHxqQuV',
-         'extended_plan': 'plan_EieUeONJJv75XV',
-         'pro_plan': 'plan_EiedndCXog24UV',
-         'scale_plan': 'plan_Eiehb3z4uzlwNc'
-        }
-
-
-MONTHLY_PLANS_OVERRAGE = {
-         'free_plan': 'free',
-         'starter_plan': 'plan_ElKlEsSxeENNqC',
-         'basic_plan': 'plan_EieMFnxDV4iyTi',
-         'extended_plan': 'plan_EieX040Zn26cQT',
-         'pro_plan': 'plan_EieeU1NjYyxWsY',
-         'scale_plan': 'plan_EieiJPBi95VGGz'
-        }
-
-YEARLY_PLANS = {
-         'free_plan': 'free',
-         'starter_plan': 'plan_ElKmqZQQOpL0A0',
-         'basic_plan': 'plan_EieQxVv7M8DcEF',
-         'extended_plan': 'plan_Eiea2cO8vkBbMW',
-         'pro_plan': 'plan_Eiefo8Ct8VJOA9',
-         'scale_plan': 'plan_EiejBhOIyifADH'
-        }
-
-YEARLY_PLANS_OVERRAGE = {
-         'free_plan': 'free',
-         'starter_plan': 'plan_ElKnrlQuXqdc8B',
-         'basic_plan': 'plan_EieRo8tuaDacMa',
-         'extended_plan': 'plan_EiebcPfdwpTKvC',
-         'pro_plan': 'plan_EiegA6cYzStJZT',
-         'scale_plan': 'plan_EieklvJaSN3Bqp'
-        }
-
-
-# same as in create_package cmd
-PLANS = {
-    'free': 0,
-    'plan_EieL5uCnHxqQuV': 1,
-    'plan_EieQxVv7M8DcEF': 2,
-    'plan_EieUeONJJv75XV': 3,
-    'plan_Eiea2cO8vkBbMW': 4,
-    'plan_EiedndCXog24UV': 5,
-    'plan_Eiefo8Ct8VJOA9': 6,
-    'plan_Eiehb3z4uzlwNc': 7,
-    'plan_EiejBhOIyifADH': 8,
-    'plan_ElKj8MpQbhOCJC': 9,
-    'plan_ElKmqZQQOpL0A0': 10
-
-}
-# end stripe config
-
 DEBUG = False
 STATIC_URL = '/static/'
-STATIC_ROOT= os.path.join(BASE_DIR,'static')
+STATIC_ROOT = os.path.join(BASE_DIR,'static')
 
 SITE_URL = os.environ.get('KOBOCAT_URL')
 # MEDIA_URL = '%s/media/'%os.environ.get('KOBOCAT_URL')
