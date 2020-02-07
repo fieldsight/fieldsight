@@ -1215,6 +1215,11 @@ class SharedFieldSightForm(models.Model):
         return settings.KPI_URL + '#/forms/' + self.xf.id_string
 
 
+class ReportSyncManager(models.Manager):
+    def get_queryset(self):
+        return super(ReportSyncManager, self).get_queryset().filter(is_deleted=False)
+
+
 class ReportSyncSettings(models.Model):
     user = models.ForeignKey(User, related_name='report_sync_settings', on_delete=models.CASCADE, null=True, blank=True)
     project = models.ForeignKey(Project, related_name="report_sync_settings", on_delete=models.CASCADE)
@@ -1231,3 +1236,7 @@ class ReportSyncSettings(models.Model):
     description = models.TextField(null=True, blank=True)
     last_synced_date = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
+    objects = ReportSyncManager()
+
+
