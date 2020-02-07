@@ -489,17 +489,18 @@ def get_site_type(value):
         return 0    
 
 @shared_task()
-def bulkuploadsites(task_prog_obj_id, sites, pk):
-    time.sleep(2)
+def bulkuploadsites(task_prog_obj_id, pk, sites=None):
+    if not sites:
+        sites = []
+    time.sleep(20)
     project = Project.objects.get(pk=pk)
-    # task_id = bulkuploadsites.request.id
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.content_object = project
-    task.status=1
+    task.status = 1
     task.save()
     count = ""
     try:
-        sites
+
         count = len(sites)
         task.description = "Bulk Upload of "+str(count)+" Sites."
         task.save()
