@@ -1128,7 +1128,7 @@ def settings_breadcrumbs(request, pk):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
 
-        breadcrumbs.update({'current_page': 'Organization Settings',
+        breadcrumbs.update({'current_page': 'Team Settings',
                             'name': team.name,
                             'name_url': team.get_absolute_url()})
 

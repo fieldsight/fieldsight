@@ -19,14 +19,21 @@ class ViewGeneralsAndSurveyFormSerializer(serializers.ModelSerializer):
     response_count = serializers.SerializerMethodField(read_only=True)
     download_url = serializers.SerializerMethodField(read_only=True)
     versions_url = serializers.SerializerMethodField(read_only=True)
+    from_organization = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = FieldSightXF
         fields = ('id', 'name', 'title', 'created_date', 'response_count', 'last_response', 'download_url',
-                  'versions_url')
+                  'versions_url', 'from_organization')
 
     def get_name(self, obj):
         return u"%s" % obj.xf.title
+
+    def get_from_organization(self, obj):
+        if obj.organization_form_lib:
+            return True
+        else:
+            return False
 
     def get_title(self, obj):
         return u"%s" % obj.xf.id_string
@@ -96,14 +103,21 @@ class ViewScheduledFormSerializer(serializers.ModelSerializer):
     download_url = serializers.SerializerMethodField(read_only=True)
     versions_url = serializers.SerializerMethodField(read_only=True)
     fsxf_id = serializers.IntegerField(source='schedule_forms.id')
+    from_organization = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Schedule
-        fields = ('id', 'name', 'fsxf_id', 'form_name', 'title', 'created_date', 'response_count', 'last_response', 'download_url',
-                  'versions_url')
+        fields = ('id', 'name', 'fsxf_id', 'form_name', 'title', 'created_date', 'response_count', 'last_response',
+                  'download_url', 'versions_url', 'from_organization')
 
     def get_name(self, obj):
         return u"%s" % obj.name
+
+    def get_from_organization(self, obj):
+        if obj.schedule_forms.organization_form_lib:
+            return True
+        else:
+            return False
 
     def get_form_name(self, obj):
         return u"%s" % obj.schedule_forms.xf.title

@@ -294,14 +294,21 @@ class ProgressGeneralFormSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     progress_data = serializers.SerializerMethodField()
     form_url = serializers.SerializerMethodField()
+    from_organization = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = FieldSightXF
 
-        fields = ('name', 'form_url', 'progress_data')
+        fields = ('name', 'form_url', 'progress_data', 'from_organization')
 
     def get_name(self, obj):
         return obj.xf.title
+
+    def get_from_organization(self, obj):
+        if obj.organization_form_lib:
+            return True
+        else:
+            return False
 
     def get_form_url(self, obj):
         return '/fieldsight/application/#/submission-data/{}/{}' .format(obj.project_id, obj.id)
@@ -324,15 +331,22 @@ class ProgressGeneralFormSerializer(serializers.ModelSerializer):
 class ProgressScheduledFormSerializer(serializers.ModelSerializer):
     progress_data = serializers.SerializerMethodField()
     form_url = serializers.SerializerMethodField()
+    from_organization = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Schedule
 
-        fields = ('name', 'form_url', 'progress_data')
+        fields = ('name', 'form_url', 'progress_data', 'from_organization')
 
     def get_form_url(self, obj):
         project_id =self.context.get('project_id', None)
         return '/fieldsight/application/#/submission-data/{}/{}' .format(project_id, obj.schedule_forms.id)
+
+    def get_from_organization(self, obj):
+        if obj.schedule_forms.organization_form_lib:
+            return True
+        else:
+            return False
 
     def get_progress_data(self, obj):
         project = obj.project
