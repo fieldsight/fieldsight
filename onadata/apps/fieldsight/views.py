@@ -1430,10 +1430,8 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                 sitefile = request.FILES['file']
                 sites = sitefile.get_records()
                 user = request.user
-                task_obj = CeleryTaskProgress.objects.create(user=user, content_object = obj, task_type=0)
+                task_obj = CeleryTaskProgress.objects.create(user=user, content_object=obj, task_type=0)
                 if task_obj:
-                    # import ipdb
-                    # ipdb.set_trace()
                     task = bulkuploadsites.delay(task_obj.pk, sites, pk)
                     task_obj.task_id = task.id
                     task_obj.save()
@@ -4571,8 +4569,6 @@ class SiteBulkEditView(View):
 @api_view(["GET"])
 @permission_classes([IsAuthenticatedOrReadOnly])
 def municipality_data(request):
-    # r = redis.StrictRedis(host=settings.REDIS_HOST, port=6379, db=3)
-    # data = r.hgetall("municipality")
     data = generate_municipality_data()
     return Response(data.values())
 

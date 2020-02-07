@@ -136,30 +136,16 @@ SESSION_COOKIE_NAME = os.environ.get('SESSION_COOKIE_NAME','testapp_kobo_cookie'
 SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN','.naxa.com.np')
 #CSRF_COOKIE_DOMAIN = '.fieldsight.org'
 DEFAULT_DEPLOYMENT_BACKEND = 'kobocat'
-ADMINS = [('Amulya', 'awemulya@gmail.com'),('saroj', 'raesaroj16@gmail.com'), ('santosh', 'skhatri.np@gmail.com')]
-#ENKETO_URL = "http://enketo.naxa.com.np/"
+ADMINS = [('Amulya', 'awemulya@gmail.com'), ('saroj', 'raesaroj16@gmail.com'), ('santosh', 'skhatri.np@gmail.com')]
 
-BROKER_BACKEND = "redis"
-#CELERY_RESULT_BACKEND = "redis"  # telling Celery to report results to RabbitMQ
-#CELERY_ALWAYS_EAGER = True
-#TASK_ALWAYS_EAGER = True
-#CELERY_TASK_ALWAYS_EAGER = True
-BROKER_URL = 'redis://redis_main:6379/1'
-#BROKER_URL = 'amqp://guest:guest@192.168.1.3:5672//'
-CELERY_BROKER_URL = BROKER_URL
-CELERY_RESULT_BACKEND = 'redis://redis_main:6379/1'
-REDIS_HOST = "redis_main"
+#Celery configuration
+BROKER_BACKEND = os.environ.get('BROKER_BACKEND', "redis")
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', True)
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://redis_main:6379/1')
+BROKER_URL = CELERY_BROKER_URL
+# telling Celery to report results to This broker
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://redis_main:6379/1')
 
-#BROKER_BACKEND = "redis"
-#BROKER_BACKEND = "amqp"
-
-
-#SERIALIZATION_MODULES = {
-#    "geojson": "django.contrib.gis.serializers.geojson",
-# }
-
-
-# stripe config
 
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
