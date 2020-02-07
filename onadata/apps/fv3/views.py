@@ -1103,3 +1103,37 @@ def forms_breadcrumbs(request):
     else:
         breadcrumbs = {}
     return Response(status=status.HTTP_200_OK, data=breadcrumbs)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def settings_breadcrumbs(request, pk):
+    id = pk
+    type = request.GET.get('type')
+    breadcrumbs = {}
+
+    if type == 'organization' and id:
+        try:
+            org = SuperOrganization.objects.get(id=id)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        breadcrumbs.update({'current_page': 'Organization Settings',
+                            'name': org.name,
+                            'name_url': org.get_absolute_url()})
+
+    elif type == 'team' and id:
+        try:
+            team = Organization.objects.get(id=id)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        breadcrumbs.update({'current_page': 'Organization Settings',
+                            'name': team.name,
+                            'name_url': team.get_absolute_url()})
+
+    else:
+        return Response(status=status.HTTP_404_NOT_FOUND, data={'detail':
+                                                                    'team or organization and id params are required.'})
+
+    return Response(status=status.HTTP_200_OK, data=breadcrumbs)
