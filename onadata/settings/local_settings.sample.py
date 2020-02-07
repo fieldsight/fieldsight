@@ -171,7 +171,7 @@ DEFAULT_FORM_3 = {
     'type':'general'
 }
 
-SITE_EMAIL = os.environ.get('EMAIL_HOST_USER')
+SITE_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
 CELERY_ACCEPT_CONTENT = ['pickle', 'application/json']
 CACHES = {
     'default': {
