@@ -1132,8 +1132,19 @@ def settings_breadcrumbs(request, pk):
                             'name': team.name,
                             'name_url': team.get_absolute_url()})
 
+    elif type == 'project' and id:
+        try:
+            project = Project.objects.get(id=id)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        breadcrumbs.update({'current_page': 'Reports List',
+                            'name': project.name,
+                            'name_url': project.get_absolute_url()})
+
     else:
         return Response(status=status.HTTP_404_NOT_FOUND, data={'detail':
-                                                                    'team or organization and id params are required.'})
+                                                                    'team or organization or project '
+                                                                    'and id params are required.'})
 
     return Response(status=status.HTTP_200_OK, data=breadcrumbs)
