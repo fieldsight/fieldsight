@@ -17,7 +17,7 @@ from rest_framework import viewsets
 
 from onadata.apps.eventlog.views import TaskListViewSet
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, ReportSyncSettings
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
     exportProjectSiteResponses, form_status_map, exportLogs, exportProjectUserstatistics, exportProjectstatistics
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions
@@ -121,17 +121,38 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
             custom_data = {
                 'custom_reports': ReportSettingsListSerializer(self.get_queryset(), many=True).data
             }
+            if project.report_sync_settings.filter(report_type="site_info").exists():
+                site_info_last_synced_date = project.report_sync_settings.filter(report_type="site_info")[0].\
+                    last_synced_date
+            else:
+                site_info_last_synced_date = None
+
+            if project.report_sync_settings.filter(report_type="site_progress").exists():
+                site_progress_last_synced_date = project.report_sync_settings.filter(report_type="site_progress")[0]. \
+                    last_synced_date
+            else:
+                site_progress_last_synced_date = None
+
             custom_data.update({
                 'standard_reports': [{'title': 'Project Summary',
                                       'description': 'Contains high level overview of the project in form of numbers, '
                                                      'graphs and map.'},
                                      {'title': 'Site Information',
                                       'description': 'Export of key progress indicators like submission count, status '
-                                                     'and site visits generated from Staged Forms.'},
+                                                     'and site visits generated from Staged Forms.',
+
+                                      'last_synced_date': site_info_last_synced_date
+
+                                      },
 
                                      {'title': 'Progress Report',
                                       'description': 'Export of key progress indicators like submission count, '
-                                                     'status and site visits generated from Staged Forms.'},
+                                                     'status and site visits generated from Staged Forms.',
+
+                                      'last_synced_date': site_progress_last_synced_date
+
+                                      },
+
 
                                      {'title': 'Activity Report',
                                       'description': 'Export of sites visits, submissions and active users in a '
