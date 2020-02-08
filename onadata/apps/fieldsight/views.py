@@ -1997,7 +1997,7 @@ def senduserinvite(request):
         message = get_template('fieldsight/email_sample.html').render(Context(data))
         email_to = (invite.email,)
         
-        msg = EmailMessage(subject, message, 'FieldSight', email_to)
+        msg = EmailMessage(subject, message, None, email_to)
         msg.content_subtype = "html"
         msg.send()
         if group.name == "Unassigned":
@@ -2034,22 +2034,21 @@ def senduserinvite(request):
 @login_required()
 def sendmultiroleuserinvite(request):
     data = json.loads(request.body)
-    emails =data.get('emails')
-    levels =data.get('levels')
-    leveltype =data.get('leveltype')
+    emails = data.get('emails')
+    levels = data.get('levels')
+    leveltype = data.get('leveltype')
     group = Group.objects.get(name=data.get('group'))
 
-    response=""
+    response = ""
+    region_ids = []
 
     if leveltype == "region":
         region = Region.objects.get(id=levels[0]);
         project_ids = [region.project_id]
         organization_id = region.project.organization_id  
-        # site_ids = Site.objects.filter(region_id__in=levels).values_list('id', flat=True)
-
-        # site_ids = Site.objects.filter(region_id__in=levels).values_list('id', flat=True)
-        site_ids = Site.objects.filter(Q(region_id__in=levels) | Q(region_id__parent__in=levels) | Q(region_id__parent__parent__in=levels)).values_list('id',
-                                                                                                                  flat=True)
+        site_ids = Site.objects.filter(Q(region_id__in=levels) |
+                                       Q(region_id__parent__in=levels) |
+                                       Q(region_id__parent__parent__in=levels)).values_list('id', flat=True)
 
         region_ids = Region.objects.filter(id__in=levels).values_list('id', flat=True)
 
@@ -2080,9 +2079,6 @@ def sendmultiroleuserinvite(request):
         invite.regions = region_ids
         project = get_object_or_404(Project, id=project_ids[0])
         terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
-
-        current_site = get_current_site(request)
-
         subject = 'Invitation for Role'
         is_user = User.objects.filter(email=invite.email).exists()
 
@@ -2098,14 +2094,14 @@ def sendmultiroleuserinvite(request):
             }
         message = get_template('fieldsight/email_sample.html').render(Context(data))
         email_to = (invite.email,)
-        msg = EmailMessage(subject, message, 'FieldSight', email_to)
+        msg = EmailMessage(subject, message, None, email_to)
         msg.content_subtype = "html"
         msg.send()
         
         if group.name == "Unassigned":
-            response += "Sucessfully invited "+ email +" to join this organization.<br>"
+            response += "Sucessfully invited " + email + " to join this organization.<br>"
         else:    
-            response += "Sucessfully invited "+ email +" for "+ group.name +" role.<br>"
+            response += "Sucessfully invited " + email + " for " + group.name + " role.<br>"
         continue
 
     return HttpResponse(response)

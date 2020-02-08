@@ -154,6 +154,7 @@ STATIC_ROOT = os.path.join(BASE_DIR,'static')
 SITE_URL = os.environ.get('KOBOCAT_URL')
 # MEDIA_URL = '%s/media/'%os.environ.get('KOBOCAT_URL')
 
+#dont need this after library form feature.
 DEFAULT_FORM_2 = {
     'id_string': 'a4MJ2XJ9LEogrkCd8CsHvq',
     'name': 'Daily Site Diary - Default Form',
