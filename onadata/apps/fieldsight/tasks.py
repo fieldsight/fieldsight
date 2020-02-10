@@ -1,23 +1,32 @@
 from __future__ import absolute_import
 
+import os
+import dateutil
 import copy
+import pandas as pd
 import time
-import re 
+import re
 import json
 import datetime
 import gc
 import calendar
 from datetime import date
-from oauth2client.service_account import ServiceAccountCredentials
-from googleapiclient import discovery
+from io import BytesIO
+from celery import shared_task
+from PIL import Image
+import tempfile
+import zipfile
+import pyexcel as p
+
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
+from openpyxl import Workbook
+
 from django.db import transaction
 from django.contrib.gis.geos import Point
-from celery import shared_task
 from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType,\
     ProgressSettings, SiteMetaAttrAnsHistory
 from onadata.apps.fieldsight.utils.google_sheet_create import site_details_generator, upload_to_drive
-from onadata.apps.fieldsight.utils.google_sheet_sync import site_information, \
-    progress_information, form_submission
 from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos, \
     bulk_update_sites_all_location, bulk_upload_json_site_all_ma, update_site_meta_ans
@@ -26,23 +35,15 @@ from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
 from django.contrib.auth.models import User, Group
 from onadata.apps.fieldsight.fs_exports.formParserForExcelReport import parse_form_response
-from io import BytesIO
 from django.shortcuts import get_object_or_404
 from onadata.apps.fsforms.models import FieldSightXF, FInstance, Stage
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from django.db.models import Prefetch, F
-from .generatereport import PDFReport
-import os, dateutil
+from django.db.models import F
 
-from openpyxl import Workbook
-
+from django.utils import timezone
+from django.db.models import Q
 from django.core.files.storage import get_storage_class
-from PIL import Image
-import tempfile, zipfile
-
-from onadata.libs.utils.viewer_tools import get_path
-import pyexcel as p
 from django.conf import settings
 from django.db.models import Sum, Case, When, IntegerField, Count
 from django.core.exceptions import MultipleObjectsReturned
@@ -62,23 +63,22 @@ from onadata.apps.fsforms.reports_util import get_images_for_site_all
 from onadata.apps.users.signup_tokens import account_activation_token
 from onadata.apps.subscriptions.models import Subscription, Package, TrackPeriodicWarningEmail
 from onadata.apps.fsforms.models import InstanceStatusChanged
+from onadata.libs.utils.viewer_tools import get_path
 
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
+from .generatereport import PDFReport
 
-from django.utils import timezone
-from django.db.models import Q
+form_status_map = ["Pending", "Rejected", "Flagged", "Approved"]
 
-
-form_status_map=["Pending", "Rejected", "Flagged", "Approved"]
 
 def cleanhtml(raw_html):
    cleanr = re.compile('<\S.*?>')
    cleantext = re.sub(cleanr, '', raw_html)
    return cleantext
 
+
 class DriveException(Exception):
     pass
+
 
 @shared_task()
 def gsuit_assign_perm(title, emails):
@@ -489,30 +489,28 @@ def get_site_type(value):
         return 0    
 
 @shared_task()
-def bulkuploadsites(task_prog_obj_id, pk, sites=None):
-    if not sites:
-        sites = []
+def bulkuploadsites(task_prog_obj_id, pk):
     time.sleep(20)
     project = Project.objects.get(pk=pk)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.content_object = project
     task.status = 1
     task.save()
+    upload_file = task.file
+    df = pd.read_excel(upload_file)
     count = ""
     try:
 
-        count = len(sites)
-        task.description = "Bulk Upload of "+str(count)+" Sites."
+        count = len(df)
+        task.description = "Bulk Upload of " + str(count) + " Sites."
         task.save()
         new_sites = 0
         updated_sites = 0
+        sites = df.to_dict(orient='records')
         with transaction.atomic():
             i = 0
-            interval = count/20
+            interval = count / 20
             for site in sites:
-                # time.sleep(0.7)
-                site = dict((k, v) for k, v in site.iteritems() if v is not '')
-
                 lat = site.get("longitude", 85.3240)
                 long = site.get("latitude", 27.7172)
                 
