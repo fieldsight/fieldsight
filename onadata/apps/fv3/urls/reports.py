@@ -1,9 +1,11 @@
 from django.conf.urls import url
 from onadata.apps.fv3.viewsets.ReportViewsets import ReportSyncSettingsViewSet, ReportSyncSettingsList, \
-    ReportSyncView, ReportSyncSettingsToday
+    ReportSyncView, ReportSyncSettingsToday, AddReportSyncSettingsViewSet
 
 reports_urlpatterns = [
     url(r'^api/report-sync-settings-list/$', ReportSyncSettingsList.as_view(), name='report_sync_settings_list'),
+    url(r'^api/add-report-sync-settings/$', ReportSyncSettingsViewSet.as_view({'post': 'create'}),
+        name='add_report_sync_settings'),
     url(r'^api/report-sync-settings-today/$', ReportSyncSettingsToday.as_view({'get':'list'}),
         name='report_sync_settings_today'),
     url(r'^api/update-report-sync-settings/(?P<pk>\d+)/$', ReportSyncSettingsViewSet.as_view({'put': 'update'}),
