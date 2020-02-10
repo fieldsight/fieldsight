@@ -437,6 +437,8 @@ def update_progress(site_id, project_fxf_id, submission_answer={}):
 
 @shared_task(max_retries=5, soft_time_limit=300)
 def sync_sheet(sheet_id):
+    time.sleep(2)
+
     sheet = ReportSyncSettings.objects.get(id=sheet_id)
 
     report_type = sheet.report_type

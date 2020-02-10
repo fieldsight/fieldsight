@@ -51,7 +51,7 @@ class ReportVs(viewsets.ModelViewSet):
 class ReportSyncSettingsViewSet(viewsets.ModelViewSet):
     serializer_class = ReportSyncSettingsSerializer
     queryset = ReportSyncSettings.objects.all()
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, ReportSyncSettingsViewPermission]
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
 
     def perform_create(self, serializer):
@@ -200,8 +200,18 @@ class ReportSyncView(APIView):
         return Response(status=status.HTTP_200_OK, data={'detail': 'This report is being synced with google sheets.'})
 
 
-class AddReportSyncSettingsViewSet(viewsets.ModelViewSet):
-    serializer_class = ReportSyncSettingsSerializer
-    queryset = ReportSyncSettings.objects.all()
-    permission_classes = [IsAuthenticated, ReportSyncPermission]
+class OrganizationFormReportSyncView(APIView):
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+    permission_classes = (IsAuthenticated, ReportSyncSettingsViewPermission)
+
+    def post(self, request, *args, **kwargs):
+        serializer = ReportSyncSettingsSerializer(data=request.data)
+        if serializer.is_valid():
+            obj = serializer.save(user=self.request.user)
+            sheet_id = obj.id
+            sync_sheet.delay(sheet_id)
+            return Response(status=status.HTTP_200_OK,
+                            data={'detail': 'This report is being synced with google sheets.'})
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
