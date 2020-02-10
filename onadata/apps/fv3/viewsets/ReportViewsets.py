@@ -79,6 +79,11 @@ class ReportSyncSettingsList(APIView):
     def get_report_data(self, queryset):
         data = []
         for form in queryset:
+            if form.organization_form_lib:
+                from_organization = True
+            else:
+                from_organization = False
+
             if form.report_sync_settings.all().exists():
 
                 data.append({'title': form.xf.title,
@@ -90,7 +95,9 @@ class ReportSyncSettingsList(APIView):
                              'range': form.report_sync_settings.all()[0].range,
                              'report_type': form.report_sync_settings.all()[0].report_type,
                              'last_synced_date': form.report_sync_settings.all()[0].last_synced_date,
-                             'spreadsheet_id': form.report_sync_settings.all()[0].spreadsheet_id})
+                             'spreadsheet_id': form.report_sync_settings.all()[0].spreadsheet_id,
+                             'from_organization': from_organization
+                             })
             elif form.organization_form_lib:
                 data.append({'title': form.xf.title,
                              'form_id': form.id,
@@ -102,7 +109,7 @@ class ReportSyncSettingsList(APIView):
                              'report_type': 'form',
                              'last_synced_date': None,
                              'spreadsheet_id': None,
-
+                             'from_organization': from_organization
                              })
 
         return data
