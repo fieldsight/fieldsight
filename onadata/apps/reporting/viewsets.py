@@ -17,7 +17,7 @@ from rest_framework import viewsets
 
 from onadata.apps.eventlog.views import TaskListViewSet
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, ReportSyncSettings
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, ReportSyncSettings, SCHEDULED_TYPE
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
     exportProjectSiteResponses, form_status_map, exportLogs, exportProjectUserstatistics, exportProjectstatistics
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions
@@ -103,7 +103,8 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
                                             add_to_templates=False)
 
         elif type == "my_reports":
-            queryset = self.queryset.filter(project_id=project_id, add_to_templates=False, owner=self.request.user)
+            queryset = self.queryset.filter(project_id=project_id, add_to_templates=False, owner=self.request.user).\
+                defer('attributes', 'filter')
 
         elif id is not None:
             queryset = self.queryset.filter(id=id)
@@ -124,14 +125,19 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
             if project.report_sync_settings.filter(report_type="site_info").exists():
                 site_info_last_synced_date = project.report_sync_settings.filter(report_type="site_info")[0].\
                     last_synced_date
+                site_info_schedule_type = SCHEDULED_TYPE[int(project.report_sync_settings.
+                                                             filter(report_type="site_info")[0].schedule_type)][1]
             else:
                 site_info_last_synced_date = None
-
+                site_info_schedule_type = None
             if project.report_sync_settings.filter(report_type="site_progress").exists():
                 site_progress_last_synced_date = project.report_sync_settings.filter(report_type="site_progress")[0]. \
                     last_synced_date
+                site_progress_schedule_type = SCHEDULED_TYPE[int(project.report_sync_settings.
+                                                                 filter(report_type="site_progress")[0].schedule_type)][1]
             else:
                 site_progress_last_synced_date = None
+                site_progress_schedule_type = None
 
             custom_data.update({
                 'standard_reports': [{'title': 'Project Summary',
@@ -141,7 +147,8 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
                                       'description': 'Export of key progress indicators like submission count, status '
                                                      'and site visits generated from Staged Forms.',
 
-                                      'last_synced_date': site_info_last_synced_date
+                                      'last_synced_date': site_info_last_synced_date,
+                                      'schedule_type': site_info_schedule_type
 
                                       },
 
@@ -149,7 +156,8 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
                                       'description': 'Export of key progress indicators like submission count, '
                                                      'status and site visits generated from Staged Forms.',
 
-                                      'last_synced_date': site_progress_last_synced_date
+                                      'last_synced_date': site_progress_last_synced_date,
+                                      'schedule_type': site_progress_schedule_type
 
                                       },
 
@@ -171,6 +179,9 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
                 'created_date': project.date_created
             })
             return Response(custom_data)
+        elif type == 'my_reports' or type == 'shared_with_me':
+            return Response(data=ReportSettingsListSerializer(self.get_queryset(), many=True).data)
+
         else:
             return Response(data=ReportSettingsSerializer(self.get_queryset(), many=True).data)
 
