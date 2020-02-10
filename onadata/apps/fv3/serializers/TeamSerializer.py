@@ -28,9 +28,9 @@ class TeamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ('id', 'name', 'address', 'logo', 'public_desc', 'contact', 'total_sites', 'total_projects',
-                  'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs', 'package_details', 'stripe_token',
-                  'map')
+        fields = ('id', 'name', 'identifier', 'address', 'logo', 'public_desc', 'contact', 'total_sites',
+                  'total_projects', 'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs',
+                  'package_details', 'stripe_token', 'map')
 
     def get_total_sites(self, obj):
 
@@ -80,7 +80,12 @@ class TeamSerializer(serializers.ModelSerializer):
     def get_breadcrumbs(self, obj):
         request = self.context['request']
         if request.is_super_admin:
-            return {'name': obj.name, 'teams': 'Teams', 'teams_url': '/fieldsight/application/#/teams'}
+            if obj.parent:
+                return {'name': obj.name, 'organization': obj.parent.name,
+                        'organization_url': obj.parent.get_absolute_url(),
+                        'teams': 'Teams', 'teams_url': '/fieldsight/application/#/teams'}
+            else:
+                return {'name': obj.name, 'teams': 'Teams', 'teams_url': '/fieldsight/application/#/teams'}
 
         else:
             return {'name': obj.name}

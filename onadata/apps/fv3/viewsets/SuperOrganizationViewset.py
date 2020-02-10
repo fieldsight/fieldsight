@@ -264,9 +264,9 @@ class ManageSuperOrganizationLibraryView(APIView):
                 task_obj.save()
 
             selected_general_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=0,
-                                                                                deleted=False)
+                                                                                deleted=False, is_form_library=False)
             selected_scheduled_org_forms = OrganizationFormLibrary.objects.filter(organization_id=pk, form_type=1,
-                                                                                  deleted=False)
+                                                                                  deleted=False, is_form_library=False)
 
             general_forms = [{'id': general_form.id,
                               'title': general_form.xf.title,
