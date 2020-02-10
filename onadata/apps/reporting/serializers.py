@@ -6,7 +6,6 @@ from onadata.apps.fieldsight.models import Site
 from .models import ReportSettings
 
 
-
 class StageFormSerializer(serializers.ModelSerializer):
     sub_stages = serializers.SerializerMethodField()
 
@@ -17,7 +16,14 @@ class StageFormSerializer(serializers.ModelSerializer):
 
     def get_sub_stages(self, obj):
 
-        data = [{'id': form.stage_forms.id, 'form_name': form.stage_forms.xf.title}
+        data = [{'id': form.stage_forms.id,
+                 'form_name': form.stage_forms.xf.title,
+                 'last_synced_date': form.stage_forms.report_sync_settings.all()[0].last_synced_date
+                 if form.stage_forms.report_sync_settings.all().exists() else None,
+                 'schedule_type': SCHEDULED_TYPE[int(form.stage_forms.report_sync_settings.all()[0].schedule_type)][1]
+                 if form.stage_forms.report_sync_settings.all().exists() else None,
+
+                 }
                 for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')
                 ]
 

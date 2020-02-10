@@ -46,8 +46,15 @@ class ReportingProjectFormData(APIView):
 
             generals_queryset = FieldSightXF.objects.select_related('xf')\
                 .filter(is_staged=False, is_scheduled=False, is_deleted=False, project_id=project_id, is_survey=False).\
-                values('xf__title', 'id')
-            generals_data = [{'id': form['id'], 'title': form['xf__title']} for form in generals_queryset]
+                values('xf__title', 'id', 'report_sync_settings__last_synced_date',
+                       'report_sync_settings__schedule_type')
+            generals_data = [{'id': form['id'],
+                              'title': form['xf__title'],
+                              'last_synced_date': form['report_sync_settings__last_synced_date'],
+                              'schedule_type':  SCHEDULED_TYPE[int(form['report_sync_settings__schedule_type'])][1]
+                              if form['report_sync_settings__schedule_type'] is not None else None
+
+                              } for form in generals_queryset]
 
             return Response(status=status.HTTP_200_OK, data=generals_data)
 
@@ -56,9 +63,17 @@ class ReportingProjectFormData(APIView):
             schedules_queryset = Schedule.objects.select_related('project').prefetch_related('schedule_forms')\
                 .filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
                         schedule_forms__isnull=False, schedule_forms__xf__isnull=False).\
-                values('schedule_forms__id', 'schedule_forms__xf__title')
+                values('schedule_forms__id', 'schedule_forms__xf__title',
+                       'schedule_forms__report_sync_settings__last_synced_date',
+                       'schedule_forms__report_sync_settings__schedule_type')
 
-            schedules_data = [{'id': form['schedule_forms__id'], 'title': form['schedule_forms__xf__title']}
+            schedules_data = [{'id': form['schedule_forms__id'],
+                               'title': form['schedule_forms__xf__title'],
+                               'last_synced_date': form['schedule_forms__report_sync_settings__last_synced_date'],
+                               'schedule_type': SCHEDULED_TYPE[int(form['schedule_forms__report_sync_settings__schedule_type'])][1]
+                               if form['schedule_forms__report_sync_settings__schedule_type'] is not None else None
+
+                               }
                               for form in schedules_queryset]
 
             return Response(status=status.HTTP_200_OK, data=schedules_data)
@@ -76,9 +91,16 @@ class ReportingProjectFormData(APIView):
 
             surveys_queryset = FieldSightXF.objects.select_related('xf').\
                 filter(is_staged=False, is_scheduled=False, is_deleted=False, project_id=project_id, is_survey=True).\
-                values('id', 'xf__title')
+                values('id', 'xf__title', 'report_sync_settings__last_synced_date',
+                       'report_sync_settings__schedule_type')
 
-            surveys_data = [{'id': form['id'], 'title': form['xf__title']} for form in surveys_queryset]
+            surveys_data = [{'id': form['id'],
+                             'title': form['xf__title'],
+                             'last_synced_date': form['report_sync_settings__last_synced_date'],
+                             'schedule_type': SCHEDULED_TYPE[int(form['report_sync_settings__schedule_type'])][1]
+                             if form['report_sync_settings__schedule_type'] is not None else None
+
+                             } for form in surveys_queryset]
             return Response(status=status.HTTP_200_OK, data=surveys_data)
         else:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'form_type params is required.'})
@@ -172,6 +194,9 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
                                      {'title': 'User Activity Report',
                                       'description': 'Export of User Activities in a selected time interval.'},
+
+                                     {'title': 'G-Sheet Reports',
+                                      'description': ''},
 
 
 
