@@ -508,6 +508,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
             meta_question_list.append(question['question_name'])
     if meta_question_list:
         df[meta_question_list].fillna("", inplace=True)
+    df[['additional_desc', 'public_desc', 'address', 'phone']].fillna("", inplace=True)
     count = ""
     try:
 
