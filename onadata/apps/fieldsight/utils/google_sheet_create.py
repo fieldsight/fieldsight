@@ -43,10 +43,16 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
                                                   'teamDriveId': team_drive_id,
                                                   'id': parent_folder_id}]
                                     })
+    md = new_file.FetchMetadata()
+    print(md)
     new_file.SetContentFile(file_path)
     new_file.Upload({'convert': True, 'supportsTeamDrives': True})
+    print(new_file.__dict__)
 
-    drive_file = drive.ListFile({'q': "'" + parent_folder_id + "' in parents and trashed=false"}).GetList()[0]
+    # drive_file = drive.ListFile({'q': "title = '{}' and trashed=false".format(title)}).GetList()[0]
+    # drive_file = drive.ListFile({'q': "title = '{}' and trashed=false".format(title)}).GetList()[0]
+    drive_file = new_file
+
     sheet.spreadsheet_id = drive_file['alternateLink']
     sheet.last_synced_date = datetime.datetime.now()
     sheet.save()
