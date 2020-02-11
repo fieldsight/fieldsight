@@ -737,3 +737,33 @@ class ProjectReportFilterView(APIView):
                                                          'metrics': metrics,
                                                          'created_date': created_date
                                                          })
+
+
+class ProjectDataExportView(APIView):
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def post(self, request, pk, *args,  **kwargs):
+
+        base_url = self.request.get_host()
+        user = self.request.user
+        data = request.data
+        fs_ids = data.get('fs_ids')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        regions = data.get('regions', None)
+        site_types = data.get('site_types', None)
+        project = get_object_or_404(Project, pk=pk)
+
+        task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=3)
+        if task_obj:
+            task = exportProjectSiteResponses.delay(task_obj.pk, pk, base_url, fs_ids, start_date,
+                                                    end_date, regions, site_types)
+            task_obj.task_id = task.id
+            task_obj.save()
+            status, data = 200, {'status': 'true',
+                                 'message': 'Success, the report is being generated. You will be notified after the '
+                                            'report is generated.'}
+        else:
+            status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
+        return Response(data, status=status)
