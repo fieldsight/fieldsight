@@ -58,7 +58,7 @@ class ProjectProgressTableViewSet(APIView):
         project_id = self.kwargs.get('pk', None)
         project_id = get_object_or_404(Project, pk=project_id).id
 
-        generals_queryset = FieldSightXF.objects.select_related('xf', 'project')\
+        generals_queryset = FieldSightXF.objects.select_related('xf', 'project', 'organization_form_lib')\
             .prefetch_related(Prefetch("project_form_instances",
                                        queryset=FInstance.objects.filter(form_status=0),
                                        to_attr="pending"
@@ -84,12 +84,15 @@ class ProjectProgressTableViewSet(APIView):
             filter(is_staged=False, is_scheduled=False, is_deleted=False, project_id=project_id, is_survey=False)
         generals = ProgressGeneralFormSerializer(generals_queryset, many=True)
 
-        schedules_queryset = Schedule.objects.select_related('project').prefetch_related('schedule_forms')\
-            .filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
-                    schedule_forms__isnull=False, schedule_forms__xf__isnull=False)
+        schedules_queryset = Schedule.objects.select_related('project').\
+            prefetch_related('schedule_forms', 'schedule_forms__organization_form_lib',
+                             'schedule_forms__xf').\
+            filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
+                   schedule_forms__isnull=False, schedule_forms__xf__isnull=False)
         schedules = ProgressScheduledFormSerializer(schedules_queryset, many=True, context={'project_id': project_id})
 
-        stages_queryset = Stage.objects.select_related('project').filter(stage__isnull=True, project_id=project_id, stage_forms__isnull=True).\
+        stages_queryset = Stage.objects.select_related('project').filter(stage__isnull=True, project_id=project_id,
+                                                                         stage_forms__isnull=True).\
             order_by('order')
 
         stages = ProgressStageFormSerializer(stages_queryset, many=True)
