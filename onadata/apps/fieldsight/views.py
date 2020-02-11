@@ -1425,11 +1425,10 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
         if form.is_valid():
             try:
                 sitefile = request.FILES['file']
-                sites = sitefile.get_records()
                 user = request.user
-                task_obj = CeleryTaskProgress.objects.create(user=user, content_object=obj, task_type=0)
+                task_obj = CeleryTaskProgress.objects.create(user=user, content_object=obj, task_type=0, file=sitefile)
                 if task_obj:
-                    task = bulkuploadsites.delay(task_obj.pk, sites, pk)
+                    task = bulkuploadsites.delay(task_obj.pk, pk)
                     task_obj.task_id = task.id
                     task_obj.save()
                     if terms_and_labels:

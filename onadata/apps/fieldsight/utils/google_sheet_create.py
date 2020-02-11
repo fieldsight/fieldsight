@@ -155,7 +155,7 @@ def site_details_generator(project, sites, ws):
                         }]
 
         site_list = {}
-        for site in sites.select_related('region').iterator():
+        for site in sites.select_related('region', 'type', 'site').iterator():
             root_site_identifier = None
             if site.site:
                 root_site_identifier = site.site.identifier

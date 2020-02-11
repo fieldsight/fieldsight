@@ -139,10 +139,10 @@ DEFAULT_DEPLOYMENT_BACKEND = 'kobocat'
 ADMINS = [('Amulya', 'awemulya@gmail.com'), ('saroj', 'raesaroj16@gmail.com'), ('santosh', 'skhatri.np@gmail.com')]
 
 #Celery configuration
-BROKER_BACKEND = os.environ.get('BROKER_BACKEND', "redis")
-CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', True)
+CELERY_BROKER_BACKEND = os.environ.get('CELERY_BROKER_BACKEND', "redis")
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', False)
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://redis_main:6379/1')
-BROKER_URL = CELERY_BROKER_URL
+
 # telling Celery to report results to This broker
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://redis_main:6379/1')
 
