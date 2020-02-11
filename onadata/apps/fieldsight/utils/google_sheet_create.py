@@ -64,15 +64,19 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     # print(md)
     new_file.SetContentFile(file_path)
     new_file.Upload({'convert': True, 'supportsTeamDrives': True})
-    print(new_file.__dict__)
+
+    new_file.FetchMetadata(fields='permissions')
+    print("- original permission -" * 10)
+    print(new_file['permissions'])
+    # print(new_file.__dict__)
     #
     # # drive_file = drive.ListFile({'q': "title = '{}' and trashed=false".format(title)}).GetList()[0]
     # # drive_file = drive.ListFile({'q': "title = '{}' and trashed=false".format(title)}).GetList()[0]
     # drive_file = new_file
     #
-    # sheet.spreadsheet_id = drive_file['alternateLink']
-    # sheet.last_synced_date = datetime.datetime.now()
-    # sheet.save()
+    sheet.spreadsheet_id = new_file['alternateLink']
+    sheet.last_synced_date = datetime.datetime.now()
+    sheet.save()
     #
     # permissions = drive_file.GetPermissions()
     #
@@ -104,16 +108,12 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     #
     # retry_emails = []
     # index = 0
-    # for perm in perm_to_add:
-    #     try:
-    #         drive_file.InsertPermission({
-    #             'type': 'user',
-    #             'value': perm,
-    #             'role': 'writer'
-    #         })
-    #
-    #     except Exception as e:
-    #         print(str(e), "Failed to share file {0} to {1} email".format(drive_file['alternateLink'], perm))
+    for perm in permissions:
+        try:
+            new_file.InsertPermission(perm)
+
+        except Exception as e:
+            print(str(e), "Failed to share file {0} to {1} email".format(new_file['alternateLink'], perm))
     #         if "Since there is no Google account associated with this email address" not in str(e):
     #             retry_emails.append(perm)
     #
