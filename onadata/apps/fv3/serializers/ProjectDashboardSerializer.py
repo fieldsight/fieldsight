@@ -332,11 +332,15 @@ class ProgressScheduledFormSerializer(serializers.ModelSerializer):
     progress_data = serializers.SerializerMethodField()
     form_url = serializers.SerializerMethodField()
     from_organization = serializers.SerializerMethodField(read_only=True)
+    name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Schedule
 
         fields = ('name', 'form_url', 'progress_data', 'from_organization')
+
+    def get_name(self, obj):
+        return obj.schedule_forms.xf.title
 
     def get_form_url(self, obj):
         project_id =self.context.get('project_id', None)
