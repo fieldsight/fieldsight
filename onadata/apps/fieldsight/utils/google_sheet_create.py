@@ -43,8 +43,8 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
                                                   'teamDriveId': team_drive_id,
                                                   'id': parent_folder_id}]
                                     })
-    md = new_file.FetchMetadata()
-    print(md)
+    # md = new_file.FetchMetadata()
+    # print(md)
     new_file.SetContentFile(file_path)
     new_file.Upload({'convert': True, 'supportsTeamDrives': True})
     print(new_file.__dict__)
