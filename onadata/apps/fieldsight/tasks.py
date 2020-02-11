@@ -498,6 +498,8 @@ def bulkuploadsites(task_prog_obj_id, pk):
     task.save()
     upload_file = task.file
     df = pd.read_excel(upload_file)
+    df[['latitude']].fillna(27.7172)
+    df[['longitude']].fillna(85.3240)
     count = ""
     try:
 
@@ -506,88 +508,137 @@ def bulkuploadsites(task_prog_obj_id, pk):
         task.save()
         new_sites = 0
         updated_sites = 0
-        sites = df.to_dict(orient='records')
+        site_identifiers = df.identifier.tolist()
+
+        root_site_identifier = df[~df.root_site_identifier.isnull()].root_site_identifier.unique().tolist()
+        root_site_identifier_query = Site.objects.filter(project=project, identifier__in=root_site_identifier).values('identifier', 'pk')
+        root_sites_dict = dict(root_site_identifier_query)
+
+        site_types = df[~df.type.isnull()].type.unique().tolist()
+        site_types_query = SiteType.objects.filter(project=project, identifier__in=site_types).values('identifier', 'pk')
+        site_types_dict = dict(site_types_query)
+        
+        region_identifiers = df[~df.region_identifier.isnull()].region_identifier.unique().tolist()
+        region_query = Region.objects.filter(project=project, identifier__in=region_identifiers).values('identifier', 'pk')
+        region_identifier_dict = dict(region_query)
+        query = Site.objects.filter(project=project, identifier__in=site_identifiers).values("id", 'identifier')
+        df_site = pd.DataFrame(list(query), columns=["id", 'identifier'])
+
+        existing_identifiers = df_site.identifier.tolist()
+        old_sites_df = df_site.merge(df, on='identifier', how='left')
+        new_sites_df = df[~df.identifier.isin(existing_identifiers)]
+
+        created = len(new_sites_df)
+        updated_sites = len(old_sites_df)
+
+        old_sites_dict = old_sites_df.to_dict(orient='records')
+        new_sites_dict = new_sites_df.to_dict(orient='records')
+        meta_ques = project.site_meta_attributes
         with transaction.atomic():
             i = 0
             interval = count / 20
-            for site in sites:
-                lat = site.get("longitude", 85.3240)
-                long = site.get("latitude", 27.7172)
-                
-                if lat == "":
-                    lat = 85.3240
-                if long == "":
-                    long = 27.7172
+            for site in old_sites_dict:
+                site_obj = Site.objects.get(pk=site.get('id'))
+                site_obj.name = site.get("name")
+                site_obj.phone = site.get("phone")
+                site_obj.address = site.get("address")
+                site_obj.public_desc = site.get("public_desc")
+                site_obj.additional_desc = site.get("additional_desc")
 
-                location = Point(round(float(lat), 6), round(float(long), 6), srid=4326)
-                region_idf = site.get("region_identifier", None)
-                
-
+                region_identifier = site.get("region_identifier", None)
                 type_identifier = site.get("type", None)
 
-                _site, created = Site.objects.get_or_create(identifier=str(site.get("identifier")),
-                                                                project=project)
-
-                if created:
-                    new_sites += 1
-                else:
-                    updated_sites += 1
-
                 if type_identifier:
-                     site_type = SiteType.objects.get(identifier=type_identifier, project=project)
-                     _site.type = site_type
+                    site_type_id = site_types_dict.get(type_identifier, None)
+                    if site_type_id:
+                        site_obj.type_id = site_type_id
                 
-                region = None
-                
-                if region_idf is not None:
-                    region = Region.objects.get(identifier=str(region_idf), project = project)
+                if region_identifier is not None:
+                    region_id = region_identifier_dict.get(region_identifier, None)
+                    if region_id:
+                        site_obj.region_id = region_id
 
                 root_site_identifier = site.get('root_site_identifier', None)
                 if root_site_identifier:
-                    root_site = Site.objects.filter(identifier=root_site_identifier, project=project)
-                    if root_site:
-                        root_site = root_site[0]
-                        if root_site.enable_subsites:
-                            _site.site = root_site
+                    root_site_id = root_sites_dict.get(root_site_identifier, None)
+                    if root_site_id:
+                        site_obj.site = root_site_id
 
-                _site.region = region
-                _site.name = site.get("name")
-                _site.phone = site.get("phone")
-                _site.address = site.get("address")
-                _site.public_desc = site.get("public_desc")
-                _site.additional_desc = site.get("additional_desc")
-                _site.location = location
-                # _site.logo = "logo/default_site_image.png"
-                progress_value = site.get("progress")
-                if progress_value:
-                    _site.current_progress = int(progress_value)
-
-                meta_ques = project.site_meta_attributes
+                location = Point(round(float(site.get('latitude')), 6), round(float(site.get('longitude')), 6), srid=4326)
+                site_obj.location = location
 
                 myanswers = {}
                 for question in meta_ques:
                     if question['question_type'] not in ['Form', 'FormSubStat', 'FormSubCountQuestion', 'FormQuestionAnswerStatus']:
                         myanswers[question['question_name']] = site.get(question['question_name'], "")
                 
-                _site.site_meta_attributes_ans = myanswers
-                _site.all_ma_ans.update(myanswers)
-                _site.save()
+                site_obj.site_meta_attributes_ans = myanswers
+                site_obj.all_ma_ans.update(myanswers)
+                site_obj.save()
                 i += 1
                 
                 if i > interval:
-                    interval = i+interval
+                    interval = i + interval
                     bulkuploadsites.update_state('PROGRESS', meta={'current': i, 'total': count})
+
+            new_site_objects = []
+            for site in new_sites_dict:
+                site_obj = Site()
+                site_obj.name = site.get("name")
+                site_obj.phone = site.get("phone")
+                site_obj.address = site.get("address")
+                site_obj.public_desc = site.get("public_desc")
+                site_obj.additional_desc = site.get("additional_desc")
+
+                region_identifier = site.get("region_identifier", None)
+                type_identifier = site.get("type", None)
+
+                if type_identifier:
+                    site_type_id = site_types_dict.get(type_identifier, None)
+                    if site_type_id:
+                        site_obj.type_id = site_type_id
+
+                if region_identifier is not None:
+                    region_id = region_identifier_dict.get(region_identifier, None)
+                    if region_id:
+                        site_obj.region_id = region_id
+
+                root_site_identifier = site.get('root_site_identifier', None)
+                if root_site_identifier:
+                    root_site_id = root_sites_dict.get(root_site_identifier, None)
+                    if root_site_id:
+                        site_obj.site = root_site_id
+
+                location = Point(round(float(site.get('latitude')), 6), round(float(site.get('longitude')), 6),
+                                 srid=4326)
+                site_obj.location = location
+
+                myanswers = {}
+                for question in meta_ques:
+                    if question['question_type'] not in ['Form', 'FormSubStat', 'FormSubCountQuestion',
+                                                         'FormQuestionAnswerStatus']:
+                        myanswers[question['question_name']] = site.get(question['question_name'], "")
+
+                site_obj.site_meta_attributes_ans = myanswers
+                site_obj.all_ma_ans=myanswers
+                site_obj.save()
+                new_site_objects.append(site_obj)
+                i += 1
+
+                if i > interval:
+                    interval = i + interval
+                    bulkuploadsites.update_state('PROGRESS', meta={'current': i, 'total': count})
+            Site.objects.bulk_create(new_site_objects)
             task.status = 2
             task.save()
 
-            extra_message= ""
+            extra_message = ""
             if new_sites > 0 and updated_sites > 0:
                 extra_message = " updated " + str(updated_sites) + " Sites and" + " created " + str(new_sites) + " Sites"
             elif new_sites > 0 and updated_sites == 0:
                 extra_message = " created " + str(new_sites) + " Sites"
             elif new_sites == 0 and updated_sites > 0:
                 extra_message = " updated " + str(updated_sites) + " Sites"
-            
 
             project.logs.create(source=task.user, type=12, title="Bulk Sites",
                                        organization=project.organization,
