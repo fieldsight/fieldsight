@@ -46,7 +46,7 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     new_file.SetContentFile(file_path)
     new_file.Upload({'convert': True, 'supportsTeamDrives': True})
 
-    drive_file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
+    drive_file = drive.ListFile({'q': "'" + parent_folder_id + "' in parents and trashed=false"}).GetList()[0]
     sheet.spreadsheet_id = drive_file['alternateLink']
     sheet.last_synced_date = datetime.datetime.now()
     sheet.save()
