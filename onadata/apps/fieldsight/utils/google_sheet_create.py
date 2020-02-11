@@ -28,39 +28,33 @@ class DriveException(Exception):
 
 
 def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
-    # pass
-    """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
+    """
+    Uploads a google sheet to a drive.
+
+    """
+    from pydrive.auth import ServiceAccountCredentials, GoogleAuth
     gauth = GoogleAuth()
+    team_drive_id = parent_folder_id = settings.PARENT_FOLDER_ID
+    scope = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name('service_account.json', scope)
     drive = GoogleDrive(gauth)
+    new_file = drive.CreateFile({'title': title,
+                                     'parents': [{'kind': 'drive#fileLink',
+                                                  'teamDriveId': team_drive_id,
+                                                  'id': parent_folder_id}]
+                                    })
+    new_file.SetContentFile(file_path)
+    new_file.Upload({'convert': True, 'supportsTeamDrives': True})
+    drive_file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
+    drive_file = drive_file[0]
+    drive_file.SetContentFile(file_path)
+    drive_file.Upload({'convert': True, 'supportsTeamDrives': True})
 
-    folders = drive.ListFile({'q': "title = '" + folder_title + "'"}).GetList()
-
-    if folders:
-        folder_id = folders[0]['id']
-    else:
-        folder_metadata = {'title': folder_title, 'mimeType': 'application/vnd.google-apps.folder'}
-        new_folder = drive.CreateFile(folder_metadata)
-        new_folder.Upload()
-        folder_id = new_folder['id']
-
-    file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()
-
-    if not file:
-        new_file = drive.CreateFile({'title': title, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
-        new_file.SetContentFile(file_path)
-        new_file.Upload({'convert': True})
-        file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
-
-    else:
-        file = file[0]
-        file.SetContentFile(file_path)
-        file.Upload({'convert': True})
-
-    sheet.spreadsheet_id = file['alternateLink']
+    sheet.spreadsheet_id = drive_file['alternateLink']
     sheet.last_synced_date = datetime.datetime.now()
     sheet.save()
 
-    permissions = file.GetPermissions()
+    permissions = drive_file.GetPermissions()
 
     user_emails = UserRole.objects.filter(ended_at__isnull=True).filter(
         Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
@@ -86,19 +80,20 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
         if "emailAddress" in permission:
             if permission['emailAddress'] in perm_to_rm and (
                     permission['emailAddress'] != settings.REPORT_ACCOUNT_EMAIL):
-                file.DeletePermission(permission['id'])
+                drive_file.DeletePermission(permission['id'])
 
     retry_emails = []
     index = 0
     for perm in perm_to_add:
         try:
-            file.InsertPermission({
+            drive_file.InsertPermission({
                 'type': 'user',
                 'value': perm,
                 'role': 'writer'
             })
 
         except Exception as e:
+            print(str(e), "Failed to share file {0} to {1} email".format(drive_file['alternateLink'], perm))
             if "Since there is no Google account associated with this email address" not in str(e):
                 retry_emails.append(perm)
 
@@ -251,7 +246,6 @@ def generate_site_info(sheet):
 
     upload_to_drive(temporarylocation,
                     "{} - Site Information".format(project.id), "Site Information", project, sheet.user, sheet)
-
     os.remove(temporarylocation)
 
 
