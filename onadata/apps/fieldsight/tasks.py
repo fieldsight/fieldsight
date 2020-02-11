@@ -498,8 +498,16 @@ def bulkuploadsites(task_prog_obj_id, pk):
     task.save()
     upload_file = task.file
     df = pd.read_excel(upload_file)
-    df[['latitude']].fillna(27.7172)
-    df[['longitude']].fillna(85.3240)
+    df[['latitude']].fillna(27.7172, inplace=True)
+    df[['longitude']].fillna(85.3240, inplace=True)
+    meta_ques = project.site_meta_attributes
+    meta_question_list = []
+    for question in meta_ques:
+        if question['question_type'] not in ['Form', 'FormSubStat', 'FormSubCountQuestion',
+                                             'FormQuestionAnswerStatus']:
+            meta_question_list.append(question['question_name'])
+    if meta_question_list:
+        df[meta_question_list].fillna("", inplace=True)
     count = ""
     try:
 
@@ -533,7 +541,8 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
         old_sites_dict = old_sites_df.to_dict(orient='records')
         new_sites_dict = new_sites_df.to_dict(orient='records')
-        meta_ques = project.site_meta_attributes
+
+
         with transaction.atomic():
             i = 0
             interval = count / 20
@@ -568,9 +577,8 @@ def bulkuploadsites(task_prog_obj_id, pk):
                 site_obj.location = location
 
                 myanswers = {}
-                for question in meta_ques:
-                    if question['question_type'] not in ['Form', 'FormSubStat', 'FormSubCountQuestion', 'FormQuestionAnswerStatus']:
-                        myanswers[question['question_name']] = site.get(question['question_name'], "")
+                for question in meta_question_list:
+                    myanswers[question] = site.get(question, "")
                 
                 site_obj.site_meta_attributes_ans = myanswers
                 site_obj.all_ma_ans.update(myanswers)
@@ -614,13 +622,11 @@ def bulkuploadsites(task_prog_obj_id, pk):
                 site_obj.location = location
 
                 myanswers = {}
-                for question in meta_ques:
-                    if question['question_type'] not in ['Form', 'FormSubStat', 'FormSubCountQuestion',
-                                                         'FormQuestionAnswerStatus']:
-                        myanswers[question['question_name']] = site.get(question['question_name'], "")
+                for question in meta_question_list:
+                    myanswers[question] = site.get(question, "")
 
                 site_obj.site_meta_attributes_ans = myanswers
-                site_obj.all_ma_ans=myanswers
+                site_obj.all_ma_ans = myanswers
                 site_obj.save()
                 new_site_objects.append(site_obj)
                 i += 1
