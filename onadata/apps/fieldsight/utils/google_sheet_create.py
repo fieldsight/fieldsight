@@ -53,6 +53,9 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
             'value': perm,
             'role': 'writer'
         })
+    print("*** all permissions dict*" * 10)
+    print(permissions)
+    print("*** End all permissions dict*" * 10)
     new_file = drive.CreateFile({'title': title,
                                      'parents': [{'kind': 'drive#fileLink',
                                                   'teamDriveId': team_drive_id,
