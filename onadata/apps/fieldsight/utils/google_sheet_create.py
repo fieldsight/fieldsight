@@ -38,27 +38,7 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     scope = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name('service_account.json', scope)
     drive = GoogleDrive(gauth)
-    new_file = drive.CreateFile({'title': title,
-                                     'parents': [{'kind': 'drive#fileLink',
-                                                  'teamDriveId': team_drive_id,
-                                                  'id': parent_folder_id}]
-                                    })
-    # md = new_file.FetchMetadata()
-    # print(md)
-    new_file.SetContentFile(file_path)
-    new_file.Upload({'convert': True, 'supportsTeamDrives': True})
-    print(new_file.__dict__)
-
-    # drive_file = drive.ListFile({'q': "title = '{}' and trashed=false".format(title)}).GetList()[0]
-    # drive_file = drive.ListFile({'q': "title = '{}' and trashed=false".format(title)}).GetList()[0]
-    drive_file = new_file
-
-    sheet.spreadsheet_id = drive_file['alternateLink']
-    sheet.last_synced_date = datetime.datetime.now()
-    sheet.save()
-
-    permissions = drive_file.GetPermissions()
-
+    permissions = []
     user_emails = UserRole.objects.filter(ended_at__isnull=True).filter(
         Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
             group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
@@ -67,55 +47,92 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     user_emails = list(user_emails)
     user_emails.append(settings.SERVICE_ACCOUNT_EMAIL)
     all_users = set(user_emails)
-
-    existing_perms = []
-
-    for permission in permissions:
-        if "emailAddress" in permission:
-            existing_perms.append(permission['emailAddress'])
-
-    perms = set(existing_perms)
-
-    perm_to_rm = perms - all_users
-    perm_to_add = all_users - perms
-
-    for permission in permissions:
-        if "emailAddress" in permission:
-            if permission['emailAddress'] in perm_to_rm and (
-                    permission['emailAddress'] != settings.REPORT_ACCOUNT_EMAIL):
-                drive_file.DeletePermission(permission['id'])
-
-    retry_emails = []
-    index = 0
-    for perm in perm_to_add:
-        try:
-            drive_file.InsertPermission({
-                'type': 'user',
-                'value': perm,
-                'role': 'writer'
-            })
-
-        except Exception as e:
-            print(str(e), "Failed to share file {0} to {1} email".format(drive_file['alternateLink'], perm))
-            if "Since there is no Google account associated with this email address" not in str(e):
-                retry_emails.append(perm)
-
-        index += 1
-
-    if retry_emails:
-        print "retrying again for ", retry_emails
-        file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
-        import time
-        for perm in retry_emails:
-            time.sleep(1)
-            try:
-                file.InsertPermission({
-                    'type': 'user',
-                    'value': perm,
-                    'role': 'writer'
-                })
-            except:
-                pass
+    for perm in all_users:
+        permissions.append({
+            'type': 'user',
+            'value': perm,
+            'role': 'writer'
+        })
+    new_file = drive.CreateFile({'title': title,
+                                     'parents': [{'kind': 'drive#fileLink',
+                                                  'teamDriveId': team_drive_id,
+                                                  'id': parent_folder_id}],
+                                 'shareable': True,
+                                 'userPermission': [permissions]
+                                    })
+    # md = new_file.FetchMetadata()
+    # print(md)
+    new_file.SetContentFile(file_path)
+    new_file.Upload({'convert': True, 'supportsTeamDrives': True})
+    print(new_file.__dict__)
+    #
+    # # drive_file = drive.ListFile({'q': "title = '{}' and trashed=false".format(title)}).GetList()[0]
+    # # drive_file = drive.ListFile({'q': "title = '{}' and trashed=false".format(title)}).GetList()[0]
+    # drive_file = new_file
+    #
+    # sheet.spreadsheet_id = drive_file['alternateLink']
+    # sheet.last_synced_date = datetime.datetime.now()
+    # sheet.save()
+    #
+    # permissions = drive_file.GetPermissions()
+    #
+    # user_emails = UserRole.objects.filter(ended_at__isnull=True).filter(
+    #     Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
+    #         group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
+    #     organization_id=sheet.project.organization_id
+    # ).distinct().values_list('user__email', flat=True)
+    # user_emails = list(user_emails)
+    # user_emails.append(settings.SERVICE_ACCOUNT_EMAIL)
+    # all_users = set(user_emails)
+    #
+    # existing_perms = []
+    #
+    # for permission in permissions:
+    #     if "emailAddress" in permission:
+    #         existing_perms.append(permission['emailAddress'])
+    #
+    # perms = set(existing_perms)
+    #
+    # perm_to_rm = perms - all_users
+    # perm_to_add = all_users - perms
+    #
+    # for permission in permissions:
+    #     if "emailAddress" in permission:
+    #         if permission['emailAddress'] in perm_to_rm and (
+    #                 permission['emailAddress'] != settings.REPORT_ACCOUNT_EMAIL):
+    #             drive_file.DeletePermission(permission['id'])
+    #
+    # retry_emails = []
+    # index = 0
+    # for perm in perm_to_add:
+    #     try:
+    #         drive_file.InsertPermission({
+    #             'type': 'user',
+    #             'value': perm,
+    #             'role': 'writer'
+    #         })
+    #
+    #     except Exception as e:
+    #         print(str(e), "Failed to share file {0} to {1} email".format(drive_file['alternateLink'], perm))
+    #         if "Since there is no Google account associated with this email address" not in str(e):
+    #             retry_emails.append(perm)
+    #
+    #     index += 1
+    #
+    # if retry_emails:
+    #     print "retrying again for ", retry_emails
+    #     file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
+    #     import time
+    #     for perm in retry_emails:
+    #         time.sleep(1)
+    #         try:
+    #             file.InsertPermission({
+    #                 'type': 'user',
+    #                 'value': perm,
+    #                 'role': 'writer'
+    #             })
+    #         except:
+    #             pass
 
 
 def site_details_generator(project, sites, ws):
