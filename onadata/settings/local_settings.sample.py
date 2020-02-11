@@ -221,4 +221,5 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 
-
+#google drive id
+PARENT_FOLDER_ID = os.environ.get('PARENT_FOLDER_ID', '****')
