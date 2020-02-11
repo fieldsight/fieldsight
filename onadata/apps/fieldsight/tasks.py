@@ -506,9 +506,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
         if question['question_type'] not in ['Form', 'FormSubStat', 'FormSubCountQuestion',
                                              'FormQuestionAnswerStatus']:
             meta_question_list.append(question['question_name'])
-    if meta_question_list:
-        df[meta_question_list].fillna("", inplace=True)
-    df[['additional_desc', 'public_desc', 'address', 'phone']].fillna("", inplace=True)
+    df.fillna("", inplace=True)
     count = ""
     try:
 
@@ -535,9 +533,10 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
         existing_identifiers = df_site.identifier.tolist()
         old_sites_df = df_site.merge(df, on='identifier', how='left')
-        old_sites_df[meta_question_list].fillna("", inplace=True)
+        old_sites_df.fillna("", inplace=True)
+
         new_sites_df = df[~df.identifier.isin(existing_identifiers)]
-        new_sites_df[meta_question_list].fillna("", inplace=True)
+        new_sites_df.fillna("", inplace=True)
 
         created = len(new_sites_df)
         updated_sites = len(old_sites_df)
