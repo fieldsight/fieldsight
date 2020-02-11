@@ -535,7 +535,9 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
         existing_identifiers = df_site.identifier.tolist()
         old_sites_df = df_site.merge(df, on='identifier', how='left')
+        old_sites_df[meta_question_list].fillna("", inplace=True)
         new_sites_df = df[~df.identifier.isin(existing_identifiers)]
+        new_sites_df[meta_question_list].fillna("", inplace=True)
 
         created = len(new_sites_df)
         updated_sites = len(old_sites_df)
@@ -579,7 +581,10 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
                 myanswers = {}
                 for question in meta_question_list:
-                    myanswers[question] = site.get(question, "")
+                    ans = site.get(question, "")
+                    if ans in ["NAN", "nan"]:
+                        ans = ""
+                    myanswers[question] = ans
                 
                 site_obj.site_meta_attributes_ans = myanswers
                 site_obj.all_ma_ans.update(myanswers)
@@ -624,7 +629,10 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
                 myanswers = {}
                 for question in meta_question_list:
-                    myanswers[question] = site.get(question, "")
+                    ans = site.get(question, "")
+                    if ans in ["NAN", "nan"]:
+                        ans = ""
+                    myanswers[question] = ans
 
                 site_obj.site_meta_attributes_ans = myanswers
                 site_obj.all_ma_ans = myanswers
