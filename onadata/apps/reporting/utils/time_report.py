@@ -114,7 +114,7 @@ def time_report(report_obj, preview=False):
     instance_or_progress_filters = {}
 
     if preview:
-        end_date = datetime.datetime.strptime(start_date, "%d-%m-%Y") + datetime.timedelta(days=10)
+        end_date = datetime.datetime.strptime(start_date, "%d-%m-%Y") + datetime.timedelta(days=9)
 
     else:
         end_date = datetime.date.today().strftime("%d-%m-%Y")
@@ -124,7 +124,9 @@ def time_report(report_obj, preview=False):
         start_date = started_date.strftime("%d-%m-%Y")
         ended_date = datetime.datetime.strptime(filters.get('end_date'), "%Y-%m-%dT%H:%M:%S.%fZ")
         if preview:
-            end_date = ended_date + datetime.timedelta(days=10)
+            end_date = (started_date + datetime.timedelta(days=9)).strftime("%d-%m-%Y")
+            ended_date = started_date + datetime.timedelta(days=9)
+
         else:
             end_date = ended_date.strftime("%d-%m-%Y")
         user_role_filters['started_at__range'] = [started_date, ended_date]
@@ -132,7 +134,6 @@ def time_report(report_obj, preview=False):
         instance_or_progress_filters['date__range'] = [started_date, ended_date]
     default_metrics, individual_form_metrics, form_information_metrics, \
         user_metrics, site_info_metrics = separate_metrics(attributes)
-
     group_by = "daily"
     if group_by == "daily":
         date_index = pd.date_range(start_date, end_date, freq='D')
@@ -269,7 +270,6 @@ def time_report(report_obj, preview=False):
                 query = Region.objects.filter(**site_or_region_or_project_filters).values('id', 'date_created')[:10]
             else:
                 query = Region.objects.filter(**site_or_region_or_project_filters).values('id', 'date_created')
-
             df_region = pd.DataFrame(list(query), columns=['id', 'date_created'])
             num_regions = df_region.groupby(pd.Grouper(key='date_created', freq='1D')).size().to_frame(
                 "num_regions").reset_index()

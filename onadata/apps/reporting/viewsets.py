@@ -704,7 +704,7 @@ class CustomReportPreviewView(APIView):
         elif report_type == 4:
             df = user_report(report_obj, True)
         elif report_type == 5:
-            df = time_report(report_obj)
+            df = time_report(report_obj, True)
         else:
             df = []
 
