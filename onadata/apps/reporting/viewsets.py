@@ -247,7 +247,8 @@ class GenerateStandardReports(APIView):
                 task_obj.task_id = task.id
                 task_obj.save()
                 status, data = 200, {'detail': 'The sites details xls file is being generated. '
-                                               'You will be notified after the file is generated.'}
+                                               'You will be notified after the file is generated.',
+                                     'task_id': task_obj.id}
             else:
                 status, data = 401, {'detail': 'Error occured please try again.'}
             return Response(status=status, data=data)
@@ -267,7 +268,9 @@ class GenerateStandardReports(APIView):
                 task_obj.save()
                 status, data = 200, {'detail': 'Progress report is being generated. You will be notified upon '
                                                'completion. (It may take more time depending upon number of sites '
-                                               'and submissions.)'}
+                                               'and submissions.)',
+                                     'task_id': task_obj.id
+                                     }
             else:
                 status, data = 401, {'detail': 'Report cannot be generated a the moment.'}
             return Response(status=status, data=data)
@@ -315,7 +318,9 @@ class GenerateStandardReports(APIView):
                 task_obj.save()
                 status, data = 200, {'status': 'true',
                                      'message': 'Success, the report is being generated. You will be notified after '
-                                                'the report is generated.'}
+                                                'the report is generated.',
+                                     'task_id': task_obj.id
+                                     }
             else:
                 status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
             return Response(data, status=status)
@@ -335,7 +340,9 @@ class GenerateStandardReports(APIView):
                 task_obj.task_id = task.id
                 task_obj.save()
                 data = {'status': 'true',
-                        'message': 'User Activity report is being generated. You will be notified upon completion.'}
+                        'message': 'User Activity report is being generated. You will be notified upon completion.',
+                        'task_id': task_obj.id
+                        }
             else:
                 data = {'status': 'false', 'message': 'Report cannot be generated a the moment.'}
             return Response(data, status=200)
@@ -355,7 +362,9 @@ class GenerateStandardReports(APIView):
                 task_obj.save()
                 status, data = 200, {'status': 'true',
                                      'message': 'Success, the report is being generated. You will be notified after '
-                                                'the report is generated.'}
+                                                'the report is generated.',
+                                     'task_id': task_obj.id
+                                     }
             else:
                 status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
             return Response(data, status=status)
@@ -704,7 +713,7 @@ class CustomReportPreviewView(APIView):
         elif report_type == 4:
             df = user_report(report_obj, True)
         elif report_type == 5:
-            df = time_report(report_obj, True)
+            df = time_report(report_obj)
         else:
             df = []
 
@@ -767,3 +776,27 @@ class ProjectDataExportView(APIView):
         else:
             status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
         return Response(data, status=status)
+
+
+class StandardReportsExportXlsView(APIView):
+    """
+    A simple ViewSet for downloading excel file.
+    """
+
+    def get(self, request, pk, *args,  **kwargs):
+
+        try:
+            obj = CeleryTaskProgress.objects.get(id=pk)
+
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        if obj.file:
+            file_url = obj.file.url
+        else:
+            file_url = None
+
+        return Response(status=status.HTTP_200_OK, data={'file_url': file_url})
+
+
+
