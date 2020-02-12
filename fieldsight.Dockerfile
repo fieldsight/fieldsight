@@ -59,6 +59,7 @@ RUN mkdir -p ${PIP_EDITABLE_PACKAGES_DIR} && \
 
 #fix the issue with goes
 RUN cat ./libgeos.py > /usr/local/lib/python2.7/site-packages/django/contrib/gis/geos/libgeos.py
+RUN cat ./files.py > /usr/local/lib/python2.7/site-packages/pydrive/files.py
 
 
 RUN apt-get update --fix-missing && \

@@ -35,7 +35,7 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     from pydrive.auth import ServiceAccountCredentials, GoogleAuth
     gauth = GoogleAuth()
     team_drive_id = parent_folder_id = settings.PARENT_FOLDER_ID
-    scope = ['https://www.googleapis.com/auth/drive']
+    scope = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/drive.file']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name('service_account.json', scope)
     drive = GoogleDrive(gauth)
     permissions = []
@@ -53,16 +53,19 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
             'value': perm,
             'role': 'writer'
         })
-    print("*** all permissions dict*" * 10)
+    print("*********** all permissions dict*")
     print(permissions)
-    print("*** End all permissions dict*" * 10)
-    new_file = drive.CreateFile({'title': title,
-                                     'parents': [{'kind': 'drive#fileLink',
-                                                  'teamDriveId': team_drive_id,
-                                                  'id': parent_folder_id}],
-                                 'shareable': True,
-                                 'userPermission': [permissions]
-                                    })
+    print("***888888888888888 End all permissions dict*" * 10)
+    new_file = drive.CreateFile({'title': title, 'parents': [{'kind': 'drive#fileLink', 'teamDriveId': team_drive_id, 'id': parent_folder_id}],'shareable': True, 'userPermission': [permissions]})
+
+    # file_list = drive.ListFile(
+    #     {
+    #         'q': "trashed=false",
+    #         'teamDriveId': team_drive_id,
+    #         'includeTeamDriveItems': True,
+    #         'supportsTeamDrives': True
+    #     }
+    # ).GetList()
     # md = new_file.FetchMetadata()
     # print(md)
     new_file.SetContentFile(file_path)
