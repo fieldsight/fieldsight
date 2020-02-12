@@ -108,22 +108,42 @@ def time_report(report_obj, preview=False):
     project_id = report_obj.project_id
     attributes = report_obj.attributes
     filters = report_obj.filter
+    start_date = "01-03-2017"
+    user_role_filters = {}
+    site_or_region_or_project_filters = {}
+    instance_or_progress_filters = {}
+
+    if preview:
+        end_date = datetime.datetime.strptime(start_date, "%d-%m-%Y") + datetime.timedelta(days=10)
+
+    else:
+        end_date = datetime.date.today().strftime("%d-%m-%Y")
+
+    if filters.get('start_date') and filters.get('end_date'):
+        started_date = datetime.datetime.strptime(filters.get('start_date'), "%Y-%m-%dT%H:%M:%S.%fZ")
+        start_date = started_date.strftime("%d-%m-%Y")
+        ended_date = datetime.datetime.strptime(filters.get('end_date'), "%Y-%m-%dT%H:%M:%S.%fZ")
+        if preview:
+            end_date = ended_date + datetime.timedelta(days=10)
+        else:
+            end_date = ended_date.strftime("%d-%m-%Y")
+        user_role_filters['started_at__range'] = [started_date, ended_date]
+        site_or_region_or_project_filters['date_created__range'] = [started_date, ended_date]
+        instance_or_progress_filters['date__range'] = [started_date, ended_date]
     default_metrics, individual_form_metrics, form_information_metrics, \
         user_metrics, site_info_metrics = separate_metrics(attributes)
 
-    start_date = "01-03-2017"
-    end_date = datetime.date.today().strftime("%d-%m-%Y")
     group_by = "daily"
     if group_by == "daily":
         date_index = pd.date_range(start_date, end_date, freq='D')
         df = pd.DataFrame({}, index=date_index)
 
         if preview:
-            query_role = UserRole.objects.filter().filter(
-                project=report_obj.project_id,).values("group", "started_at", "ended_at")[:10]
+            query_role = UserRole.objects.filter(**user_role_filters).filter(
+                project=report_obj.project_id).values("group", "started_at", "ended_at")[:10]
         else:
-            query_role = UserRole.objects.filter().filter(
-                project=report_obj.project_id, ).values("group", "started_at", "ended_at")
+            query_role = UserRole.objects.filter(**user_role_filters).filter(
+                project=report_obj.project_id).values("group", "started_at", "ended_at")
 
         df_role = pd.DataFrame(list(query_role), columns=["group", "started_at", "ended_at"])
         active_df = df_role[~df_role.ended_at.isnull()]
@@ -232,9 +252,9 @@ def time_report(report_obj, preview=False):
 
         if "num_sites" in default_metrics:
             if preview:
-                query = Site.objects.values('id', 'date_created')[:10]
+                query = Site.objects.filter(**site_or_region_or_project_filters).values('id', 'date_created')[:10]
             else:
-                query = Site.objects.values('id', 'date_created')
+                query = Site.objects.filter(**site_or_region_or_project_filters).values('id', 'date_created')
             df_site = pd.DataFrame(list(query), columns=['id', 'date_created'])
             num_sites = df_site.groupby(pd.Grouper(key='date_created', freq='1D')).size().to_frame(
                 "num_sites").reset_index()
@@ -244,10 +264,11 @@ def time_report(report_obj, preview=False):
             df = pd.concat([df, num_sites], axis=1)
 
         if "num_regions" in default_metrics:
+
             if preview:
-                query = Region.objects.values('id', 'date_created')[:10]
+                query = Region.objects.filter(**site_or_region_or_project_filters).values('id', 'date_created')[:10]
             else:
-                query = Region.objects.values('id', 'date_created')
+                query = Region.objects.filter(**site_or_region_or_project_filters).values('id', 'date_created')
 
             df_region = pd.DataFrame(list(query), columns=['id', 'date_created'])
             num_regions = df_region.groupby(pd.Grouper(key='date_created', freq='1D')).size().to_frame(
@@ -258,10 +279,11 @@ def time_report(report_obj, preview=False):
             df = pd.concat([df, num_regions], axis=1)
 
         if "num_projects" in default_metrics:
+
             if preview:
-                query = Project.objects.values('id', 'date_created')[:10]
+                query = Project.objects.filter(**site_or_region_or_project_filters).values('id', 'date_created')[:10]
             else:
-                query = Project.objects.values('id', 'date_created')
+                query = Project.objects.filter(**site_or_region_or_project_filters).values('id', 'date_created')
 
             df_project = pd.DataFrame(list(query), columns=['id', 'date_created'])
             num_projects = df_project.groupby(pd.Grouper(key='date_created', freq='1D')).size().to_frame(
@@ -270,12 +292,15 @@ def time_report(report_obj, preview=False):
             del num_projects['date_created']
             num_projects = num_projects.set_index('date_only')
             df = pd.concat([df, num_projects], axis=1)
-
         if "sites_visited" in default_metrics:
+
             if preview:
-                site_visited_query = FInstance.objects.values('instance__date_created')[:10]
+                site_visited_query = FInstance.objects.filter(**instance_or_progress_filters).\
+                    values('instance__date_created')[:10]
+
             else:
-                site_visited_query = FInstance.objects.values('instance__date_created')
+                site_visited_query = FInstance.objects.filter(**instance_or_progress_filters). \
+                    values('instance__date_created')
 
             df_site_visited = pd.DataFrame(list(site_visited_query), columns=['instance__date_created'])
             sites_visited = df_site_visited.groupby(pd.Grouper(
@@ -287,9 +312,11 @@ def time_report(report_obj, preview=False):
 
         if "sites_reviewed" in default_metrics:
             if preview:
-                site_reviewed_query = InstanceStatusChanged.objects.values('date')[:10]
+                site_reviewed_query = InstanceStatusChanged.objects.filter(**instance_or_progress_filters).\
+                    values('date')[:10]
             else:
-                site_reviewed_query = InstanceStatusChanged.objects.values('date')
+                site_reviewed_query = InstanceStatusChanged.objects.filter(**instance_or_progress_filters). \
+                    values('date')
 
             df_site_reviewed = pd.DataFrame(list(site_reviewed_query), columns=['date'])
             sites_reviewed = df_site_reviewed.groupby(pd.Grouper(
@@ -300,11 +327,12 @@ def time_report(report_obj, preview=False):
             df = pd.concat([df, sites_reviewed], axis=1)
 
         if set(['progress_avg', 'progress_max', 'progress_min']).intersection(set(default_metrics)):
-
             if preview:
-                progress_query = SiteProgressHistory.objects.filter().values('date', 'progress')[:10]
+                progress_query = SiteProgressHistory.objects.filter(**instance_or_progress_filters).\
+                    values('date', 'progress')[:10]
             else:
-                progress_query = SiteProgressHistory.objects.filter().values('date', 'progress')
+                progress_query = SiteProgressHistory.objects.filter(**instance_or_progress_filters). \
+                    values('date', 'progress')
 
             df_progress = pd.DataFrame(list(progress_query), columns=['date', 'progress'])
             if "progress_avg" in default_metrics:
@@ -326,12 +354,12 @@ def time_report(report_obj, preview=False):
                 df = pd.concat([df, progress_min], axis=1)
 
             if preview:
-                query_submissions = FInstance.objects.filter().filter(
+                query_submissions = FInstance.objects.filter(**instance_or_progress_filters).filter(
                     Q(project_fxf__project=report_obj.project_id) |
                     Q(site_fxf__site__project=report_obj.project_id)
-                ).values("pk",  "date", "instance__date_created", "form_status", "project_fxf")[:10]
+                ).values("pk", "date", "instance__date_created", "form_status", "project_fxf")[:10]
             else:
-                query_submissions = FInstance.objects.filter().filter(
+                query_submissions = FInstance.objects.filter(**instance_or_progress_filters).filter(
                     Q(project_fxf__project=report_obj.project_id) |
                     Q(site_fxf__site__project=report_obj.project_id)
                 ).values("pk", "date", "instance__date_created", "form_status", "project_fxf")
@@ -340,20 +368,21 @@ def time_report(report_obj, preview=False):
                 list(query_submissions), columns=["pk", "date", "instance__date_created", "form_status", "project_fxf"])
 
             if preview:
-                query_reviews = InstanceStatusChanged.objects.filter(
+                query_reviews = InstanceStatusChanged.objects.filter(**instance_or_progress_filters).filter(
                     finstance__project=report_obj.project_id, old_status__in=[2, 3]).filter(
                     Q(finstance__project_fxf__project=project_id) |
                     Q(finstance__site_fxf__site__project=project_id)
                 ).values("old_status", "date", "finstance", "finstance__project_fxf")[:10]
 
             else:
-                query_reviews = InstanceStatusChanged.objects.filter(
+                query_reviews = InstanceStatusChanged.objects.filter(**instance_or_progress_filters).filter(
                     finstance__project=report_obj.project_id, old_status__in=[2, 3]).filter(
                     Q(finstance__project_fxf__project=project_id) |
                     Q(finstance__site_fxf__site__project=project_id)
                 ).values("old_status", "date", "finstance", "finstance__project_fxf")
 
-            df_reviews = pd.DataFrame(list(query_reviews), columns=["old_status", "date", "finstance", "finstance__project_fxf"])
+            df_reviews = pd.DataFrame(list(query_reviews), columns=["old_status", "date",
+                                                                    "finstance", "finstance__project_fxf"])
 
             if 'no_submissions' in default_metrics:
                 df_no_submissions = df_submissions

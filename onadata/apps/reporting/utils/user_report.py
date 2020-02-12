@@ -16,26 +16,47 @@ def user_report(report_obj, preview=False):
     project_id = report_obj.project_id
     attributes = report_obj.attributes
     filters = report_obj.filter
+    user_roles = filters.get('user_roles')
+    report_user_roles_filters = []
+    if user_roles:
+        if isinstance(user_roles, list):
+            [report_user_roles_filters.append(user['name']) for user in user_roles]
+        elif isinstance(user_roles, dict):
+            report_user_roles_filters.append(user_roles['name'])
+
+    user_filter = {}
+    user_roles_filter = {}
+    instance_status_changed_filter = {}
+    finstance_filter = {}
+
+    user_filter['user_roles__project'] = project_id
+    user_filter['user_roles__ended_at__isnull'] = True
+
+    user_roles_filter['ended_at__isnull'] = True
+    user_roles_filter['project'] = project_id
+
+    if report_user_roles_filters:
+        user_filter['user_roles__group__name__in'] = report_user_roles_filters
+        user_roles_filter['group__name__in'] = report_user_roles_filters
+        finstance_filter['submitted_by__user_roles__group__name__in'] = report_user_roles_filters
+        finstance_filter['submitted_by__user_roles__ended_at__isnull'] = True
+        instance_status_changed_filter['user__user_roles__group__name__in'] = report_user_roles_filters
+        instance_status_changed_filter['user__user_roles__ended_at__isnull'] = True
+
     default_metrics, individual_form_metrics, form_information_metrics, \
         user_metrics, site_info_metrics = separate_metrics(attributes)
 
     if preview:
-        query = User.objects.filter(
-            user_roles__project=project_id, user_roles__ended_at__isnull=project_id)\
-            .distinct().values('pk', 'username', 'email')[:10]
+        query = User.objects.filter(**user_filter).distinct().values('pk', 'username', 'email')[:10]
     else:
-        query = User.objects.filter(
-            user_roles__project=project_id, user_roles__ended_at__isnull=project_id) \
-            .distinct().values('pk', 'username', 'email')
+        query = User.objects.filter(**user_filter).distinct().values('pk', 'username', 'email')
     df = pd.DataFrame(list(query), columns=['pk', 'username', 'email'])
     df.columns = ['user', 'username', 'email']
 
     if preview:
-        query_role = UserRole.objects.filter(
-            ended_at__isnull=True, project=project_id).values("user", "site", "project", "region")[:10]
+        query_role = UserRole.objects.filter(**user_roles_filter).values("user", "site", "project", "region")[:10]
     else:
-        query_role = UserRole.objects.filter(
-            ended_at__isnull=True, project=project_id).values("user", "site", "project", "region")
+        query_role = UserRole.objects.filter(**user_roles_filter).values("user", "site", "project", "region")
 
     df_role = pd.DataFrame(list(query_role), columns=["user", "site", "project", "region"])
 
@@ -53,43 +74,55 @@ def user_report(report_obj, preview=False):
         df = df.merge(num_of_regions, on="user", how="left")
 
     if preview:
-        query_submissions = FInstance.objects.filter(
+        query_submissions = FInstance.objects.filter(**finstance_filter).filter(
             Q(project_fxf__project=project_id) |
             Q(site_fxf__site__project=project_id)
-        ).values("pk", "site", "project_fxf", "form_status", "submitted_by", "date", "site__current_progress")[:10]
+        ).distinct().values("pk", "site", "project_fxf", "form_status", "submitted_by", "date",
+                            "site__current_progress")[:10]
     else:
-        query_submissions = FInstance.objects.filter(
+        query_submissions = FInstance.objects.filter(**finstance_filter).filter(
             Q(project_fxf__project=project_id) |
             Q(site_fxf__site__project=project_id)
-        ).values("pk", "site", "project_fxf", "form_status", "submitted_by", "date", "site__current_progress")
+        ).distinct().values("pk", "site", "project_fxf", "form_status", "submitted_by", "date",
+                            "site__current_progress")
 
     df_submissions = pd.DataFrame(
-        list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date", "site__current_progress"])
+        list(query_submissions), columns=["pk", "site", "project_fxf", "form_status", "submitted_by", "date",
+                                          "site__current_progress"])
     df_submissions.columns = ["pk", "site", "project_fxf", "form_status", "user", "date", "progress"]
 
     if "progress_avg" in default_metrics:
-        progress_avg = df_submissions.groupby('user').progress.mean().to_frame("progress_avg").reset_index()
-        df = df.merge(progress_avg, on="user", how="left")
+        try:
+            progress_avg = df_submissions.groupby('user').progress.mean().to_frame("progress_avg").reset_index()
+            df = df.merge(progress_avg, on="user", how="left")
+        except:
+            df['progress_avg'] = 0
 
     if "progress_max" in default_metrics:
-        progress_max = df_submissions.groupby('user').progress.max().to_frame("progress_max").reset_index()
-        df = df.merge(progress_max, on="user", how="left")
+        try:
+            progress_max = df_submissions.groupby('user').progress.max().to_frame("progress_max").reset_index()
+            df = df.merge(progress_max, on="user", how="left")
+        except:
+            df['progress_max'] = 0
 
     if "progress_min" in default_metrics:
-        progress_min = df_submissions.groupby('user').progress.min().to_frame("progress_min").reset_index()
-        df = df.merge(progress_min, on="user", how="left")
+        try:
+            progress_min = df_submissions.groupby('user').progress.min().to_frame("progress_min").reset_index()
+            df = df.merge(progress_min, on="user", how="left")
+        except:
+            df['progress_min'] = 0
 
     if preview:
-        query_reviews = InstanceStatusChanged.objects.filter(
+        query_reviews = InstanceStatusChanged.objects.filter(**instance_status_changed_filter).filter(
             Q(finstance__project_fxf__project=project_id) |
             Q(finstance__site_fxf__site__project=project_id)
-        ).values(
+        ).distinct().values(
             "pk", "finstance__site", "new_status", "old_status", "user", "finstance")[:10]
     else:
-        query_reviews = InstanceStatusChanged.objects.filter(
+        query_reviews = InstanceStatusChanged.objects.filter(**instance_status_changed_filter).filter(
             Q(finstance__project_fxf__project=project_id) |
             Q(finstance__site_fxf__site__project=project_id)
-        ).values(
+        ).distinct().values(
             "pk", "finstance__site", "new_status", "old_status", "user", "finstance")
     df_reviews = pd.DataFrame(list(query_reviews),
                               columns=["pk", "new_status", "old_status", "user", "finstance", "finstance__project_fxf"])

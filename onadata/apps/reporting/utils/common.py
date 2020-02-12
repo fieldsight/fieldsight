@@ -372,9 +372,12 @@ def separate_metrics(attributes):
 
 def generate_default_metrices(df, df_submissions, df_reviews, metrices_list, report_type):
     if "sites_visited" in metrices_list:
-        df_visits = df_submissions.date.apply(lambda dt: dt.date()).groupby(
-            [df_submissions[report_type]]).nunique().to_frame('sites_visited').reset_index()
-        df = df.merge(df_visits, on=report_type, how="left")
+        try:
+            df_visits = df_submissions.date.apply(lambda dt: dt.date()).groupby(
+                [df_submissions[report_type]]).nunique().to_frame('sites_visited').reset_index()
+            df = df.merge(df_visits, on=report_type, how="left")
+        except:
+            df['sites_visited'] = 0
 
     if "sites_reviewed" in metrices_list:
         df_reviews_count = df_reviews.groupby(report_type).size().to_frame('sites_reviewed').reset_index()

@@ -133,7 +133,7 @@ def clone_form(project_id, task_id):
                 scheduled_fxf = FieldSightXF(xf=lf.xf, project=project, is_deployed=True,
                                              is_scheduled=True,
                                              default_submission_status=lf.default_submission_status,
-                                             schedule=scheduled_obj, organization_form_lib=lf)
+                                              schedule=scheduled_obj, organization_form_lib=lf)
                 fsxf_list.append(scheduled_fxf)
 
         FieldSightXF.objects.bulk_create(fsxf_list)

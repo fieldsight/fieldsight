@@ -191,4 +191,5 @@ def site_report(report_obj, preview=False):
     df = df[columns_name]
 
     df = df.replace("Nan", 0)
+
     return df

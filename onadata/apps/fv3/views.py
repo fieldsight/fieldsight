@@ -1140,7 +1140,9 @@ def settings_breadcrumbs(request, pk):
 
         breadcrumbs.update({'current_page': 'Reports List',
                             'name': project.name,
-                            'name_url': project.get_absolute_url()})
+                            'name_url': project.get_absolute_url(),
+                            'created_date': project.date_created
+                            })
 
     else:
         return Response(status=status.HTTP_404_NOT_FOUND, data={'detail':
