@@ -531,7 +531,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
         root_site_identifier = df[~df.root_site_identifier.isnull()].root_site_identifier.unique().tolist()
         root_site_identifier_query = Site.objects.filter(project=project, identifier__in=root_site_identifier).values('identifier', 'pk')
-        root_sites_dict = dict(root_site_identifier_query)
+        root_sites_dict = {x['identifier']: x['pk'] for x in list(root_site_identifier_query)}
 
         site_types_object_list = SiteType.objects.filter(project=project).values('identifier', 'pk')
         site_types_object_dict = {x['identifier']: x['pk'] for x in list(site_types_object_list)}
@@ -647,7 +647,6 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
                 site_obj.site_meta_attributes_ans = myanswers
                 site_obj.all_ma_ans = myanswers
-                site_obj.save()
                 new_site_objects.append(site_obj)
                 i += 1
 
