@@ -383,13 +383,7 @@ def generate_form_report(sheet):
     temporarylocation = "media/forms/submissions_{}.xls".format(xform.id_string)
     import shutil
     shutil.copy(temp_file.name, temporarylocation)
-    if fieldsight_xf.schedule:
-        name = fieldsight_xf.schedule.name
-    elif fieldsight_xf.stage:
-        name = fieldsight_xf.stage.name
-    else:
-        name = fieldsight_xf.xf.title
-    upload_to_drive(temporarylocation, name + '_' + id_string, str(fieldsight_xf.id) + '_' + name + '_' + id_string,
+    upload_to_drive(temporarylocation, str(fieldsight_xf.id) + '_' + id_string, None,
                     fieldsight_xf.project, sheet.user, sheet)
 
     os.remove(temporarylocation)

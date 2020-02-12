@@ -888,13 +888,7 @@ def generate_export(export_type, extension, username, id_string,
             import shutil
             shutil.copy(temp_file.name, temporarylocation)
             fxf_form = FieldSightXF.objects.get(pk=filter_query['$and'][0]['fs_project_uuid'])
-            if fxf_form.schedule:
-                name = fxf_form.schedule.name
-            elif fxf_form.stage:
-                name = fxf_form.stage.name
-            else:
-                name = fxf_form.xf.title
-            upload_to_drive(temporarylocation, name+'_'+id_string, str(fxf_form.id)+'_'+name+'_'+id_string, fxf_form.project, user)
+            upload_to_drive(temporarylocation, str(fxf_form.id) + '_' +id_string, None, fxf_form.project, user)
         
             os.remove(temporarylocation)
         
