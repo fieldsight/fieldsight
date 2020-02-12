@@ -505,6 +505,8 @@ def bulkuploadsites(task_prog_obj_id, pk):
     elif not df.identifier.is_unique:
         error_message = "Identifier column in Excel file must be unique in a Project."
 
+    df = df[df.identifier.notnull()]
+
     if error_message:
         raise ValueError(error_message)
 
@@ -607,6 +609,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
             for site in new_sites_dict:
                 site_obj = Site(project=project)
                 site_obj.name = site.get("name")
+                site_obj.identifier = site.get("identifier")
                 site_obj.phone = site.get("phone")
                 site_obj.address = site.get("address")
                 site_obj.public_desc = site.get("public_desc")
