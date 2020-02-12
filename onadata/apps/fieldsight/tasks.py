@@ -596,7 +596,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
             new_site_objects = []
             for site in new_sites_dict:
-                site_obj = Site()
+                site_obj = Site(project=project)
                 site_obj.name = site.get("name")
                 site_obj.phone = site.get("phone")
                 site_obj.address = site.get("address")
