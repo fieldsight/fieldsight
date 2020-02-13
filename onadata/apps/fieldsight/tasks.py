@@ -490,7 +490,8 @@ def get_site_type(value):
 
 @shared_task()
 def bulkuploadsites(task_prog_obj_id, pk):
-    time.sleep(20)
+    time.sleep(5)
+    error_message = None
     project = Project.objects.get(pk=pk)
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.content_object = project
@@ -498,6 +499,22 @@ def bulkuploadsites(task_prog_obj_id, pk):
     task.save()
     upload_file = task.file
     df = pd.read_excel(upload_file)
+    if not hasattr(df, 'identifier'):
+        error_message = "Identifier column required in Excel File"
+
+    elif not df.identifier.is_unique:
+        error_message = "Identifier column in Excel file must be unique in a Project."
+
+    df = df[df.identifier.notnull()]
+
+    if error_message:
+        task.description = "ERROR: " + error_message
+        task.status = 3
+        task.save()
+        noti = project.logs.create(source=task.user, type=412, title="Bulk Sites",
+                                   content_object=project, recipient=task.user,
+                                   extra_message=str(0) + " Sites @error " + u'{}'.format(error_message))
+
     df[['latitude']].fillna(27.7172, inplace=True)
     df[['longitude']].fillna(85.3240, inplace=True)
     meta_ques = project.site_meta_attributes
@@ -519,15 +536,14 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
         root_site_identifier = df[~df.root_site_identifier.isnull()].root_site_identifier.unique().tolist()
         root_site_identifier_query = Site.objects.filter(project=project, identifier__in=root_site_identifier).values('identifier', 'pk')
-        root_sites_dict = dict(root_site_identifier_query)
+        root_sites_dict = {x['identifier']: x['pk'] for x in list(root_site_identifier_query)}
 
-        site_types = df[~df.type.isnull()].type.unique().tolist()
-        site_types_query = SiteType.objects.filter(project=project, identifier__in=site_types).values('identifier', 'pk')
-        site_types_dict = dict(site_types_query)
-        
-        region_identifiers = df[~df.region_identifier.isnull()].region_identifier.unique().tolist()
-        region_query = Region.objects.filter(project=project, identifier__in=region_identifiers).values('identifier', 'pk')
-        region_identifier_dict = dict(region_query)
+        site_types_object_list = SiteType.objects.filter(project=project).values('identifier', 'pk')
+        site_types_object_dict = {x['identifier']: x['pk'] for x in list(site_types_object_list)}
+
+        region_object_list = Region.objects.filter(project=project).values('identifier', 'pk')
+        region_object_dict = {x['identifier']: x['pk'] for x in list(region_object_list)}
+
         query = Site.objects.filter(project=project, identifier__in=site_identifiers).values("id", 'identifier')
         df_site = pd.DataFrame(list(query), columns=["id", 'identifier'])
 
@@ -560,12 +576,12 @@ def bulkuploadsites(task_prog_obj_id, pk):
                 type_identifier = site.get("type", None)
 
                 if type_identifier:
-                    site_type_id = site_types_dict.get(type_identifier, None)
+                    site_type_id = site_types_object_dict.get(type_identifier, None)
                     if site_type_id:
                         site_obj.type_id = site_type_id
                 
                 if region_identifier is not None:
-                    region_id = region_identifier_dict.get(region_identifier, None)
+                    region_id = region_object_dict.get(region_identifier, None)
                     if region_id:
                         site_obj.region_id = region_id
 
@@ -598,6 +614,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
             for site in new_sites_dict:
                 site_obj = Site(project=project)
                 site_obj.name = site.get("name")
+                site_obj.identifier = site.get("identifier")
                 site_obj.phone = site.get("phone")
                 site_obj.address = site.get("address")
                 site_obj.public_desc = site.get("public_desc")
@@ -607,12 +624,12 @@ def bulkuploadsites(task_prog_obj_id, pk):
                 type_identifier = site.get("type", None)
 
                 if type_identifier:
-                    site_type_id = site_types_dict.get(type_identifier, None)
+                    site_type_id = site_types_object_dict.get(type_identifier, None)
                     if site_type_id:
                         site_obj.type_id = site_type_id
 
                 if region_identifier is not None:
-                    region_id = region_identifier_dict.get(region_identifier, None)
+                    region_id = region_object_dict.get(region_identifier, None)
                     if region_id:
                         site_obj.region_id = region_id
 
@@ -635,7 +652,6 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
                 site_obj.site_meta_attributes_ans = myanswers
                 site_obj.all_ma_ans = myanswers
-                site_obj.save()
                 new_site_objects.append(site_obj)
                 i += 1
 
