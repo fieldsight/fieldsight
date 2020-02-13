@@ -15,7 +15,7 @@ from onadata.apps.fv3.urls.view_by_forms_status import view_by_forms_status_urlp
 from onadata.apps.fv3.urls.reports import reports_urlpatterns
 from onadata.apps.fv3.views import supervisor_projects, MySuperviseSitesViewset, site_blueprints, supervisor_logs, \
     ProjectDefineSiteMeta, ProjectSitesViewset, check_region, project_sites_vt, forms_breadcrumbs, \
-    MySuperviseSitesViewsetV4
+    MySuperviseSitesViewsetV4, settings_breadcrumbs
 
 from onadata.apps.fv3.viewsets.FormsViewset import MyFormsViewSet, \
     MyProjectFormsViewSet, ShareFormViewSet, \
@@ -96,10 +96,11 @@ urlpatterns = [
         name='project_sites_vt'),
 
     url(r'^api/site-forms-breadcrumbs/$', forms_breadcrumbs, name='forms_breadcrumbs'),
+    url(r'^api/settings-breadcrumbs/(?P<pk>\d+)/$', settings_breadcrumbs, name='settings_breadcrumbs'),
 
     url(r'^api/super-organization-form/$', OrganizationViewSet.as_view({'get' : 'list', 'post': 'create'}),
         name='super_organization_form'),
-    url(r'^api/super-organization-lists/(?P<pk>\d+)/$', OrganizationViewSet.as_view({'get' : 'retrieve'}),
+    url(r'^api/super-organization-lists/(?P<pk>\d+)/$', OrganizationViewSet.as_view({'get' : 'retrieve', 'put': 'update'}),
         name='super_organization_lists'),
 ]
 

@@ -89,6 +89,7 @@ class ProjectType(models.Model):
 
 class SuperOrganization(models.Model):
     name = models.CharField(max_length=255)
+    identifier = models.CharField("ID", max_length=255, null=True, blank=True)
     phone = models.CharField(
         "Contact Number", max_length=255, blank=True, null=True)
     fax = models.CharField(max_length=255, blank=True, null=True)
@@ -125,8 +126,11 @@ class SuperOrganization(models.Model):
         if self.location:
             return self.location.x
 
+    def getname(self):
+        return self.name
+
     def get_absolute_url(self):
-        return "/fieldsight/application/#/super-team-dashboard/{}".format(self.pk)
+        return "/fieldsight/application/#/organization-dashboard/{}".format(self.pk)
 
     def get_organization_submission(self):
         instances = self.superorganization_instances.all().order_by('-date')
@@ -163,6 +167,7 @@ class SuperOrganization(models.Model):
 
 class Organization(models.Model):
     name = models.CharField("Team Name", max_length=255)
+    identifier = models.CharField("ID", max_length=255, null=True, blank=True)
     type = models.ForeignKey(
         OrganizationType, verbose_name='Type of Team', on_delete=models.SET_NULL, blank=True, null=True)
     phone = models.CharField(
@@ -330,6 +335,7 @@ class Project(models.Model):
     ]
 
     name = models.CharField(max_length=255)
+    identifier = models.CharField("ID", max_length=255, null=True, blank=True)
     type = models.ForeignKey(ProjectType, verbose_name='Type of Project', null=True, blank=True)
     sector = models.ForeignKey(Sector, verbose_name='Sector', null=True, blank=True, related_name='project_sector')
     sub_sector = models.ForeignKey(Sector, verbose_name='Sub-Sector', null=True, blank=True, related_name='project_sub_sector')
@@ -756,7 +762,10 @@ class UserInvite(models.Model):
     site = models.ManyToManyField(Site, related_name='invite_site_roles')
     project = models.ManyToManyField(Project, related_name='invite_project_roles')
     regions = models.ManyToManyField(Region, related_name='invite_region_roles')
-    organization = models.ForeignKey(Organization, related_name='invite_organization_roles')
+    organization = models.ForeignKey(Organization, related_name='invite_organization_roles', null=True, blank=True)
+    teams = models.ManyToManyField(Organization, related_name='invite_team_roles')
+    super_organization = models.ForeignKey(SuperOrganization, related_name='invite_super_organization_roles',
+                                           null=True, blank=True)
     logs = GenericRelation('eventlog.FieldSightLog')
 
     def __unicode__(self):

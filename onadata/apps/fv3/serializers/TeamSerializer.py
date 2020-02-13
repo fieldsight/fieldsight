@@ -9,6 +9,7 @@ from onadata.apps.fieldsight.models import Organization, Site, Project
 from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.subscriptions.models import Package, Subscription
 from onadata.apps.geo.models import GeoLayer
+from onadata.apps.userrole.models import UserRole
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -27,9 +28,9 @@ class TeamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ('id', 'name', 'address', 'logo', 'public_desc', 'contact', 'total_sites', 'total_projects',
-                  'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs', 'package_details', 'stripe_token',
-                  'map')
+        fields = ('id', 'name', 'identifier', 'address', 'logo', 'public_desc', 'contact', 'total_sites',
+                  'total_projects', 'total_users', 'submissions', 'projects', 'admin', 'breadcrumbs',
+                  'package_details', 'stripe_token', 'map')
 
     def get_total_sites(self, obj):
 
@@ -62,7 +63,8 @@ class TeamSerializer(serializers.ModelSerializer):
         return projects
 
     def get_admin(self, obj):
-        admin_queryset = obj.organization_roles.filter(ended_at__isnull=True, group__name="Organization Admin")
+        admin_queryset = obj.organization_roles.select_related('user', 'user__user_profile').\
+            filter(ended_at__isnull=True, group__name="Organization Admin")
 
         data = [{'id': admin.user.id, 'full_name': admin.user.get_full_name(), 'email': admin.user.email, 'profile':
             admin.user.user_profile.profile_picture.url} for admin in admin_queryset]
@@ -77,8 +79,15 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def get_breadcrumbs(self, obj):
         request = self.context['request']
-        if request.is_super_admin:
-            return {'name': obj.name, 'teams': 'Teams', 'teams_url': '/fieldsight/application/#/teams'}
+        if request.is_super_admin or obj.parent_id in request.roles.\
+                filter(super_organization=obj.parent, group__name="Super Organization Admin").\
+                values_list('super_organization_id', flat=True):
+            if obj.parent:
+                return {'name': obj.name, 'organization': obj.parent.name,
+                        'organization_url': obj.parent.get_absolute_url(),
+                        'teams': 'Teams', 'teams_url': '/fieldsight/application/#/teams'}
+            else:
+                return {'name': obj.name, 'teams': 'Teams', 'teams_url': '/fieldsight/application/#/teams'}
 
         else:
             return {'name': obj.name}
@@ -122,21 +131,21 @@ class TeamProjectSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'address', 'logo', 'total_users', 'total_submissions', 'total_regions', 'total_sites')
 
     def get_total_users(self, obj):
-        users = obj.project_roles.filter(ended_at=None).distinct('user').count()
+        users = obj.project_roles.count()
 
         return users
 
     def get_total_submissions(self, obj):
-        instances = obj.project_instances.filter(is_deleted=False).count()
+        instances = obj.project_instances.count()
         return instances
 
     def get_total_regions(self, obj):
-        regions = obj.project_region.filter(is_active=True, parent__isnull=True).count()
+        regions = obj.project_region.count()
 
         return regions
 
     def get_total_sites(self, obj):
-        sites = obj.sites.filter(is_active=True, is_survey=False, site__isnull=True).count()
+        sites = obj.sites.count()
 
         return sites
 
@@ -148,7 +157,7 @@ class TeamUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ('id', 'name', 'type', 'phone', 'email', 'address', 'website', 'public_desc', 'logo',
+        fields = ('id', 'name', 'identifier', 'type', 'phone', 'email', 'address', 'website', 'public_desc', 'logo',
                   'location', 'country')
 
 
@@ -163,7 +172,11 @@ class TeamGeoLayer(serializers.ModelSerializer):
     def get_properties(self, obj):
         if obj.geo_shape_file:
             path = obj.geo_shape_file.url
-            response = requests.get(path)
+            try:
+                response = requests.get(path)
+            except Exception as e:
+                response = requests.get(settings.SITE_URL + path)
+
             read_data = json.loads(response.content)
             properties = read_data['features'][0]['properties'].keys()
             # update_properties = properties.pop('id', None)

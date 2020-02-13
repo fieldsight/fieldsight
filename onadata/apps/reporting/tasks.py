@@ -4,11 +4,10 @@ import calendar
 import datetime
 import os
 import time
-
+from io import BytesIO
 from googleapiclient import discovery
 from oauth2client.service_account import ServiceAccountCredentials
 from uuid import uuid4
-
 from celery import shared_task
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -17,20 +16,30 @@ from django.db.models import Q
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.reporting.models import ReportSettings
+from onadata.apps.reporting.utils.excel_utils import to_excel_auto_width
 from onadata.apps.reporting.utils.site_report import site_report
+from onadata.apps.reporting.utils.time_report import time_report
 from onadata.apps.reporting.utils.user_report import user_report
 
 
 def save_file(df, directory, filename):
     if not os.path.exists(settings.MEDIA_ROOT + directory):
         os.makedirs(settings.MEDIA_ROOT + directory)
-    xls = df.to_excel(settings.MEDIA_ROOT + directory + filename + ".xls")
-    # return xls
-    # xls_url = default_storage.save(, ContentFile(xls))
-    return directory + filename + ".xls"
+    to_excel_auto_width(settings.MEDIA_ROOT + directory + filename, df)
+    # df.to_excel(settings.MEDIA_ROOT + directory + filename)
+    with open("media/" + directory + filename, 'rb') as fin:
+        buffer_file = BytesIO(fin.read())
+        buffer_file.seek(0)
+        path = default_storage.save(
+            "media/" + directory + filename,
+            ContentFile(buffer_file.getvalue())
+        )
+        buffer_file.close()
+    os.remove(settings.MEDIA_ROOT + directory + filename)
+    return path
 
 
-@shared_task()
+@shared_task(time_limit=600, max_retries=2, soft_time_limit=600)
 def new_export(report_id, task_id):
     time.sleep(5)
     task = CeleryTaskProgress.objects.get(pk=task_id)
@@ -38,20 +47,23 @@ def new_export(report_id, task_id):
     task.save()
     try:
         report_obj = ReportSettings.objects.get(pk=report_id)
-        if report_obj.type == 1:
+        if report_obj.type == 0:
             df = site_report(report_obj)
-            xls_url = save_file(df,  "custom_report/", "site_report" + uuid4().hex)
+            xls_url = save_file(df,  "custom_report/", "site_report_" + uuid4().hex + ".xlsx")
         elif report_obj.type == 4:
             df = user_report(report_obj)
-            xls_url = save_file(df, "custom_report/", "user_report" + uuid4().hex)
+            xls_url = save_file(df, "custom_report/", "user_report_" + uuid4().hex + ".xlsx")
+        elif report_obj.type == 5:
+            df = time_report(report_obj)
+            xls_url = save_file(df, "custom_report/", "time_report_" + uuid4().hex + ".xlsx")
         task.file.name = xls_url
         task.status = 2
         task.save()
         task.logs.create(source=task.user, type=32, title="Report generation",
                                 recipient=task.user, content_object=task, extra_object=task.content_object,
-                                extra_message=" <a href='" + task.file.url + "'> Custom Report  </a> generation with title ")
+                                extra_message="Custom " + report_obj.get_type_display() + " Report  <a href='" + task.file.url + "'> Download </a>  with title ")
     except Exception as e:
-        task.description = "ERROR: " + str(e.message)
+        task.description = "ERROR: " + str(e)
         task.status = 3
         task.save()
         task.logs.create(source=task.user, type=432, title="Report generation",

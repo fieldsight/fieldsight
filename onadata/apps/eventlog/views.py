@@ -24,7 +24,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from celery.result import AsyncResult
 from onadata.apps.fv3.role_api_permissions import check_site_permission
-from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer, LogSerializer, TaskSerializer
+from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer, LogSerializer, TaskSerializer, \
+    TasklLogSerializer
 from onadata.apps.fieldsight.rolemixins import ProjectRoleMixin, SiteRoleMixin, ReadonlySiteLevelRoleMixin, ReadonlyProjectLevelRoleMixin
 from onadata.apps.fieldsight.models import Project, Site
 from onadata.apps.userrole.models import UserRole
@@ -83,7 +84,7 @@ class MyTaskListViewSet(viewsets.ModelViewSet):
         profile.task_last_view_date = datetime.now()
         profile.save()
 
-        exclude_task_type = [15, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+        exclude_task_type = [15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27]
         
         if self.request.is_super_admin:
             return queryset.filter(~Q(task_type__in=exclude_task_type)).order_by('-date_updateded')
@@ -110,6 +111,15 @@ class OtherTaskListViewSet(viewsets.ModelViewSet):
         self_orgs = UserRole.objects.filter(user_id=self.request.user.id, ended_at__isnull=False, organization_id__isnull=False).distinct('organization_id').values_list('organization_id', flat=True)
         self_org_projects = Project.objects.filter(organization_id__in=self_orgs).only('id')
         return queryset.filter(Q(object_id__in=self_projects) | Q(object_id__in=self_org_projects), status=2, content_type__isnull=False, content_type__model="project").exclude(user_id=self.request.user.id).order_by('-date_updateded')
+
+
+class TaskListViewSet(viewsets.ModelViewSet):
+    """
+    A simple ViewSet for viewing and editing sites.
+    """
+    queryset = CeleryTaskProgress.objects.all()
+    serializer_class = TasklLogSerializer
+    pagination_class = LargeResultsSetPagination
 
 
 class ProjectLog(viewsets.ModelViewSet):

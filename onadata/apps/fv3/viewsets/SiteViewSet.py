@@ -36,7 +36,7 @@ class SiteSubmissionsPagination(PageNumberPagination):
 
 
 class SiteViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Site.objects.select_related('project', 'region')
+    queryset = Site.objects.select_related('project', 'region', 'type')
     serializer_class = SiteSerializer
     permission_classes = [IsAuthenticated, SitePermissions]
 

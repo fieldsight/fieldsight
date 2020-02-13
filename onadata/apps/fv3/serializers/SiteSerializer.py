@@ -82,14 +82,6 @@ class SiteSerializer(serializers.ModelSerializer):
         rejected = queryset.filter(site__in=total_sites, form_status=1).count()
         approved = queryset.filter(site__in=total_sites, form_status=3).count()
 
-        # response = obj.get_site_submission_count()
-        #
-        # outstanding, flagged, approved, rejected = obj.get_site_submission_count()
-        # total_submissions = response['flagged'] + response['approved'] + response['rejected'] + response['outstanding']
-        # submissions = {
-        #                 'total_submissions': total_submissions, 'pending': response['outstanding'], flagged:
-        #                 response['flagged'], 'approved': response['approved'], 'rejected': response['rejected']
-        #                }
         submissions = {
             'total_submissions': total_submissions, 'pending': outstanding,  'flagged': flagged, 'rejected': rejected,
             'approved': approved
@@ -244,8 +236,17 @@ class SiteSerializer(serializers.ModelSerializer):
         organization = obj.project.organization
         organization_url = obj.get_absolute_url()
         request = self.context['request']
-        if request.roles.filter(Q(group__name__in=["Project Manager", "Project Donor"], project=project) | Q(group__name="Organization Admin",
-                                                                                      organization=organization)) or request.is_super_admin:
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                project_url = project.get_absolute_url()
+                organization_url = organization.get_absolute_url()
+
+        if request.roles.filter(Q(group__name__in=["Project Manager", "Project Donor"], project=project) |
+                                Q(group__name="Organization Admin", organization=organization)) or \
+                request.is_super_admin:
             project_url = project.get_absolute_url()
         if request.roles.filter(group__name="Organization Admin", organization=organization) or request.is_super_admin:
             organization_url = organization.get_absolute_url()

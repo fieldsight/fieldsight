@@ -9,22 +9,19 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.authentication import BasicAuthentication
 
-from rest_framework.decorators import permission_classes, api_view, \
-    authentication_classes
-from rest_framework.generics import UpdateAPIView
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 
-from onadata.apps.fieldsight.models import UserInvite, Region, Project, Site
+from onadata.apps.fieldsight.models import UserInvite, Region, Project, Site, SuperOrganization, Organization
 from onadata.apps.users.models import UserProfile
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog
-from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, \
-    UserInvitationSerializer, MyRegionSerializer, MySiteSerializer, \
-    ChangePasswordSerializer
+from onadata.apps.fv3.serializers.MyRolesSerializer import MyRolesSerializer, UserInvitationSerializer, \
+    MyRegionSerializer, MySiteSerializer, ChangePasswordSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import XForm
 
@@ -34,16 +31,26 @@ class MySitesPagination(PageNumberPagination):
 
 
 def is_project_manager_or_team_admin(project_obj, user):
+
+    org = project_obj.organization
+
+    if org.parent:
+        super_org = org.parent
+    else:
+        super_org = None
+
     is_pm_admin = user.user_roles.select_related('user', 'group',
-                                                                    'site',
-                                                                    'organization',
-                                                                    'staff_project',
-                                                                    'project',
-                                                                    'region').filter(
-        Q(group__name__in=["Project Manager", "Project Donor"],
-          project=project_obj, project__is_active=True, ended_at=None) | Q(group__name="Organization Admin",
-                                                            organization=project_obj.organization,
-                                                            organization__is_active=True, ended_at=None)).exists()
+                                                                'site',
+                                                                'organization',
+                                                                'staff_project',
+                                                                'project',
+                                                                'region').\
+        filter(Q(group__name__in=["Project Manager", "Project Donor"], project=project_obj,
+                 project__is_active=True, ended_at=None) |
+               Q(group__name="Organization Admin", organization=project_obj.organization,
+                 organization__is_active=True, ended_at=None) |
+               Q(group__name="Super Organization Admin", super_organization=super_org,
+                 super_organization__is_active=True, ended_at=None)).exists()
 
     return is_pm_admin
 
@@ -67,6 +74,20 @@ def my_site_ids(project_obj, user):
     return merge_site_ids
 
 
+def get_teams(user, org_id):
+    my_teams = UserRole.objects.filter(user=user, ended_at=None).filter(
+        Q(group__name="Organization Admin", organization__is_active=True) |
+        Q(group__name="Project Manager", project__is_active=True) |
+        Q(group__name="Project Donor", project__is_active=True) |
+        Q(group__name="Region Supervisor", region__is_active=True) |
+        Q(group__name="Region Reviewer", region__is_active=True) |
+        Q(group__name="Site Supervisor", site__is_active=True) |
+        Q(group__name="Reviewer", site__is_active=True)).distinct('organization').\
+        values_list('organization_id', flat=True)
+
+    return my_teams
+
+
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def my_roles(request):
@@ -82,8 +103,9 @@ def my_roles(request):
         except ObjectDoesNotExist:
             profile_obj = UserProfile.objects.create(user=request.user)
 
-    guide_popup = True if request.user.user_roles.all().count() == 0 or (request.user.user_roles.filter(group__name="Unassigned")
-                                                                         and request.user.user_roles.all().count() == 1) else False
+    guide_popup = True if request.user.user_roles.all().count() == 0 or \
+                          (request.user.user_roles.filter(group__name="Unassigned")
+                           and request.user.user_roles.all().count() == 1) else False
 
     can_create_team = True
 
@@ -97,21 +119,27 @@ def my_roles(request):
     else:
         user = request.user
 
-    profile = {'id': profile_obj.id, 'fullname': profile_obj.getname(), 'username': profile_obj.user.username, 'email': profile_obj.user.email,
-               'address': profile_obj.address, 'phone': profile_obj.phone, 'profile_picture': profile_obj.profile_picture.url,
-               'twitter': profile_obj.twitter, 'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype,
-               'google_talk': profile_obj.google_talk, 'can_create_team': can_create_team, 'guide_popup': guide_popup}
+    profile = {'id': profile_obj.id, 'fullname': profile_obj.getname(), 'username': profile_obj.user.username,
+               'email': profile_obj.user.email, 'address': profile_obj.address, 'phone': profile_obj.phone,
+               'profile_picture': profile_obj.profile_picture.url, 'twitter': profile_obj.twitter,
+               'whatsapp': profile_obj.whatsapp, 'skype': profile_obj.skype, 'google_talk': profile_obj.google_talk,
+               'can_create_team': can_create_team, 'guide_popup': guide_popup}
 
-    teams = UserRole.objects.filter(user=user, ended_at=None).select_related('user', 'group', 'site', 'organization',
-                                                                      'staff_project', 'region').filter(Q(group__name="Organization Admin", organization__is_active=True)|
-                                                                   Q(group__name="Project Manager", project__is_active=True)|
-                                                                   Q(group__name="Project Donor", project__is_active=True)|
-                                                                   Q(group__name="Region Supervisor", region__is_active=True)|
-                                                                   Q(group__name="Region Reviewer", region__is_active=True)|
-                                                                   Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                   Q(group__name="Reviewer", site__is_active=True)
+    teams = UserRole.objects.filter(user=user, ended_at=None).\
+        filter(Q(group__name="Organization Admin", organization__is_active=True) |
+               Q(group__name="Project Manager", project__is_active=True) |
+               Q(group__name="Project Donor", project__is_active=True) |
+               Q(group__name="Region Supervisor", region__is_active=True) |
+               Q(group__name="Region Reviewer", region__is_active=True) |
+               Q(group__name="Site Supervisor", site__is_active=True) |
+               Q(group__name="Reviewer", site__is_active=True)).distinct('organization').\
+        values_list('organization_id', flat=True)
+    organizations = UserRole.objects.filter(user=user, ended_at=None, group__name="Super Organization Admin").\
+        values_list('super_organization_id', flat=True)
 
-                                                                   ).distinct('organization')
+    teams = Organization.objects.select_related('parent').prefetch_related('projects').\
+        filter(Q(id__in=teams) | Q(parent_id__in=organizations))
+
     teams = MyRolesSerializer(teams, many=True, context={'user': request.user})
 
     if user_id is not None:
@@ -119,9 +147,8 @@ def my_roles(request):
         invitations_serializer = UserInvitationSerializer(invitations, many=True, context={'request': request})
 
     else:
-        invitations = UserInvite.objects.select_related('by_user').filter(email__icontains=request.user.email,
-                                                                          is_used=False, is_declied=False)
-
+        invitations = UserInvite.objects.select_related('by_user', 'group').filter(email__icontains=request.user.email,
+                                                                                   is_used=False, is_declied=False)
         invitations_serializer = UserInvitationSerializer(invitations, many=True, context={'request': request})
 
     return Response({'profile': profile, 'teams': teams.data, 'invitations': invitations_serializer.data})
@@ -136,23 +163,24 @@ def my_regions(request):
     if project_id:
         try:
             project_obj = Project.objects.get(id=project_id)
-
-            if is_project_manager_or_team_admin(project_obj, request.user):
-                data = Region.objects.filter(project=project_obj, is_active=True, parent=None)
-
-                regions = MyRegionSerializer(data, many=True, context={'request': request})
-
-            else:
-                regions_id = request.roles.filter(project=project_obj).select_related('user', 'group', 'site', 'organization',
-                                                                      'staff_project', 'region').\
-                    filter(group__name__in=["Region Supervisor", "Region Reviewer"], region__is_active=True, ended_at=None).\
-                    values_list('region_id', flat=True)
-                data = Region.objects.filter(id__in=regions_id)
-                regions = MyRegionSerializer(data, many=True, context={'request': request})
-            return Response({'regions': regions.data})
-
         except ObjectDoesNotExist:
             return Response(data="Project Id does not exist.", status=status.HTTP_204_NO_CONTENT)
+
+        if is_project_manager_or_team_admin(project_obj, request.user):
+            data = Region.objects.filter(project=project_obj, is_active=True, parent=None)
+
+            regions = MyRegionSerializer(data, many=True, context={'request': request})
+
+        else:
+            regions_id = request.roles.filter(project=project_obj).select_related('user', 'group', 'site',
+                                                                                  'organization', 'staff_project',
+                                                                                  'region').\
+                filter(group__name__in=["Region Supervisor", "Region Reviewer"], region__is_active=True,
+                       ended_at=None).values_list('region_id', flat=True)
+            data = Region.objects.filter(id__in=regions_id)
+            regions = MyRegionSerializer(data, many=True, context={'request': request})
+        return Response({'regions': regions.data})
+
     else:
         return Response(data="Project Id params required.", status=status.HTTP_400_BAD_REQUEST)
 
@@ -173,11 +201,13 @@ class MySitesView(APIView):
 
                 if is_project_manager_or_team_admin(project_obj, request.user):
                     if search_param:
-                        data = Site.objects.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
-                                                   project=project_obj, is_active=True, site__isnull=True, is_survey=False)
+                        data = Site.objects.filter(Q(name__icontains=search_param) |
+                                                   Q(identifier__icontains=search_param), project=project_obj,
+                                                   is_active=True, site__isnull=True, is_survey=False)
 
                     else:
-                        data = Site.objects.filter(project=project_obj, is_active=True, site__isnull=True, is_survey=False)
+                        data = Site.objects.filter(project=project_obj, is_active=True, site__isnull=True,
+                                                   is_survey=False)
 
                     result_page = paginator.paginate_queryset(data, request)
 
@@ -201,8 +231,8 @@ class MySitesView(APIView):
 
                     total_sites = list(chain(reg_sites, sites_id))
                     if search_param:
-                        data = Site.objects.filter(Q(name__icontains=search_param) | Q(identifier__icontains=search_param),
-                                                   id__in=total_sites)
+                        data = Site.objects.filter(Q(name__icontains=search_param) |
+                                                   Q(identifier__icontains=search_param),id__in=total_sites)
                     else:
                         data = Site.objects.filter(id__in=total_sites)
 
@@ -230,17 +260,17 @@ def submissions_map(request):
             if type == "submissions":
 
                 if is_project_manager_or_team_admin(project_obj, request.user):
-                    submission_history = FieldSightLog.objects.select_related('source').filter(type=16,
-                                                                                               source=request.user,
-                                                                                               project=project_obj).order_by(
-                        '-date')
+                    submission_history = FieldSightLog.objects.select_related('source').\
+                        filter(type=16, source=request.user, project=project_obj).order_by('-date')
 
                     submission_history = [sub for sub in submission_history if sub.content_object.is_deleted is False]
 
                     data = [{'submitted_by': history.get_source_name(), 'form_name': history.get_event_name(),
-                             'profile':  settings.SITE_URL + history.get_source_url(), 'form_url': settings.SITE_URL+
-                                                                                                          str(history.get_event_url()),
-                             'extra_object': history.get_extraobj_name(), 'extra_object_url':  settings.SITE_URL + history.get_extraobj_url(), 'date': history.date} for history in submission_history]
+                             'profile':  settings.SITE_URL + history.get_source_url(),
+                             'form_url': settings.SITE_URL + str(history.get_event_url()),
+                             'extra_object': history.get_extraobj_name(),
+                             'extra_object_url':  settings.SITE_URL + history.get_extraobj_url(),
+                             'date': history.date} for history in submission_history]
 
                     return Response(data=data)
 
@@ -248,15 +278,17 @@ def submissions_map(request):
 
                     merge_site_ids = my_site_ids(project_obj, request.user)
 
-                    submission_history = FieldSightLog.objects.select_related('source').filter(type=16, source=request.user,
-                                                                                               site_id__in=merge_site_ids).order_by('-date')
+                    submission_history = FieldSightLog.objects.select_related('source').\
+                        filter(type=16, source=request.user, site_id__in=merge_site_ids).order_by('-date')
                     submission_history = [sub for sub in submission_history if sub.content_object.is_deleted is False]
 
-                    data = [{'submitted_by': history.get_source_name(), 'profile':  settings.SITE_URL + history.get_source_url(),
+                    data = [{'submitted_by': history.get_source_name(),
+                             'profile':  settings.SITE_URL + history.get_source_url(),
                              'form_name': history.get_event_name(),
                              'form_url': settings.SITE_URL +
                                          str(history.get_event_url()),
-                             'extra_object': history.get_extraobj_name(), 'extra_object_url': settings.SITE_URL + history.get_extraobj_url(),
+                             'extra_object': history.get_extraobj_name(),
+                             'extra_object_url': settings.SITE_URL + history.get_extraobj_url(),
                              'date': history.date} for history in submission_history]
 
                     return Response(data=data)
@@ -265,31 +297,8 @@ def submissions_map(request):
                 if is_project_manager_or_team_admin(project_obj, request.user):
 
                     submissions = settings.MONGO_DB.instances.aggregate(
-                        [{"$match": {"fs_project": {"$in": [int(project_id), str(project_id), unicode(project_id)]}, "_submitted_by": request.user.username, '_deleted_at': None}}, {
-                            "$project": {
-                                "_id": 0, "type": {"$literal": "Feature"},
-                                "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"}, "properties": {
-                                    "id": "$_id", "form_id_string": "$_xform_id_string", "submitted_by": "$_submitted_by",
-                                    "status": "$fs_status"
-                                }
-                            }
-                        }])
-                    response_submissions = list(submissions["result"])
-                    for item in response_submissions:
-                        id_string = item['properties']['form_id_string']
-                        xf = XForm.objects.get(id_string=id_string).title
-                        item['properties']['form'] = xf
-
-                        instance_id = item['properties']['id']
-                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/?submission={}#/submission-details".format(str(instance_id))
-                    return Response(response_submissions)
-                else:
-                    int_merge_site_ids = my_site_ids(project_obj, request.user)
-                    str_merge_site_ids = map(str, int_merge_site_ids)
-                    merge_site_ids = list(set(int_merge_site_ids+str_merge_site_ids))
-
-                    submissions = settings.MONGO_DB.instances.aggregate(
-                        [{"$match": {"fs_site": {"$in": merge_site_ids}, "_submitted_by": request.user.username, '_deleted_at': None}}, {
+                        [{"$match": {"fs_project": {"$in": [int(project_id), str(project_id), unicode(project_id)]},
+                                     "_submitted_by": request.user.username, '_deleted_at': None}}, {
                             "$project": {
                                 "_id": 0, "type": {"$literal": "Feature"},
                                 "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"},
@@ -307,12 +316,42 @@ def submissions_map(request):
                         item['properties']['form'] = xf
 
                         instance_id = item['properties']['id']
-                        item['properties']['detail_url'] = settings.SITE_URL + "/fieldsight/application/?submission={}#/submission-details".format(
-                            str(instance_id))
+                        item['properties']['detail_url'] = settings.SITE_URL + \
+                                                           "/fieldsight/application/?submission={}#/submission-details".\
+                                                               format(str(instance_id))
+                    return Response(response_submissions)
+                else:
+                    int_merge_site_ids = my_site_ids(project_obj, request.user)
+                    str_merge_site_ids = map(str, int_merge_site_ids)
+                    merge_site_ids = list(set(int_merge_site_ids+str_merge_site_ids))
+
+                    submissions = settings.MONGO_DB.instances.aggregate(
+                        [{"$match": {"fs_site": {"$in": merge_site_ids}, "_submitted_by": request.user.username,
+                                     '_deleted_at': None}}, {
+                            "$project": {
+                                "_id": 0, "type": {"$literal": "Feature"},
+                                "geometry": {"type": {"$literal": "Point"}, "coordinates": "$_geolocation"},
+                                "properties": {
+                                    "id": "$_id", "form_id_string": "$_xform_id_string",
+                                    "submitted_by": "$_submitted_by",
+                                    "status": "$fs_status"
+                                }
+                            }
+                        }])
+                    response_submissions = list(submissions["result"])
+                    for item in response_submissions:
+                        id_string = item['properties']['form_id_string']
+                        xf = XForm.objects.get(id_string=id_string).title
+                        item['properties']['form'] = xf
+
+                        instance_id = item['properties']['id']
+                        item['properties']['detail_url'] = settings.SITE_URL + \
+                                                           "/fieldsight/application/?submission={}#/submission-details".\
+                                                               format(str(instance_id))
 
                     return Response(response_submissions)
             else:
-                    return Response(data="type params required.", status=status.HTTP_400_BAD_REQUEST)
+                return Response(data="type params required.", status=status.HTTP_400_BAD_REQUEST)
 
         except ObjectDoesNotExist:
             return Response(data="Project Id does not exist.", status=status.HTTP_204_NO_CONTENT)
@@ -347,8 +386,14 @@ class AcceptInvite(APIView):
 
         site_ids = invitation.site.all().values_list('pk', flat=True)
         project_ids = invitation.project.all().values_list('pk', flat=True)
-    
-        if invitation.regions.all().values_list('pk', flat=True).exists():
+
+        if invitation.teams.all().values_list('pk', flat=True).exists():
+            teams_id = invitation.teams.all().values_list('pk', flat=True)
+            for team_id in teams_id:
+                userrole, created = UserRole.objects.get_or_create(user=user,
+                                                                   group=invitation.group,
+                                                                   organization_id=team_id)
+        elif invitation.regions.all().values_list('pk', flat=True).exists():
             regions_id = invitation.regions.all().values_list('pk', flat=True)
             for region_id in regions_id:
                 project_id = Region.objects.get(id=region_id).project.id
@@ -373,9 +418,17 @@ class AcceptInvite(APIView):
                         invitation.save()
 
         if not project_ids:
-            userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
-                                                               organization=invitation.organization, project=None,
-                                                               site=None, region=None)
+            if invitation.group.name == 'Super Organization Admin':
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                   super_organization=invitation.super_organization,
+                                                                   organization=None, project=None, site=None,
+                                                                   region=None)
+
+            if invitation.group.name == 'Organization Admin' and not invitation.teams.all().exists():
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                   organization=invitation.organization, project=None,
+                                                                   site=None, region=None)
+
             if invitation.group_id == 1:
                 permission = Permission.objects.filter(codename='change_finstance')
                 user.user_permissions.add(permission[0])
@@ -386,9 +439,19 @@ class AcceptInvite(APIView):
         site = None
         project = None
         region = None
-        if invitation.group.name == "Organization Admin":
-            noti_type = 1
-            content = invitation.organization
+
+        if invitation.group.name == "Super Organization Admin":
+            noti_type = 41
+            content = invitation.super_organization
+
+        elif invitation.group.name == "Organization Admin" and invitation.teams.all().exists():
+            if invitation.teams.all().count() == 1:
+                noti_type = 1
+                content = invitation.teams.all()[0]
+            else:
+                noti_type = 42
+                extra_msg = invitation.teams.all().count()
+                content = invitation.teams.all()[0].parent
 
         elif invitation.group.name == "Project Manager":
             if invitation.project.all().count() == 1:
@@ -411,6 +474,8 @@ class AcceptInvite(APIView):
             project = invitation.project.all()[0]
 
         elif invitation.group.name == "Site Supervisor":
+            # import ipdb;ipdb.set_trace()
+
             if invitation.site.all().count() == 1:
                 noti_type = 4
                 content = invitation.site.all()[0]
@@ -447,6 +512,9 @@ class AcceptInvite(APIView):
         elif invitation.group.name == "Project Donor":
             noti_type = 25
             content = invitation.project.all()[0]
+        else:
+            noti_type = None
+            content = None
 
         noti = invitation.logs.create(source=user, type=noti_type, title="new Role",
                                       organization=invitation.organization,
@@ -471,7 +539,6 @@ class AcceptAllInvites(APIView):
 
         except ObjectDoesNotExist:
             return Response(data='Username does not exist.', status=status.HTTP_400_BAD_REQUEST)
-
 
         invitations = UserInvite.objects.filter(email__icontains=user.email, is_used=False, is_declied=False)
 
@@ -512,9 +579,19 @@ class AcceptAllInvites(APIView):
                             invitation.save()
 
             if not project_ids:
-                userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
-                                                                   organization=invitation.organization, project=None,
-                                                                   site=None, region=None)
+
+                if invitation.group.name == 'Super Organization Admin':
+                    userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                       super_organization=invitation.organization,
+                                                                       organization=None, project=None,
+                                                                       site=None, region=None)
+
+                if invitation.group.name == 'Organization Admin' and not invitation.teams.all().exists():
+                    userrole, created = UserRole.objects.get_or_create(user=user, group=invitation.group,
+                                                                       organization=invitation.organization,
+                                                                       project=None,
+                                                                       site=None, region=None)
+
                 if invitation.group_id == 1:
                     permission = Permission.objects.filter(codename='change_finstance')
                     user.user_permissions.add(permission[0])
@@ -525,9 +602,19 @@ class AcceptAllInvites(APIView):
             site = None
             project = None
             region = None
-            if invitation.group.name == "Organization Admin":
-                noti_type = 1
-                content = invitation.organization
+
+            if invitation.group.name == "Super Organization Admin":
+                noti_type = 41
+                content = invitation.super_organization
+
+            elif invitation.group.name == "Organization Admin" and invitation.teams.all().exists():
+                if invitation.teams.all().count() == 1:
+                    noti_type = 1
+                    content = invitation.teams.all()[0]
+                else:
+                    noti_type = 42
+                    extra_msg = invitation.teams.all().count()
+                    content = invitation.teams.all()[0].parent
 
             elif invitation.group.name == "Project Manager":
                 if invitation.project.all().count() == 1:
@@ -586,6 +673,10 @@ class AcceptAllInvites(APIView):
             elif invitation.group.name == "Project Donor":
                 noti_type = 25
                 content = invitation.project.all()[0]
+
+            else:
+                noti_type = None
+                content = None
 
             noti = invitation.logs.create(source=user, type=noti_type, title="new Role",
                                           organization=invitation.organization,

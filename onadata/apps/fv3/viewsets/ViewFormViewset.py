@@ -9,8 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from onadata.apps.fieldsight.models import Project, Site
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, XformHistory
+from onadata.apps.fieldsight.models import Project, Site, SuperOrganization
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, XformHistory, OrganizationFormLibrary
 from onadata.apps.fsforms.reports_util import delete_form_instance
 from onadata.apps.fsforms.templatetags.fs_filters import get_xform_version
 from onadata.apps.fv3.serializers.ViewFormSerializer import ViewGeneralsAndSurveyFormSerializer, \
@@ -221,7 +221,7 @@ class ProjectSiteResponsesView(APIView):
                     prefetch_related('stage_forms__project_form_instances', 'stage_forms__xf__fshistory')\
                     .filter(stage_forms__is_staged=True, stage_forms__is_scheduled=False,
                             stage_forms__is_survey=False, stage_forms__is_deleted=True, stage_forms__project_id=project)
-                stage_deleted_forms = ViewSubStageFormSerializer(stage_deleted_qs, context={'is_project': is_project},
+                stage_deleted_forms = ViewStageFormSerializer(stage_deleted_qs, context={'is_project': is_project},
                                                               many=True).data
                 project = Project.objects.get(id=project)
 
@@ -442,15 +442,26 @@ class FormSubmissionsView(APIView):
     permission_classes = (IsAuthenticated, ViewDataPermission)
     pagination_class = SubmissionStatusPagination
 
-    def get_breadcrumbs(self, is_project, object, form_name):
+    def get_breadcrumbs(self, is_project, object, form_name, is_organization=False, org_form_lib=None):
         if is_project:
 
             breadcrumbs = {'project_name': object[0].name,
                            'project_url': object[0].get_absolute_url(),
                            'responses': 'Responses',
-                           'responses_url': '/fieldsight/application/#/project-responses/{}/general'.format(object[0].id),
+                           'responses_url': '/fieldsight/application/#/project-responses/{}/{}/general'.\
+                               format(object[0].id, org_form_lib),
                            'current_page': form_name
                            }
+
+        elif is_organization:
+            breadcrumbs = {'organization_name': object[0].name,
+                           'organization_url': object[0].get_absolute_url(),
+                           'responses': 'Projects Submissions',
+                           'responses_url': '/fieldsight/application/#/organization-submission/{}/{}'.format(
+                               object[0].id, org_form_lib),
+                           'current_page': form_name
+                           }
+
         else:
             breadcrumbs = {'site_name': object[0].name,
                            'site_url': object[0].get_absolute_url(),
@@ -463,9 +474,48 @@ class FormSubmissionsView(APIView):
 
     def get(self, request, format=None):
         project = request.query_params.get('project', None)
+        org_form_lib = request.query_params.get('org_form_lib', None)
         site = request.query_params.get('site', None)
         fsxf_id = request.query_params.get('fsxf_id', None)
         search_param = request.query_params.get('q', None)
+
+        if org_form_lib and project is not None:
+
+            is_organization = True
+            try:
+                org_form_lib_obj = OrganizationFormLibrary.objects.get(id=org_form_lib)
+
+            except ObjectDoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+            # if search_param:
+            #     queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').filter(
+            #         Q(project_fxf=fsxf.id) &
+            #         (
+            #                 Q(site__name__icontains=search_param) |
+            #                 Q(site__identifier__icontains=search_param) |
+            #                 Q(submitted_by__first_name__icontains=search_param) |
+            #                 Q(submitted_by__last_name__icontains=search_param)
+            #         )
+            #     )
+            # else:
+
+            queryset = FInstance.objects.select_related('site', 'submitted_by', 'instance').\
+                filter(organization_form_lib=org_form_lib_obj, project_id=project).order_by('-id')
+
+            page = self.paginate_queryset(queryset)
+
+            if page is not None:
+                serializer = FormSubmissionSerializer(page, many=True, context={'is_organization': is_organization})
+                organization = SuperOrganization.objects.filter(id=org_form_lib_obj.organization.id).only('name')
+                form_name = org_form_lib_obj.xf.title
+                return self.get_paginated_response({'data': serializer.data,
+                                                    'form_name': form_name, 'is_survey': False,
+                                                    'form_id_string': org_form_lib_obj.xf.id_string,
+                                                    'query': search_param,
+                                                    'breadcrumbs': self.get_breadcrumbs(False, organization, form_name,
+                                                                                        is_organization=True,
+                                                                                        org_form_lib=org_form_lib)
+                                                    })
 
         if project and fsxf_id is not None:
             try:
@@ -662,7 +712,7 @@ class SubmissionsVersions(APIView):
             serializer = SubmissionsVersionSerializer(versions, many=True, context={'is_project': 1, 'fsf': fsf})
             latest = {'title': fsf.xf.title, 'version': 'Latest', 'overidden_date': 'Latest', 'last_response': date,
                       'total_submissions': count, 'download_url': '/{}/exports/{}/xls/1/{}/0/{}/'.\
-                    format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version)}
+                    format(fsf.xf.user.username, fsf.xf.id_string, fsf.id, form_version), 'version_id': form_version}
             return Response(status=status.HTTP_200_OK, data={'data': {'latest': latest, 'versions': serializer.data,
                                                                       'breadcrumbs':
                                                                           self.get_breadcrumbs(True, project, fsf)}})

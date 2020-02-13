@@ -72,8 +72,9 @@ from django.utils.encoding import force_text
 from django.utils.http import urlsafe_base64_decode
 
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, UnassignAllProjectRolesAndSites, \
-    UnassignAllSiteRoles, UnassignUser, generateCustomReportPdf, multiuserassignproject, bulkuploadsites, multiuserassignsite, \
-    multiuserassignregion, multi_users_assign_regions, multi_users_assign_to_entire_project, email_after_subscribed_plan
+    UnassignAllSiteRoles, UnassignUser, generateCustomReportPdf, multiuserassignproject, bulkuploadsites, \
+    multiuserassignsite, multiuserassignregion, multi_users_assign_regions, multi_users_assign_to_entire_project, \
+    email_after_subscribed_plan, multiuserassignteam
 from .generatereport import PDFReport
 from django.conf import settings
 from django.db.models import Prefetch
@@ -86,7 +87,7 @@ from .metaAttribsGenerator import generateSiteMetaAttribs
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from onadata.apps.fsforms.models import SyncSchedule
-
+from onadata.apps.fieldsight.management.commands.add_default_identifier import randomString
 from onadata.libs.utils.image_tools import image_url
 from onadata.apps.logger.models import Attachment
 from django.core.files.storage import get_storage_class
@@ -249,6 +250,16 @@ class ProjectDashboard(TemplateView):
         if user_role:
             return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
         organization_id = Project.objects.get(pk=project_id).organization.id
+
+        organization = Organization.objects.get(id=organization_id)
+        organization_id = organization.id
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(ProjectDashboard, self).dispatch(request, *args, **kwargs)
+
         user_role_asorgadmin = request.roles.filter(user_id=user_id, organization_id=organization_id, group_id=1)
 
         if user_role_asorgadmin:
@@ -346,7 +357,15 @@ class SiteDashboardView(TemplateView):
         region = site.region
         user_id = request.user.id
 
-        organization_id = Site.objects.get(pk=site_id).project.organization_id
+        organization = Site.objects.get(pk=site_id).project.organization
+        organization_id = organization.id
+
+        if organization.parent:
+            if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                              group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
+
         user_role_org_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
         if user_role_org_admin:
             return super(SiteDashboardView, self).dispatch(request, is_supervisor_only=False, *args, **kwargs)
@@ -1286,7 +1305,9 @@ class SiteDeleteView(SiteDeleteRoleMixin, View):
 
         FInstance.objects.filter(instance_id__in=instances).update(is_deleted=True)
 
-        task_obj=CeleryTaskProgress.objects.create(user=self.request.user, description="Removal of UserRoles After Site delete", task_type=7, content_object = site)
+        task_obj = CeleryTaskProgress.objects.create(user=self.request.user,
+                                                     description="Removal of UserRoles After Site delete",
+                                                     task_type=7, content_object=site)
 
         if task_obj:
             task = UnassignAllSiteRoles.delay(task_obj.id, site.id)
@@ -1428,6 +1449,8 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
                 user = request.user
                 task_obj = CeleryTaskProgress.objects.create(user=user, content_object=obj, task_type=0, file=sitefile)
                 if task_obj:
+                    task = bulkuploadsites.delay(task_obj.pk, sites, pk)
+
                     task = bulkuploadsites.delay(task_obj.pk, pk)
                     task_obj.task_id = task.id
                     task_obj.save()
@@ -1928,11 +1951,13 @@ def senduserinvite(request):
     emails = request.POST.getlist('emails[]')
     group = Group.objects.get(name=request.POST.get('group'))
 
+    super_organization_id = None
     organization_id = None
-    project_id =[]
-    site_id =[]
+    project_id = []
+    site_id = []
 
-
+    if RepresentsInt(request.POST.get('super_organization_id')):
+        super_organization_id = request.POST.get('super_organization_id')
     if RepresentsInt(request.POST.get('organization_id')):
         organization_id = request.POST.get('organization_id')
     if RepresentsInt(request.POST.get('project_id')):
@@ -1945,32 +1970,46 @@ def senduserinvite(request):
     for email in emails:
         email = email.strip()
         
-        userinvite = UserInvite.objects.filter(email__iexact=email, organization_id=organization_id, group=group, project__in=project_id,  site__in=site_id, is_used=False)
+        userinvite = UserInvite.objects.filter(email__iexact=email, super_organization_id=super_organization_id,
+                                               organization_id=organization_id, group=group, project__in=project_id,
+                                               site__in=site_id, is_used=False)
 
         if userinvite:
             if group.name == "Unassigned":
-                response += 'Invite for '+ email + ' has already been sent.<br>'
+                response += 'Invite for ' + email + ' has already been sent.<br>'
             else:
-                response += 'Invite for '+ email + ' in ' + group.name +' role has already been sent.<br>'
+                response += 'Invite for ' + email + ' in ' + group.name + ' role has already been sent.<br>'
             continue
 
         user = User.objects.filter(email__iexact=email)
         if user:
-            userrole = UserRole.objects.filter(user=user[0], group=group, organization_id=organization_id, project__in=project_id, site__in=site_id, ended_at__isnull=True).order_by('-id') 
+            userrole = UserRole.objects.filter(user=user[0], group=group, super_organization_id=super_organization_id,
+                                               organization_id=organization_id, project__in=project_id,
+                                               site__in=site_id, ended_at__isnull=True).order_by('-id')
 
             if userrole:
                 if group.name == "Unassigned":
-                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' has already joined this Team.<br>'
+                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + \
+                                ' has already joined this Team.<br>'
                 else:
-                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + ' already has the role for '+group.name+'.<br>' 
+                    response += userrole[0].user.first_name + ' ' + userrole[0].user.last_name + ' ('+ email + ')' + \
+                                ' already has the role for '+ group.name+'.<br>'
                 continue
-           
-        invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32), group=group, organization_id=organization_id)
+
+        if group.name == 'Super Organization Admin':
+
+            invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32),
+                                group=group, super_organization_id=super_organization_id)
+        else:
+            invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32),
+                                group=group, organization_id=organization_id)
+
         invite.save()
+        invite.organization_id = organization_id
+
         invite.project = project_id
         invite.site = site_id
         current_site = get_current_site(request)
-
         if len(invite.project.all()) > 0:
 
             project = get_object_or_404(Project, id=invite.project.all()[0].id)
@@ -2000,17 +2039,19 @@ def senduserinvite(request):
         msg.content_subtype = "html"
         msg.send()
         if group.name == "Unassigned":
-            response += "Sucessfully invited "+ email +" to join this Team.<br>"
+            response += "Sucessfully invited " + email +" to join this Team.<br>"
         else:
             if len(invite.project.all()) > 0:
                 project = get_object_or_404(Project, id=invite.project.all()[0].id)
                 labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
                 if labels:
 
-                    TERMS_AND_LABELS = {'Project Donor': 'Project '+project.terms_and_labels.donor, 'Organization Admin':
-                                        'Team Admin', 'Project Manager': 'Project Manager', 'Reviewer': project.terms_and_labels.site_reviewer,
-                                        'Site Supervisor': project.terms_and_labels.site_supervisor, 'Super Admin': 'Super Admin',
-                                        'Staff Project Manager': 'Staff Project Manager', 'Region Supervisor': project. terms_and_labels.region_supervisor,
+                    TERMS_AND_LABELS = {'Project Donor': 'Project ' +project.terms_and_labels.donor,
+                                        'Organization Admin': 'Team Admin', 'Project Manager': 'Project Manager',
+                                        'Reviewer': project.terms_and_labels.site_reviewer,
+                                        'Site Supervisor': project.terms_and_labels.site_supervisor,
+                                        'Super Admin': 'Super Admin', 'Staff Project Manager': 'Staff Project Manager',
+                                        'Region Supervisor': project. terms_and_labels.region_supervisor,
                                         'Region Reviewer': project.terms_and_labels.region_reviewer
 
                                         }
@@ -2022,6 +2063,10 @@ def senduserinvite(request):
                 if group.name == 'Organization Admin':
 
                     response += "Sucessfully invited " + email +" for Team Admin role."
+
+                elif group.name == 'Super Organization Admin':
+
+                    response += "Sucessfully invited " + email + " for Super Organization Admin role."
                 else:
                     response += "Sucessfully invited " + email +" for "+ group.name +" role.<br>"
 
@@ -2037,6 +2082,7 @@ def sendmultiroleuserinvite(request):
     levels = data.get('levels')
     leveltype = data.get('leveltype')
     group = Group.objects.get(name=data.get('group'))
+    print('datattaat', data)
 
     response = ""
     region_ids = []
@@ -2050,34 +2096,61 @@ def sendmultiroleuserinvite(request):
                                        Q(region_id__parent__parent__in=levels)).values_list('id', flat=True)
 
         region_ids = Region.objects.filter(id__in=levels).values_list('id', flat=True)
+        team_ids = []
 
     elif leveltype == "project":
         project_ids = levels
         organization_id = Project.objects.get(pk=project_ids[0]).organization_id
         site_ids = []
         region_ids = []
+        team_ids = []
 
     elif leveltype == "site":
         site_ids = levels
         site = Site.objects.get(pk=site_ids[0])
         project_ids = [site.project_id]
         region_ids = []
+        team_ids = []
         organization_id = site.project.organization_id
 
+    elif leveltype == "team":
+        team_ids = Organization.objects.filter(id__in=levels).values_list('id', flat=True)
+        project_ids = []
+        site_ids = []
+        region_ids = []
+        organization_id = None
+
+    else:
+        project_ids = []
+        organization_id = None
+        site_ids = []
+        region_ids = []
+        team_ids = []
+
     for email in emails:
-        userinvite = UserInvite.objects.filter(email__iexact=email, organization_id=organization_id, group=group, project__in=project_ids,  site__in=site_ids, is_used=False).exists()
+        userinvite = UserInvite.objects.filter(email__iexact=email, organization_id=organization_id, group=group,
+                                               project__in=project_ids,  site__in=site_ids, is_used=False).exists()
         
         if userinvite:
             response += 'Invite for '+ email + ' in ' + group.name +' role has already been sent.<br>'
             continue
 
-        invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32), group=group, organization_id=organization_id)
+        invite = UserInvite(email=email, by_user_id=request.user.id, token=get_random_string(length=32),
+                            group=group, organization_id=organization_id)
         invite.save()
         invite.project = project_ids
         invite.site = site_ids
         invite.regions = region_ids
-        project = get_object_or_404(Project, id=project_ids[0])
-        terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        invite.teams = team_ids
+        try:
+            project = get_object_or_404(Project, id=project_ids[0])
+            terms_and_labels = ProjectLevelTermsAndLabels.objects.filter(project=project).exists()
+        except:
+            project = None
+            terms_and_labels = None
+
+        current_site = get_current_site(request)
+
         subject = 'Invitation for Role'
         is_user = User.objects.filter(email=invite.email).exists()
 
@@ -2190,13 +2263,19 @@ class ActivateRole(TemplateView):
             for permission in permissions:
                 user.user_permissions.add(permission)
 
-
             profile, created = UserProfile.objects.get_or_create(user=user, organization=invite.organization)
 
         site_ids = invite.site.all().values_list('pk', flat=True)
         project_ids = invite.project.all().values_list('pk', flat=True)
 
-        if invite.regions.all().values_list('pk', flat=True).exists():
+        if invite.teams.all().values_list('pk', flat=True).exists():
+            teams_id = invite.teams.all().values_list('pk', flat=True)
+            for team_id in teams_id:
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+                                                                   organization_id=team_id)
+            delete_unassigned_group(user)
+
+        elif invite.regions.all().values_list('pk', flat=True).exists():
             regions_id = invite.regions.all().values_list('pk', flat=True)
             for region_id in regions_id:
                 project_id = Region.objects.get(id=region_id).project.id
@@ -2219,12 +2298,23 @@ class ActivateRole(TemplateView):
                     delete_unassigned_group(user)
 
         if not project_ids:
-            userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group, organization=invite.organization, project=None, site=None, region=None)
+            if invite.group.name == 'Super Organization Admin':
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+                                                                   super_organization=invite.super_organization,
+                                                                   organization=None, project=None, site=None,
+                                                                   region=None)
+
+            if invite.group.name == 'Organization Admin' and not invite.teams.all().exists():
+                userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+                                                                   organization=invite.organization, project=None,
+                                                                   site=None, region=None)
+            # userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+            #                                                    organization=invite.organization,
+            #                                                    project=None, site=None, region=None)
             delete_unassigned_group(user)
             if invite.group_id == 1:
                 permission = Permission.objects.filter(codename='change_finstance')
                 user.user_permissions.add(permission[0])
-
 
         invite.is_used = True
         invite.save()
@@ -2232,9 +2322,20 @@ class ActivateRole(TemplateView):
         site=None
         project=None
         region=None
-        if invite.group.name == "Organization Admin":
-            noti_type = 1
-            content = invite.organization
+
+        if invite.group.name == 'Super Organization Admin':
+            userrole, created = UserRole.objects.get_or_create(user=user, group=invite.group,
+                                                               super_organization=invite.super_organization,
+                                                               organization=None, project=None, site=None,
+                                                               region=None)
+        elif invite.group.name == "Organization Admin" and invite.teams.all().exists():
+            if invite.teams.all().count() == 1:
+                noti_type = 1
+                content = invite.teams.all()[0]
+            else:
+                noti_type = 42
+                extra_msg = invite.teams.all().count()
+                content = invite.teams.all()[0].parent
 
         elif invite.group.name == "Project Manager":
             if invite.project.all().count() == 1:
@@ -2288,28 +2389,21 @@ class ActivateRole(TemplateView):
 
         elif invite.group.name == "Unassigned":
             noti_type = 24
-            # if invite.site.all():
-            #     content = invite.site.all()[0]
-            #     project = invite.project.all()[0]
-            #     site = invite,project.all()[0]
-            # elif invite.project.all().count():
-            #     content = invite.project.all()[0]
-            #     project = invite.project.all()[0]
-            # else:   
             content = invite.organization
 
         elif invite.group.name == "Project Donor":
             noti_type = 25
             content = invite.project.all()[0]
 
-        noti = invite.logs.create(source=user, type=noti_type, title="new Role", organization=invite.organization, extra_message=extra_msg, project=project, site=site, content_object=content, extra_object=invite.by_user,
-                                       description=u"{0} was added as the {1} of {2} by {3}.".
-                                       format(user.username, invite.group.name, content.name, invite.by_user))
-        # result = {}
-        # result['description'] = 'new site {0} deleted by {1}'.format(self.object.name, self.request.user.username)
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("notify-{}".format(self.object.project.organization.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
+        else:
+            noti_type = None
+            content = None
+
+        noti = invite.logs.create(source=user, type=noti_type, title="new Role", organization=invite.organization,
+                                  extra_message=extra_msg, project=project, site=site, content_object=content,
+                                  extra_object=invite.by_user,
+                                  description=u"{0} was added as the {1} of {2} by {3}.".\
+                                  format(user.username, invite.group.name, content.name, invite.by_user))
         return HttpResponseRedirect(reverse('login'))
 
 
@@ -2696,6 +2790,25 @@ class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
         else:
             return HttpResponse("Failed")
 
+
+class MultiUserAssignTeamView(SuperOrganizationRoleMixin, TemplateView):
+
+    def post(self, request, pk, *args, **kwargs):
+        data = json.loads(self.request.body)
+        teams = data.get('projects')
+        users = data.get('users')
+        group = Group.objects.get(name=data.get('group'))
+        group_id = Group.objects.get(name="Organization Admin").id
+        user = request.user
+        super_org = get_object_or_404(SuperOrganization, pk=pk)
+        task_obj = CeleryTaskProgress.objects.create(user=user, content_object=super_org, task_type=1)
+        if task_obj:
+            task = multiuserassignteam.delay(task_obj.pk, pk, teams, users, group_id)
+            task_obj.task_id=task.id
+            task_obj.save()
+            return HttpResponse("Success")
+        else:
+            return HttpResponse("Failed")
 
 #May need it
 # class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
@@ -4313,7 +4426,8 @@ def project_dashboard_peoples(request, pk):
 @api_view(["GET"])
 def project_managers(request, pk):
 
-    users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk, user_roles__group_id__in=[4, 9]).distinct('id')
+    users = User.objects.filter(user_roles__site__isnull=True, user_roles__project_id=pk,
+                                user_roles__group_id__in=[4, 9]).distinct('id')
     user_data = []
     for user in users:
         user_data.append(dict(label=user.get_full_name(),
@@ -4714,7 +4828,10 @@ class RequestOrganizationSearchView(TemplateView):
 def auto_create_project_site(instance, created, **kwargs):
     if created:
         project_type_id = ProjectType.objects.first().id
-        project = Project.objects.create(name="Example Project", organization_id=instance.id, type_id=project_type_id,
+        project = Project.objects.create(name="Example Project",
+                                         identifier=randomString(8),
+                                         organization_id=instance.id,
+                                         type_id=project_type_id,
                                          location=instance.location)
         Site.objects.create(name="Example Site", project=project, identifier="example site",
                             location=instance.location)

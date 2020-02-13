@@ -3,6 +3,7 @@ import json
 
 from collections import OrderedDict
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -11,7 +12,7 @@ from django.core.serializers import serialize
 from rest_framework import serializers
 
 from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
-from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site
+from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site, Organization
 from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule
 from onadata.apps.fv3.role_api_permissions import check_del_site_perm
 from onadata.apps.fv3.serializer import Base64ImageField
@@ -25,7 +26,8 @@ class LineChartGeneratorProject(object):
 
     def __init__(self, project):
         self.project = project
-        self.date_list = list(date_range(project.date_created.strftime("%Y%m%d"), datetime.datetime.today().strftime("%Y%m%d"), 6))
+        self.date_list = list(date_range(project.date_created.strftime("%Y%m%d"),
+                                         datetime.datetime.today().strftime("%Y%m%d"), 6))
 
     def get_count(self, date):
         import datetime as dt
@@ -66,8 +68,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ('id', 'name', 'address', 'public_desc', 'logo', 'contacts', 'project_activity', 'total_sites',
-                  'total_users', 'project_managers', 'has_region', 'logs', 'form_submissions_chart_data',
+        fields = ('id', 'identifier', 'name', 'address', 'public_desc', 'logo', 'contacts', 'project_activity',
+                  'total_sites', 'total_users', 'project_managers', 'has_region', 'logs', 'form_submissions_chart_data',
                   'site_progress_chart_data', 'map', 'terms_and_labels', 'breadcrumbs', 'is_project_manager')
 
     def get_contacts(self, obj):
@@ -86,10 +88,16 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
         is_project_manager = False
         organization_id = obj.organization.id
+        org = Organization.objects.get(id=organization_id)
         user_role_as_manager = request.roles.filter(project_id=obj.id, group__name="Project Manager")
         user_role_as_team_admin = request.roles.filter(organization_id=organization_id, group__name="Organization Admin")
 
         if user_role_as_manager or request.is_super_admin or user_role_as_team_admin:
+            is_project_manager = True
+
+        elif org.parent_id in request.roles.filter(super_organization_id=org.parent_id,
+                                                   group__name="Super Organization Admin").\
+                values_list('super_organization_id', flat=True):
             is_project_manager = True
 
         return is_project_manager
@@ -144,8 +152,7 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         return total_sites
 
     def get_project_managers(self, obj):
-        project_managers_qs = obj.project_roles.select_related("user", "user__user_profile").filter(ended_at__isnull=True,
-                                                                                                    group__name="Project Manager")
+        project_managers_qs = obj.project_user_roles
 
         project_managers = [{'id': role.user.id, 'full_name': role.user.get_full_name(), 'email': role.user.email,
                              'profile_picture': role.user.user_profile.profile_picture.url} for role in
@@ -199,9 +206,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
     def get_terms_and_labels(self, obj):
 
-        if ProjectLevelTermsAndLabels.objects.select_related('project').filter(project=obj).exists():
-
-                return {'site': obj.terms_and_labels.site,
+        try:
+            return {'site': obj.terms_and_labels.site,
                         'donor': obj.terms_and_labels.donor,
                         'site_supervisor': obj.terms_and_labels.site_supervisor,
                         'site_reviewer': obj.terms_and_labels.site_reviewer,
@@ -209,8 +215,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
                         'region_supervisor': obj.terms_and_labels.region_supervisor,
                         'region_reviewer': obj.terms_and_labels.region_reviewer,
                         }
-        else:
-                return {'site': 'Site',
+        except:
+            return {'site': 'Site',
                         'donor': 'Donor',
                         'site_supervisor': 'Site Supervisor',
                         'site_reviewer': 'Site Reviewer',
@@ -237,6 +243,12 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
         request = self.context['request']
         if request.roles.filter(group__name="Organization Admin", organization=organization) or request.is_super_admin:
             organization_url = organization.get_absolute_url()
+
+        elif organization.parent:
+                if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                         group__name="Super Organization Admin"). \
+                        values_list('super_organization_id', flat=True):
+                    organization_url = organization.get_absolute_url()
 
         return {'name': project, 'organization': organization.name, 'organization_url': organization_url}
 
@@ -282,30 +294,36 @@ class ProgressGeneralFormSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     progress_data = serializers.SerializerMethodField()
     form_url = serializers.SerializerMethodField()
+    from_organization = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = FieldSightXF
 
-        fields = ('name', 'form_url', 'progress_data')
+        fields = ('name', 'form_url', 'progress_data', 'from_organization')
 
     def get_name(self, obj):
         return obj.xf.title
+
+    def get_from_organization(self, obj):
+        if obj.organization_form_lib:
+            return True
+        else:
+            return False
 
     def get_form_url(self, obj):
         return '/fieldsight/application/#/submission-data/{}/{}' .format(obj.project_id, obj.id)
 
     def get_progress_data(self, obj):
-        project = obj.project
-        total_sites = project.sites.filter(is_active=True, is_survey=False).count()
+        total_sites = []
+        [total_sites.append(i) for i in obj.project.total_sites]
         submission_in_site = obj.project_form_instances.all().distinct('site').count()
 
         try:
-            progress = round((float(submission_in_site)/total_sites)*100, 2)
+            progress = round((float(submission_in_site)/len(total_sites))*100, 2)
         except ZeroDivisionError:
             progress = 0
-        data = [{'pending': obj.project_form_instances.filter(form_status=0).count(), 'rejected': obj.project_form_instances. \
-            filter(form_status=1).count(), 'flagged': obj.project_form_instances.filter(form_status=2).count(),
-                 'approved': obj.project_form_instances.filter(form_status=3).count(), 'progress': progress}
+        data = [{'pending': len(obj.pending), 'rejected': len(obj.rejected), 'flagged': len(obj.flagged),
+                 'approved': len(obj.approved), 'progress': progress}
                 ]
         return data
 
@@ -313,15 +331,26 @@ class ProgressGeneralFormSerializer(serializers.ModelSerializer):
 class ProgressScheduledFormSerializer(serializers.ModelSerializer):
     progress_data = serializers.SerializerMethodField()
     form_url = serializers.SerializerMethodField()
+    from_organization = serializers.SerializerMethodField(read_only=True)
+    name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Schedule
 
-        fields = ('name', 'form_url', 'progress_data')
+        fields = ('name', 'form_url', 'progress_data', 'from_organization')
+
+    def get_name(self, obj):
+        return obj.schedule_forms.xf.title
 
     def get_form_url(self, obj):
         project_id =self.context.get('project_id', None)
         return '/fieldsight/application/#/submission-data/{}/{}' .format(project_id, obj.schedule_forms.id)
+
+    def get_from_organization(self, obj):
+        if obj.schedule_forms.organization_form_lib:
+            return True
+        else:
+            return False
 
     def get_progress_data(self, obj):
         project = obj.project
@@ -377,3 +406,48 @@ class SitelistForMetasLinkSerializer(serializers.ModelSerializer):
         return obj.identifier
 
 
+class SubStageFormSerializer(serializers.ModelSerializer):
+    title = serializers.SerializerMethodField()
+    response_count = serializers.SerializerMethodField()
+    form_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+        fields = ('id', 'name', 'order', 'title', 'response_count',
+                  'form_id')
+
+    def get_form_id(self, obj):
+        return obj.stage_forms.xf.id
+
+    def get_title(self, obj):
+        return obj.stage_forms.xf.title
+
+    def get_response_count(self, obj):
+
+        try:
+            fsxf = FieldSightXF.objects.get(stage=obj)
+            count = fsxf.project_form_instances.count()
+            return count
+
+        except ObjectDoesNotExist:
+            return 0
+
+
+class StageFormSerializer(serializers.ModelSerializer):
+    sub_stages = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stage
+        fields = ('id', 'name', 'sub_stages')
+
+    def get_sub_stages(self, obj):
+        queryset = Stage.objects.filter(stage__isnull=False)
+
+        stage_id = obj.id
+        queryset = queryset.filter(stage__id=stage_id)
+
+        queryset = queryset.order_by('order', 'date_created').select_related('stage_forms', 'stage_forms__xf'). \
+            prefetch_related('stage_forms__site_form_instances').exclude(stage_forms__isnull=True)
+
+        data = SubStageFormSerializer(queryset, many=True).data
+        return data

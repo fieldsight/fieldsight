@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-from onadata.apps.fieldsight.models import Project, Site
+from onadata.apps.fieldsight.models import Project, Site, Organization
 from onadata.apps.fsforms.models import Stage, FieldSightXF
 
 
@@ -20,6 +20,12 @@ class ManageFormsPermission(permissions.BasePermission):
         if project_id or site_id:
             if project_id:
                 project = Project.objects.get(pk=project_id)
+                organization = project.organization
+                if organization.parent:
+                    if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                                      group__name="Super Organization Admin"). \
+                            values_list('super_organization_id', flat=True):
+                        return True
                 user_role_asorgadmin = request.roles.filter(
                     organization_id=project.organization_id,
                     group__name="Organization Admin")
@@ -31,6 +37,12 @@ class ManageFormsPermission(permissions.BasePermission):
                     return True
             else:
                 site = Site.objects.get(pk=site_id)
+                organization = site.project.organization
+                if organization.parent:
+                    if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                                      group__name="Super Organization Admin"). \
+                            values_list('super_organization_id', flat=True):
+                        return True
                 user_role_asorgadmin = request.roles.filter(
                     organization_id=site.project.organization_id,
                     group__name="Organization Admin")
@@ -39,6 +51,11 @@ class ManageFormsPermission(permissions.BasePermission):
                 user_role = request.roles.filter(project_id=site.project_id,
                                                  group__name="Project Manager")
                 if user_role:
+                    return True
+
+                user_role_as_supervisor_or_reviewer = request.roles.\
+                    filter(site=site, group__name__in=["Site Supervisor", "Reviewer"])
+                if user_role_as_supervisor_or_reviewer:
                     return True
         return False
 
@@ -107,6 +124,13 @@ class DeployFormsPermission(permissions.BasePermission):
         if project_id or site_id:
             if project_id:
                 project = Project.objects.get(pk=project_id)
+                organization = project.organization
+                if organization.parent:
+                    if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                                      group__name="Super Organization Admin"). \
+                            values_list('super_organization_id', flat=True):
+                        return True
+
                 user_role_asorgadmin = request.roles.filter(
                     organization_id=project.organization_id,
                     group__name="Organization Admin")
@@ -176,6 +200,12 @@ class FormsSettingsPermission(permissions.BasePermission):
                     'site_id', 'site__project_id', 'site__project__organization_id')[0]
 
             if project_id:
+                organization = Organization.objects.get(id=organization_id)
+                if organization.parent:
+                    if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                                      group__name="Super Organization Admin"). \
+                            values_list('super_organization_id', flat=True):
+                        return True
                 user_role_asorgadmin = request.roles.filter(
                     organization_id=organization_id,
                     group__name="Organization Admin")
@@ -186,6 +216,12 @@ class FormsSettingsPermission(permissions.BasePermission):
                 if user_role:
                     return True
             else:
+                organization = Organization.objects.get(id=site_project_organization_id)
+                if organization.parent:
+                    if organization.parent.id in request.roles.filter(super_organization=organization.parent,
+                                                                      group__name="Super Organization Admin"). \
+                            values_list('super_organization_id', flat=True):
+                        return True
                 user_role_asorgadmin = request.roles.filter(
                     organization_id=site_project_organization_id,
                     group__name="Organization Admin")

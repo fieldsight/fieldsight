@@ -5,7 +5,7 @@ from django.db.models import Q
 
 from rest_framework import serializers
 from onadata.apps.userrole.models import UserRole
-from onadata.apps.fieldsight.models import UserInvite, Project, Region, Site
+from onadata.apps.fieldsight.models import UserInvite, Project, Region, Site, Organization
 from onadata.apps.fsforms.models import FInstance
 
 FORM_STATUS = {0: 'Pending', 1: "Rejected", 2: 'Flagged', 3: 'Approved'}
@@ -23,7 +23,6 @@ class MyProjectSerializer(serializers.ModelSerializer):
 
     def get_has_project_access(self, obj):
         user = self.context['user']
-        # if obj.group.name == "Project Manager" or obj.group.name == "Project Donor":
         if obj.project_id in user.user_roles.filter(group__name__in=["Project Manager", "Project Donor"],
                                                          ended_at=None).values_list('project_id', flat=True):
 
@@ -62,10 +61,18 @@ class MyRegionSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         user = self.context['request'].user
-        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name__in=["Project Manager", "Project Donor"], project=obj.project)|
-                                                                         Q(group__name="Organization Admin",
-                                                                           organization=obj.project.organization, ended_at=None))\
-            .exists()
+
+        org = obj.project.organization
+
+        if org.parent:
+            super_org = org.parent
+        else:
+            super_org = None
+
+        is_project_manager_or_team_admin = user.user_roles.all().\
+            filter(Q(group__name__in=["Project Manager", "Project Donor"], project=obj.project) |
+                   Q(group__name="Super Organization Admin", super_organization=super_org) |
+                   Q(group__name="Organization Admin", organization=obj.project.organization, ended_at=None)).exists()
 
         if is_project_manager_or_team_admin:
             group = None
@@ -101,9 +108,19 @@ class MySiteSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         user = self.context['request'].user
-        is_project_manager_or_team_admin = user.user_roles.all().filter(Q(group__name="Project Manager", project=obj.project)|
-                                                          Q(group__name="Organization Admin", organization=obj.project.organization),
-                                                                        ended_at=None).exists()
+        org = obj.project.organization
+
+        if org.parent:
+            super_org = org.parent
+
+        else:
+            super_org = None
+
+        is_project_manager_or_team_admin = user.user_roles.all().\
+            filter(Q(group__name="Project Manager", project=obj.project) |
+                   Q(group__name="Super Organization Admin", super_organization=super_org) |
+                   Q(group__name="Organization Admin", organization=obj.project.organization), ended_at=None).exists()
+
         is_project_donor = user.user_roles.all().filter(group__name="Project Donor", project=obj.project,
                                                         ended_at=None).exists()
         if is_project_manager_or_team_admin:
@@ -165,111 +182,255 @@ class MySiteSerializer(serializers.ModelSerializer):
             return settings.SITE_URL + obj.region.get_absolute_url()
 
 
+# class MyRolesSerializer(serializers.ModelSerializer):
+#
+#     name = serializers.SerializerMethodField()
+#     # post = serializers.SerializerMethodField()
+#     address = serializers.SerializerMethodField()
+#     logo = serializers.SerializerMethodField()
+#     has_organization_access = serializers.SerializerMethodField()
+#     team_url = serializers.SerializerMethodField()
+#     projects = serializers.SerializerMethodField()
+#     id = serializers.IntegerField(source='organization.id')
+#     organization_name = serializers.SerializerMethodField(read_only=True)
+#     has_super_organization_access = serializers.SerializerMethodField(read_only=True)
+#     organization_id = serializers.SerializerMethodField(read_only=True)
+#
+#     class Meta:
+#         model = UserRole
+#         fields = ('id', 'name', 'organization_name', 'address', 'logo', 'has_organization_access',
+#                   'has_super_organization_access', 'team_url', 'projects', 'organization_id')
+#
+#     def get_name(self, obj):
+#         return obj.organization.name
+#
+#     def get_organization_name(self, obj):
+#
+#         try:
+#             organization_name = obj.organization.parent.name
+#         except:
+#             organization_name = ''
+#
+#         return organization_name
+#
+#     def get_organization_id(self, obj):
+#
+#         try:
+#             organization_id = obj.organization.parent.id
+#         except:
+#             organization_id = ''
+#
+#         return organization_id
+#
+#     def get_has_super_organization_access(self, obj):
+#         user = self.context['user']
+#
+#         if obj.organization.parent:
+#             if obj.organization.parent.id in user.user_roles.filter(super_organization=obj.organization.parent,
+#                                                                     group__name="Super Organization Admin"). \
+#                     values_list('super_organization_id', flat=True):
+#                 return True
+#         else:
+#             return False
+#
+#     def get_address(self, obj):
+#         return obj.organization.address
+#
+#     def get_logo(self, obj):
+#         return obj.organization.logo.url
+#
+#     def get_has_organization_access(self, obj):
+#         user = self.context['user']
+#
+#         if obj.organization.parent:
+#             if obj.organization.parent.id in user.user_roles.filter(super_organization=obj.organization.parent,
+#                                                                     group__name="Super Organization Admin"). \
+#                     values_list('super_organization_id', flat=True):
+#                 return True
+#
+#         elif obj.organization_id in user.user_roles.filter(group__name="Organization Admin", ended_at=None).\
+#                 values_list('organization_id', flat=True):
+#             return True
+#
+#         else:
+#             return False
+#
+#     def get_projects(self, obj):
+#         user = self.context['user']
+#         org_admin = self.get_has_organization_access(obj)
+#
+#         if org_admin:
+#             data = Project.objects.filter(organization=obj.organization, is_active=True)
+#             roles = [{'id': r.id, 'name': r.name, 'has_project_access': True,
+#                       'project_url': r.get_absolute_url()} for r in data]
+#             # roles = [{'id': proj.id, 'name': proj.name, 'project_url': settings.SITE_URL + proj.get_absolute_url()} for proj in data]
+#
+#         else:
+#             data = UserRole.objects.\
+#                 filter(user=obj.user, organization=obj.organization).\
+#                 select_related('user', 'group', 'site', 'organization', 'staff_project', 'region').\
+#                 filter(Q(group__name="Project Manager", project__is_active=True) |
+#                        Q(group__name="Site Supervisor", site__is_active=True) |
+#                        Q(group__name="Reviewer", site__is_active=True) |
+#                        Q(group__name="Region Reviewer", region__is_active=True) |
+#                        Q(group__name="Region Supervisor", region__is_active=True) |
+#                        Q(group__name="Project Donor", project__is_active=True)).distinct('project')
+#             roles = MyProjectSerializer(data, many=True, context={'user': user}).data
+#         return roles
+#
+#     def get_team_url(self, obj):
+#         return settings.SITE_URL + obj.organization.get_absolute_url()
+#
+#     def to_representation(self, obj):
+#         data = super(MyRolesSerializer, self).to_representation(obj)
+#         user = self.context['user']
+#
+#         if obj.organization_id not in user.user_roles.filter(group__name="Organization Admin", ended_at=None).\
+#                 values_list('organization_id', flat=True):
+#
+#             data.pop('team_url')
+#
+#         return data
+#     #
+#     # def get_post(self, obj):
+#     #
+#     #     return obj.group.name
+#
+#     # def get_name(self, obj):
+#     #
+#     #     if obj.group.name == 'Region Supervisor' or obj.group.name == 'Region Reviewer':
+#     #         return obj.region.name
+#     #
+#     #     elif obj.group.name == 'Project Manager' or obj.group.name == 'Project Donor' or obj.group.name == 'Staff Project Manager':
+#     #         return obj.project.name
+#     #
+#     #     elif obj.group.name == 'Site Supervisor' or obj.group.name == 'Site Reviewer':
+#     #         return obj.site.name
+#     #
+#     #     elif obj.group.name == 'Organization Admin':
+#     #         return obj.organization.name
+#
+#     # def get_address(self, obj):
+#     #
+#     #     if obj.group.name == 'Region Supervisor' or obj.group.name == 'Region Reviewer':
+#     #         return None
+#     #
+#     #     elif obj.group.name == 'Project Manager' or obj.group.name == 'Project Donor' or obj.group.name == 'Staff Project Manager':
+#     #         return obj.project.address
+#     #
+#     #     elif obj.group.name == 'Site Supervisor' or obj.group.name == 'Site Reviewer':
+#     #         return obj.site.address
+#     #
+#     #     elif obj.group.name == 'Organization Admin':
+#     #         return obj.organization.address
+#
+
 class MyRolesSerializer(serializers.ModelSerializer):
 
-    name = serializers.SerializerMethodField()
-    # post = serializers.SerializerMethodField()
-    address = serializers.SerializerMethodField()
-    logo = serializers.SerializerMethodField()
     has_organization_access = serializers.SerializerMethodField()
     team_url = serializers.SerializerMethodField()
     projects = serializers.SerializerMethodField()
-    id = serializers.IntegerField(source='organization.id')
+    organization_name = serializers.SerializerMethodField(read_only=True)
+    has_super_organization_access = serializers.SerializerMethodField(read_only=True)
+    organization_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model = UserRole
-        fields = ('id', 'name', 'address', 'logo', 'has_organization_access', 'team_url', 'projects')
+        model = Organization
+        fields = ('id', 'name', 'organization_name', 'address', 'logo', 'has_organization_access',
+                  'has_super_organization_access', 'team_url', 'projects', 'organization_id')
 
-    def get_name(self, obj):
-        return obj.organization.name
+    def get_organization_name(self, obj):
 
-    def get_address(self, obj):
-        return obj.organization.address
+        try:
+            organization_name = obj.parent.name
+        except:
+            organization_name = ''
 
-    def get_logo(self, obj):
-        return obj.organization.logo.url
+        return organization_name
+
+    def get_organization_id(self, obj):
+
+        try:
+            organization_id = obj.parent.id
+        except:
+            organization_id = ''
+
+        return organization_id
+
+    def get_has_super_organization_access(self, obj):
+        user = self.context['user']
+
+        if obj.parent:
+            if obj.parent.id in user.user_roles.filter(super_organization=obj.parent,
+                                                       group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return True
+        else:
+            return False
 
     def get_has_organization_access(self, obj):
         user = self.context['user']
-        if obj.organization_id in user.user_roles.filter(group__name="Organization Admin", ended_at=None).values_list('organization_id', flat=True):
-            has_access = True
+
+        if obj.parent:
+            if obj.parent_id in user.user_roles.filter(super_organization=obj.parent,
+                                                       group__name="Super Organization Admin"). \
+                    values_list('super_organization_id', flat=True):
+                return True
+
+        elif obj.id in user.user_roles.filter(group__name="Organization Admin", ended_at=None).\
+                values_list('organization_id', flat=True):
+            return True
 
         else:
-            has_access = False
-
-        return has_access
+            return False
 
     def get_projects(self, obj):
         user = self.context['user']
         org_admin = self.get_has_organization_access(obj)
 
         if org_admin:
-            data = Project.objects.filter(organization=obj.organization, is_active=True)
-            roles = [{'id': r.id, 'name': r.name, 'has_project_access': True, 'project_url': r.get_absolute_url()} for r in data]
-            # roles = [{'id': proj.id, 'name': proj.name, 'project_url': settings.SITE_URL + proj.get_absolute_url()} for proj in data]
-
+            data = obj.projects.all()
+            roles = [{'id': r.id, 'name': r.name, 'has_project_access': True,
+                      'project_url': r.get_absolute_url()} for r in data]
         else:
-            data = UserRole.objects.filter(user=obj.user, organization=obj.organization).select_related('user', 'group', 'site', 'organization',
-                                                                      'staff_project', 'region').filter(Q(group__name="Project Manager", project__is_active=True)|
-                                                                    Q(group__name="Site Supervisor", site__is_active=True)|
-                                                                    Q(group__name="Reviewer", site__is_active=True)|
-                                                                    Q(group__name="Region Reviewer", region__is_active=True)|
-                                                                    Q(group__name="Region Supervisor", region__is_active=True)|
-                                                                    Q(group__name="Project Donor", project__is_active=True)
-                                                                                                        ).distinct('project')
+            data = UserRole.objects.\
+                filter(user=user, organization=obj).\
+                select_related('user', 'group', 'site', 'organization', 'staff_project', 'region').\
+                filter(Q(group__name="Project Manager", project__is_active=True) |
+                       Q(group__name="Site Supervisor", site__is_active=True) |
+                       Q(group__name="Reviewer", site__is_active=True) |
+                       Q(group__name="Region Reviewer", region__is_active=True) |
+                       Q(group__name="Region Supervisor", region__is_active=True) |
+                       Q(group__name="Project Donor", project__is_active=True)).distinct('project')
             roles = MyProjectSerializer(data, many=True, context={'user': user}).data
         return roles
 
     def get_team_url(self, obj):
-        return settings.SITE_URL + obj.organization.get_absolute_url()
+        return settings.SITE_URL + obj.get_absolute_url()
 
     def to_representation(self, obj):
         data = super(MyRolesSerializer, self).to_representation(obj)
         user = self.context['user']
 
-        if obj.organization_id not in user.user_roles.filter(group__name="Organization Admin", ended_at=None).values_list('organization_id', flat=True):
+        team_ids = user.user_roles.filter(group__name="Organization Admin", ended_at=None).\
+            values_list('organization_id', flat=True)
 
+        org_ids = user.user_roles.filter(group__name="Super Organization Admin", ended_at=None).\
+            values_list('super_organization_id', flat=True)
+
+        if obj.parent_id not in org_ids:
             data.pop('team_url')
 
+        if obj.id in team_ids:
+            data['team_url'] = self.get_team_url(obj)
+
         return data
-    #
-    # def get_post(self, obj):
-    #
-    #     return obj.group.name
-
-    # def get_name(self, obj):
-    #
-    #     if obj.group.name == 'Region Supervisor' or obj.group.name == 'Region Reviewer':
-    #         return obj.region.name
-    #
-    #     elif obj.group.name == 'Project Manager' or obj.group.name == 'Project Donor' or obj.group.name == 'Staff Project Manager':
-    #         return obj.project.name
-    #
-    #     elif obj.group.name == 'Site Supervisor' or obj.group.name == 'Site Reviewer':
-    #         return obj.site.name
-    #
-    #     elif obj.group.name == 'Organization Admin':
-    #         return obj.organization.name
-
-    # def get_address(self, obj):
-    #
-    #     if obj.group.name == 'Region Supervisor' or obj.group.name == 'Region Reviewer':
-    #         return None
-    #
-    #     elif obj.group.name == 'Project Manager' or obj.group.name == 'Project Donor' or obj.group.name == 'Staff Project Manager':
-    #         return obj.project.address
-    #
-    #     elif obj.group.name == 'Site Supervisor' or obj.group.name == 'Site Reviewer':
-    #         return obj.site.address
-    #
-    #     elif obj.group.name == 'Organization Admin':
-    #         return obj.organization.address
 
 
 class UserInvitationSerializer(serializers.ModelSerializer):
-    group = serializers.CharField(source='group.name')
-    by_user = serializers.CharField(source='by_user.username')
-    current_user = serializers.SerializerMethodField()
+    group = serializers.SerializerMethodField(read_only=True)
+    by_user = serializers.CharField(source='by_user.username', read_only=True)
+    current_user = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = UserInvite
@@ -278,6 +439,18 @@ class UserInvitationSerializer(serializers.ModelSerializer):
     def get_current_user(self, obj):
         request = self.context.get('request')
         return request.user.username
+
+    def get_group(self, obj):
+        if obj.group.name == 'Organization Admin':
+            group = 'Team Admin'
+
+        elif obj.group.name == 'Super Organization Admin':
+            group = 'Organization Admin'
+
+        else:
+            group = obj.group.name
+
+        return group
 
 
 class LatestSubmissionSerializer(serializers.ModelSerializer):

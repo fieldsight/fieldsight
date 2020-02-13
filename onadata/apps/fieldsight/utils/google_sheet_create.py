@@ -17,6 +17,10 @@ import pyexcel as p
 
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import FInstance, FieldSightXF
+from onadata.apps.reporting.utils.excel_utils import to_excel_auto_width
+from onadata.apps.reporting.utils.site_report import site_report
+from onadata.apps.reporting.utils.time_report import time_report
+from onadata.apps.reporting.utils.user_report import user_report
 from onadata.apps.userrole.models import UserRole
 
 
@@ -387,3 +391,20 @@ def generate_form_report(sheet):
                     fieldsight_xf.project, sheet.user, sheet)
 
     os.remove(temporarylocation)
+
+
+def generate_custom_report(sheet):
+    report_obj = sheet.report
+    if report_obj.type == 0:
+        df = site_report(report_obj)
+    elif report_obj.type == 4:
+        df = user_report(report_obj)
+    elif report_obj.type == 5:
+        df = time_report(report_obj)
+    temporary_path = settings.MEDIA_ROOT + "custom_report" + str(report_obj.id) + ".xlsx"
+    to_excel_auto_width(temporary_path, df)
+    upload_to_drive(temporary_path, report_obj.title, "custom_reports",
+                    report_obj.project, sheet.user, sheet)
+
+    os.remove(temporary_path)
+

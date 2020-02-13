@@ -45,6 +45,7 @@ from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, Unass
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
+from .permissions.super_organization import SuperOrganizationAdminPermission
 from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
     check_site_permission, SuperUserPermissions, TeamCreationPermission
 from .serializer import TeamSerializer, SuperOrganizationSerializer
@@ -767,6 +768,7 @@ def users(request):
     site = request.query_params.get('site', None)
     project = request.query_params.get('project', None)
     team = request.query_params.get('team', None)
+    organization = request.query_params.get('organization', None)
 
     if site is not None:
             try:
@@ -796,6 +798,7 @@ def users(request):
             else:
                 return Response(status=status.HTTP_403_FORBIDDEN,
                                 data={"detail": "You do not have permission to perform this action."})
+
     elif project is not None:
         try:
             project = Project.objects.get(id=project)
@@ -829,8 +832,29 @@ def users(request):
         return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'team': team.name, 'team_url':
             team.get_absolute_url()}})
 
+    elif organization is not None:
+        try:
+            organization = SuperOrganization.objects.get(id=organization)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        team_ids = organization.organizations.all().values_list('id', flat=True)
+        queryset = UserRole.objects.select_related('user').filter(Q(super_organization=organization) |
+                                                                  Q(organization_id__in=team_ids),
+                                                                  ended_at__isnull=True).distinct('user_id')
+
+        data = [{'id': user_obj.user.id, 'full_name': user_obj.user.get_full_name(), 'username': user_obj.user.username,
+                 'email': user_obj.user.email,
+                 'profile_picture': user_obj.user.user_profile.profile_picture.url,
+                 'role': get_user_roles(user_obj, organization)}
+                for user_obj in queryset]
+
+        return Response({'users': data, 'breadcrumbs': {'name': 'Users', 'organization': organization.name,
+                                                        'organization_url': organization.get_absolute_url()}})
     else:
-        return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'site id or project id or team id is required.'})
+        return Response(status=status.HTTP_404_NOT_FOUND, data={'detail':
+                                                                    'site id or project id or team id or organization '
+                                                                    'id is required.'})
 
 
 # def mvt_tiles(request, zoom, x, y):
@@ -865,6 +889,35 @@ class TeamsViewset(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, SuperUserPermissions]
     pagination_class = TeamsPagination
 
+    def get_queryset(self):
+        return self.queryset.filter(parent=None).prefetch_related(
+            Prefetch("organization_roles",
+                     queryset=UserRole.objects.filter(ended_at=None),
+                     to_attr="total_users",
+
+                     ),
+            Prefetch("projects__sites",
+                     queryset=Site.objects.filter(is_survey=False, is_active=True),
+                     to_attr="total_sites"
+                     ),
+
+        )
+
+    def list(self, request, *args, **kwargs):
+
+        queryset = self.filter_queryset(self.get_queryset())
+        organizations = SuperOrganization.objects.all().annotate(teams=Count('organizations')). \
+            values('id', 'name', 'teams')
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response({'teams': serializer.data, 'organizations': organizations,
+                                                })
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 class TeamFormViewset(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
@@ -872,6 +925,7 @@ class TeamFormViewset(viewsets.ModelViewSet):
     authentication_classes = [CsrfExemptSessionAuthentication, ]
     permission_classes = [IsAuthenticated, TeamCreationPermission]
     pagination_class = TeamsPagination
+
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -942,32 +996,47 @@ class TeamFormViewset(viewsets.ModelViewSet):
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
-    queryset = SuperOrganization.objects.all()
+    queryset = SuperOrganization.objects.prefetch_related('organization_instances', 'organizations')
     serializer_class = SuperOrganizationSerializer
     authentication_classes = [CsrfExemptSessionAuthentication, ]
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, SuperOrganizationAdminPermission]
 
     def create(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=False)
-            self.object = self.perform_create(serializer)
-            self.object.owner = self.request.user
-            self.object.date_created = timezone.now()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.object = self.perform_create(serializer)
+        self.object.owner = self.request.user
+        self.object.date_created = timezone.now()
+        self.object.save()
+        longitude = request.data.get('longitude', None)
+        latitude = request.data.get('latitude', None)
+        if latitude and longitude is not None:
+            p = Point(round(float(longitude), 6), round(float(latitude), 6),
+                      srid=4326)
+            self.object.location = p
             self.object.save()
-            longitude = request.data.get('longitude', None)
-            latitude = request.data.get('latitude', None)
-            if latitude and longitude is not None:
-                p = Point(round(float(longitude), 6), round(float(latitude), 6),
-                          srid=4326)
-                self.object.location = p
-                self.object.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"test", str(e)})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def perform_create(self, serializer):
         return serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        long = request.data.get('longitude', None)
+        lat = request.data.get('latitude', None)
+        if lat and long is not None:
+            p = Point(round(float(long), 6), round(float(lat), 6), srid=4326)
+            instance.location = p
+            instance.save()
+        instance.logs.create(source=self.request.user, type=13, title="Edit Organization",
+                             super_organization=instance, content_object=instance,
+                             description=u"{0} changed the details of Organization named {1}".format(
+                                 self.request.user.get_full_name(), instance.name))
+
+        return Response(status=status.HTTP_200_OK, data=serializer.data)
 
 
 class EnableClusterSitesView(APIView):
@@ -1033,4 +1102,51 @@ def forms_breadcrumbs(request):
 
     else:
         breadcrumbs = {}
+    return Response(status=status.HTTP_200_OK, data=breadcrumbs)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def settings_breadcrumbs(request, pk):
+    id = pk
+    type = request.GET.get('type')
+    breadcrumbs = {}
+
+    if type == 'organization' and id:
+        try:
+            org = SuperOrganization.objects.get(id=id)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        breadcrumbs.update({'current_page': 'Organization Settings',
+                            'name': org.name,
+                            'name_url': org.get_absolute_url()})
+
+    elif type == 'team' and id:
+        try:
+            team = Organization.objects.get(id=id)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        breadcrumbs.update({'current_page': 'Team Settings',
+                            'name': team.name,
+                            'name_url': team.get_absolute_url()})
+
+    elif type == 'project' and id:
+        try:
+            project = Project.objects.get(id=id)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        breadcrumbs.update({'current_page': 'Reports List',
+                            'name': project.name,
+                            'name_url': project.get_absolute_url(),
+                            'created_date': project.date_created
+                            })
+
+    else:
+        return Response(status=status.HTTP_404_NOT_FOUND, data={'detail':
+                                                                    'team or organization or project '
+                                                                    'and id params are required.'})
+
     return Response(status=status.HTTP_200_OK, data=breadcrumbs)
