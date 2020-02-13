@@ -508,7 +508,12 @@ def bulkuploadsites(task_prog_obj_id, pk):
     df = df[df.identifier.notnull()]
 
     if error_message:
-        raise ValueError(error_message)
+        task.description = "ERROR: " + error_message
+        task.status = 3
+        task.save()
+        noti = project.logs.create(source=task.user, type=412, title="Bulk Sites",
+                                   content_object=project, recipient=task.user,
+                                   extra_message=str(0) + " Sites @error " + u'{}'.format(error_message))
 
     df[['latitude']].fillna(27.7172, inplace=True)
     df[['longitude']].fillna(85.3240, inplace=True)
