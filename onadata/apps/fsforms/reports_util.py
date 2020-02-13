@@ -2,10 +2,14 @@ import json
 from bson import json_util
 from django.conf import settings
 from django.utils.translation import ugettext_lazy, ugettext as _
+
+from onadata.apps.logger.models import Attachment
 from onadata.libs.utils.decorators import apply_form_field_names
 from formpack import FormPack
 from .models import FieldSightXF
 from onadata.apps.viewer.models.parsed_instance import dict_for_mongo, _encode_for_mongo, xform_instances
+from django.contrib.sites.models import Site as DjangoSite
+
 DEFAULT_LIMIT = 30000
 
 def get_images_for_sites_count(site_id):
@@ -19,14 +23,17 @@ def get_images_for_sites_count(site_id):
 
 
 def get_recent_images(site_id):
-    return settings.MONGO_DB.instances.aggregate(
-        [{"$match": {
-            "fs_site": {'$in': [str(site_id), int(site_id)]},
-            '_deleted_at': {'$exists': False}}},
-            {"$unwind": "$_attachments"},
-            {"$match": {"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
-            {'$project': {'_attachments.download_url': 1, 'instance': 1}},
-            {"$sort": {"_id": -1}}, {"$limit": 6}])
+    urls = Attachment.objects.filter(instance__fieldsight_instance__is_deleted=False,
+                              instance__fieldsight_instance__site=site_id).values_list('media_file', 'instance')[:6]
+    BASEURL = DjangoSite.objects.get_current().domain
+    recent_pictures = []
+
+    for url in urls:
+        download_url = 'https://' + BASEURL + '/attachment/medium?media_file=' + url[0]
+        attachment = {"_id": url[1],
+                      "_attachments": {"download_url": download_url}}
+        recent_pictures.append(attachment)
+    return recent_pictures
 
 
 def get_images_for_site(site_id):
@@ -52,7 +59,7 @@ def get_images_for_site_all(site_id):
 def get_site_responses_coords(site_id):
     return settings.MONGO_DB.instances.aggregate(
         [{"$match": {"fs_site": {'$in': [str(site_id), int(site_id)]}, '_deleted_at': None,
-                    "_geolocation":{"$not": { "$elemMatch": { "$eq": None }}}}},
+                    "_geolocation":{"$not": { "$elemMatch": {"$eq": None }}}}},
                                   {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":
                                       { "type": {"$literal": "Point"}, "coordinates": "$_geolocation" },
                                                  "properties": {"id":"$_id", "fs_uuid":

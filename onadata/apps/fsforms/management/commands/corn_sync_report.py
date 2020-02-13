@@ -61,7 +61,7 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
                             {
                                 "appendDimension": {
                                     "dimension": "ROWS",
-                                    "length": 100,
+                                    "length": 5000,
                                     "sheetId": grid_id
                                 }
                             }
@@ -102,7 +102,7 @@ def update_sheet(service, sheet_obj, report_type, project, form_id, spreadsheet_
                         {
                             "appendDimension": {
                                 "dimension": "ROWS",
-                                "length": 100,
+                                "length": 5000,
                                 "sheetId": grid_id
                             }
                         }

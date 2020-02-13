@@ -225,7 +225,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                                 answer = ''
                             elif first_children['type'] == 'photo' or first_children['type'] == 'audio' or \
                                     first_children['type'] == 'video':
-                                answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                                answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                          gnr_answer[r_question + "/" + question]
                             elif question_type in ['select one', 'select all that apply']:
                                 answer = gnr_answer[r_question + "/" + question]
@@ -253,7 +253,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                                 answer = ''
                             elif first_children['type'] == 'photo' or first_children['type'] == 'audio' or \
                                     first_children['type'] == 'video':
-                                answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                                answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                          gnr_answer[r_question + "/" + question]
                             elif question_type in ['select one', 'select all that apply']:
                                 answer = gnr_answer[r_question + "/" + question]
@@ -295,7 +295,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                         if question_type == 'note':
                             answer = ''
                         elif question_type == 'photo' or question_type == 'audio' or question_type == 'video':
-                            answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                            answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[g_question + "/" + question]
                         elif question_type in ['select one', 'select all that apply']:
                             answer = json_answer[g_question + "/" + question]
@@ -334,7 +334,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                         if question_type == 'note':
                             answer = ''
                         elif question_type == 'photo' or question_type == 'audio' or question_type == 'video':
-                            answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                            answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[g_question + "/" + question]
                         elif question_type in ['select one', 'select all that apply']:
                             answer = json_answer[g_question + "/" + question]
@@ -369,7 +369,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
                             answer = ''
                         elif first_children['type'] == 'photo' or first_children['type'] == 'audio' or first_children[
                             'type'] == 'video':
-                            answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                            answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[question]
                         elif first_children['type'] in ['select one', 'select all that apply']:
                             answer = json_answer[question]
@@ -544,7 +544,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                                 answer = ''
                             elif first_children['type'] == 'photo' or first_children['type'] == 'audio' or \
                                     first_children['type'] == 'video':
-                                answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                                answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                          gnr_answer[r_question + "/" + question]
                             elif question_type in ['select one', 'select all that apply']:
                                 answer = gnr_answer[r_question + "/" + question]
@@ -572,7 +572,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                                 answer = ''
                             elif first_children['type'] == 'photo' or first_children['type'] == 'audio' or \
                                     first_children['type'] == 'video':
-                                answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                                answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                          gnr_answer[r_question + "/" + question]
                             elif question_type in ['select one', 'select all that apply']:
                                 answer = gnr_answer[r_question + "/" + question]
@@ -614,7 +614,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                         if question_type == 'note':
                             answer = ''
                         elif question_type == 'photo' or question_type == 'audio' or question_type == 'video':
-                            answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                            answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[g_question + "/" + question]
                         elif question_type in ['select one', 'select all that apply']:
                             answer = json_answer[g_question + "/" + question]
@@ -653,7 +653,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                         if question_type == 'note':
                             answer = ''
                         elif question_type == 'photo' or question_type == 'audio' or question_type == 'video':
-                            answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                            answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[g_question + "/" + question]
                         elif question_type in ['select one', 'select all that apply']:
                             answer = json_answer[g_question + "/" + question]
@@ -688,7 +688,7 @@ class EditSubmissionAnswerSerializer(serializers.ModelSerializer):
                             answer = ''
                         elif first_children['type'] == 'photo' or first_children['type'] == 'audio' or first_children[
                             'type'] == 'video':
-                            answer = 'http://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
+                            answer = 'https://' + base_url + '/attachment/medium?media_file=' + media_folder + '/attachments/' + \
                                      json_answer[question]
                         elif first_children['type'] in ['select one', 'select all that apply']:
                             answer = json_answer[question]

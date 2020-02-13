@@ -86,6 +86,7 @@ urlpatterns = [
     url(r'^api/users/$', users, name='users'),
     url(r'^api/teams/$', TeamsViewset.as_view({'get' : 'list'}), name='teams'),
     url(r'^api/team-form/$', TeamFormViewset.as_view({'post': 'create'}), name='team_form'),
+    url(r'^api/forms$', FormsView.as_view(), name='forms'),
     url(r'^api/forms/$', FormsView.as_view(), name='forms'),
     url(r'^api/my/submissions/$', MySubmissions.as_view({'get': 'list'}), name='mysubs'),
     url(r'^api/v2/my/submissions/$', MySubmissionsV2.as_view({'get': 'list'}),

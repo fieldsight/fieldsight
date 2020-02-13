@@ -130,6 +130,12 @@ def enketo_preview_url(form_url, id_string, return_url=None):
     if req.status_code in [200, 201]:
         try:
             response = req.json()
+            if 'preview_url' in response:
+                preview_url = response['preview_url']
+                if settings.ENKETO_PROTOCOL not in preview_url:
+                    preview_url = preview_url.replace("http", settings.ENKETO_PROTOCOL)
+                    return preview_url
+                return response['preview_url']
         except ValueError:
             pass
         else:

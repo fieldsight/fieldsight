@@ -56,8 +56,7 @@ class RoleMiddleware(object):
                 # return render(request, 'fieldsight/permission_denied.html')
 
         else:
-            print("User anonymous, clearing roles")
-            request = clear_roles(request)
+            clear_roles(request)
 
     def authenticate(self, request):
         pass

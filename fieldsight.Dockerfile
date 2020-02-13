@@ -47,16 +47,25 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ###########################
-# Install `pip` packages. #
+# Install `pip` packages. #apt-utils
 ###########################
 
 COPY ./requirements/ ${KOBOCAT_TMP_DIR}/base_requirements/
 RUN mkdir -p ${PIP_EDITABLE_PACKAGES_DIR} && \
     pip install --upgrade 'pip>=10,<11' && \
     pip install --src ${PIP_EDITABLE_PACKAGES_DIR}/ -r ${KOBOCAT_TMP_DIR}/base_requirements/base.pip && \
-    pip install --src ${PIP_EDITABLE_PACKAGES_DIR}/ -r ${KOBOCAT_TMP_DIR}/base_requirements/s3.pip && \
         pip install --src ${PIP_EDITABLE_PACKAGES_DIR}/ -r ${KOBOCAT_TMP_DIR}/base_requirements/fieldsight.pip && \
     rm -rf ~/.cache/pip
 
-#fix the issue with goes 
+#fix the issue with goes
 RUN cat ./libgeos.py > /usr/local/lib/python2.7/site-packages/django/contrib/gis/geos/libgeos.py
+RUN cat ./files.py > /usr/local/lib/python2.7/site-packages/pydrive/files.py
+
+
+RUN apt-get update --fix-missing && \
+  apt-get upgrade -y -o Dpkg::Options::="--force-confold" && \
+  apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+COPY ./onadata/settings/local_settings.sample.py /usr/src/data/onadata/settings/local_settings.py
+COPY ./run_fieldsight.sh /usr/src/data/scripts/run_fieldsight.sh
+

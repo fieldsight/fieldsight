@@ -11,7 +11,7 @@ from django.db.models import Sum, Case, When, IntegerField, Q
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
-from pydrive.auth import GoogleAuth
+from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 import pyexcel as p
 
@@ -32,40 +32,16 @@ class DriveException(Exception):
 
 
 def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
-    # pass
-    """ TODO: folder names of 'Site Details' and 'Site Progress' must be in google drive."""
+    """
+    Uploads a google sheet to a drive Supports team drive.
+
+    """
     gauth = GoogleAuth()
+    team_drive_id = parent_folder_id = settings.PARENT_FOLDER_ID
+    scope = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/drive.file']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name('service_account.json', scope)
     drive = GoogleDrive(gauth)
-
-    folders = drive.ListFile({'q': "title = '" + folder_title + "'"}).GetList()
-
-    if folders:
-        folder_id = folders[0]['id']
-    else:
-        folder_metadata = {'title': folder_title, 'mimeType': 'application/vnd.google-apps.folder'}
-        new_folder = drive.CreateFile(folder_metadata)
-        new_folder.Upload()
-        folder_id = new_folder['id']
-
-    file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()
-
-    if not file:
-        new_file = drive.CreateFile({'title': title, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
-        new_file.SetContentFile(file_path)
-        new_file.Upload({'convert': True})
-        file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
-
-    else:
-        file = file[0]
-        file.SetContentFile(file_path)
-        file.Upload({'convert': True})
-
-    sheet.spreadsheet_id = file['alternateLink']
-    sheet.last_synced_date = datetime.datetime.now()
-    sheet.save()
-
-    permissions = file.GetPermissions()
-
+    permissions = []
     user_emails = UserRole.objects.filter(ended_at__isnull=True).filter(
         Q(Q(group__name="Organization Admin", project__isnull=True) | Q(
             group__name__in=["Project Manager", "Project Donor"], project_id=sheet.project.id)),
@@ -74,54 +50,27 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     user_emails = list(user_emails)
     user_emails.append(settings.SERVICE_ACCOUNT_EMAIL)
     all_users = set(user_emails)
+    for perm in all_users:
+        permissions.append({
+            'type': 'user',
+            'value': perm,
+            'role': 'writer'
+        })
+    new_file = drive.CreateFile({'title': title, 'parents': [
+        {'kind': 'drive#fileLink', 'teamDriveId': team_drive_id, 'id': parent_folder_id}],
+                                 'shareable': True, 'userPermission': [permissions]})
+    new_file.SetContentFile(file_path)
+    new_file.Upload({'convert': True, 'supportsTeamDrives': True})
 
-    existing_perms = []
+    sheet.spreadsheet_id = new_file['alternateLink']
+    sheet.last_synced_date = datetime.datetime.now()
+    sheet.save()
 
-    for permission in permissions:
-        if "emailAddress" in permission:
-            existing_perms.append(permission['emailAddress'])
-
-    perms = set(existing_perms)
-
-    perm_to_rm = perms - all_users
-    perm_to_add = all_users - perms
-
-    for permission in permissions:
-        if "emailAddress" in permission:
-            if permission['emailAddress'] in perm_to_rm and (
-                    permission['emailAddress'] != settings.REPORT_ACCOUNT_EMAIL):
-                file.DeletePermission(permission['id'])
-
-    retry_emails = []
-    index = 0
-    for perm in perm_to_add:
+    for perm in permissions:
         try:
-            file.InsertPermission({
-                'type': 'user',
-                'value': perm,
-                'role': 'writer'
-            })
-
+            new_file.InsertPermission(perm)
         except Exception as e:
-            if "Since there is no Google account associated with this email address" not in str(e):
-                retry_emails.append(perm)
-
-        index += 1
-
-    if retry_emails:
-        print "retrying again for ", retry_emails
-        file = drive.ListFile({'q': "title = '" + title + "' and trashed=false"}).GetList()[0]
-        import time
-        for perm in retry_emails:
-            time.sleep(1)
-            try:
-                file.InsertPermission({
-                    'type': 'user',
-                    'value': perm,
-                    'role': 'writer'
-                })
-            except:
-                pass
+            print(str(e), "Failed to share file {0} to {1} email".format(new_file['alternateLink'], perm))
 
 
 def site_details_generator(project, sites, ws):
@@ -159,7 +108,7 @@ def site_details_generator(project, sites, ws):
                         }]
 
         site_list = {}
-        for site in sites.select_related('region').iterator():
+        for site in sites.select_related('region', 'type', 'site').iterator():
             root_site_identifier = None
             if site.site:
                 root_site_identifier = site.site.identifier
@@ -255,7 +204,6 @@ def generate_site_info(sheet):
 
     upload_to_drive(temporarylocation,
                     "{} - Site Information".format(project.id), "Site Information", project, sheet.user, sheet)
-
     os.remove(temporarylocation)
 
 
@@ -439,13 +387,7 @@ def generate_form_report(sheet):
     temporarylocation = "media/forms/submissions_{}.xls".format(xform.id_string)
     import shutil
     shutil.copy(temp_file.name, temporarylocation)
-    if fieldsight_xf.schedule:
-        name = fieldsight_xf.schedule.name
-    elif fieldsight_xf.stage:
-        name = fieldsight_xf.stage.name
-    else:
-        name = fieldsight_xf.xf.title
-    upload_to_drive(temporarylocation, name + '_' + id_string, str(fieldsight_xf.id) + '_' + name + '_' + id_string,
+    upload_to_drive(temporarylocation, str(fieldsight_xf.id) + '_' + id_string, None,
                     fieldsight_xf.project, sheet.user, sheet)
 
     os.remove(temporarylocation)

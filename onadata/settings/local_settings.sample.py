@@ -1,54 +1,49 @@
-import os, stripe
+import os
 
-os.environ["DJANGO_SECRET_KEY"] = '*********************'
-os.environ["KOBOCAT_MONGO_HOST"] = "*********************"
-os.environ["KOBOFORM_URL"] = 'http://kpi.fieldsight.org'
-os.environ["KOBOFORM_SERVER"] = 'http://kpi.fieldsight.org'
-#os.environ["ENKETO_API_TOKEN"] = '*********'
+from celery.schedules import crontab
 
 from onadata.settings.kc_environ import *
-#CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = True
+KOBOCAT_URL = os.environ.get('KOBOCAT_URL')
 
-KOBOFORM_URL = os.environ.get("KOBOFORM_URL", "http://localhost:8000")
-KOBOCAT_INTERNAL_HOSTNAME = "localhost"
-os.environ["ENKETO_API_TOKEN"] = '*********************'
-ENKETO_API_TOKEN = "*********************"
+KPI_DEFAULT_FORM1_STRING = "a5AZfY3qGtfkawaTnVzgtV"
+KOBOCAT_INTERNAL_HOSTNAME = os.environ.get("KOBOCAT_INTERNAL_HOSTNAME", "kobo")
+ENKETO_PROTOCOL = os.environ.get('ENKETO_PROTOCOL', 'https')
+
+ENKETO_API_ENDPOINT_SURVEYS = '/survey'
+
+ENKETO_URL = os.environ.get('ENKETO_URL', 'https://enketo.naxa.com.np')
+ENKETO_PREVIEW_URL = ENKETO_URL + os.environ.get('ENKETO_API_ENDPOINT_PREVIEW', '/preview')
 
 XML_VERSION_MAX_ITER = 6
-
-"""
-    Get the content type id for asset model as:
-    ContentType.objects.get(app_label='kpi', model='asset')
-    """
 ASSET_CONTENT_TYPE_ID = 20
-
 DATABASES = {
+    'defauli1': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'fieldapp',
+        'USER': 'kobo',
+        'PASSWORD': 'password',
+        'HOST': '',
+        'PORT': '',
+    },
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': '*********************',
-        'USER': '*********************',
-        'PASSWORD': '*********************',
-        'HOST': '*********************',
-        'PORT': '*********************',
-    },
-    'defauli': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': '*********************',
-        'USER': '*********************',
-        'PASSWORD': '*********************',
-        'HOST': '*********************',
-        'PORT': '',
+        'NAME': os.environ.get('POSTGRES_DB', ''),
+        'USER': os.environ.get('POSTGRES_USER', ''),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+        'HOST': os.environ.get('POSTGRES_HOST', ''),
+        'PORT': os.environ.get('POSTGRES_PORT', ''),
     }
 }
 
-INSTALLED_APPS = list(INSTALLED_APPS)
-INSTALLED_APPS += ['rest_framework_docs', 'social_django', 'onadata.apps.eventlog', #'channels', 'fcm',
-                   'onadata.apps.fieldsight', 'onadata.apps.fsforms',  'onadata.apps.fv3',
-                   'onadata.apps.geo', 'onadata.apps.remote_app', 'onadata.apps.staff', 'onadata.apps.subscriptions',
-                   'onadata.apps.userrole', 'onadata.apps.users', 'onadata.apps.reporting', 'linaro_django_pagination',
-                   'webstack_django_sorting', ]
 
-# INSTALLED_APPS += ['debug_toolbar']
+INSTALLED_APPS = list(INSTALLED_APPS)
+INSTALLED_APPS += ['rest_framework_docs', 'social_django', 'onadata.apps.eventlog', 'fcm', "debug_toolbar",
+                   'onadata.apps.fieldsight', 'onadata.apps.fsforms', 'onadata.apps.reporting',
+                   'onadata.apps.geo', 'onadata.apps.remote_app', 'onadata.apps.staff', 'onadata.apps.subscriptions',
+                   'onadata.apps.userrole', 'onadata.apps.users',
+                   'linaro_django_pagination', 'webstack_django_sorting', 'onadata.apps.fv3']
+
 
 TEMPLATE_CONTEXT_PROCESSORS = list(TEMPLATE_CONTEXT_PROCESSORS)
 
@@ -57,28 +52,16 @@ TEMPLATE_CONTEXT_PROCESSORS += ['onadata.apps.eventlog.context_processors.events
 MIDDLEWARE_CLASSES = list(MIDDLEWARE_CLASSES)
 
 MIDDLEWARE_CLASSES += ['linaro_django_pagination.middleware.PaginationMiddleware',
-                       'webstack_django_sorting.middleware.SortingMiddleware',
-                       'onadata.apps.users.middleware.RoleMiddleware']
-
-FCM_APIKEY = "*********************"
-
-# ........Google login.......
-MIDDLEWARE_CLASSES += ('social_django.middleware.SocialAuthExceptionMiddleware',)
-TEMPLATE_CONTEXT_PROCESSORS += ('social_django.context_processors.backends', 'social_django.context_processors.login_redirect',)
+                       'onadata.apps.users.middleware.RoleMiddleware', 'debug_toolbar.middleware.DebugToolbarMiddleware']
 
 AUTHENTICATION_BACKENDS += (
     'social_core.backends.facebook.FacebookOAuth2',
     'social_core.backends.google.GoogleOAuth2',
 )
 
-SERIALIZATION_MODULES = {
-    "custom_geojson": "onadata.apps.fieldsight.serializers.GeoJSONSerializer",
-    "full_detail_geojson": "onadata.apps.fieldsight.serializers.FullDetailGeoJSONSerializer",
-}
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY","google auth2 key")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET", "google auth2 auth SECRET_KEY")
 
-
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "*********************"
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET ="*********************"
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/users/create-profile/'
 SOCIAL_AUTH_LOGIN_URL = '/accounts/login/'
 SOCIAL_AUTH_PIPELINE = (
@@ -97,27 +80,27 @@ SOCIAL_AUTH_PIPELINE = (
 
 )
 
+KPI_URL = os.environ.get('KPI_URL', 'https://kpi.naxa.com.np/')
+KPI_ASSET_URL = os.environ.get('KPI_ASSET_URL')
+#KPI_LOGOUT_URL = KPI_URL + 'accounts/logout/'
+FCM_APIKEY = os.environ.get('FCM_APIKEY')
 
 FCM_MAX_RECIPIENTS = 1000
 
-
+SERIALIZATION_MODULES = {
+        "custom_geojson": "onadata.apps.fieldsight.serializers.GeoJSONSerializer",
+        "full_detail_geojson": "onadata.apps.fieldsight.serializers.FullDetailGeoJSONSerializer",
+}
 SEND_ACTIVATION_EMAIL = True
 ACCOUNT_ACTIVATION_DAYS = 30
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-DEFAULT_FROM_EMAIL = '*********************'
-SERVER_EMAIL = '*********************'
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND','django.core.mail.backends.smtp.EmailBackend')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'test.fieldsight@gmail.com')
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL','test.fieldsight@gmail.com')
 EMAIL_USE_TLS = True
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = '*********************'
-EMAIL_HOST_PASSWORD = '*********************'
-CORS_ORIGIN_WHITELIST = (
-    'app.fieldsight.org',
-    'kpi.fieldsight.org',
-    'enketo.fieldsight.org',
-    'localhost:8001',
-    '127.0.0.1:8000'
-)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = os.environ.get('EMAIL_PORT', '587')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'test@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'password')
 
 TIME_ZONE = 'Asia/Kathmandu'
 
@@ -125,25 +108,20 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "asgi_redis.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("localhost", 6379)],
+            "hosts": [("redis_main", 6379)],
         },
         "ROUTING": "onadata.apps.fieldsight.routing.channel_routing",
     },
 }
 
-#WEBSOCKET_URL = "app.fieldsight.org/fs-channel"
-#WEBSOCKET_PORT = ""
-
-WEBSOCKET_URL = "wss://app.fieldsight.org"
+WEBSOCKET_URL = "wss://%s"%(os.environ.get('KOBOCAT_URL'))
 WEBSOCKET_PORT = False
 
 
-#from onadata.settings.common import REST_FRAMEWORK
-KPI_URL = 'https://kpi.fieldsight.org/'
-KPI_LOGOUT_URL = KPI_URL + 'accounts/logout/'
-KPI_ASSET_URL = KPI_URL + 'assets/'
+from onadata.settings.common import REST_FRAMEWORK
 
-#REST_FRAMEWORK.update({'DEFAULT_PERMISSION_CLASSES':['rest_framework.permissions.IsAuthenticated',]})
+
+REST_FRAMEWORK.update({'DEFAULT_PERMISSION_CLASSES':['rest_framework.permissions.IsAuthenticated',]})
 FILE_UPLOAD_HANDLERS = ("django_excel.ExcelMemoryFileUploadHandler",
                         "django_excel.TemporaryExcelFileUploadHandler")
 
@@ -153,153 +131,95 @@ FILE_UPLOAD_HANDLERS = ("django_excel.ExcelMemoryFileUploadHandler",
 #     'INTERCEPT_REDIRECTS': True
 #}
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
-SECRET_KEY = '*********************'
-SESSION_COOKIE_NAME = '*********************'
-SESSION_COOKIE_DOMAIN = '*********************'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
+SESSION_COOKIE_NAME = os.environ.get('SESSION_COOKIE_NAME','testapp_kobo_cookie')
+SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN','.naxa.com.np')
 #CSRF_COOKIE_DOMAIN = '.fieldsight.org'
 DEFAULT_DEPLOYMENT_BACKEND = 'kobocat'
-BROKER_URL = 'amqp://guest:guest@localhost:5672//'
-ADMINS = []
+ADMINS = [('Amulya', 'awemulya@gmail.com'), ('saroj', 'raesaroj16@gmail.com'), ('santosh', 'skhatri.np@gmail.com')]
 
-#ENKETO_URL = "http://enketo.fieldsight.org/"
-ENKETO_PROTOCOL = 'https'
-ENKETO_API_ENDPOINT_SURVEYS = '/survey'
-ENKETO_URL = os.environ.get('ENKETO_URL', 'https://enketo.fieldsight.org')
+#Celery configuration
+CELERY_BROKER_BACKEND = os.environ.get('CELERY_BROKER_BACKEND', "redis")
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', False)
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://redis_main:6379/1')
 
-
-#os.environ["ENKETO_API_TOKEN"] = '*******'
-
-
-BROKER_BACKEND = "redis"
-CELERY_RESULT_BACKEND = "redis"  # telling Celery to report results to RabbitMQ
-#CELERY_ALWAYS_EAGER = True
-BROKER_URL = 'redis://localhost:6379/1'
-REDIS_HOST = "localhost"
-CELERY_BROKER_URL = BROKER_URL
-CELERY_RESULT_BACKEND = BROKER_URL
+# telling Celery to report results to This broker
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://redis_main:6379/1')
 
 
-AWS_ACCESS_KEY_ID = "*********************"
-AWS_SECRET_ACCESS_KEY = "*********************"
-AWS_STORAGE_BUCKET_NAME = "*********************"
-AWS_DEFAULT_ACL = '*********************'
-DEFAULT_FILE_STORAGE = '*********************'
-AWS_S3_REGION_NAME = '*********************'
-AWS_QUERYSTRING_AUTH = False
-AWS_S3_FILE_OVERWRITE = False
-
-#DEBUG = False
-
-#STATIC_ROOT = "/srv/fieldsight/fieldsight-kobocat/onadata/static'"
-#STATICFILES_DIRS = (
- #   os.path.join(ONADATA_DIR, "static"),
-#)
 DEBUG = False
 STATIC_URL = '/static/'
-STATIC_ROOT= os.path.join(BASE_DIR,'static')
-SITE_URL = 'https://app.fieldsight.org'
-SITE_EMAIL = 'test@gmail.com'
+STATIC_ROOT = os.path.join(BASE_DIR,'static')
 
-# ........STRIPE CONFIG...............
+SITE_URL = os.environ.get('KOBOCAT_URL')
+# MEDIA_URL = '%s/media/'%os.environ.get('KOBOCAT_URL')
 
-STRIPE_SECRET_KEY = '*********************'
-STRIPE_PUBLISHABLE_KEY = '*********************'
-
-#stripe.verify_ssl_certs = False
-
-
-MONTHLY_PLANS = {
-         'free_plan': 'free',
-         'starter_plan': '*********************',
-         'basic_plan': '*********************',
-         'extended_plan': '*********************',
-         'pro_plan': '*********************',
-         'scale_plan': '*********************'
-        }
-
-
-MONTHLY_PLANS_OVERRAGE = {
-         'free_plan': 'free',
-         'starter_plan': '*********************',
-         'basic_plan': '*********************',
-         'extended_plan': '*********************',
-         'pro_plan': '*********************',
-         'scale_plan': '*********************'
-        }
-
-YEARLY_PLANS = {
-         'free_plan': 'free',
-         'starter_plan': '*********************',
-         'basic_plan': '*********************',
-         'extended_plan': '*********************',
-         'pro_plan': '*********************',
-         'scale_plan': '*********************'
-        }
-
-YEARLY_PLANS_OVERRAGE = {
-         'free_plan': 'free',
-         'starter_plan': '*********************',
-         'basic_plan': '*********************',
-         'extended_plan': '*********************',
-         'pro_plan': '*********************',
-         'scale_plan': '*********************'
-        }
-
-
-PLANS = {
-    'free': 0,                 # free
-    '********************': 1,  # basic monthly plan
-    '*******************': 2,  # basic yearly plan
-    '******************': 3,  # extended monthly plan
-    '*****************': 4,  # extended yearly plan
-    '****************': 5,  # pro monthly plan
-    '**************': 6,  # pro yearly plan
-    '*************': 7,  # scale monthly plan
-    '************': 8,  # scale yearly plan
-    '***********': 9,  # starter monthly plan
-    '*********': 10  # starter yearly plan
-
-
-
-}
-# ..............END STRIPE CONFIG..............
-
-
+#dont need this after library form feature.
 DEFAULT_FORM_2 = {
-    'id_string': 'atYfmSxxyCZhKb7gDHU4wt',
+    'id_string': 'a4MJ2XJ9LEogrkCd8CsHvq',
     'name': 'Daily Site Diary - Default Form',
     'type':'schedule '
 }
 
 DEFAULT_FORM_1 = {
-    'id_string': 'ahLRXcGG23uNkKYCm6empb',
+    'id_string': 'afZDovStsU5i7bH4kWx5mD',
     'name': 'Health, Safety, Social and Environmental Inspection Report - Default Form',
     'type':'schedule '
 }
 DEFAULT_FORM_3 = {
-    'id_string': 'azmvMmr4dP9Fyo8rVt654G',
+    'id_string': 'abk38CVVcLzec98n8S7LQD',
     'name': 'Incident Report',
     'type':'general'
-
 }
 
+SITE_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
+CELERY_ACCEPT_CONTENT = ['pickle', 'application/json']
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': 'memcached:11211',
+    }
+}
+INTERNAL_IPS = ['127.0.0.1']
+
+SERVICE_ACCOUNT_JSON = os.environ.get('SERVICE_ACCOUNT_JSON', 'service_account.json')
+SERVICE_ACCOUNT_EMAIL = os.environ.get('SERVICE_ACCOUNT_EMAIL', '.iam.gserviceaccount.com')
+REPORT_ACCOUNT_EMAIL = os.environ.get('REPORT_ACCOUNT_EMAIL', '@gmail.com')
 
 
-LOGIN_URL = '/users/accounts/login/'
+#bucket media path given by google
+MEDIA_LOCATION_URL = os.environ.get('MEDIA_LOCATION_URL', 'https://testbucket.gcloud.com/')
 
-# +CELERY_BROKER_URL = 'redis://localhost:6389/2'
-# +CELERY_RESULT_BACKEND = 'redis://localhost:6389/2'  # telling Celery to report results to Redis
-# +CELERY_TASK_ALWAYS_EAGER = False
-#
 
-CELERYBEAT_SCHEDULE = {
-    "update-task-on-mathmod.org": {
-        "task": "onadata.apps.fieldsight.tasks.check_usage_rates",
-        "schedule": crontab(minute=0, hour=0),  # execute daily at midnight
+DEFAULT_FILE_STORAGE = os.environ.get('DEFAULT_FILE_STORAGE', 'django.core.files.storage.FileSystemStorage')
+GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', '')
+GS_PROJECT_ID = os.environ.get('GS_PROJECT_ID', '')
+
+GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', "storage_credentials.json")
+
+# google storage
+#https://django-storages.readthedocs.io/en/1.8/backends/gcloud.html
+# get signed urls make secures not public
+# GS_DEFAULT_ACL = 'publicRead'
+
+#Dont need Expiry urls. django storage docs.
+GS_EXPIRATION = os.environ.get('GS_EXPIRATION', 86400 * 24 * 365 * 100)
+
+# Needed when behind load balancer with ssl offloading. an example value is: HTTP_X_FORWARDED_PROTO
+SECURE_PROXY_SSL_HEADER_NAME = os.environ.get('SECURE_PROXY_SSL_HEADER_NAME', '')
+if SECURE_PROXY_SSL_HEADER_NAME:
+    SECURE_PROXY_SSL_HEADER = (SECURE_PROXY_SSL_HEADER_NAME, 'https')
+
+
+CELERY_BEAT_SCHEDULE = {
+    "update_sheet_in_drive": {
+        "task": "onadata.apps.reporting.tasks.sync_report",
+        "schedule": crontab(minute=0, hour=23),  # execute daily at midnight
+        'options': {'queue': 'beat'}
 
     }
 }
 
-SERVICE_ACCOUNT_JSON = "****.json"
-SERVICE_ACCOUNT_EMAIL = "sheet********@gmail.com"
-REPORT_ACCOUNT_EMAIL = "******@gmail.com"
+
+#google drive id
+PARENT_FOLDER_ID = os.environ.get('PARENT_FOLDER_ID', '****')

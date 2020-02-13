@@ -14,9 +14,6 @@ from onadata.apps.users.forms import ValidatingPasswordChangeForm, ValidatingPas
 
 admin.autodiscover()
 
-
-
-
 urlpatterns = patterns(
     '',
     # change Language
@@ -38,7 +35,7 @@ urlpatterns = patterns(
     url(r'^userrole/', include('onadata.apps.userrole.urls', namespace='role')),
     url(r'^forms/', include('onadata.apps.fsforms.urls', namespace='forms')),
     url(r'^events/', include('onadata.apps.eventlog.urls', namespace='eventlog')),
-    url(r'^subscription/', include('onadata.apps.subscriptions.urls', namespace='subscriptions')),
+    # url(r'^subscription/', include('onadata.apps.subscriptions.urls', namespace='subscriptions')),
     url(r'^fv3/', include('onadata.apps.fv3.urls', namespace='fv3')),
     url(r'^v4/api/reporting/', include('onadata.apps.reporting.urls', namespace='v4_reporting')),
 

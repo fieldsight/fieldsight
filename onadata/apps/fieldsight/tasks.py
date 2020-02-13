@@ -1,23 +1,33 @@
 from __future__ import absolute_import
 
+import os
+import dateutil
 import copy
+import pandas as pd
 import time
-import re 
+import re
 import json
 import datetime
 import gc
 import calendar
 from datetime import date
-from oauth2client.service_account import ServiceAccountCredentials
-from googleapiclient import discovery
+from io import BytesIO
+from celery import shared_task
+from PIL import Image
+import tempfile
+import zipfile
+import pyexcel as p
+
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
+from openpyxl import Workbook
+
 from django.db import transaction
 from django.contrib.gis.geos import Point
 from celery import shared_task
-from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType, \
+from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType,\
     ProgressSettings, SiteMetaAttrAnsHistory, SuperOrganization
 from onadata.apps.fieldsight.utils.google_sheet_create import site_details_generator, upload_to_drive
-from onadata.apps.fieldsight.utils.google_sheet_sync import site_information, \
-    progress_information, form_submission
 from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos, \
     bulk_update_sites_all_location, bulk_upload_json_site_all_ma, update_site_meta_ans
@@ -26,23 +36,15 @@ from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
 from django.contrib.auth.models import User, Group
 from onadata.apps.fieldsight.fs_exports.formParserForExcelReport import parse_form_response
-from io import BytesIO
 from django.shortcuts import get_object_or_404
 from onadata.apps.fsforms.models import FieldSightXF, FInstance, Stage, OrganizationFormLibrary, Schedule
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from django.db.models import Prefetch, F
-from .generatereport import PDFReport
-import os, dateutil
+from django.db.models import F
 
-from openpyxl import Workbook
-
+from django.utils import timezone
+from django.db.models import Q
 from django.core.files.storage import get_storage_class
-from PIL import Image
-import tempfile, zipfile
-
-from onadata.libs.utils.viewer_tools import get_path
-import pyexcel as p
 from django.conf import settings
 from django.db.models import Sum, Case, When, IntegerField, Count
 from django.core.exceptions import MultipleObjectsReturned
@@ -62,23 +64,22 @@ from onadata.apps.fsforms.reports_util import get_images_for_site_all
 from onadata.apps.users.signup_tokens import account_activation_token
 from onadata.apps.subscriptions.models import Subscription, Package, TrackPeriodicWarningEmail
 from onadata.apps.fsforms.models import InstanceStatusChanged
+from onadata.libs.utils.viewer_tools import get_path
 
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
+from .generatereport import PDFReport
 
-from django.utils import timezone
-from django.db.models import Q
+form_status_map = ["Pending", "Rejected", "Flagged", "Approved"]
 
-
-form_status_map=["Pending", "Rejected", "Flagged", "Approved"]
 
 def cleanhtml(raw_html):
    cleanr = re.compile('<\S.*?>')
    cleantext = re.sub(cleanr, '', raw_html)
    return cleantext
 
+
 class DriveException(Exception):
     pass
+
 
 @shared_task()
 def gsuit_assign_perm(title, emails):
@@ -283,7 +284,11 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         site_dict = None
         gc.collect()
 
-        p.save_as(array=data, dest_file_name="media/stage-report/{}_stage_data.xls".format(project.id))
+        if not os.path.exists(settings.MEDIA_ROOT + "stage-report"):
+            os.makedirs(settings.MEDIA_ROOT + "stage-report")
+
+        p.save_as(array=data, dest_file_name=settings.MEDIA_ROOT + "stage-report/{}_stage_data.xls".format(project.id))
+
         
         with open("media/stage-report/{}_stage_data.xls".format(project.id), 'rb') as fin:
             buffer = BytesIO(fin.read())
@@ -481,115 +486,192 @@ def get_site_type(value):
         return 0    
 
 @shared_task()
-def bulkuploadsites(task_prog_obj_id, sites, pk):
-    time.sleep(2)
+def bulkuploadsites(task_prog_obj_id, pk):
+    time.sleep(5)
+    error_message = None
     project = Project.objects.get(pk=pk)
-    # task_id = bulkuploadsites.request.id
     task = CeleryTaskProgress.objects.get(pk=task_prog_obj_id)
     task.content_object = project
-    task.status=1
+    task.status = 1
     task.save()
+    upload_file = task.file
+    df = pd.read_excel(upload_file)
+    if not hasattr(df, 'identifier'):
+        error_message = "Identifier column required in Excel File"
+
+    elif not df.identifier.is_unique:
+        error_message = "Identifier column in Excel file must be unique in a Project."
+
+    df = df[df.identifier.notnull()]
+
+    if error_message:
+        task.description = "ERROR: " + error_message
+        task.status = 3
+        task.save()
+        noti = project.logs.create(source=task.user, type=412, title="Bulk Sites",
+                                   content_object=project, recipient=task.user,
+                                   extra_message=str(0) + " Sites @error " + u'{}'.format(error_message))
+        return
+    has_progress_settings = project.progress_settings.filter(active=True, source=5).exists()
+    df.fillna({'latitude': 27.7172, 'longitude': 85.3240, 'progress': 0}, inplace=True)
+    meta_ques = project.site_meta_attributes
+    meta_question_list = []
+    for question in meta_ques:
+        if question['question_type'] not in ['Form', 'FormSubStat', 'FormSubCountQuestion',
+                                             'FormQuestionAnswerStatus']:
+            meta_question_list.append(question['question_name'])
+    df.fillna("", inplace=True)
     count = ""
     try:
-        sites
-        count = len(sites)
-        task.description = "Bulk Upload of "+str(count)+" Sites."
+
+        count = len(df)
+        task.description = "Bulk Upload of " + str(count) + " Sites."
         task.save()
         new_sites = 0
         updated_sites = 0
+        site_identifiers = df.identifier.tolist()
+
+        root_site_identifier = df[~df.root_site_identifier.isnull()].root_site_identifier.unique().tolist()
+        root_site_identifier_query = Site.objects.filter(project=project, identifier__in=root_site_identifier).values('identifier', 'pk')
+        root_sites_dict = {x['identifier']: x['pk'] for x in list(root_site_identifier_query)}
+
+        site_types_object_list = SiteType.objects.filter(project=project).values('identifier', 'pk')
+        site_types_object_dict = {x['identifier']: x['pk'] for x in list(site_types_object_list)}
+
+        region_object_list = Region.objects.filter(project=project).values('identifier', 'pk')
+        region_object_dict = {x['identifier']: x['pk'] for x in list(region_object_list)}
+
+        query = Site.objects.filter(project=project, identifier__in=site_identifiers).values("id", 'identifier')
+        df_site = pd.DataFrame(list(query), columns=["id", 'identifier'])
+
+        existing_identifiers = df_site.identifier.tolist()
+        old_sites_df = df_site.merge(df, on='identifier', how='left')
+        old_sites_df.fillna("", inplace=True)
+
+        new_sites_df = df[~df.identifier.isin(existing_identifiers)]
+        new_sites_df.fillna("", inplace=True)
+
+        created = len(new_sites_df)
+        updated_sites = len(old_sites_df)
+
+        old_sites_dict = old_sites_df.to_dict(orient='records')
+        new_sites_dict = new_sites_df.to_dict(orient='records')
+
+
         with transaction.atomic():
-            i=0
-            interval = count/20
-            for site in sites:
-                # time.sleep(0.7)
-                print(i)
-                site = dict((k, v) for k, v in site.iteritems() if v is not '')
+            i = 0
+            interval = count / 20
+            for site in old_sites_dict:
+                site_obj = Site.objects.get(pk=site.get('id'))
+                site_obj.name = site.get("name")
+                site_obj.phone = site.get("phone")
+                site_obj.address = site.get("address")
+                if site.get("progress") and has_progress_settings:
+                    site_obj.current_progress = site.get("progress", 0)
+                site_obj.public_desc = site.get("public_desc")
+                site_obj.additional_desc = site.get("additional_desc")
 
-                lat = site.get("longitude", 85.3240)
-                long = site.get("latitude", 27.7172)
-                
-                if lat == "":
-                    lat = 85.3240
-                if long == "":
-                    long = 27.7172
-
-                location = Point(round(float(lat), 6), round(float(long), 6), srid=4326)
-                region_idf = site.get("region_identifier", None)
-                
-
+                region_identifier = site.get("region_identifier", None)
                 type_identifier = site.get("type", None)
 
-                _site, created = Site.objects.get_or_create(identifier=str(site.get("identifier")),
-                                                                project=project)
-
-                if created:
-                    new_sites += 1
-                else:
-                    updated_sites += 1
-
                 if type_identifier:
-                     site_type = SiteType.objects.get(identifier=type_identifier, project=project)
-                     _site.type = site_type
+                    site_type_id = site_types_object_dict.get(type_identifier, None)
+                    if site_type_id:
+                        site_obj.type_id = site_type_id
                 
-                region = None
-                
-                if region_idf is not None:
-                    region = Region.objects.get(identifier=str(region_idf), project = project)
+                if region_identifier is not None:
+                    region_id = region_object_dict.get(region_identifier, None)
+                    if region_id:
+                        site_obj.region_id = region_id
 
                 root_site_identifier = site.get('root_site_identifier', None)
-                print(root_site_identifier)
                 if root_site_identifier:
-                    root_site = Site.objects.filter(identifier=root_site_identifier, project=project)
-                    # print("root site ", root_site)
-                    if root_site:
-                        root_site = root_site[0]
-                        # print("root enable sub site", root_site.enable_subsites, root_site.id)
-                        if root_site.enable_subsites:
-                            # print("root enable sub site", root_site.enable_subsites)
-                            _site.site = root_site
-                # else:
-                #     _site.site = None
-                        
-                _site.region = region
-                _site.name = site.get("name")
-                _site.phone = site.get("phone")
-                _site.address = site.get("address")
-                _site.public_desc = site.get("public_desc")
-                _site.additional_desc = site.get("additional_desc")
-                _site.location = location
-                # _site.logo = "logo/default_site_image.png"
-                progress_value = site.get("progress")
-                if progress_value:
-                    _site.current_progress = int(progress_value)
+                    root_site_id = root_sites_dict.get(root_site_identifier, None)
+                    if root_site_id:
+                        site_obj.site = root_site_id
 
-                meta_ques = project.site_meta_attributes
+                location = Point(round(float(site.get('latitude')), 6), round(float(site.get('longitude')), 6), srid=4326)
+                site_obj.location = location
 
-                myanswers = _site.site_meta_attributes_ans
-                for question in meta_ques:
-                    if question['question_type'] not in ['Form','FormSubStat','FormSubCountQuestion','FormQuestionAnswerStatus']:
-                        myanswers[question['question_name']]=site.get(question['question_name'], "")
+                myanswers = {}
+                for question in meta_question_list:
+                    ans = site.get(question, "")
+                    if ans in ["NAN", "nan"]:
+                        ans = ""
+                    myanswers[question] = ans
                 
-                _site.site_meta_attributes_ans = myanswers
-                _site.all_ma_ans.update(myanswers)
-                _site.save()
+                site_obj.site_meta_attributes_ans = myanswers
+                site_obj.all_ma_ans.update(myanswers)
+                site_obj.save()
                 i += 1
                 
                 if i > interval:
-                    interval = i+interval
+                    interval = i + interval
                     bulkuploadsites.update_state('PROGRESS', meta={'current': i, 'total': count})
+
+            new_site_objects = []
+            for site in new_sites_dict:
+                site_obj = Site(project=project)
+                site_obj.name = site.get("name")
+                site_obj.identifier = site.get("identifier")
+                site_obj.phone = site.get("phone")
+                site_obj.address = site.get("address")
+                site_obj.public_desc = site.get("public_desc")
+                site_obj.additional_desc = site.get("additional_desc")
+                if site.get("progress") and has_progress_settings:
+                    site_obj.current_progress = site.get("progress", 0)
+
+                region_identifier = site.get("region_identifier", None)
+                type_identifier = site.get("type", None)
+
+                if type_identifier:
+                    site_type_id = site_types_object_dict.get(type_identifier, None)
+                    if site_type_id:
+                        site_obj.type_id = site_type_id
+
+                if region_identifier is not None:
+                    region_id = region_object_dict.get(region_identifier, None)
+                    if region_id:
+                        site_obj.region_id = region_id
+
+                root_site_identifier = site.get('root_site_identifier', None)
+                if root_site_identifier:
+                    root_site_id = root_sites_dict.get(root_site_identifier, None)
+                    if root_site_id:
+                        site_obj.site = root_site_id
+
+                location = Point(round(float(site.get('latitude')), 6), round(float(site.get('longitude')), 6),
+                                 srid=4326)
+                site_obj.location = location
+
+                myanswers = {}
+                for question in meta_question_list:
+                    ans = site.get(question, "")
+                    if ans in ["NAN", "nan"]:
+                        ans = ""
+                    myanswers[question] = ans
+
+                site_obj.site_meta_attributes_ans = myanswers
+                site_obj.all_ma_ans = myanswers
+                new_site_objects.append(site_obj)
+                i += 1
+
+                if i > interval:
+                    interval = i + interval
+                    bulkuploadsites.update_state('PROGRESS', meta={'current': i, 'total': count})
+            Site.objects.bulk_create(new_site_objects)
             task.status = 2
             task.save()
 
-            extra_message= ""
+            extra_message = ""
             if new_sites > 0 and updated_sites > 0:
                 extra_message = " updated " + str(updated_sites) + " Sites and" + " created " + str(new_sites) + " Sites"
             elif new_sites > 0 and updated_sites == 0:
                 extra_message = " created " + str(new_sites) + " Sites"
             elif new_sites == 0 and updated_sites > 0:
                 extra_message = " updated " + str(updated_sites) + " Sites"
-            
 
-            noti = project.logs.create(source=task.user, type=12, title="Bulk Sites",
+            project.logs.create(source=task.user, type=12, title="Bulk Sites",
                                        organization=project.organization,
                                        project=project, content_object=project, extra_object=project,
                                        extra_message=extra_message)

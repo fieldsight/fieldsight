@@ -179,7 +179,6 @@ def site_recent_pictures(request):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         recent_pictures = get_recent_images(int(site_id))
-        recent_pictures = list(recent_pictures["result"])
         return Response({'site_featured_images': site_featured_images,
                          'recent_pictures': recent_pictures})
     else:
