@@ -9,6 +9,7 @@ tmp/*
 xform_manager_dataset.json
 deployments.json
 requirements/uninstall.pip
+service_account.json
 
 # folder to hold csv files
 csvs
@@ -22,6 +23,7 @@ build
 /onadata/media
 /onadata/static
 /onadata/settings/local_settings.py
+/onadata/settings/fieldsight_settings.py
 
 .~lock.*
 emails/*

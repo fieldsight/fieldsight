@@ -4,7 +4,6 @@ import json
 from collections import OrderedDict
 
 import xlwt
-import stripe
 from django.contrib.contenttypes.models import ContentType
 from django.utils.decorators import method_decorator
 from io import BytesIO
@@ -93,8 +92,6 @@ from onadata.libs.utils.image_tools import image_url
 from onadata.apps.logger.models import Attachment
 from django.core.files.storage import get_storage_class
 from django.core.files.storage import FileSystemStorage
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
 
 @login_required
 def dashboard(request):
@@ -208,7 +205,7 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
         line_chart_data = {} #line_chart.data()
         # user = User.objects.filter(pk=self.kwargs.get('pk'))
         roles_org = UserRole.objects.filter(organization_id = self.kwargs.get('pk'), ended_at__isnull=True, group__name="Organization Admin")
-        key = settings.STRIPE_PUBLISHABLE_KEY
+        # key = settings.STRIPE_PUBLISHABLE_KEY
         has_user_free_package = Subscription.objects.filter(stripe_sub_id="free_plan", stripe_customer__user=self.request.user,
                                                             organization=obj).exists()
         is_owner = obj.owner == self.request.user
@@ -230,7 +227,7 @@ class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, Template
             'progress_labels': [] , #bar_graph.data.keys(),
             'roles_org': roles_org,
             'total_submissions': flagged + approved + rejected + outstanding,
-            'key': key,
+            # 'key': key,
             'has_user_free_package': has_user_free_package,
             'is_owner': is_owner
         }
@@ -1449,11 +1446,12 @@ class UploadSitesView(ProjectRoleMixin, TemplateView):
         if form.is_valid():
             try:
                 sitefile = request.FILES['file']
-                sites = sitefile.get_records()
                 user = request.user
-                task_obj = CeleryTaskProgress.objects.create(user=user, content_object = obj, task_type=0)
+                task_obj = CeleryTaskProgress.objects.create(user=user, content_object=obj, task_type=0, file=sitefile)
                 if task_obj:
                     task = bulkuploadsites.delay(task_obj.pk, sites, pk)
+
+                    task = bulkuploadsites.delay(task_obj.pk, pk)
                     task_obj.task_id = task.id
                     task_obj.save()
                     if terms_and_labels:
@@ -2037,7 +2035,7 @@ def senduserinvite(request):
         message = get_template('fieldsight/email_sample.html').render(Context(data))
         email_to = (invite.email,)
         
-        msg = EmailMessage(subject, message, 'FieldSight', email_to)
+        msg = EmailMessage(subject, message, None, email_to)
         msg.content_subtype = "html"
         msg.send()
         if group.name == "Unassigned":
@@ -2080,22 +2078,21 @@ def senduserinvite(request):
 @login_required()
 def sendmultiroleuserinvite(request):
     data = json.loads(request.body)
-    emails =data.get('emails')
-    levels =data.get('levels')
-    leveltype =data.get('leveltype')
+    emails = data.get('emails')
+    levels = data.get('levels')
+    leveltype = data.get('leveltype')
     group = Group.objects.get(name=data.get('group'))
     print('datattaat', data)
 
-    response=""
+    response = ""
+    region_ids = []
 
     if leveltype == "region":
         region = Region.objects.get(id=levels[0]);
         project_ids = [region.project_id]
         organization_id = region.project.organization_id  
-        # site_ids = Site.objects.filter(region_id__in=levels).values_list('id', flat=True)
-
-        # site_ids = Site.objects.filter(region_id__in=levels).values_list('id', flat=True)
-        site_ids = Site.objects.filter(Q(region_id__in=levels) | Q(region_id__parent__in=levels) |
+        site_ids = Site.objects.filter(Q(region_id__in=levels) |
+                                       Q(region_id__parent__in=levels) |
                                        Q(region_id__parent__parent__in=levels)).values_list('id', flat=True)
 
         region_ids = Region.objects.filter(id__in=levels).values_list('id', flat=True)
@@ -2169,14 +2166,14 @@ def sendmultiroleuserinvite(request):
             }
         message = get_template('fieldsight/email_sample.html').render(Context(data))
         email_to = (invite.email,)
-        msg = EmailMessage(subject, message, 'FieldSight', email_to)
+        msg = EmailMessage(subject, message, None, email_to)
         msg.content_subtype = "html"
         msg.send()
         
         if group.name == "Unassigned":
-            response += "Sucessfully invited "+ email +" to join this organization.<br>"
+            response += "Sucessfully invited " + email + " to join this organization.<br>"
         else:    
-            response += "Sucessfully invited "+ email +" for "+ group.name +" role.<br>"
+            response += "Sucessfully invited " + email + " for " + group.name + " role.<br>"
         continue
 
     return HttpResponse(response)
@@ -4678,8 +4675,6 @@ class SiteBulkEditView(View):
 @api_view(["GET"])
 @permission_classes([IsAuthenticatedOrReadOnly])
 def municipality_data(request):
-    # r = redis.StrictRedis(host=settings.REDIS_HOST, port=6379, db=3)
-    # data = r.hgetall("municipality")
     data = generate_municipality_data()
     return Response(data.values())
 

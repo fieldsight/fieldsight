@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
@@ -43,7 +44,10 @@ class ProjectSitesListViewSet(viewsets.ReadOnlyModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        project = Project.objects.get(id=self.request.query_params.get('project', None))
+        try:
+            project = Project.objects.get(id=self.request.query_params.get('project', None))
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
 
         try:
             page = self.paginate_queryset(queryset)

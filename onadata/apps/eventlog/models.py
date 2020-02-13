@@ -93,13 +93,13 @@ class FieldSightLog(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey()
     event_name = models.CharField(max_length=255, blank=True)
-    event_url = models.CharField(max_length=500, blank=True)
+    event_url = models.TextField(blank=True)
 
     extra_content_type = models.ForeignKey(ContentType, related_name='notify_object', blank=True, null=True)
     extra_object_id = models.CharField(max_length=255, blank=True, null=True)
     extra_object = GenericForeignKey('extra_content_type', 'extra_object_id')
     extra_obj_name = models.CharField(max_length=255, blank=True)    
-    extra_obj_url = models.CharField(max_length=500, blank=True)
+    extra_obj_url = models.TextField(blank=True)
 
     class Meta:
         get_latest_by = "-date"
