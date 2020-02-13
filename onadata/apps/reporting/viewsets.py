@@ -294,7 +294,9 @@ class GenerateStandardReports(APIView):
                 task_obj.task_id = task.id
                 task_obj.save()
                 status, data = 200, {'detail': 'Success, the report is being generated. You will be notified after '
-                                               'the report is generated.'}
+                                               'the report is generated.',
+                                     'task_id': task_obj.id
+                                     }
             else:
                 status, data = 401, {'detail': 'Error occured please try again.'}
             return Response(status=status, data=data)
