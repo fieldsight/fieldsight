@@ -787,6 +787,7 @@ class StandardReportsExportXlsView(APIView):
 
         try:
             obj = CeleryTaskProgress.objects.get(id=pk)
+            task_status = obj.get_status_display()
 
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
@@ -796,7 +797,7 @@ class StandardReportsExportXlsView(APIView):
         else:
             file_url = None
 
-        return Response(status=status.HTTP_200_OK, data={'file_url': file_url})
+        return Response(status=status.HTTP_200_OK, data={'file_url': file_url, 'task_status': task_status})
 
 
 

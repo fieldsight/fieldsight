@@ -79,7 +79,9 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def get_breadcrumbs(self, obj):
         request = self.context['request']
-        if request.is_super_admin:
+        if request.is_super_admin or obj.parent_id in request.roles.\
+                filter(super_organization=obj.parent, group__name="Super Organization Admin").\
+                values_list('super_organization_id', flat=True):
             if obj.parent:
                 return {'name': obj.name, 'organization': obj.parent.name,
                         'organization_url': obj.parent.get_absolute_url(),
