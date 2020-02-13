@@ -516,8 +516,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
                                    extra_message=str(0) + " Sites @error " + u'{}'.format(error_message))
         return
 
-    df[['latitude']].fillna(27.7172, inplace=True)
-    df[['longitude']].fillna(85.3240, inplace=True)
+    df.fillna({'latitude': 27.7172, 'longitude':85.3240}, inplace=True)
     meta_ques = project.site_meta_attributes
     meta_question_list = []
     for question in meta_ques:
