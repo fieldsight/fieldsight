@@ -515,7 +515,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
                                    content_object=project, recipient=task.user,
                                    extra_message=str(0) + " Sites @error " + u'{}'.format(error_message))
         return
-
+    has_progress_settings = project.progress_settings.filter(active=True, source=5).exists()
     df.fillna({'latitude': 27.7172, 'longitude': 85.3240, 'progress': 0}, inplace=True)
     meta_ques = project.site_meta_attributes
     meta_question_list = []
@@ -569,7 +569,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
                 site_obj.name = site.get("name")
                 site_obj.phone = site.get("phone")
                 site_obj.address = site.get("address")
-                if site.get("progress"):
+                if site.get("progress") and has_progress_settings:
                     site_obj.current_progress = site.get("progress", 0)
                 site_obj.public_desc = site.get("public_desc")
                 site_obj.additional_desc = site.get("additional_desc")
@@ -621,7 +621,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
                 site_obj.address = site.get("address")
                 site_obj.public_desc = site.get("public_desc")
                 site_obj.additional_desc = site.get("additional_desc")
-                if site.get("progress"):
+                if site.get("progress") and has_progress_settings:
                     site_obj.current_progress = site.get("progress", 0)
 
                 region_identifier = site.get("region_identifier", None)
