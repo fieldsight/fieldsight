@@ -195,7 +195,6 @@ DEFAULT_FILE_STORAGE = os.environ.get('DEFAULT_FILE_STORAGE', 'django.core.files
 GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', '')
 GS_PROJECT_ID = os.environ.get('GS_PROJECT_ID', '')
 
-GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', "storage_credentials.json")
 
 # google storage
 #https://django-storages.readthedocs.io/en/1.8/backends/gcloud.html
@@ -203,6 +202,7 @@ GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'
 # GS_DEFAULT_ACL = 'publicRead'
 
 #Dont need Expiry urls. django storage docs.
+
 GS_EXPIRATION = os.environ.get('GS_EXPIRATION', 86400 * 24 * 365 * 100)
 
 # Needed when behind load balancer with ssl offloading. an example value is: HTTP_X_FORWARDED_PROTO
