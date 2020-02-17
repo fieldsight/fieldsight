@@ -380,7 +380,7 @@ class PreviewStandardReports(APIView):
                         "date": "$_id.date"
                     }
                 }
-                               }}])['result']
+                               }}], cursor={})['result']
 
             for site_visit in site_visits:
                 try:

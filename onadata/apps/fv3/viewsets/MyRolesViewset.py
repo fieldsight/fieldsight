@@ -273,7 +273,7 @@ def submissions_map(request):
                                     "status": "$fs_status"
                                 }
                             }
-                        }])
+                        }], cursor={})
                     response_submissions = list(submissions["result"])
                     for item in response_submissions:
                         id_string = item['properties']['form_id_string']
@@ -299,7 +299,7 @@ def submissions_map(request):
                                     "status": "$fs_status"
                                 }
                             }
-                        }])
+                        }], cursor={})
                     response_submissions = list(submissions["result"])
                     for item in response_submissions:
                         id_string = item['properties']['form_id_string']
@@ -630,7 +630,7 @@ def latest_submission(request):
                 "status": "$fs_status"
             }
         }
-    }])
+    }], cursor={})
     response_submissions = list(submissions["result"])
     for item in response_submissions:
         id_string = item['properties']['form_id_string']

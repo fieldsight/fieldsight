@@ -280,7 +280,7 @@ class ProjectDashboard(TemplateView):
              }, { "$group": { "_id": "$_id.fs_site", "visits": { '$sum': 1}
              }},
              {"$group": {"_id": None, "total_sum": {'$sum': '$visits'}}}
-             ])['result']
+             ], cursor={})['result']
 
             if not site_visits_query:
                 site_visits = 0
@@ -2471,7 +2471,7 @@ class UserActivityReport(ProjectRoleMixin, TemplateView):
                             "submitted_by":"$_submitted_by"
                         }
                     }
-            }])['result']
+            }], cursor={})['result']
         response_coords = {'features': coords, 'type':'FeatureCollection'}
         submission_queryset = user.supervisor.filter(project_id=pk, instance__date_created__range=[new_startdate, new_enddate])
         approved = submission_queryset.filter(form_status=3).count()
@@ -2528,7 +2528,7 @@ class UserActivityReport(ProjectRoleMixin, TemplateView):
                         "sites_visited": {'$sum': 1}
                     }
                 }
-            ]
+            ], cursor={}
         )['result']
         try:
             vac = visits_and_worked[0]
@@ -3827,7 +3827,7 @@ def get_project_stage_status(request, pk, q_keyword,page_list):
                           "date":"$_id.date"
                       }          
                  }
-             }}])['result']
+             }}], cursor={})['result']
     
     def filterMongolist(value):
         for el in site_visits:
@@ -4045,7 +4045,7 @@ class DonorProjectDashboard(DonorRoleMixin, TemplateView):
              }, { "$group": { "_id": "$_id.fs_site", "visits": { '$sum': 1}
              }},
              {"$group": {"_id": None, "total_sum": {'$sum': '$visits'}}}
-             ])['result']
+             ], cursor={})['result']
 
             if not site_visits_query:
                 site_visits = 0

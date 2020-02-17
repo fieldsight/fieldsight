@@ -6,7 +6,7 @@ from onadata.apps.viewer.models.parsed_instance import update_mongo_instance
 
 
 def replace_data(form_id, query_key, query_value, data):
-	mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':str(form_id), query_key : query_value}}, {'$project':{'_id':1}}])
+	mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':str(form_id), query_key : query_value}}, {'$project':{'_id':1}}], cursor={})
 
 	ids = []
 	for mongo_id in mongo_ids['result']:
@@ -109,7 +109,7 @@ for instance in instances:
 
 
 
-mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'visit_purpose': {'$regex' : 'drawing_regist'}}}, {'$project':{'_id':1, 'drawing_regist':1, 'visit_purpose':1}}])
+mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'visit_purpose': {'$regex' : 'drawing_regist'}}}, {'$project':{'_id':1, 'drawing_regist':1, 'visit_purpose':1}}], cursor={})
 ids=[]
 if mongo_ids['result']:
 	for mongo_id in mongo_ids['result']:
@@ -160,7 +160,7 @@ if mongo_ids['result']:
 
 
 
-mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'visit_purpose': {'$regex' : 'drawing_receiv'}}}, {'$project':{'_id':1, 'visit_purpose':1}}])
+mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'visit_purpose': {'$regex' : 'drawing_receiv'}}}, {'$project':{'_id':1, 'visit_purpose':1}}], cursor={})
 ids=[]
 if mongo_ids['result']:
 	for mongo_id in mongo_ids['result']:
@@ -213,7 +213,7 @@ if mongo_ids['result']:
 
 
 
-mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'visit_purpose':  {'$regex' : 'project_inquir'}}}, {'$project':{'_id':1, 'visit_purpose':1}}])
+mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'visit_purpose':  {'$regex' : 'project_inquir'}}}, {'$project':{'_id':1, 'visit_purpose':1}}], cursor={})
 ids=[]
 if mongo_ids['result']:
 	for mongo_id in mongo_ids['result']:
@@ -276,7 +276,7 @@ if mongo_ids['result']:
 
 
 
-mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'consultation_type': {'$regex' : 'trained_masons'}}}, {'$project':{'_id':1, 'consultation_type':1}}])
+mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'consultation_type': {'$regex' : 'trained_masons'}}}, {'$project':{'_id':1, 'consultation_type':1}}], cursor={})
 
 ids=[]
 if mongo_ids['result']:
@@ -354,7 +354,7 @@ if mongo_ids['result']:
 
 
 
-mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'mun_report_type': {'$regex' : 'building_permit'}}}, {'$project':{'_id':1, 'mun_report_type':1}}])
+mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'mun_report_type': {'$regex' : 'building_permit'}}}, {'$project':{'_id':1, 'mun_report_type':1}}], cursor={})
 ids=[]
 if mongo_ids['result']:
 	for mongo_id in mongo_ids['result']:
@@ -424,7 +424,7 @@ if mongo_ids['result']:
 
 
 
-mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'mun_report_type': {'$regex' : 'completion_certificate'}}}, {'$project':{'_id':1, 'mun_report_type':1}}])
+mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'mun_report_type': {'$regex' : 'completion_certificate'}}}, {'$project':{'_id':1, 'mun_report_type':1}}], cursor={})
 ids=[]
 if mongo_ids['result']:
 	for mongo_id in mongo_ids['result']:

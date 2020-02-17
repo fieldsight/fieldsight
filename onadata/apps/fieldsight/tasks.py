@@ -255,7 +255,7 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                       "date":"$_id.date"
                   }
              }
-         }}])['result']
+         }}], cursor={})['result']
 
         for site_visit in site_visits:
             try:
@@ -1526,7 +1526,7 @@ def auto_generate_stage_status_report():
                             { "$substr": [ "$start", 0, 10 ] }
                           
                        }
-                     }])['result']
+                     }], cursor={})['result']
 
                     site_row[-1] = rejected_count
                     site_row[-2] = flagged_count
@@ -1640,7 +1640,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                            }, { "$group": { "_id": "$_id.date", "visits": { '$sum': 1}
                            }},
                            {"$group": {"_id": { "$substr": [ "$_id", 0, 7 ] }, "total_sum": {'$sum': '$visits'}}}
-                           ])['result']
+                           ], cursor={})['result']
 
             for visit in site_visits:
                 if visit['_id'] != "":
@@ -1702,7 +1702,7 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                            }, { "$group": { "_id": "$_id.date", "visits": { '$sum': 1}
                            }},
                            {"$group": {"_id": { "$substr": [ "$_id", 0, 10 ] }, "total_sum": {'$sum': '$visits'}}}
-                           ])['result']
+                           ], cursor={})['result']
 
             for visit in site_visits:
                 if visit['_id'] != "":
@@ -1989,7 +1989,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                         "sites_visited": {'$sum': 1}
                     }
                 }
-            ]
+            ], cursor={}
         )['result']
 
         all_days_worked = settings.MONGO_DB.instances.aggregate(
@@ -2023,7 +2023,7 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                         "days_worked": { '$sum': 1}
                     }
                 }
-            ]
+            ], cursor={}
         )['result']
 
         user_stats = {}
