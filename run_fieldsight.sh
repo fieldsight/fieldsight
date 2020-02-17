@@ -5,5 +5,6 @@
 python manage.py migrate --noinput
 python manage.py delete_permission
 python manage.py collectstatic --noinput
-python manage.py runserver 0.0.0.0:8001
+#python manage.py runserver 0.0.0.0:8001
+uwsgi --ini fieldsight.ini
 
