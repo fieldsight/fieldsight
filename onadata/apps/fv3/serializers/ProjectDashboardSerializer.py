@@ -20,6 +20,7 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.eventlog.models import FieldSightLog
 from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
 from onadata.apps.fsforms.line_data_project import date_range
+from onadata.apps.users.models import UserProfile
 
 
 class LineChartGeneratorProject(object):
@@ -451,3 +452,23 @@ class StageFormSerializer(serializers.ModelSerializer):
 
         data = SubStageFormSerializer(queryset, many=True).data
         return data
+
+
+class ProjectUserProfileSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField(read_only=True)
+    full_name = serializers.SerializerMethodField(read_only=True)
+    role = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = UserProfile
+        exclude = ('notification_seen_date', 'task_last_view_date', 'organization', 'timezone', 'user')
+
+    def get_id(self, obj):
+        return obj.user_id
+
+    def get_full_name(self, obj):
+        return obj.user.get_full_name()
+
+    def get_role(self, obj):
+        project_id = self.context.get('project_id', None)
+        return obj.user.user_roles.filter(project_id=project_id).values('group__name')[0]['group__name']

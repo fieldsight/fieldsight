@@ -22,13 +22,14 @@ from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermiss
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
     ProgressGeneralFormSerializer, ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer, \
-    SitelistForMetasLinkSerializer, StageFormSerializer
+    SitelistForMetasLinkSerializer, StageFormSerializer, ProjectUserProfileSerializer
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions, \
     SupervisorPermission
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import Instance
 from onadata.apps.fieldsight.tasks import UnassignAllSiteRoles
 from onadata.apps.userrole.models import UserRole
+from onadata.apps.users.models import UserProfile
 
 
 class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
@@ -350,9 +351,8 @@ class SupervisorProjectDashboardView(APIView):
         project_users = obj.project_roles.select_related("user", "user__user_profile", "group").\
             filter(ended_at__isnull=True).distinct('user')
 
-        users = [{'id': role.user.id, 'full_name': role.user.get_full_name(),
-                  'profile_picture': role.user.user_profile.profile_picture.url, 'role': role.group.name} for role in
-                 project_users]
+        profiles = UserProfile.objects.select_related('user').filter(id__in=project_users)
+        users = ProjectUserProfileSerializer(profiles, many=True, context={'project_id': project_id})
 
         general_forms = FieldSightXF.objects.filter(project_id=project_id, is_staged=False, is_scheduled=False,
                                                      is_deleted=False, is_survey=False).\
@@ -379,8 +379,10 @@ class SupervisorProjectDashboardView(APIView):
         return Response({'total_submissions': total_submissions[0],
                          'total_sites': total_sites,
                          'total_regions': total_regions,
-                         'users': users, 'forms': {'general_forms': general_forms, 'scheduled_forms': schedule_forms,
-                                                   'staged_forms': stage_forms}})
+                         'users': users.data, 'forms': {'general_forms': general_forms,
+                                                        'scheduled_forms': schedule_forms,
+                                                        'staged_forms': stage_forms}
+                         })
 
 
 class UpdateProjectGeojson(APIView):
