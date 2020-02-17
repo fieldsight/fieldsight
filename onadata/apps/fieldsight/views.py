@@ -3827,11 +3827,12 @@ def get_project_stage_status(request, pk, q_keyword,page_list):
                           "date":"$_id.date"
                       }          
                  }
-             }}], cursor={})['result']
+             }}], cursor={})
+    site_visits = list(site_visits)
     
     def filterMongolist(value):
         for el in site_visits:
-            if el['_id']==value: return el
+            if el['_id'] == value: return el
 
     
     setStatisticsChecker=[]
