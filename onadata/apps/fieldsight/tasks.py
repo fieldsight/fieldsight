@@ -1527,7 +1527,7 @@ def auto_generate_stage_status_report():
                           
                        }
                      }], cursor={})['result']
-
+                    site_visits = list(site_visits)
                     site_row[-1] = rejected_count
                     site_row[-2] = flagged_count
                     site_row[-3] = submission_count
