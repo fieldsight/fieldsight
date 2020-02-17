@@ -10,19 +10,20 @@ from django.contrib.gis.geos import Point
 
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
-from onadata.apps.fieldsight.models import Project, Site, Region, SiteType, ProjectGeoJSON, ProjectLevelTermsAndLabels
+from onadata.apps.fieldsight.models import Project, Site, Region, SiteType, ProjectGeoJSON
 from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
 from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermission
-from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
+from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance, OrganizationFormLibrary
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
     ProgressGeneralFormSerializer, ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer, \
-    SitelistForMetasLinkSerializer, StageFormSerializer, ProjectUserProfileSerializer
+    SitelistForMetasLinkSerializer, StageFormSerializer, ProjectUserProfileSerializer, \
+    OrganizationFormLibrarySerializer
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions, \
     SupervisorPermission
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
@@ -133,11 +134,15 @@ def project_regions_types(request, pk):
     except ObjectDoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND, data="Not found")
 
+    has_organization = False
+    if project.organization.parent:
+        has_organization = True
+
     regions = Region.objects.filter(project_id=project.id, is_active=True)
     regions_data = [{'id': reg.id, 'identifier': reg.identifier, 'name': reg.name} for reg in regions]
     site_types = SiteType.objects.filter(project_id=project.id, deleted=False)
     site_types_data = [{'id': si_type.id, 'identifier': si_type.identifier, 'name': si_type.name} for si_type in site_types]
-    data = {'regions': regions_data, 'site_types': site_types_data}
+    data = {'regions': regions_data, 'site_types': site_types_data, 'has_organization': has_organization}
 
     return Response(status=status.HTTP_200_OK, data=data)
 
@@ -349,7 +354,7 @@ class SupervisorProjectDashboardView(APIView):
         total_sites = obj.sites.filter(is_active=True, is_survey=False, site__isnull=True).count()
         total_regions = obj.project_region.filter(is_active=True, parent__isnull=True).count()
         project_users = obj.project_roles.select_related("user", "user__user_profile", "group").\
-            filter(ended_at__isnull=True).distinct('user')
+            filter(ended_at__isnull=True).values_list('user__user_profile').distinct('user')
 
         profiles = UserProfile.objects.select_related('user').filter(id__in=project_users)
         users = ProjectUserProfileSerializer(profiles, many=True, context={'project_id': project_id})
@@ -401,3 +406,18 @@ class UpdateProjectGeojson(APIView):
         project_geojson.generate_new()
 
         return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
+
+
+class OrganizationLibraryFormsViewSet(viewsets.ReadOnlyModelViewSet):
+
+    permission_classes = (IsAuthenticated, ProjectDashboardPermissions)
+    queryset = OrganizationFormLibrary.objects.all()
+    serializer_class = OrganizationFormLibrarySerializer
+
+    def filter_queryset(self, queryset):
+        project = get_object_or_404(Project, id=self.kwargs['pk'])
+        organization = project.organization.parent_id
+        if organization:
+            return queryset.filter(organization_id=organization, deleted=False)
+        else:
+            return []

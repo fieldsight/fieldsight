@@ -13,7 +13,7 @@ from rest_framework import serializers
 
 from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
 from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site, Organization
-from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule
+from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule, OrganizationFormLibrary
 from onadata.apps.fv3.role_api_permissions import check_del_site_perm
 from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.logger.models import Instance
@@ -472,3 +472,14 @@ class ProjectUserProfileSerializer(serializers.ModelSerializer):
     def get_role(self, obj):
         project_id = self.context.get('project_id', None)
         return obj.user.user_roles.filter(project_id=project_id).values('group__name')[0]['group__name']
+
+
+class OrganizationFormLibrarySerializer(serializers.ModelSerializer):
+    title = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = OrganizationFormLibrary
+        fields = ('id', 'xf', 'title')
+
+    def get_title(self, obj):
+        return obj.xf.title
