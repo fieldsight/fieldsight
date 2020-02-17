@@ -255,7 +255,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                       "date":"$_id.date"
                   }
              }
-         }}], cursor={})['result']
+         }}], cursor={})
+        site_visits = list(site_visits)
 
         for site_visit in site_visits:
             try:
