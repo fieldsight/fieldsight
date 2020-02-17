@@ -411,7 +411,7 @@ class UpdateProjectGeojson(APIView):
 class OrganizationLibraryFormsViewSet(viewsets.ReadOnlyModelViewSet):
 
     permission_classes = (IsAuthenticated, ProjectDashboardPermissions)
-    queryset = OrganizationFormLibrary.objects.all()
+    queryset = OrganizationFormLibrary.objects.select_related('xf')
     serializer_class = OrganizationFormLibrarySerializer
 
     def filter_queryset(self, queryset):
