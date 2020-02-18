@@ -486,15 +486,11 @@ class OrganizationFormLibrarySerializer(serializers.ModelSerializer):
 
 
 class ProjectAllFormsSerializer(serializers.ModelSerializer):
-    xf_id = serializers.SerializerMethodField(read_only=True)
     title = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = FieldSightXF
-        fields = ('xf_id', 'title')
-
-    def get_xf_id(self, obj):
-        return obj.xf_id
+        fields = ('id', 'title')
 
     def get_title(self, obj):
 
@@ -511,7 +507,7 @@ class ProjectStageFormSerializer(serializers.ModelSerializer):
 
     def get_sub_stages(self, obj):
 
-        data = [{'xf_id': form.stage_forms.xf_id,
+        data = [{'id': form.stage_forms.id,
                  'title': form.stage_forms.xf.title} for form in obj.active_substages().\
             prefetch_related('stage_forms')]
 
