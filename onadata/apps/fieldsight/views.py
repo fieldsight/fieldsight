@@ -2891,7 +2891,7 @@ class RegionCreateView(RegionView, ProjectRoleMixin, CreateView):
 
         if self.kwargs.get('parent_pk'):
             context['parent_identifier'] = Region.objects.get(pk=self.kwargs.get('parent_pk')).get_concat_identifier()
-            print context['parent_identifier']
+            print (context['parent_identifier']
         return context
 
     def form_valid(self, form):
