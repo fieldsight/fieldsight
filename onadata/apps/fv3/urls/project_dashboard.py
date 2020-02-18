@@ -12,7 +12,7 @@ router.register(r'site-form', SiteFormViewSet, base_name='site_form')
 project_dashboard_urlpatterns = [
     url(r'^api/', include(router.urls)),
     url(r'^api/project/(?P<pk>\d+)/$', ProjectDashboardViewSet.as_view({'get': 'retrieve'}), name='project'),
-    url(r'^api/project-form-submissions-chart-data/(?P<pk>\d+)/$',
+    url(r'^api/project-chart-data/(?P<pk>\d+)/$',
         ProjectFormSubmissionsChartData.as_view(), name='project_form_submissions'),
     url(r'^api/project-logs/(?P<pk>\d+)/$', ProjectLogsView.as_view(), name='project_logs'),
 
