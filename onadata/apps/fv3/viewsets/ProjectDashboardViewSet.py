@@ -1,7 +1,9 @@
 import datetime
 import json
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.http import Http404
 from django.conf import settings
@@ -14,19 +16,21 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from onadata.apps.eventlog.models import CeleryTaskProgress
+from onadata.apps.eventlog.models import CeleryTaskProgress, FieldSightLog
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
 from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermission
 from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
     ProgressGeneralFormSerializer, ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer, \
-    SitelistForMetasLinkSerializer
+    SitelistForMetasLinkSerializer, LineChartGeneratorProject
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions, \
     SupervisorPermission
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import Instance
 from onadata.apps.fieldsight.tasks import UnassignAllSiteRoles
+from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
+from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
 
 
 class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
@@ -326,3 +330,54 @@ class SupervisorProjectDashboardView(APIView):
                          'total_sites': total_sites,
                          'total_regions': total_regions,
                          'users': users})
+
+
+class ProjectFormSubmissionsChartData(APIView):
+
+    def get(self, request, *args,  **kwargs):
+
+        project_id = self.kwargs.get('pk', None)
+        project = get_object_or_404(Project, id=project_id)
+        line_chart = LineChartGeneratorProject(project)
+        line_chart_data = line_chart.data()
+        form_submissions_chart_data = {'total_submissions':
+                    {'data': [d['total_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()},
+                'pending_submissions':
+                    {'data': [d['pending_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()},
+                'approved_submissions':
+                    {'data': [d['approved_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()},
+                'rejected_submissions':
+                    {'data': [d['rejected_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()},
+                'flagged_submissions':
+                    {'data': [d['flagged_submissions'] for d in line_chart_data.values()],
+                     'labels': line_chart_data.keys()}
+                }
+        bar_graph = ProgressBarGenerator(project)
+        progress_labels = bar_graph.data.keys()
+        progress_data = bar_graph.data.values()
+
+        site_progress_chart_data = {'labels': progress_labels, 'data': progress_data}
+
+        return Response(status=status.HTTP_200_OK, data={'form_submissions_chart_data': form_submissions_chart_data,
+                                                         'site_progress_chart_data': site_progress_chart_data
+                                                         })
+
+
+class ProjectLogsView(APIView):
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+
+    def get(self, request, *args,  **kwargs):
+
+        project_id = self.kwargs.get('pk', None)
+        qs = FieldSightLog.objects.select_related('source', 'source__user_profile', 'project__terms_and_labels',
+                                                  'extra_content_type', 'content_type').\
+                 prefetch_related('content_object', 'extra_object', 'seen_by').\
+                 filter(Q(project_id=project_id) |
+                        (Q(content_type=ContentType.objects.get(app_label="fieldsight", model="project")) &
+                         Q(object_id=project_id)))[:20]
+        serializers_qs = NotificationSerializer(qs, many=True)
+        return Response(status=status.HTTP_200_OK, data={'logs': serializers_qs.data})

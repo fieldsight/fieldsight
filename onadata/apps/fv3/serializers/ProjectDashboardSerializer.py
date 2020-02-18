@@ -3,21 +3,16 @@ import json
 
 from collections import OrderedDict
 
-from django.db.models import Q
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.core.serializers import serialize
 
 from rest_framework import serializers
 
-from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
 from onadata.apps.fieldsight.models import Project, ProjectLevelTermsAndLabels, Site
 from onadata.apps.fsforms.models import Stage, FieldSightXF, FInstance, Schedule
 from onadata.apps.fv3.role_api_permissions import check_del_site_perm
 from onadata.apps.fv3.serializer import Base64ImageField
 from onadata.apps.logger.models import Instance
-from onadata.apps.eventlog.models import FieldSightLog
-from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
 from onadata.apps.fsforms.line_data_project import date_range
 
 
@@ -55,11 +50,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
     total_sites = serializers.SerializerMethodField()
     total_users = serializers.SerializerMethodField()
     project_managers = serializers.SerializerMethodField()
-    logs = serializers.SerializerMethodField()
     terms_and_labels = serializers.SerializerMethodField()
-    form_submissions_chart_data = serializers.SerializerMethodField()
     has_region = serializers.SerializerMethodField()
-    site_progress_chart_data = serializers.SerializerMethodField()
     breadcrumbs = serializers.SerializerMethodField()
     map = serializers.SerializerMethodField()
     is_project_manager = serializers.SerializerMethodField()
@@ -67,8 +59,8 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ('id', 'name', 'address', 'public_desc', 'logo', 'contacts', 'project_activity', 'total_sites',
-                  'total_users', 'project_managers', 'has_region', 'logs', 'form_submissions_chart_data',
-                  'site_progress_chart_data', 'map', 'terms_and_labels', 'breadcrumbs', 'is_project_manager')
+                  'total_users', 'project_managers', 'has_region', 'map', 'terms_and_labels', 'breadcrumbs',
+                  'is_project_manager')
 
     def get_contacts(self, obj):
         contacts = {
@@ -153,49 +145,9 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
 
         return project_managers
 
-    def get_logs(self, obj):
-        qs = FieldSightLog.objects.select_related('source', 'source__user_profile', 'project__terms_and_labels',
-                                                  'extra_content_type', 'content_type') \
-                 .prefetch_related('content_object', 'extra_object', 'seen_by').filter(Q(project=obj) | (
-                Q(content_type=ContentType.objects.get(app_label="fieldsight", model="project")) & Q(
-            object_id=obj.id)))[:20]
-        serializers_qs = NotificationSerializer(qs, many=True)
-        return serializers_qs.data
-
     def get_has_region(self, obj):
         return obj.cluster_sites
 
-    def get_form_submissions_chart_data(self, obj):
-        line_chart = LineChartGeneratorProject(obj)
-        line_chart_data = line_chart.data()
-        data = {'total_submissions':
-                    {'data': [d['total_submissions'] for d in line_chart_data.values()],
-                     'labels': line_chart_data.keys()},
-                'pending_submissions':
-                    {'data': [d['pending_submissions'] for d in line_chart_data.values()],
-                     'labels': line_chart_data.keys()},
-                'approved_submissions':
-                    {'data': [d['approved_submissions'] for d in line_chart_data.values()],
-                     'labels': line_chart_data.keys()},
-                'rejected_submissions':
-                    {'data': [d['rejected_submissions'] for d in line_chart_data.values()],
-                     'labels': line_chart_data.keys()},
-                'flagged_submissions':
-                    {'data': [d['flagged_submissions'] for d in line_chart_data.values()],
-                     'labels': line_chart_data.keys()}
-                }
-
-        return data
-
-    def get_site_progress_chart_data(self, obj):
-        bar_graph = ProgressBarGenerator(obj)
-        progress_labels = bar_graph.data.keys()
-        progress_data = bar_graph.data.values()
-
-        return {
-            'labels': progress_labels,
-            'data': progress_data
-        }
 
     def get_terms_and_labels(self, obj):
 
