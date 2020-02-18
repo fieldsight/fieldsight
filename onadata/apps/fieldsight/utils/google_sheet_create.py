@@ -294,7 +294,8 @@ def generate_site_progress(sheet):
                          }
                      }
                  }
-             }])['result']
+             }], cursor={})
+        site_visits = list(site_visits)
 
         for site_visit in site_visits:
             try:

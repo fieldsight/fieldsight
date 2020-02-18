@@ -196,7 +196,7 @@ class ParsedInstance(models.Model):
         else:
             k.append(pipeline)
         results = xform_instances.aggregate(k)
-        return results['result']
+        return list(results)
 
     @classmethod
     @apply_form_field_names

@@ -273,8 +273,8 @@ def submissions_map(request):
                                     "status": "$fs_status"
                                 }
                             }
-                        }])
-                    response_submissions = list(submissions["result"])
+                        }], cursor={})
+                    response_submissions = list(submissions)
                     for item in response_submissions:
                         id_string = item['properties']['form_id_string']
                         xf = XForm.objects.get(id_string=id_string).title
@@ -299,8 +299,8 @@ def submissions_map(request):
                                     "status": "$fs_status"
                                 }
                             }
-                        }])
-                    response_submissions = list(submissions["result"])
+                        }], cursor={})
+                    response_submissions = list(submissions)
                     for item in response_submissions:
                         id_string = item['properties']['form_id_string']
                         xf = XForm.objects.get(id_string=id_string).title
@@ -630,8 +630,8 @@ def latest_submission(request):
                 "status": "$fs_status"
             }
         }
-    }])
-    response_submissions = list(submissions["result"])
+    }], cursor={})
+    response_submissions = list(submissions)
     for item in response_submissions:
         id_string = item['properties']['form_id_string']
         xf = XForm.objects.get(id_string=id_string).title

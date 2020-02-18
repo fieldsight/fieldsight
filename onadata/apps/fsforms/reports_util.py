@@ -17,7 +17,7 @@ def get_images_for_sites_count(site_id):
         return settings.MONGO_DB.instances.aggregate(
             [{"$match": {"fs_site":{'$in' : [str(site_id), int(site_id)]}}},
                 {"$unwind": "$_attachments"},{"$match":{"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
-                {"$group": {"_id":  "null", "count":{"$sum": 1} }}])
+                {"$group": {"_id":  "null", "count":{"$sum": 1} }}], cursor={})
     except:
         return {'result':[]}
 
@@ -43,7 +43,7 @@ def get_images_for_site(site_id):
             '_deleted_at': {'$exists': False}}},
             {"$unwind": "$_attachments"},
             {"$match": {"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
-            {"$sort": {"_id": -1}}, {"$limit": 6}])
+            {"$sort": {"_id": -1}}, {"$limit": 6}], cursor={})
 
 
 def get_images_for_site_all(site_id):
@@ -53,17 +53,18 @@ def get_images_for_site_all(site_id):
             '_deleted_at': {'$exists': False}}},
             {"$unwind": "$_attachments"},
             {"$match": {"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
-            {"$sort": {"_id": -1}}])
+            {"$sort": {"_id": -1}}], cursor={})
 
 
 def get_site_responses_coords(site_id):
-    return settings.MONGO_DB.instances.aggregate(
+    coords =  settings.MONGO_DB.instances.aggregate(
         [{"$match": {"fs_site": {'$in': [str(site_id), int(site_id)]}, '_deleted_at': None,
                     "_geolocation":{"$not": { "$elemMatch": {"$eq": None }}}}},
                                   {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":
                                       { "type": {"$literal": "Point"}, "coordinates": "$_geolocation" },
                                                  "properties": {"id":"$_id", "fs_uuid":
-                                                     "$fs_uuid", "submitted_by":"$_submitted_by"}}}])
+                                                     "$fs_uuid", "submitted_by":"$_submitted_by"}}}], cursor={})
+    return list(coords)
 
 def get_instaces_for_site_individual_form(fieldsightxf_id):
     query = {"fs_uuid":str(fieldsightxf_id)}

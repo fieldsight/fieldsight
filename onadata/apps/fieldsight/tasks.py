@@ -255,7 +255,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                       "date":"$_id.date"
                   }
              }
-         }}])['result']
+         }}], cursor={})
+        site_visits = list(site_visits)
 
         for site_visit in site_visits:
             try:
@@ -1526,8 +1527,9 @@ def auto_generate_stage_status_report():
                             { "$substr": [ "$start", 0, 10 ] }
                           
                        }
-                     }])['result']
-
+                     }], cursor={})
+                    site_visits = list(site_visits)
+                    site_visits = list(site_visits)
                     site_row[-1] = rejected_count
                     site_row[-2] = flagged_count
                     site_row[-3] = submission_count
@@ -1640,8 +1642,8 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                            }, { "$group": { "_id": "$_id.date", "visits": { '$sum': 1}
                            }},
                            {"$group": {"_id": { "$substr": [ "$_id", 0, 7 ] }, "total_sum": {'$sum': '$visits'}}}
-                           ])['result']
-
+                           ], cursor={})
+            site_visits = list(site_visits)
             for visit in site_visits:
                 if visit['_id'] != "":
                     data[index[visit['_id']]][2] = int(visit['total_sum'])
@@ -1702,8 +1704,8 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                            }, { "$group": { "_id": "$_id.date", "visits": { '$sum': 1}
                            }},
                            {"$group": {"_id": { "$substr": [ "$_id", 0, 10 ] }, "total_sum": {'$sum': '$visits'}}}
-                           ])['result']
-
+                           ], cursor={})
+            site_visits = list(site_visits)
             for visit in site_visits:
                 if visit['_id'] != "":
                     data[index[visit['_id']]][2] = int(visit['total_sum'])
@@ -1989,8 +1991,9 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                         "sites_visited": {'$sum': 1}
                     }
                 }
-            ]
-        )['result']
+            ], cursor={}
+        )
+        site_visits = list(site_visits)
 
         all_days_worked = settings.MONGO_DB.instances.aggregate(
             [
@@ -2023,14 +2026,18 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                         "days_worked": { '$sum': 1}
                     }
                 }
-            ]
-        )['result']
+            ], cursor={}
+        )
 
         user_stats = {}
+
+        all_days_worked = list(all_days_worked)
 
         for visit in site_visits:
             visit['total_worked_days'] = 0
             user_stats[visit['_id']] = visit
+
+        all_days_worked = list(all_days_worked)
 
         for days_worked in all_days_worked:
             user_stats[days_worked['_id']]['total_worked_days'] = days_worked['days_worked']
