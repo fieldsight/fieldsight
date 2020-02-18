@@ -1029,8 +1029,10 @@ def forms_breadcrumbs(request):
 
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
-def supervisor_project_detail(request, pk):
-    project = get_object_or_404(Project, id=pk)
-    data = ProjectDetailSerializer(project).data
+def supervisor_projects_details(request):
+    project_ids = request.GET.getlist('project_id')
+
+    projects = Project.objects.prefetch_related('project_region', 'sites', 'project_roles').filter(id__in=project_ids)
+    data = ProjectDetailSerializer(projects, many=True).data
 
     return Response(status=status.HTTP_200_OK, data=data)
