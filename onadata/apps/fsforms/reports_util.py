@@ -57,13 +57,14 @@ def get_images_for_site_all(site_id):
 
 
 def get_site_responses_coords(site_id):
-    return settings.MONGO_DB.instances.aggregate(
+    coords =  settings.MONGO_DB.instances.aggregate(
         [{"$match": {"fs_site": {'$in': [str(site_id), int(site_id)]}, '_deleted_at': None,
                     "_geolocation":{"$not": { "$elemMatch": {"$eq": None }}}}},
                                   {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":
                                       { "type": {"$literal": "Point"}, "coordinates": "$_geolocation" },
                                                  "properties": {"id":"$_id", "fs_uuid":
                                                      "$fs_uuid", "submitted_by":"$_submitted_by"}}}], cursor={})
+    return list(coords)
 
 def get_instaces_for_site_individual_form(fieldsightxf_id):
     query = {"fs_uuid":str(fieldsightxf_id)}

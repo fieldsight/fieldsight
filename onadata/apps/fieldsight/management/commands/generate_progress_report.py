@@ -81,7 +81,8 @@ def generate_stage_status_report():
                             { "$substr": [ "$start", 0, 10 ] }
                           
                        }
-                     }], cursor={})['result']
+                     }], cursor={})
+                    site_visits = list(site_visits)
 
                     site_row[-1] = rejected_count
                     site_row[-2] = flagged_count

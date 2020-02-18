@@ -150,7 +150,8 @@ def progress_information(project_id):
                 "date": "$_id.date"
             }
         }
-        }}], cursor={})['result']
+        }}], cursor={})
+    site_visits = list(site_visits)
 
     for site_visit in site_visits:
         try:
