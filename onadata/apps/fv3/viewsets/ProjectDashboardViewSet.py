@@ -23,7 +23,7 @@ from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
     ProgressGeneralFormSerializer, ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer, \
     SitelistForMetasLinkSerializer, StageFormSerializer, ProjectUserProfileSerializer, \
-    OrganizationFormLibrarySerializer
+    OrganizationFormLibrarySerializer, ProjectAllFormsSerializer, ProjectStageFormSerializer
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions, \
     SupervisorPermission
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
@@ -421,3 +421,40 @@ class OrganizationLibraryFormsViewSet(viewsets.ReadOnlyModelViewSet):
             return queryset.filter(organization_id=organization, deleted=False)
         else:
             return []
+
+
+class ProjectAllFormsView(APIView):
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+
+    def get(self, request, *args,  **kwargs):
+
+        project_id = self.kwargs.get('pk', None)
+        obj = get_object_or_404(Project, pk=project_id)
+        queryset = FieldSightXF.objects.select_related('xf', 'stage').filter(project=obj, is_deleted=False)
+        general_forms = []
+        scheduled_forms = []
+        survey_forms = []
+        staged_forms = []
+
+        for form in queryset:
+            if form.is_scheduled:
+                scheduled_forms.append(form)
+            elif form.is_survey:
+                survey_forms.append(form)
+            elif form.is_staged:
+                staged_forms.append(form.stage.stage_id)
+            else:
+                general_forms.append(form)
+        staged_queryset = Stage.objects.filter(project_id=obj, id__in=staged_forms)
+        generals = ProjectAllFormsSerializer(general_forms, many=True)
+        survey = ProjectAllFormsSerializer(survey_forms, many=True)
+        scheduled = ProjectAllFormsSerializer(scheduled_forms, many=True)
+        staged = ProjectStageFormSerializer(staged_queryset, many=True)
+
+        return Response(status=status.HTTP_200_OK, data={'generals': generals.data,
+                                                         'survey': survey.data,
+                                                         'scheduled': scheduled.data,
+                                                         'staged': staged.data
+                                                         })
+
+

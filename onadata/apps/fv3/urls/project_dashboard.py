@@ -3,7 +3,7 @@ from django.conf.urls import url, include
 from rest_framework import routers
 from onadata.apps.fv3.viewsets.ProjectDashboardViewSet import ProjectDashboardViewSet, ProjectProgressTableViewSet, \
     project_regions_types, ProjectSurveyFormsViewSet, SiteFormViewSet, SitelistForMetasLink, \
-    SupervisorProjectDashboardView, UpdateProjectGeojson, OrganizationLibraryFormsViewSet
+    SupervisorProjectDashboardView, UpdateProjectGeojson, OrganizationLibraryFormsViewSet, ProjectAllFormsView
 
 router = routers.DefaultRouter()
 
@@ -25,6 +25,8 @@ project_dashboard_urlpatterns = [
         name='update_project_geojson'),
     url(r'^api/organization-library-forms/(?P<pk>\d+)/$', OrganizationLibraryFormsViewSet.as_view({'get': 'list'}),
         name='organization_library_forms'),
+    url(r'^api/project-forms/(?P<pk>\d+)/$', ProjectAllFormsView.as_view(),
+        name='project_all_forms'),
 
 ]
 
