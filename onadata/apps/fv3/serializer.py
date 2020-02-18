@@ -84,16 +84,12 @@ class ProjectSerializer(serializers.ModelSerializer):
     has_site_role = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
     terms_and_labels = serializers.SerializerMethodField()
-    total_regions = serializers.SerializerMethodField(read_only=True)
-    total_sites = serializers.SerializerMethodField(read_only=True)
-    total_users = serializers.SerializerMethodField(read_only=True)
-    total_submissions = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Project
 
         fields = ('name', 'id', 'address', 'organization', 'project_region', 'meta_attributes', 'has_site_role', 'url',
-                  'terms_and_labels', 'types', 'total_regions', 'total_sites', 'total_users', 'total_submissions')
+                  'terms_and_labels', 'types')
 
     def get_meta_attributes(self, obj):
         filtered_ma = []
@@ -101,20 +97,6 @@ class ProjectSerializer(serializers.ModelSerializer):
             if ma['question_type'] in ['Text', 'Number', 'MCQ', 'Date']:
                 filtered_ma.append(ma)
         return filtered_ma
-
-    def get_total_regions(self, obj):
-        return len(obj.regions)
-
-    def get_total_sites(self, obj):
-        return obj.sites.count()
-
-    def get_total_users(self, obj):
-        return obj.project_roles.count()
-
-    def get_total_submissions(self, obj):
-        outstanding, flagged, approved, rejected = obj.get_submissions_count()
-        total_submissions = outstanding + flagged + approved + rejected,
-        return total_submissions[0]
 
     def get_has_site_role(self, obj):
         return obj.has_site_role
@@ -125,7 +107,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         return None
 
     def get_terms_and_labels(self, obj):
-
         terms = ProjectLevelTermsAndLabels.objects.filter(project=obj).exists()
 
         if terms:
@@ -342,3 +323,30 @@ class SuperOrganizationSerializer(serializers.ModelSerializer):
                                  'address', 'location', 'phone', 'id'))
 
         return json.loads(data)
+
+
+class ProjectDetailSerializer(serializers.ModelSerializer):
+    total_regions = serializers.SerializerMethodField(read_only=True)
+    total_sites = serializers.SerializerMethodField(read_only=True)
+    total_users = serializers.SerializerMethodField(read_only=True)
+    total_submissions = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Project
+
+        fields = ('name', 'id', 'total_regions', 'total_sites', 'total_users', 'total_submissions')
+
+    def get_total_regions(self, obj):
+        return obj.project_region(manager="objects").count()
+
+    def get_total_sites(self, obj):
+        return obj.sites(manager="objects").count()
+
+    def get_total_users(self, obj):
+        return obj.project_roles.count()
+
+    def get_total_submissions(self, obj):
+        outstanding, flagged, approved, rejected = obj.get_submissions_count()
+        total_submissions = outstanding + flagged + approved + rejected,
+        return total_submissions[0]
+

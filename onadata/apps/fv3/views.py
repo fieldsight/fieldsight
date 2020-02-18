@@ -47,7 +47,7 @@ from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
     check_site_permission, SuperUserPermissions, TeamCreationPermission
-from .serializer import TeamSerializer, SuperOrganizationSerializer
+from .serializer import TeamSerializer, SuperOrganizationSerializer, ProjectDetailSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
@@ -72,32 +72,23 @@ def supervisor_projects(request):
     "Distinct Regions when a user is assigned."
 
     project_ids = UserRole.objects.filter(user=request.user,
-                                      ended_at=None,
-                                      group__name__in=["Region Supervisor", "Site Supervisor"]
-                                      ).values_list('project',
+                                          ended_at=None,
+                                          group__name__in=["Region Supervisor", "Site Supervisor"]
+                                          ).values_list('project',
                                                     flat=True).distinct()
     "Projects where a user is assigned as Region Supervisor or Site Supervisor"
 
     projects = Project.objects.filter(pk__in=project_ids).select_related('organization').prefetch_related(
         Prefetch("project_region",
                  queryset=Region.objects.filter(pk__in=regions)),
-        Prefetch("project_region",
-                 queryset=Region.objects.filter(is_active=True, parent__isnull=True),
-                 to_attr="regions"
-                 ),
         Prefetch("types",
-                 queryset=SiteType.objects.filter(deleted=False)),
-        Prefetch("sites",
-                 queryset=Site.objects.filter(is_survey=False, site__isnull=True)),
-        Prefetch("project_roles",
-                 queryset=UserRole.objects.filter(ended_at__isnull=True, group__name="Project Manager")
-                 ),)
+                 queryset=SiteType.objects.filter(deleted=False)))
     "Distinct Projects Where a user can be site supervisor or region reviewer"
 
     site_supervisor_role = UserRole.objects.filter(user=request.user,
-                                     ended_at=None,
-                                     group__name="Site Supervisor"
-                                     ).values_list('project', flat=True).order_by('project').distinct()
+                                                   ended_at=None,
+                                                   group__name="Site Supervisor"
+                                                   ).values_list('project', flat=True).order_by('project').distinct()
 
     "If a user is assigned as site supervisor in a given project."
     for p in projects:
@@ -1034,3 +1025,12 @@ def forms_breadcrumbs(request):
     else:
         breadcrumbs = {}
     return Response(status=status.HTTP_200_OK, data=breadcrumbs)
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def supervisor_project_detail(request, pk):
+    project = get_object_or_404(Project, id=pk)
+    data = ProjectDetailSerializer(project).data
+
+    return Response(status=status.HTTP_200_OK, data=data)
