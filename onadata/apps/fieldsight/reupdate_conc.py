@@ -10,7 +10,7 @@ def replace_data(form_id, query_key, query_value, data):
 													 {'$project':{'_id':1}}], cursor={})
 	mongo_ids = list(mongo_ids)
 	ids = []
-	for mongo_id in mongo_ids['result']:
+	for mongo_id in mongo_ids:
 		ids.append(mongo_id['_id'])
 	
 	instances = Instance.objects.filter(id__in=ids)
@@ -113,8 +113,8 @@ for instance in instances:
 mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'visit_purpose': {'$regex' : 'drawing_regist'}}}, {'$project':{'_id':1, 'drawing_regist':1, 'visit_purpose':1}}], cursor={})
 ids=[]
 mongo_ids = list(mongo_ids)
-if mongo_ids['result']:
-	for mongo_id in mongo_ids['result']:
+if mongo_ids:
+	for mongo_id in mongo_ids:
 		ids.append(mongo_id['_id'])
 		
 	instances = Instance.objects.filter(id__in=ids)
@@ -165,8 +165,8 @@ if mongo_ids['result']:
 mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'visit_purpose': {'$regex' : 'drawing_receiv'}}}, {'$project':{'_id':1, 'visit_purpose':1}}], cursor={})
 ids=[]
 mongo_ids = list(mongo_ids)
-if mongo_ids['result']:
-	for mongo_id in mongo_ids['result']:
+if mongo_ids:
+	for mongo_id in mongo_ids:
 		ids.append(mongo_id['_id'])
 		
 	instances = Instance.objects.filter(id__in=ids)
@@ -219,8 +219,8 @@ if mongo_ids['result']:
 mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"992794", 'visit_purpose':  {'$regex' : 'project_inquir'}}}, {'$project':{'_id':1, 'visit_purpose':1}}], cursor={})
 ids=[]
 mongo_ids = list(mongo_ids)
-if mongo_ids['result']:
-	for mongo_id in mongo_ids['result']:
+if mongo_ids:
+	for mongo_id in mongo_ids:
 		ids.append(mongo_id['_id'])
 		
 		instances = Instance.objects.filter(id__in=ids)
@@ -285,7 +285,7 @@ mongo_ids=settings.MONGO_DB.instances.aggregate([{'$match': {'fs_project_uuid':"
 ids=[]
 mongo_ids = list(mongo_ids)
 if mongo_ids:
-	for mongo_id in mongo_ids['result']:
+	for mongo_id in mongo_ids:
 		ids.append(mongo_id['_id'])
 		
 		instances = Instance.objects.filter(id__in=ids)

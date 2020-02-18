@@ -1642,8 +1642,8 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                            }, { "$group": { "_id": "$_id.date", "visits": { '$sum': 1}
                            }},
                            {"$group": {"_id": { "$substr": [ "$_id", 0, 7 ] }, "total_sum": {'$sum': '$visits'}}}
-                           ], cursor={})['result']
-
+                           ], cursor={})
+            site_visits = list(site_visits)
             for visit in site_visits:
                 if visit['_id'] != "":
                     data[index[visit['_id']]][2] = int(visit['total_sum'])
@@ -1704,8 +1704,8 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                            }, { "$group": { "_id": "$_id.date", "visits": { '$sum': 1}
                            }},
                            {"$group": {"_id": { "$substr": [ "$_id", 0, 10 ] }, "total_sum": {'$sum': '$visits'}}}
-                           ], cursor={})['result']
-
+                           ], cursor={})
+            site_visits = list(site_visits)
             for visit in site_visits:
                 if visit['_id'] != "":
                     data[index[visit['_id']]][2] = int(visit['total_sum'])
@@ -1992,7 +1992,8 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                     }
                 }
             ], cursor={}
-        )['result']
+        )
+        site_visits = list(site_visits)
 
         all_days_worked = settings.MONGO_DB.instances.aggregate(
             [
@@ -2026,13 +2027,17 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                     }
                 }
             ], cursor={}
-        )['result']
+        )
 
         user_stats = {}
+
+        all_days_worked = list(all_days_worked)
 
         for visit in site_visits:
             visit['total_worked_days'] = 0
             user_stats[visit['_id']] = visit
+
+        all_days_worked = list(all_days_worked)
 
         for days_worked in all_days_worked:
             user_stats[days_worked['_id']]['total_worked_days'] = days_worked['days_worked']
