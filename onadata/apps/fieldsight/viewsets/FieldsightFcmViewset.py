@@ -33,9 +33,13 @@ class FcmDeviceViewSet(viewsets.ModelViewSet):
         username_email = serializer.data["name"]
         if User.objects.filter(email__iexact=username_email).exists():
             device.name = User.objects.get(email__iexact=username_email).email
-        else:
+        elif User.objects.filter(username__iexact=username_email).exists():
             email = User.objects.get(username__iexact=username_email).email
             device.name = email
+        else:
+            return response.Response(
+                {"error": "Invalid Name Received {}".format(username_email)}, status=status.HTTP_400_BAD_REQUEST)
+
         device.save()
 
     def destroy(self, request, *args, **kwargs):
