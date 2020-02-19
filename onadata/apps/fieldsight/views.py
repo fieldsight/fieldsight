@@ -4153,7 +4153,11 @@ class DefineProjectSiteCriteria(ProjectRoleMixin, TemplateView):
 class AllResponseImages(ReadonlySiteLevelRoleMixin, View):
     def get(self, request, pk, **kwargs):
         all_imgs = get_images_for_site_all(pk)
-        return render(request, 'fieldsight/gallery.html', {'is_donor_only': kwargs.get('is_donor_only', False), 'all_imgs' : json.dumps(list(all_imgs["result"]), cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8')})
+        return render(request,
+                      'fieldsight/gallery.html',
+                      {'is_donor_only': kwargs.get('is_donor_only', False),
+                       'all_imgs': json.dumps(all_imgs,
+                                              cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8')})
 
 
 class SitesTypeView(ProjectRoleMixin, TemplateView):

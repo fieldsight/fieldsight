@@ -47,7 +47,7 @@ def get_images_for_site(site_id):
 
 
 def get_images_for_site_all(site_id):
-    return settings.MONGO_DB.instances.aggregate(
+    images_list = settings.MONGO_DB.instances.aggregate(
         [{"$match": {
             "fs_site": {'$in': [str(site_id), int(site_id)]},
             '_deleted_at': {'$exists': False}}},
@@ -55,9 +55,12 @@ def get_images_for_site_all(site_id):
             {"$match": {"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
             {"$sort": {"_id": -1}}], cursor={})
 
+    images_list = list(images_list)
+    return images_list
+
 
 def get_site_responses_coords(site_id):
-    coords =  settings.MONGO_DB.instances.aggregate(
+    coords = settings.MONGO_DB.instances.aggregate(
         [{"$match": {"fs_site": {'$in': [str(site_id), int(site_id)]}, '_deleted_at': None,
                     "_geolocation":{"$not": { "$elemMatch": {"$eq": None }}}}},
                                   {"$project" : {"_id":0, "type": {"$literal": "Feature"}, "geometry":
