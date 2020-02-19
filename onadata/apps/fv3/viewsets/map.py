@@ -98,8 +98,10 @@ class ProjectSiteMetaAttributesView(APIView):
         obj = get_object_or_404(Project, pk=project_id)
 
         json_questions = obj.site_meta_attributes
-
-        return Response(status=status.HTTP_200_OK, data={'site_meta_attributes': json_questions})
+        filter_questions = []
+        filter_types = ['Number', 'Form', 'Link', 'FormSubStat']
+        [filter_questions.append(quest) for quest in json_questions if quest['question_type'] in filter_types]
+        return Response(status=status.HTTP_200_OK, data={'site_meta_attributes_questions': filter_questions})
 
 
 class FormQuestionsView(APIView):
