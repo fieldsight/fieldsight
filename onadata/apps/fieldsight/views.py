@@ -389,7 +389,7 @@ class SiteDashboardView(TemplateView):
 
     def get_context_data(self, is_supervisor_only, **kwargs):
         # dashboard_data = super(SiteDashboardView, self).get_context_data(**kwargs)
-        obj =  get_object_or_404(Site, pk=self.kwargs.get('pk'), is_active=True)
+        obj = get_object_or_404(Site, pk=self.kwargs.get('pk'), is_active=True)
         peoples_involved = UserRole.objects.filter(ended_at__isnull=True).filter(
             Q(site=obj) | Q(region__project=obj.project)).select_related('user').distinct('user_id').count()
         data = serialize('custom_geojson', [obj], geometry_field='location',
@@ -410,7 +410,7 @@ class SiteDashboardView(TemplateView):
 
         result = get_images_for_sites_count(obj.id)
         
-        countlist = list(result["result"])
+        countlist = list(result)
         if countlist:
             total_count = countlist[0]['count']
         else:
@@ -3993,7 +3993,7 @@ class SiteResponseCoordinates(ReadonlySiteLevelRoleMixin, View):
     def get(self, request, pk, **kwargs):
         coord_datas = get_site_responses_coords(pk)
         obj = Site.objects.get(pk=self.kwargs.get('pk'))
-        response_coords = list(coord_datas["result"])
+        response_coords = list(coord_datas)
         response_coords.append({'geometry': {'coordinates': [obj.latitude, obj.longitude], 'type': 'Point'},
                                               'properties': {'fs_uuid': 'None',
                                               'id':'#' ,
@@ -4007,7 +4007,7 @@ class SiteResponseCoordinates(ReadonlySiteLevelRoleMixin, View):
 
     def post(self, request, pk):
         coord_datas = get_site_responses_coords(pk)
-        content={'coords-data':list(coord_datas["result"])}
+        content = {'coords-data': list(coord_datas)}
         return JsonResponse(json.dumps(content, cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8'), status=200)
 
 

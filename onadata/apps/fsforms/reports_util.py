@@ -19,7 +19,7 @@ def get_images_for_sites_count(site_id):
                 {"$unwind": "$_attachments"},{"$match":{"_attachments.mimetype": {'$in': ['image/png', 'image/jpeg']}}},
                 {"$group": {"_id":  "null", "count":{"$sum": 1} }}], cursor={})
     except:
-        return {'result':[]}
+        return []
 
 
 def get_recent_images(site_id):
