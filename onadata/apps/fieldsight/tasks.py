@@ -341,7 +341,7 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
         print('Report Gen Unsuccesfull {}'.format(error_message))
         task.logs.create(source=task.user, type=432, title="Site Stage Progress report generation in Project",
                                        content_object=project, recipient=task.user,
-                                       extra_message="@error " + u'{}'.format(error_message
+                                       extra_message="@error " + u'{}'.format(error_message))
 
      
 @shared_task()
