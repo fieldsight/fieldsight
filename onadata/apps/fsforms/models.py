@@ -462,7 +462,7 @@ class FieldSightXF(models.Model):
 
 
 @receiver(post_save, sender=OrganizationFormLibrary)
-def create_messages(sender, instance, created,  **kwargs):
+def create_org_forms_in_projects(sender, instance, created,  **kwargs):
     projects = Project.objects.filter(organization__parent=instance.organization)
     fsxf_list = []
     for p in projects:
