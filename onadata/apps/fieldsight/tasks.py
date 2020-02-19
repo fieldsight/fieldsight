@@ -315,29 +315,33 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
 
 
         else:
-            noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report generation in Project",
+            task.logs.create(source=task.user,
+                             type=32, title="Site Stage Progress report generation in Project",
                                    recipient=task.user, content_object=project, extra_object=project,
-                                   extra_message=" <a href='/"+ "media/stage-report/{}_stage_data.xls".format(project.id) +"'>Site Stage Progress report </a> generation in project")
+                                   extra_message=" <a href='/" +
+                                                 "media/stage-report/{}_stage_data.xls".format(
+                                                     project.id)  +
+                                                 "'>Site Stage Progress report </a> generation in project")
 
     except DriveException as e:
-        error_message = ""
+        task.logs.create(source=task.user,
+                         type=432,
+                         title="Site Stage Progress report upload to Google Drive in Project",
+                           content_object=project, recipient=task.user,
+                           extra_message="@error " + u'{}'.format(e.message))
+
+    except Exception as e:
         if "SQLCompiler' object has no attribute 'col_count" in str(e):
             error_message = "Project has no stage to generate Site Stage Progress Report"
         else:
             error_message = str(e)
-        noti = task.logs.create(source=task.user, type=432, title="Site Stage Progress report upload to Google Drive in Project",
-                                       content_object=project, recipient=task.user,
-                                       extra_message="@error " + u'{}'.format(error_message))
-
-    except Exception as e:
         task.description = "ERROR: " + str(e.message) 
         task.status = 3
         task.save()
-        print 'Report Gen Unsuccesfull. %s' % e
-        print e.__dict__
-        noti = task.logs.create(source=task.user, type=432, title="Site Stage Progress report generation in Project",
+        print('Report Gen Unsuccesfull {}'.format(error_message))
+        task.logs.create(source=task.user, type=432, title="Site Stage Progress report generation in Project",
                                        content_object=project, recipient=task.user,
-                                       extra_message="@error " + u'{}'.format(e.message))
+                                       extra_message="@error " + u'{}'.format(error_message
 
      
 @shared_task()
