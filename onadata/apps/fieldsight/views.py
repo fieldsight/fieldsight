@@ -463,7 +463,7 @@ class GenerateSiteReport(SiteRoleMixin, TemplateView):
 
         result = get_images_for_sites_count(obj.id)
 
-        countlist = list(result["result"])
+        countlist = list(result)
         if countlist:
             total_count = countlist[0]['count']
         else:
@@ -2582,7 +2582,7 @@ class SiteSummaryReport(LoginRequiredMixin, TemplateView):
 
 
         recent_resp_imgs = get_images_for_site(obj.pk)
-        three_recent_imgs = list(recent_resp_imgs["result"])[:2]
+        three_recent_imgs = list(recent_resp_imgs)[:2]
 
 
 
@@ -3983,11 +3983,13 @@ class GenerateCustomReport(ReadonlySiteLevelRoleMixin, View):
         content={'general':list(general), 'schedule':list(schedule), 'stage':list(stage), 'survey':list(survey)}
         return JsonResponse(json.dumps(content, cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8'), status=200)
 
+
 class RecentResponseImages(ReadonlySiteLevelRoleMixin, View):
     def get(self, request, pk, **kwargs):
         recent_resp_imgs = get_images_for_site(pk)
-        content={'images':list(recent_resp_imgs["result"])}
+        content = {'images': list(recent_resp_imgs)}
         return JsonResponse(content, status=200)
+
 
 class SiteResponseCoordinates(ReadonlySiteLevelRoleMixin, View):
     def get(self, request, pk, **kwargs):
@@ -4106,7 +4108,7 @@ class DonorSiteDashboard(DonorSiteViewRoleMixin, TemplateView):
 
         result = get_images_for_sites_count(obj.id)
         
-        countlist = list(result["result"])
+        countlist = list(result)
         if countlist:
             total_count = countlist[0]['count']
         else:
