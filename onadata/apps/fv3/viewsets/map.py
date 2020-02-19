@@ -110,5 +110,8 @@ class FormQuestionsView(APIView):
         obj = get_object_or_404(FieldSightXF, pk=fxf_id)
 
         json_questions = json.loads(obj.xf.json)
+        filter_questions = []
+        filter_types = ['group', 'integer', 'decimal']
+        [filter_questions.append(quest) for quest in json_questions['children'] if quest['type'] in filter_types]
 
-        return Response(status=status.HTTP_200_OK, data={'questions': json_questions})
+        return Response(status=status.HTTP_200_OK, data={'questions': filter_questions})

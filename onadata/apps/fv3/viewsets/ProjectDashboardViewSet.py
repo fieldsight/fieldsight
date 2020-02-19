@@ -451,8 +451,7 @@ class ProjectAllFormsView(APIView):
         scheduled = ProjectAllFormsSerializer(scheduled_forms, many=True)
         staged = ProjectStageFormSerializer(staged_queryset, many=True)
 
-        return Response(status=status.HTTP_200_OK, data={'generals': generals.data,
-                                                         'survey': survey.data,
-                                                         'scheduled': scheduled.data,
-                                                         'staged': staged.data
-                                                         })
+        return Response(status=status.HTTP_200_OK, data=[{'name': 'generals', 'forms': generals.data},
+                                                         {'name': 'survey', 'forms': survey.data},
+                                                         {'name': 'scheduled', 'forms': scheduled.data},
+                                                         {'name': 'staged', 'forms': staged.data}])
