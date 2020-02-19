@@ -456,5 +456,3 @@ class ProjectAllFormsView(APIView):
                                                          'scheduled': scheduled.data,
                                                          'staged': staged.data
                                                          })
-
-

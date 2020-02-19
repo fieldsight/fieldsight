@@ -28,6 +28,7 @@ project_dashboard_urlpatterns = [
     url(r'^api/project-forms/(?P<pk>\d+)/$', ProjectAllFormsView.as_view(),
         name='project_all_forms'),
 
+
 ]
 
 
