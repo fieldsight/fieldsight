@@ -18,7 +18,28 @@ class FcmDeviceViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=False)
-        self.perform_create(serializer)
+        try:
+            device = Device.objects.get(dev_id=serializer.data["dev_id"])
+
+        except Device.DoesNotExist:
+            device = Device(dev_id=serializer.data["dev_id"])
+        device.is_active = True
+        device.reg_id = serializer.data["reg_id"]
+        username_email = serializer.data["name"]
+        if User.objects.filter(email__iexact=username_email).exists():
+            device.name = User.objects.get(email__iexact=username_email).email
+        elif User.objects.filter(username__iexact=username_email).exists():
+            email = User.objects.get(username__iexact=username_email).email
+            device.name = email
+        else:
+            return response.Response(
+                {"error": "Invalid Name Received {}".format(username_email)}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            device.save()
+        except Exception as e:
+            return response.Response(
+                {"error": "Invalid Fcm Data {}".format(str(e))}, status=status.HTTP_400_BAD_REQUEST)
         headers = self.get_success_headers(serializer.data)
         return response.Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
