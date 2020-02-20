@@ -280,7 +280,7 @@ class FInstanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FInstance
-        fields = ('id', 'instance_id', 'date', 'form', 'status', 'submitted_by', 'reviewed_by')
+        fields = ('id', 'instance_id',  'form', 'status', 'submitted_by', 'reviewed_by', 'date')
 
     def get_form(self, obj):
         if obj.site_fxf:
