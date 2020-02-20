@@ -102,7 +102,7 @@ class ProjectDashboardSerializer(serializers.ModelSerializer):
                                }},
                  {"$group": {"_id": None, "total_sum": {'$sum': '$visits'}}}
                  ], cursor={})
-
+            site_visits_query = list(site_visits_query)
             if not site_visits_query:
                 site_visits_in_last_7_days = 0
             else:
