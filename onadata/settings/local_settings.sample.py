@@ -104,9 +104,6 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'password')
 
 TIME_ZONE = 'Asia/Kathmandu'
 
-WEBSOCKET_URL = "wss://%s"%(os.environ.get('KOBOCAT_URL'))
-WEBSOCKET_PORT = False
-
 
 from onadata.settings.common import REST_FRAMEWORK
 
