@@ -99,8 +99,16 @@ class ProjectSiteMetaAttributesView(APIView):
 
         json_questions = obj.site_meta_attributes
         filter_questions = []
-        filter_types = ['Number', 'Form', 'Link', 'FormSubStat']
-        [filter_questions.append(quest) for quest in json_questions if quest['question_type'] in filter_types]
+        filter_types = ['Number', 'Form', 'FormQuestionAnswerStatus', 'FormSubCountQuestion']
+
+        for quest in json_questions:
+            if quest['question_type'] in filter_types:
+                if quest['question_type'] in ['Form', 'FormQuestionAnswerStatus']:
+                    if 'question' in quest:
+                        if quest['question']['type'] in ['integer', 'decimal']:
+                            filter_questions.append(quest)
+                else:
+                    filter_questions.append(quest)
         return Response(status=status.HTTP_200_OK, data={'site_meta_attributes_questions': filter_questions})
 
 
