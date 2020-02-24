@@ -7,13 +7,16 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 
 from onadata.apps.fieldsight.fs_exports.utils import project_map_data
 from onadata.apps.fieldsight.models import Organization, Site, Project
 from onadata.apps.fieldsight.static_lists import COUNTRIES
 from onadata.apps.fsforms.models import FieldSightXF
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions
+from onadata.apps.fv3.serializers.MapSerializer import ProjectFilterMetricsSerializer
+from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.fieldsight.models import ProjectMapFiltersMetrics
 
 
 class ProjectsApi(APIView):
@@ -126,3 +129,18 @@ class FormQuestionsView(APIView):
         [filter_questions.append(quest) for quest in json_questions['children'] if quest['type'] in filter_types]
 
         return Response(status=status.HTTP_200_OK, data={'questions': filter_questions})
+
+
+class ProjectFiltersMetrics(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated, )
+    authentication_classes = (CsrfExemptSessionAuthentication, )
+    serializer_class = ProjectFilterMetricsSerializer
+    queryset = ProjectMapFiltersMetrics.objects.all()
+
+    def get_queryset(self):
+        action = self.action
+        if action == 'list':
+            return self.queryset.filter(project_id=self.kwargs.get('pk'))
+        elif action == 'update':
+            return self.queryset.filter(id=self.kwargs.get('pk'))
+

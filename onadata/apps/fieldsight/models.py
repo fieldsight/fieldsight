@@ -933,6 +933,12 @@ class ProjectMetaAttrHistory(models.Model):
         return list(itertools.ifilterfalse(lambda x: x in self.new_meta_atrributes, self.old_meta_attributes))
 
 
+class ProjectMapFiltersMetrics(models.Model):
+    project = models.OneToOneField(Project, on_delete=models.CASCADE)
+    site_information_filters = JSONField(default=dict)
+    form_data_filters = JSONField(default=dict)
+
+
 @receiver(post_save, sender=ProjectMetaAttrHistory)
 def update_meta_attributes_sites(sender, instance, created,  **kwargs):
     if created:
@@ -984,3 +990,9 @@ def check_deployed(sender, instance, created,  **kwargs):
         if task_obj:
             update_sites_progress.apply_async(kwargs={'pk': instance.id,
                                                       'task_id': task_obj.id}, countdown=5)
+
+
+@receiver(post_save, sender=Project)
+def create_project_filters_metrics(sender, instance, created, **kwargs):
+    if created:
+        ProjectMapFiltersMetrics.objects.create(project=instance)
