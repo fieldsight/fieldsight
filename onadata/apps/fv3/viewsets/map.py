@@ -5,7 +5,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
-from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from rest_framework.serializers import ModelSerializer, SerializerMethodField, ObjectDoesNotExist
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 
@@ -146,3 +146,30 @@ class ProjectFiltersMetrics(viewsets.ModelViewSet):
         elif action == 'update':
             return self.queryset.filter(id=self.kwargs.get('pk'))
 
+
+class ProjectMapFiltersListView(APIView):
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+
+    def get(self, request, *args, **kwargs):
+        pk = self.kwargs.get('pk', None)
+        obj = get_object_or_404(Project, pk=pk)
+
+        try:
+            project_map_filters = ProjectMapFiltersMetrics.objects.get(project=obj)
+        except ObjectDoesNotExist:
+            project_map_filters = ProjectMapFiltersMetrics.objects.create(project=obj)
+        
+        site_info_questions = []
+
+        # site_info_filters = project_map_filters.site_information_filters
+        site_info_filters = [{'question': 'what'}, {'question': 'Age ?'}, {'question': 'Name ?'}]
+        [site_info_questions.append(q) for q in site_info_filters]
+
+        form_data_filters = project_map_filters.form_data_filters
+
+        json_questions = json.loads(obj.xf.json)
+        filter_questions = []
+        filter_types = ['integer', 'decimal']
+        [filter_questions.append(quest) for quest in json_questions['children'] if quest['type'] in filter_types]
+
+        return Response(status=status.HTTP_200_OK, data={'questions': filter_questions})

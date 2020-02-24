@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from onadata.apps.fv3.viewsets.map import ProjectsApi, OrganizationViewset, CountriesApi, SiteViewset, \
-    ProjectsInCountries, ProjectSiteMetaAttributesView, FormQuestionsView, ProjectFiltersMetrics
+    ProjectsInCountries, ProjectSiteMetaAttributesView, FormQuestionsView, ProjectFiltersMetrics, \
+    ProjectMapFiltersListView
 
 map_urlpatterns = [
 
@@ -17,6 +18,8 @@ map_urlpatterns = [
         name='project_filters_metrics'),
     url(r'^api/update-project-filters-metrics/(?P<pk>\d+)/$', ProjectFiltersMetrics.as_view({'put': 'update'}),
         name='update_project_filters_metrics'),
+    url(r'^api/project-map-filters-list/(?P<pk>\d+)/$', ProjectMapFiltersListView.as_view(),
+        name='project_map_filters_list'),
 
 ]
 
