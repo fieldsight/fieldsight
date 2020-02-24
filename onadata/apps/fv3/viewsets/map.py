@@ -105,15 +105,16 @@ class ProjectSiteMetaAttributesView(APIView):
 
 
 class FormQuestionsView(APIView):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
 
     def get(self, request, *args, **kwargs):
         fxf_id = self.kwargs.get('pk', None)
+        project_id = request.query_params.get('project', None)
         obj = get_object_or_404(FieldSightXF, pk=fxf_id)
 
         json_questions = json.loads(obj.xf.json)
         filter_questions = []
-        filter_types = ['group', 'integer', 'decimal']
+        filter_types = ['integer', 'decimal']
         [filter_questions.append(quest) for quest in json_questions['children'] if quest['type'] in filter_types]
 
         return Response(status=status.HTTP_200_OK, data={'questions': filter_questions})
