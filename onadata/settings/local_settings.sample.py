@@ -104,16 +104,6 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'password')
 
 TIME_ZONE = 'Asia/Kathmandu'
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "asgi_redis.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("redis_main", 6379)],
-        },
-        "ROUTING": "onadata.apps.fieldsight.routing.channel_routing",
-    },
-}
-
 WEBSOCKET_URL = "wss://%s"%(os.environ.get('KOBOCAT_URL'))
 WEBSOCKET_PORT = False
 
