@@ -45,10 +45,6 @@ INSTALLED_APPS += ['rest_framework_docs', 'social_django', 'onadata.apps.eventlo
                    'linaro_django_pagination', 'webstack_django_sorting', 'onadata.apps.fv3']
 
 
-TEMPLATE_CONTEXT_PROCESSORS = list(TEMPLATE_CONTEXT_PROCESSORS)
-
-TEMPLATE_CONTEXT_PROCESSORS += ['onadata.apps.eventlog.context_processors.events']
-
 MIDDLEWARE_CLASSES = list(MIDDLEWARE_CLASSES)
 
 MIDDLEWARE_CLASSES += ['linaro_django_pagination.middleware.PaginationMiddleware',
