@@ -27,7 +27,6 @@ from django.views.generic import CreateView
 from onadata.apps.fieldsight.mixins import UpdateView, ProfileView, OwnerMixin, SuperAdminMixin, group_required
 from rest_framework import renderers
 from django.contrib import messages
-from channels import Group as ChannelGroup
 from onadata.apps.fieldsight.models import Organization, BluePrints, UserInvite, Site, Project, RequestOrganizationStatus, Region
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.models import UserProfile
@@ -497,11 +496,7 @@ class ViewInvitations(LoginRequiredMixin, TemplateView):
 
 
 def all_notification(user, message):
-    ChannelGroup("%s" % user).send({
-        "text": json.dumps({
-            "msg": message
-        })
-    })
+    pass
 
 
 def web_authenticate(username=None, password=None):

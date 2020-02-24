@@ -639,25 +639,11 @@ def set_deploy_stages(request, is_project, pk):
                                 site_fsxf.is_deleted = False
                                 site_fsxf.is_deployed = True
                                 site_fsxf.save()
-            # noti = project.logs.create(source=request.user, type=4, title="Project Stages Deployed",
-            # organization=project.organization, description="Project Stages Deployed to sites.")
-            # result = {}
-            # result['description'] = "Project Form Deployed to sites."
-            # result['url'] = noti.get_absolute_url()
-            # ChannelGroup("notify-{}".format(project.organization.id)).send({"text": json.dumps(result)})
-            # ChannelGroup("notify-0").send({"text": json.dumps(result)})
             return HttpResponse({'msg': 'ok'}, status=status.HTTP_200_OK)
         else:
             site = Site.objects.get(pk=pk)
             site.site_forms.filter(is_staged=True, xf__isnull=False, is_deployed=False, is_deleted=False).update(is_deployed=True)
             send_message_stages(site)
-            # noti = site.logs.create(source=request.user, type=4, title="Site Stages Deployed",
-            # organization=site.project.organization, description="Project Form Deployed to sites.")
-            # result = {}
-            # result['description'] = "Project Form Deployed to sites."
-            # result['url'] = noti.get_absolute_url()
-            # ChannelGroup("notify-{}".format(site.project.organization.id)).send({"text": json.dumps(result)})
-            # ChannelGroup("notify-0").send({"text": json.dumps(result)})
             return HttpResponse({'msg': 'ok'}, status=status.HTTP_200_OK)
     except Exception as e:
         return HttpResponse({'error':e.message}, status=status.HTTP_400_BAD_REQUEST)
@@ -1602,17 +1588,6 @@ def delete_substage(request, id):
         old_fsxf.is_deleted = True
         # old_fsxf.stage = None
         old_fsxf.save()
-        # org = sub_stage.stage.project.organization if sub_stage.stage.project else sub_stage.stage.site.project.organization
-        # desc = "deleted form of stage {} substage {} by {}".format(sub_stage.stage.name, sub_stage.name,
-        #                                                            request.user.username)
-        # noti = old_fsxf.logs.create(source=request.user, type=1, title="form Deleted",
-        #         organization=org, description=desc)
-        # result = {}
-        # result['description'] = desc
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("notify-{}".format(org.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
-        # sub_stage.delete()
         return Response({}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error':e.message}, status=status.HTTP_400_BAD_REQUEST)
@@ -1631,15 +1606,6 @@ def delete_mainstage(request, id):
                     old_fsxf.is_deleted = True
                     old_fsxf.stage = None
                     old_fsxf.save()
-                    # desc = "deleted form of stage {} substage {} by {}".format(sub_stage.stage.name, sub_stage.name,
-                    #                                                            request.user.username)
-                    # noti = old_fsxf.logs.create(source=request.user, type=1, title="form Deleted",
-                    #         organization=org, description=desc)
-                    # result = {}
-                    # result['description'] = desc
-                    # result['url'] = noti.get_absolute_url()
-                    # ChannelGroup("notify-{}".format(org.id)).send({"text": json.dumps(result)})
-                    # ChannelGroup("notify-0").send({"text": json.dumps(result)})
                 sub_stage.delete()
             stage.delete()
         return Response({}, status=status.HTTP_200_OK)
@@ -1703,23 +1669,6 @@ def instance_status(request, instance):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     else:
-        # org = fi.project.organization if fi.project else fi.site.project.organization
-        # noti = status_changed.logs.create(source=request.user, type=17, title="form status changed",
-        #                                   organization=org,
-        #                                   project=fi.project,
-        #                                   site = fi.site,
-        #                                   content_object=status_changed,
-        #                                   extra_object=fi.site,
-        #                                   description='{0} reviewed a response for {1} form {2} in {3}'.format(
-        #                                       request.user.get_full_name(),
-        #                                       fi.site_fxf.form_type(),
-        #                                       str(fi.site_fxf.xf.title),
-        #                                       str(fi.site.name)
-        #                                   ))
-        # result = {}
-        # result['description'] = noti.description
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("site-{}".format(fi.site.id)).send({"text": json.dumps(result)})
         if request.method == 'POST':
             try:
                 send_message_flagged(fi, message, comment_url)

@@ -9,7 +9,6 @@ from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, BasePermission
 
-from channels import Group as ChannelGroup
 from onadata.apps.fieldsight.mixins import USURPERS
 from onadata.apps.fieldsight.models import Site, Project, Organization
 from onadata.apps.userrole.serializers.UserRoleSerializer import UserRoleSerializer
@@ -96,13 +95,6 @@ class UserRoleViewSet(viewsets.ModelViewSet):
                         
                         noti = role.logs.create(source=role.user, type=noti_type, title=description,
                                                 description=description, content_object=site, site=site, project=site.project, organization=site.project.organization, extra_object=self.request.user)
-                        # result = {}
-                        # result['description'] = description
-                        # result['url'] = noti.get_absolute_url()
-                        # ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-                        # ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
-                        # ChannelGroup("site-{}".format(role.site.id)).send({"text": json.dumps(result)})
-                        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
                     # Device = get_device_model()
                     # if Device.objects.filter(name=role.user.email).exists():
@@ -129,12 +121,6 @@ class UserRoleViewSet(viewsets.ModelViewSet):
                             noti_type =25
 
                         noti = role.logs.create(source=role.user, type=noti_type, title=description, organization=project.organization, project=project, description=description, content_object=project, extra_object=self.request.user)
-                        result = {}
-                        result['description'] = description
-                        result['url'] = noti.get_absolute_url()
-                        ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-                        ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
-                        ChannelGroup("notify-0").send({"text": json.dumps(result)})
                 elif level =="2":
                     organization = Organization.objects.get(pk=self.kwargs.get('pk'))
                     role, created = UserRole.objects.get_or_create(user_id=user,
@@ -144,11 +130,6 @@ class UserRoleViewSet(viewsets.ModelViewSet):
                             role.user.get_full_name(), role.organization)
                         noti = role.logs.create(source=role.user, type=5, title=description, organization=organization, description=description,
                          content_object=organization, extra_object=self.request.user)
-                        result = {}
-                        result['description'] = description
-                        result['url'] = noti.get_absolute_url()
-                        ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-                        ChannelGroup("notify-0").send({"text": json.dumps(result)})
                     else:
                         role.ended_at = None
                         role.save()
@@ -161,11 +142,7 @@ class UserRoleViewSet(viewsets.ModelViewSet):
         return Response({'msg': data}, status=status.HTTP_200_OK)
 
     def all_notification(user, message):
-        ChannelGroup("%s" % user).send({
-            "text": json.dumps({
-                "msg": message
-            })
-        })
+        pass
 
 class MultiUserAssignRoleViewSet(View):
     def get(self, * args, **kwargs):
@@ -195,13 +172,6 @@ class MultiUserAssignRoleViewSet(View):
                                 noti = role.logs.create(source=role.user, type=noti_type, title=description,
                                                         description=description, content_type=site, extra_object=self.request.user,
                                                         site=role.site)
-                                # result = {}
-                                # result['description'] = description
-                                # result['url'] = noti.get_absolute_url()
-                                # ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-                                # ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
-                                # ChannelGroup("site-{}".format(role.site.id)).send({"text": json.dumps(result)})
-                                # ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
                             # Device = get_device_model()
                             # if Device.objects.filter(name=role.user.email).exists():
@@ -220,12 +190,6 @@ class MultiUserAssignRoleViewSet(View):
                                     role.user.get_full_name(), role.project)
                                 noti = role.logs.create(source=role.user, type=6, title=description, description=description,
                                  content_type=project, extra_object=self.request.user)
-                                result = {}
-                                result['description'] = description
-                                result['url'] = noti.get_absolute_url()
-                                ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-                                ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
-                                ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
                 elif level == "2":
                     for organization_id in data.get('organizations'):
@@ -238,12 +202,6 @@ class MultiUserAssignRoleViewSet(View):
                                     role.user.get_full_name(), role.project)
                                 noti = role.logs.create(source=role.user, type=7, title=description, description=description,
                                  content_type=organization, extra_object=self.request.user)
-                                result = {}
-                                result['description'] = description
-                                result['url'] = noti.get_absolute_url()
-                                ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-                                ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
-                                ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
         except Exception as e:
             raise ValidationError({

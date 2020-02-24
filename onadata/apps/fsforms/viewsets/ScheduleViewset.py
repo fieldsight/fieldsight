@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from onadata.apps.fieldsight.models import Site
 from onadata.apps.fsforms.models import Schedule, Days, FieldSightXF, FInstance
 from onadata.apps.fsforms.serializers.ScheduleSerializer import ScheduleSerializer, DaysSerializer
-from channels import Group as ChannelGroup
 from rest_framework.pagination import PageNumberPagination
 
 class LargeResultsSetPagination(PageNumberPagination):
@@ -87,11 +86,7 @@ class ScheduleViewset(viewsets.ModelViewSet):
                                       fxf.xf.title,
                                       fxf.site.name
                                   ))
-            result = {}
-            result['description'] = noti.description
-            result['url'] = noti.get_absolute_url()
-            ChannelGroup("site-{}".format(fxf.site.id)).send({"text": json.dumps(result)})
-            ChannelGroup("project-{}".format(fxf.site.project.id)).send({"text": json.dumps(result)})
+
         else:
             fxf.save()
             noti = fxf.logs.create(source=self.request.user, type=18, title="Schedule",
@@ -102,11 +97,7 @@ class ScheduleViewset(viewsets.ModelViewSet):
                           fxf.xf.title,
                           fxf.project.name
                       ))
-            result = {}
-            result['description'] = noti.description
-            result['url'] = noti.get_absolute_url()
-            # ChannelGroup("site-{}".format(fxf.site.id)).send({"text": json.dumps(result)})
-            ChannelGroup("project-{}".format(fxf.project.id)).send({"text": json.dumps(result)})
+
         
 
 

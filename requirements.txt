@@ -172,4 +172,4 @@ webstack-django-sorting==0.4.3
 xhtml2pdf==0.2b1
 xlwt==0.7.5
 zope.interface==4.4.2
-pyjwt==1.6.4
+
