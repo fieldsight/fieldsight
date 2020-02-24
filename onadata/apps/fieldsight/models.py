@@ -990,9 +990,3 @@ def check_deployed(sender, instance, created,  **kwargs):
         if task_obj:
             update_sites_progress.apply_async(kwargs={'pk': instance.id,
                                                       'task_id': task_obj.id}, countdown=5)
-
-
-@receiver(post_save, sender=Project)
-def create_project_filters_metrics(sender, instance, created, **kwargs):
-    if created:
-        ProjectMapFiltersMetrics.objects.create(project=instance)

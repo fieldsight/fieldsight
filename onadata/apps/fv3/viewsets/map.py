@@ -140,6 +140,8 @@ class ProjectFiltersMetrics(viewsets.ModelViewSet):
     def get_queryset(self):
         action = self.action
         if action == 'list':
+
+            ProjectMapFiltersMetrics.objects.get_or_create(project_id=self.kwargs.get('pk'))
             return self.queryset.filter(project_id=self.kwargs.get('pk'))
         elif action == 'update':
             return self.queryset.filter(id=self.kwargs.get('pk'))
