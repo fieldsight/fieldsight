@@ -935,8 +935,8 @@ class ProjectMetaAttrHistory(models.Model):
 
 class ProjectMapFiltersMetrics(models.Model):
     project = models.OneToOneField(Project, on_delete=models.CASCADE)
-    site_information_filters = JSONField(default=dict)
-    form_data_filters = JSONField(default=dict)
+    site_information_filters = JSONField(default=list)
+    form_data_filters = JSONField(default=list)
 
 
 @receiver(post_save, sender=ProjectMetaAttrHistory)
