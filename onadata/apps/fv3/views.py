@@ -991,8 +991,8 @@ class EnableClusterSitesView(APIView):
             project.cluster_sites})
 
 
-@permission_classes([IsAuthenticated])
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def project_full_map(request, pk):
     project = Project.objects.get(id=pk)
     organization_location = project.organization.location
@@ -1006,8 +1006,8 @@ def project_full_map(request, pk):
     return Response(status=status.HTTP_200_OK, data=json.loads(data))
 
 
-@permission_classes([IsAuthenticated])
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def forms_breadcrumbs(request):
     project = request.GET.get('project')
     site = request.GET.get('site')
@@ -1027,12 +1027,21 @@ def forms_breadcrumbs(request):
     return Response(status=status.HTTP_200_OK, data=breadcrumbs)
 
 
-@permission_classes([IsAuthenticated])
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def supervisor_projects_details(request):
     project_ids = request.GET.getlist('project_id')
+    supervise_project_ids = UserRole.objects.filter(user=request.user,
+                                                    ended_at=None,
+                                                    group__name__in=["Region Supervisor", "Site Supervisor"]).\
+        values_list('project', flat=True).distinct()
+    check_projects = [int(project_id) in supervise_project_ids for project_id in project_ids]
+    if False in check_projects:
+        return Response(status=status.HTTP_403_FORBIDDEN, data={'detail': 'You do not have permission.'})
 
-    projects = Project.objects.prefetch_related('project_region', 'sites', 'project_roles').filter(id__in=project_ids)
-    data = ProjectDetailSerializer(projects, many=True).data
+    else:
+        projects = Project.objects.prefetch_related('project_region', 'sites', 'project_roles').filter(
+            id__in=project_ids)
+        data = ProjectDetailSerializer(projects, many=True).data
 
-    return Response(status=status.HTTP_200_OK, data=data)
+        return Response(status=status.HTTP_200_OK, data=data)
