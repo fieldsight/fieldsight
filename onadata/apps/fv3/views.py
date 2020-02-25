@@ -89,6 +89,8 @@ def supervisor_projects(request):
                                                    ended_at=None,
                                                    group__name="Site Supervisor"
                                                    ).values_list('project', flat=True).order_by('project').distinct()
+    list(site_supervisor_role)
+    list(projects)
 
     "If a user is assigned as site supervisor in a given project."
     for p in projects:
