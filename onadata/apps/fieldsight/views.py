@@ -188,6 +188,11 @@ def FormResponseSite(request, pk):
 class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, TemplateView):
     template_name = "fieldsight/organization_dashboard.html"
 
+    def dispatch(self, request, *args, **kwargs):
+
+        return redirect('/fieldsight/application/#/team-dashboard/{}'.format(self.kwargs.get('pk')))
+
+
     def get_context_data(self, **kwargs):
         # dashboard_data = super(Organization_dashboard, self).get_context_data(**kwargs)
         obj = Organization.objects.get(pk=self.kwargs.get('pk'))
