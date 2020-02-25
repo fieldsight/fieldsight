@@ -1035,7 +1035,7 @@ def supervisor_projects_details(request):
                                                     ended_at=None,
                                                     group__name__in=["Region Supervisor", "Site Supervisor"]).\
         values_list('project', flat=True).distinct()
-    check_projects = [project_id in supervise_project_ids for project_id in project_ids]
+    check_projects = [int(project_id) in supervise_project_ids for project_id in project_ids]
     if False in check_projects:
         return Response(status=status.HTTP_403_FORBIDDEN, data={'detail': 'You do not have permission.'})
 
