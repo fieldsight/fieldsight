@@ -34,7 +34,6 @@ def email_validate(strategy, backend, uid, user, response, *args, **kwargs):
 # create a role as unassigned for the logged in user if the role is not created
 def create_role(backend, uid, user, response, social=None, *args, **kwargs):
     email = response.get('email')
-
     if user and not social:
         social = backend.strategy.storage.user.create_social_auth(user, uid, backend.name)
    
@@ -65,6 +64,13 @@ def create_profile(strategy, backend, uid, user, response, social=None, *args, *
     redirect = strategy.redirect
 
     u = User.objects.get(email=email)
+    username = u.username
+    if '.' in username:
+        update_username = username.replace('.', str(u.id))
+        u.username = update_username
+        u.save()
+    else:
+        pass
     try:
         profile = UserProfile.objects.get(user=u)
         user.backend = 'django.contrib.auth.backends.ModelBackend'
@@ -88,4 +94,4 @@ def create_profile(strategy, backend, uid, user, response, social=None, *args, *
 
         user.backend = 'django.contrib.auth.backends.ModelBackend'
         login(request, user)
-        return redirect(reverse_lazy('users:view_invitations', kwargs={'pk':u.pk}))
+        return HttpResponseRedirect(reverse('dashboard'))
