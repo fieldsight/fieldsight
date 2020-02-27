@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
                     region_supervisor_ids = UserRole.objects.filter(user=user, group__name="Region Supervisor",
                                                                     ended_at=None).values_list('region', flat=True)
-                    site_supervisor_roles = UserRole.objects.filter(user=user, group__name="Site Supervisor",
+                    UserRole.objects.filter(user=user, group__name="Site Supervisor",
                                                                     site__region_id__in=region_supervisor_ids).delete()
 
                 self.stdout.write('Deleted Site supervisors successfully for batch {}-{}'.format(offset, limit))
@@ -37,3 +37,5 @@ class Command(BaseCommand):
 
             else:
                 stop = True
+
+        UserRole.objects.filter(ended_at__isnull=False, group__name="Site Supervisor").delete()
