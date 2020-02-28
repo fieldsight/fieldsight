@@ -99,7 +99,8 @@ EMAIL_PORT = os.environ.get('EMAIL_PORT', '587')
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'test@gmail.com')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'password')
 
-TIME_ZONE = 'Asia/Kathmandu'
+USE_TZ = True
+TIME_ZONE = os.environ.get('TIME_ZONE', 'Asia/Kathmandu')
 
 
 from onadata.settings.common import REST_FRAMEWORK
@@ -198,7 +199,7 @@ if SECURE_PROXY_SSL_HEADER_NAME:
 CELERY_BEAT_SCHEDULE = {
     "update_sheet_in_drive": {
         "task": "onadata.apps.reporting.tasks.sync_report",
-        "schedule": crontab(minute=0, hour=18),  # execute daily at midnight
+        "schedule": crontab(minute=0, hour=18),  # execute daily at 6pm
         'options': {'queue': 'beat'}
 
     }
