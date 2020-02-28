@@ -32,7 +32,7 @@ from onadata.apps.fv3.viewsets.SubmissionViewSet import \
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import \
     ProjectSitesListViewSet, SubSitesListViewSet
 from onadata.apps.fv3.views import RegionalSites, sub_regions, users, project_full_map
-from onadata.apps.fv3.views import TeamsViewset, TeamFormViewset, OrganizationViewSet
+from onadata.apps.fv3.views import TeamsViewset, TeamFormViewset, OrganizationViewSet, supervisor_projects_details
 
 
 router = routers.DefaultRouter()
@@ -43,6 +43,7 @@ urlpatterns = [
 
     url(r'^api/', include(router.urls)),
     url(r'^api/projects/', supervisor_projects, name='supervisor_projects'),
+    url(r'^api/supervise-projects-details/$', supervisor_projects_details, name='supervisor_projects_details'),
     url(r'^api/project-full-map/(?P<pk>\d+)/$', project_full_map, name='project_full_map'),
 
     url(r'^api/sites/v4/', MySuperviseSitesViewsetV4.as_view({'get': 'list'}),  name='supervisor_sitesv4'),

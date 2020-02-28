@@ -5,8 +5,6 @@ from rest_framework.authentication import BasicAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import BasePermission
 
-from channels import Group as ChannelGroup
-
 
 from onadata.apps.fieldsight.models import Site, ProjectType, Project, Region, SiteType, ProjectLevelTermsAndLabels
 from onadata.apps.fieldsight.serializers.SiteSerializer import SuperMinimalSiteSerializer, MinimalSiteSerializer, SiteSerializer, SiteCreationSurveySerializer, \
@@ -220,15 +218,15 @@ class SiteCreationSurveyViewSet(viewsets.ModelViewSet):
             group = Group.objects.get(name="Site Supervisor")
             UserRole.objects.get_or_create(user=self.request.user, site_id=site.id,
                                            project__id=site.project.id, group=group)
-            noti = site.logs.create(source=self.request.user, type=11, title="new Site",
-                                       organization=site.project.organization,
-                                       project=site.project, site=site, content_object=site, extra_object=site.project,
-                                       description='{0} created a new site named {1} in {2}'.format(self.request.user.get_full_name(),
-                                                                                 site, site.project.name))
-            result = {}
-            result['description'] = noti.description
-            result['url'] = noti.get_absolute_url()
-            ChannelGroup("project-{}".format(site.project.id)).send({"text": json.dumps(result)})
+            site.logs.create(source=self.request.user,
+                                type=11,
+                                title="new Site",
+                                organization=site.project.organization,
+                                project=site.project, site=site,
+                                content_object=site,
+                                extra_object=site.project,
+                                description='{0} created a new site named {1} in {2}'.format(
+                                    self.request.user.get_full_name(),site, site.project.name))
             return site
 
 
@@ -429,9 +427,5 @@ class ProjectSitelistViewset(viewsets.ModelViewSet):
 
 
 def all_notification(user,  message):
-    ChannelGroup("%s" % user).send({
-        "text": json.dumps({
-            "msg": message
-        })
-    })
+    pass
 

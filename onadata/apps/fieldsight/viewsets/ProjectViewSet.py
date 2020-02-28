@@ -1,7 +1,6 @@
 import json
 
 from rest_framework import viewsets
-from channels import Group as ChannelGroup
 
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.pagination import PageNumberPagination
@@ -53,10 +52,6 @@ class ProjectCreationViewSet(viewsets.ModelViewSet):
                                        organization=project.organization, content_object=project,
                                        description='{0} created new project named {1}'.format(
                                            self.request.user.get_full_name(), project.name))
-        result = {}
-        result['description'] = noti.description
-        result['url'] = noti.get_absolute_url()
-        ChannelGroup("notify-{}".format(project.organization.id)).send({"text": json.dumps(result)})
         return project
 
 
@@ -155,11 +150,7 @@ class ProjectRegionslistViewSet(viewsets.ModelViewSet):
 
 
 def all_notification(user,  message):
-    ChannelGroup("%s" % user).send({
-        "text": json.dumps({
-            "msg": message
-        })
-    })
+    pass
 
 
 class ProjectMetas(viewsets.ModelViewSet):

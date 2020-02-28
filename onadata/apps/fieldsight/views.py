@@ -32,7 +32,6 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from channels import Group as ChannelGroup
 
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.fieldsight.bar_data_project import BarGenerator, ProgressBarGenerator
@@ -189,6 +188,11 @@ def FormResponseSite(request, pk):
 class Organization_dashboard(LoginRequiredMixin, OrganizationRoleMixin, TemplateView):
     template_name = "fieldsight/organization_dashboard.html"
 
+    def dispatch(self, request, *args, **kwargs):
+
+        return redirect('/fieldsight/application/#/team-dashboard/{}'.format(self.kwargs.get('pk')))
+
+
     def get_context_data(self, **kwargs):
         # dashboard_data = super(Organization_dashboard, self).get_context_data(**kwargs)
         obj = Organization.objects.get(pk=self.kwargs.get('pk'))
@@ -291,8 +295,8 @@ class ProjectDashboard(TemplateView):
              }, { "$group": { "_id": "$_id.fs_site", "visits": { '$sum': 1}
              }},
              {"$group": {"_id": None, "total_sum": {'$sum': '$visits'}}}
-             ])['result']
-
+             ], cursor={})
+            site_visits_query = list(site_visits_query)
             if not site_visits_query:
                 site_visits = 0
             else:
@@ -408,7 +412,7 @@ class SiteDashboardView(TemplateView):
 
     def get_context_data(self, is_supervisor_only, **kwargs):
         # dashboard_data = super(SiteDashboardView, self).get_context_data(**kwargs)
-        obj =  get_object_or_404(Site, pk=self.kwargs.get('pk'), is_active=True)
+        obj = get_object_or_404(Site, pk=self.kwargs.get('pk'), is_active=True)
         peoples_involved = UserRole.objects.filter(ended_at__isnull=True).filter(
             Q(site=obj) | Q(region__project=obj.project)).select_related('user').distinct('user_id').count()
         data = serialize('custom_geojson', [obj], geometry_field='location',
@@ -429,7 +433,7 @@ class SiteDashboardView(TemplateView):
 
         result = get_images_for_sites_count(obj.id)
         
-        countlist = list(result["result"])
+        countlist = list(result)
         if countlist:
             total_count = countlist[0]['count']
         else:
@@ -482,7 +486,7 @@ class GenerateSiteReport(SiteRoleMixin, TemplateView):
 
         result = get_images_for_sites_count(obj.id)
 
-        countlist = list(result["result"])
+        countlist = list(result)
         if countlist:
             total_count = countlist[0]['count']
         else:
@@ -580,11 +584,6 @@ class OrganizationCreateView(OrganizationView, CreateView):
             project_id = Project.objects.get(name="Example Project", organization_id=self.object.id).id
 
             clone_form.delay(user_id, project_id, task_obj.id)
-        # result = {}
-        # result['description'] = '{0} created a new organization named {1} '.format(noti.source.get_full_name(), self.object.name)
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("notify-{}".format(self.object.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
         if self.request.roles.filter(group__name="Unassigned").exists() or self.request.user.organizations.all():
             previous_group = UserRole.objects.filter(user=self.request.user, group__name="Unassigned").exists()
@@ -624,11 +623,6 @@ class OrganizationUpdateView(OrganizationView, OrganizationRoleMixin, UpdateView
                                                    u"of Team named {1}".
                                        format(self.request.user.get_full_name(),
                                               self.object.name))
-        # result = {}
-        # result['description'] = noti.description
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("notify-{0}".format(self.object.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -874,13 +868,6 @@ class ProjectCreateView(ProjectView, OrganizationRoleMixin, CreateView):
                                        description=u'{0} created new project '
                                                    u'named {1}'.format(
                                            self.request.user.get_full_name(), self.object.name))
-        # result = {}
-        # result['description'] = noti.description
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("notify-{}".format(self.object.organization.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
-
-
         return HttpResponseRedirect(self.object.get_absolute_url())
 
 
@@ -920,11 +907,6 @@ class ProjectUpdateView(ProjectView, ProjectRoleMixin, UpdateView):
                                        description=u'{0} changed the details '
                                                    u'of project named {1}'.format(
                                            self.request.user.get_full_name(), self.object.name))
-        # result = {}
-        # result['description'] = noti.description
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("notify-{}".format(self.object.organization.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("project-{}".format(self.object.id)).send({"text": json.dumps(result)})
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -1103,13 +1085,6 @@ class SiteCreateView(SiteView, ProjectRoleMixin, CreateView):
                                        description=u'{0} created a new site '
                                                    u'named {1} in {2}'.format(self.request.user.get_full_name(),
                                                                                  self.object.name, self.object.project.name))
-        # result = {}
-        # result['description'] = '{0} created a new site named {1} in {2}'.format(self.request.user.get_full_name(),
-        #                                                                          self.object.name, self.object.project.name)
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("project-{}".format(self.object.project.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
-
         return HttpResponseRedirect(self.get_success_url())
 
     def get_form(self, *args, **kwargs):
@@ -1264,14 +1239,6 @@ class SiteUpdateView(SiteView, ReviewerRoleMixin, UpdateView):
             description=description,
             extra_json=extra_json,
         )
-        # result = {}
-        # result['description'] = 'new site {0} updated by {1}'.format(self.object.name, self.request.user.username)
-        # result['url'] = noti.get_absolute_url()
-        # ChannelGroup("notify-{}".format(self.object.project.organization.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("project-{}".format(self.object.project.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("site-{}".format(self.object.id)).send({"text": json.dumps(result)})
-        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
-
         return HttpResponseRedirect(self.get_success_url())
 
     def get_form(self, *args, **kwargs):
@@ -1322,21 +1289,6 @@ class SiteDeleteView(SiteDeleteRoleMixin, View):
                                    self.request.user.get_full_name(), site.name))
         return HttpResponseRedirect('/fieldsight/application/?project=' + str(site.project.id) + '#/project-sitelist')
 
-    # def delete(self,*args, **kwargs):
-    #     self.kwargs['pk'] = self.get_object().pk
-    #     self.object = self.get_object().delete()
-    #     # noti = self.object.logs.create(source=self.request.user, type=4, title="new Site",
-    #     #                                organization=self.object.organization,
-    #     #                                description="new project {0} deleted by {1}".
-    #     #                                format(self.object.name, self.request.user.username))
-    #     # result = {}
-    #     # result['description'] = 'new project {0} deleted by {1}'.format(self.object.name, self.request.user.username)
-    #     # result['url'] = noti.get_absolute_url()
-    #     # ChannelGroup("notify-{}".format(self.object.organization.id)).send({"text": json.dumps(result)})
-    #     # ChannelGroup("notify-0").send({"text": json.dumps(result)})
-    #     return HttpResponseRedirect(self.get_success_url())
-    #
-
 
 @group_required("Project")
 @api_view(['POST'])
@@ -1372,10 +1324,6 @@ def ajax_upload_sites(request, pk):
                                        extra_message=count + "Sites",
                                        description='{0} created a {1} sites in {2}'.
                                            format(request.user.get_full_name(), count, project.name))
-                # result = {}
-                # result['description'] = noti.description
-                # result['url'] = noti.get_absolute_url()
-                # ChannelGroup("project-{}".format(project.id)).send({"text": json.dumps(result)})
             return Response({'msg': 'ok'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'file':e.message}, status=status.HTTP_400_BAD_REQUEST)
@@ -1528,15 +1476,6 @@ class CreateUserView(LoginRequiredMixin, SuperAdminMixin, UserDetailView, Regist
             org = Organization.objects.get(pk=organization)
             profile = UserProfile(user=new_user, organization=org)
             profile.save()
-            # noti = profile.logs.create(source=self.request.user, type=0, title="new User",
-            #                         organization=profile.organization, description="new user {0} created by {1}".
-            #                         format(new_user.username, self.request.user.username))
-            # result = {}
-            # result['description'] = 'new user {0} created by {1}'.format(new_user.username, self.request.user.username)
-            # result['url'] = noti.get_absolute_url()
-            # ChannelGroup("notify-{}".format(profile.organization.id)).send({"text":json.dumps(result)})
-            # ChannelGroup("notify-0").send({"text":json.dumps(result)})
-
         return new_user
 
 class BluePrintsView(LoginRequiredMixin, TemplateView):
@@ -1646,11 +1585,7 @@ class ManagePeopleSuperOrganizationView(LoginRequiredMixin, SuperOrganizationRol
                        'super_organization': pk, 'type': 'super_org'})
 
 def all_notification(user,  message):
-    ChannelGroup("%s" % user).send({
-        "text": json.dumps({
-            "msg": message
-        })
-    })
+    pass
 
 
 class RolesView(LoginRequiredMixin, TemplateView):
@@ -2399,11 +2334,9 @@ class ActivateRole(TemplateView):
             noti_type = None
             content = None
 
-        noti = invite.logs.create(source=user, type=noti_type, title="new Role", organization=invite.organization,
-                                  extra_message=extra_msg, project=project, site=site, content_object=content,
-                                  extra_object=invite.by_user,
-                                  description=u"{0} was added as the {1} of {2} by {3}.".\
-                                  format(user.username, invite.group.name, content.name, invite.by_user))
+        noti = invite.logs.create(source=user, type=noti_type, title="new Role", organization=invite.organization, extra_message=extra_msg, project=project, site=site, content_object=content, extra_object=invite.by_user,
+                                       description=u"{0} was added as the {1} of {2} by {3}.".
+                                       format(user.username, invite.group.name, content.name, invite.by_user))
         return HttpResponseRedirect(reverse('login'))
 
 
@@ -2531,9 +2464,9 @@ class UserActivityReport(ProjectRoleMixin, TemplateView):
 
         user = User.objects.filter(pk=self.kwargs.get('user_id')).annotate(**query).first()
         roles = user.user_roles.filter(project_id=pk, ended_at__isnull=True).distinct('group_id').values_list('group__name', flat=True)
-        # recent_images = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": "santoshkhatri"}, "start": { 
+        # recent_images = settings.MONGO_DB.instances.aggregate([{"$match":{"_submitted_by": "santoshkhatri"}, "start": {
         #                     '$gte' : new_startdate.isoformat(),
-        #                     '$lte' : end.isoformat() 
+        #                     '$lte' : end.isoformat()
         #                 }
         #                 }, {"$unwind":"$_attachments"},{"$match":{"_attachments.mimetype" : "image/jpeg"}},  {"$project" : {"_attachments.download_url":1, }},{ "$sort" : { "_id": -1 }}, { "$limit": 3 }])
         coords = settings.MONGO_DB.instances.aggregate([
@@ -2565,7 +2498,8 @@ class UserActivityReport(ProjectRoleMixin, TemplateView):
                             "submitted_by":"$_submitted_by"
                         }
                     }
-            }])['result']
+            }], cursor={})
+        coords = list(coords)
         response_coords = {'features': coords, 'type':'FeatureCollection'}
         submission_queryset = user.supervisor.filter(project_id=pk, instance__date_created__range=[new_startdate, new_enddate])
         approved = submission_queryset.filter(form_status=3).count()
@@ -2622,8 +2556,9 @@ class UserActivityReport(ProjectRoleMixin, TemplateView):
                         "sites_visited": {'$sum': 1}
                     }
                 }
-            ]
-        )['result']
+            ], cursor={}
+        )
+        visits_and_worked = list(visits_and_worked)
         try:
             vac = visits_and_worked[0]
         except:
@@ -2674,7 +2609,7 @@ class SiteSummaryReport(LoginRequiredMixin, TemplateView):
 
 
         recent_resp_imgs = get_images_for_site(obj.pk)
-        three_recent_imgs = list(recent_resp_imgs["result"])[:2]
+        three_recent_imgs = list(recent_resp_imgs)[:2]
 
 
 
@@ -2719,57 +2654,6 @@ class MultiUserAssignSiteView(ProjectRoleMixin, TemplateView):
             return HttpResponse('sucess')
         else:
             return HttpResponse('Failed')
-# if(Group="Reviewer or Site Supervisor") and request.user not in test
-# return reverse redirect login
-# if(Gropp="Project Manager")and not in request.user not in test
-# return reverse redirect login
-
-# class MultiUserAssignSiteView(ProjectRoleMixin, TemplateView):
-#     def get(self, request, pk):
-#         project_obj = Project.objects.get(pk=pk)
-#         return render(request, 'fieldsight/multi_user_assign.html',{'type': "site", 'pk':pk})
-
-#     def post(self, request, *args, **kwargs):
-#         data = json.loads(self.request.body)
-#         sites = data.get('sites')
-#         users = data.get('users')
-#         group = Group.objects.get(name=data.get('group'))
-#         response = ""
-#         for site_id in sites:
-#             site = Site.objects.get(pk=site_id)
-#             for user in users:
-              
-#                 role, created = UserRole.objects.get_or_create(user_id=user, site_id=site.id,
-#                                                                project__id=site.project.id, organization__id=site.project.organization_id, group=group, ended_at=None)
-#                 if created:
-               
-#                     # description = "{0} was assigned  as {1} in {2}".format(
-#                     #     role.user.get_full_name(), role.lgroup.name, role.project)
-#                     noti_type = 8
-
-#                     # if data.get('group') == "Reviewer":
-#                     #     noti_type =7
-                    
-#                     # noti = role.logs.create(source=role.user, type=noti_type, title=description,
-#                     #                         description=description, content_type=site, extra_object=self.request.user,
-#                     #                         site=role.site)
-#                     # result = {}
-#                     # result['description'] = description
-#                     # result['url'] = noti.get_absolute_url()
-#                     # ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-#                     # ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
-#                     # ChannelGroup("site-{}".format(role.site.id)).send({"text": json.dumps(result)})
-#                     # ChannelGroup("notify-0").send({"text": json.dumps(result)})
-
-#                     # Device = get_device_model()
-#                     # if Device.objects.filter(name=role.user.email).exists():
-#                     #     message = {'notify_type':'Assign Site', 'site':{'name': site.name, 'id': site.id}}
-#                     #     Device.objects.filter(name=role.user.email).send_message(message)
-#                 else:
-#                     response += "Already exists."
-#         return HttpResponse(response)
-
-
 
 class MultiUserAssignProjectView(OrganizationRoleMixin, TemplateView):
 
@@ -3940,11 +3824,12 @@ def get_project_stage_status(request, pk, q_keyword,page_list):
                           "date":"$_id.date"
                       }          
                  }
-             }}])['result']
+             }}], cursor={})
+    site_visits = list(site_visits)
     
     def filterMongolist(value):
         for el in site_visits:
-            if el['_id']==value: return el
+            if el['_id'] == value: return el
 
     
     setStatisticsChecker=[]
@@ -4093,17 +3978,19 @@ class GenerateCustomReport(ReadonlySiteLevelRoleMixin, View):
         content={'general':list(general), 'schedule':list(schedule), 'stage':list(stage), 'survey':list(survey)}
         return JsonResponse(json.dumps(content, cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8'), status=200)
 
+
 class RecentResponseImages(ReadonlySiteLevelRoleMixin, View):
     def get(self, request, pk, **kwargs):
         recent_resp_imgs = get_images_for_site(pk)
-        content={'images':list(recent_resp_imgs["result"])}
+        content = {'images': list(recent_resp_imgs)}
         return JsonResponse(content, status=200)
+
 
 class SiteResponseCoordinates(ReadonlySiteLevelRoleMixin, View):
     def get(self, request, pk, **kwargs):
         coord_datas = get_site_responses_coords(pk)
         obj = Site.objects.get(pk=self.kwargs.get('pk'))
-        response_coords = list(coord_datas["result"])
+        response_coords = list(coord_datas)
         response_coords.append({'geometry': {'coordinates': [obj.latitude, obj.longitude], 'type': 'Point'},
                                               'properties': {'fs_uuid': 'None',
                                               'id':'#' ,
@@ -4117,7 +4004,7 @@ class SiteResponseCoordinates(ReadonlySiteLevelRoleMixin, View):
 
     def post(self, request, pk):
         coord_datas = get_site_responses_coords(pk)
-        content={'coords-data':list(coord_datas["result"])}
+        content = {'coords-data': list(coord_datas)}
         return JsonResponse(json.dumps(content, cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8'), status=200)
 
 
@@ -4158,7 +4045,8 @@ class DonorProjectDashboard(DonorRoleMixin, TemplateView):
              }, { "$group": { "_id": "$_id.fs_site", "visits": { '$sum': 1}
              }},
              {"$group": {"_id": None, "total_sum": {'$sum': '$visits'}}}
-             ])['result']
+             ], cursor={})
+            site_visits_query = list(site_visits_query)
 
             if not site_visits_query:
                 site_visits = 0
@@ -4215,7 +4103,7 @@ class DonorSiteDashboard(DonorSiteViewRoleMixin, TemplateView):
 
         result = get_images_for_sites_count(obj.id)
         
-        countlist = list(result["result"])
+        countlist = list(result)
         if countlist:
             total_count = countlist[0]['count']
         else:
@@ -4262,7 +4150,11 @@ class DefineProjectSiteCriteria(ProjectRoleMixin, TemplateView):
 class AllResponseImages(ReadonlySiteLevelRoleMixin, View):
     def get(self, request, pk, **kwargs):
         all_imgs = get_images_for_site_all(pk)
-        return render(request, 'fieldsight/gallery.html', {'is_donor_only': kwargs.get('is_donor_only', False), 'all_imgs' : json.dumps(list(all_imgs["result"]), cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8')})
+        return render(request,
+                      'fieldsight/gallery.html',
+                      {'is_donor_only': kwargs.get('is_donor_only', False),
+                       'all_imgs': json.dumps(all_imgs,
+                                              cls=DjangoJSONEncoder, ensure_ascii=False).encode('utf8')})
 
 
 class SitesTypeView(ProjectRoleMixin, TemplateView):

@@ -1,7 +1,6 @@
 import json
 from itertools import chain
 
-from channels import Group as ChannelGroup
 from django.contrib.sites.shortcuts import get_current_site
 from django.db import transaction
 from django.db.models import Q
@@ -159,12 +158,6 @@ class UserViewSet(viewsets.ModelViewSet):
                 noti = profile.logs.create(source=self.request.user, type=0, title="new User",
                                     organization=profile.organization, description="new user {0} created by {1}".
                                     format(user.username, self.request.user.username))
-                result = {}
-                result['description'] = 'new user {0} created by {1}'.format(user.username, self.request.user.username)
-                result['url'] = noti.get_absolute_url()
-                ChannelGroup("notify-{}".format(profile.organization.id)).send({"text":json.dumps(result)})
-                ChannelGroup("notify-0".format(profile.organization.id)).send({"text":json.dumps(result)})
-
                 signals.user_registered.send(sender=RegistrationView, user=new_user, request=self.request)
         except Exception as e:
 

@@ -34,7 +34,8 @@ class MyDocTemplate(SimpleDocTemplate):
      def __init__(self, filename, **kw):
          self.allowSplitting = 1
          apply(SimpleDocTemplate.__init__, (self, filename), kw)
-         pdfmetrics.registerFont(TTFont('arialuni', 'ARIALUNI.TTF'))
+         #pdfmetrics.registerFont(TTFont('arialuni', 'ARIALUNI.TTF'))
+         pdfmetrics.registerFont(TTFont('arialuni', 'VeraBI.ttf'))
 
 # Entries to the table of contents can be done either manually by
 # calling the addEntry method on the TableOfContents object or automatically

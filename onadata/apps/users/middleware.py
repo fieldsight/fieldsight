@@ -34,7 +34,6 @@ class RoleMiddleware(object):
                 request.is_super_admin = is_admin
 
             if not roles:
-                print("no roles in cache")
                 roles = Role.get_active_roles(request.user)
                 if roles:
                     cache.set('roles_{}'.format(request.user.id), roles,

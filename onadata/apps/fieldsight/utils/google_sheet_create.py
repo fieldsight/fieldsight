@@ -39,7 +39,7 @@ def upload_to_drive(file_path, title, folder_title, project, user, sheet=None):
     gauth = GoogleAuth()
     team_drive_id = parent_folder_id = settings.PARENT_FOLDER_ID
     scope = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/drive.file']
-    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name('service_account.json', scope)
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name(settings.SERVICE_ACCOUNT_JSON, scope)
     drive = GoogleDrive(gauth)
     permissions = []
     user_emails = UserRole.objects.filter(ended_at__isnull=True).filter(
@@ -298,7 +298,8 @@ def generate_site_progress(sheet):
                          }
                      }
                  }
-             }])['result']
+             }], cursor={})
+        site_visits = list(site_visits)
 
         for site_visit in site_visits:
             try:

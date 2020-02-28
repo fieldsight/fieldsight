@@ -4,27 +4,27 @@ import pandas as pd
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.serializers import serialize
 from django.db.models import Prefetch, Q, Count
-from django.http import Http404, JsonResponse, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.db import connection
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
 from django.utils import timezone
 
 from rest_framework import viewsets
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.authentication import BasicAuthentication
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from django.contrib.gis.geos import Point
 from onadata.apps.fieldsight.models import Project, Region, Site, Sector, SiteType, ProjectLevelTermsAndLabels, \
     ProjectMetaAttrHistory, Organization, SuperOrganization
-from onadata.apps.fsforms.models import FInstance, ProgressSettings, Stage
+from onadata.apps.fsforms.models import FInstance, ProgressSettings
 from onadata.apps.fsforms.tasks import clone_form
 
 from onadata.apps.fsforms.notifications import get_notifications_queryset
@@ -33,22 +33,17 @@ from onadata.apps.fv3.serializer import ProjectSerializer, SiteSerializer, Proje
 from onadata.apps.fv3.util import get_user_roles
 from onadata.apps.fv3.viewsets.ProjectSitesListViewset import ProjectsitesPagination
 from onadata.apps.logger.models import Instance
-from onadata.apps.subscriptions.models import Package, Customer, Subscription
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.users.viewsets import ExtremeLargeJsonResultsSetPagination, MySitesOnlyResultsSetPagination
 
-from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, \
-    create_site_meta_attribs_ans_history, email_after_subscribed_plan
-from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, \
-    create_site_meta_attribs_ans_history, update_sites_info
+from onadata.apps.fieldsight.tasks import UnassignAllProjectRolesAndSites, UnassignAllSiteRoles, update_sites_info
 from onadata.apps.eventlog.models import CeleryTaskProgress
 from onadata.apps.geo.models import GeoLayer
 from onadata.apps.fv3.serializers.ProjectSitesListSerializer import ProjectSitesListSerializer
 from .permissions.super_organization import SuperOrganizationAdminPermission
 from .role_api_permissions import ProjectRoleApiPermissions, RegionalPermission, check_regional_perm, \
     check_site_permission, SuperUserPermissions, TeamCreationPermission
-from .serializer import TeamSerializer, SuperOrganizationSerializer
+from .serializer import TeamSerializer, SuperOrganizationSerializer, ProjectDetailSerializer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 
 
@@ -73,32 +68,25 @@ def supervisor_projects(request):
     "Distinct Regions when a user is assigned."
 
     project_ids = UserRole.objects.filter(user=request.user,
-                                      ended_at=None,
-                                      group__name__in=["Region Supervisor", "Site Supervisor"]
-                                      ).values_list('project',
+                                          ended_at=None,
+                                          group__name__in=["Region Supervisor", "Site Supervisor"]
+                                          ).values_list('project',
                                                     flat=True).distinct()
     "Projects where a user is assigned as Region Supervisor or Site Supervisor"
 
     projects = Project.objects.filter(pk__in=project_ids).select_related('organization').prefetch_related(
         Prefetch("project_region",
                  queryset=Region.objects.filter(pk__in=regions)),
-        Prefetch("project_region",
-                 queryset=Region.objects.filter(is_active=True, parent__isnull=True),
-                 to_attr="regions"
-                 ),
         Prefetch("types",
-                 queryset=SiteType.objects.filter(deleted=False)),
-        Prefetch("sites",
-                 queryset=Site.objects.filter(is_survey=False, site__isnull=True)),
-        Prefetch("project_roles",
-                 queryset=UserRole.objects.filter(ended_at__isnull=True, group__name="Project Manager")
-                 ),)
+                 queryset=SiteType.objects.filter(deleted=False)))
     "Distinct Projects Where a user can be site supervisor or region reviewer"
 
     site_supervisor_role = UserRole.objects.filter(user=request.user,
-                                     ended_at=None,
-                                     group__name="Site Supervisor"
-                                     ).values_list('project', flat=True).order_by('project').distinct()
+                                                   ended_at=None,
+                                                   group__name="Site Supervisor"
+                                                   ).values_list('project', flat=True).order_by('project').distinct()
+    list(site_supervisor_role)
+    list(projects)
 
     "If a user is assigned as site supervisor in a given project."
     for p in projects:
@@ -489,7 +477,6 @@ class GeoLayerView(APIView):
     permission_classes = [IsAuthenticated, ProjectRoleApiPermissions, ]
 
     def get(self, request, format=None):
-        print('userrr', self.request.user)
 
         project_id = request.query_params.get('project', None)
 
@@ -528,7 +515,6 @@ class GeoLayerView(APIView):
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def organization_geolayer(request):
-    print('userrr', request.user)
     query_params = request.query_params
     project_id = query_params.get('project')
     if project_id:
@@ -857,19 +843,6 @@ def users(request):
                                                                     'id is required.'})
 
 
-# def mvt_tiles(request, zoom, x, y):
-#
-#     """
-#     Custom view to serve Mapbox Vector Tiles for the custom polygon model.
-#     """
-#     with connection.cursor() as cursor:
-#         cursor.execute("SELECT ST_AsMVT(tile) FROM (SELECT id,name, ST_AsMVTGeom(location::geometry, TileBBox(%s, %s, %s, 4326)) FROM  fieldsight_site) AS tile", [zoom, x, y])
-#         tile = bytes(cursor.fetchone()[0])
-#         # return HttpResponse(len(tile))
-#         # if not len(tile):
-#         #     raise Http404()
-#     return HttpResponse(tile, content_type="application/x-protobuf")
-
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def project_sites_vt(request, pk, zoom, x, y):
@@ -1069,8 +1042,8 @@ class EnableClusterSitesView(APIView):
             project.cluster_sites})
 
 
-@permission_classes([IsAuthenticated])
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def project_full_map(request, pk):
     project = Project.objects.get(id=pk)
     organization_location = project.organization.location
@@ -1084,8 +1057,8 @@ def project_full_map(request, pk):
     return Response(status=status.HTTP_200_OK, data=json.loads(data))
 
 
-@permission_classes([IsAuthenticated])
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def forms_breadcrumbs(request):
     project = request.GET.get('project')
     site = request.GET.get('site')
@@ -1150,3 +1123,23 @@ def settings_breadcrumbs(request, pk):
                                                                     'and id params are required.'})
 
     return Response(status=status.HTTP_200_OK, data=breadcrumbs)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def supervisor_projects_details(request):
+    project_ids = request.GET.getlist('project_id')
+    supervise_project_ids = UserRole.objects.filter(user=request.user,
+                                                    ended_at=None,
+                                                    group__name__in=["Region Supervisor", "Site Supervisor"]).\
+        values_list('project', flat=True).distinct()
+    check_projects = [int(project_id) in supervise_project_ids for project_id in project_ids]
+    if False in check_projects:
+        return Response(status=status.HTTP_403_FORBIDDEN, data={'detail': 'You do not have permission.'})
+
+    else:
+        projects = Project.objects.prefetch_related('project_region', 'sites', 'project_roles').filter(
+            id__in=project_ids)
+        data = ProjectDetailSerializer(projects, many=True).data
+
+        return Response(status=status.HTTP_200_OK, data=data)

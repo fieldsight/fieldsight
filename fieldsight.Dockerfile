@@ -1,6 +1,7 @@
 From python:2
 MAINTAINER app.fieldsight.org
 RUN mkdir -p /usr/src/data
+RUN mkdir -p /srv/logs/fieldsight/
 WORKDIR /usr/src/data
 ADD . /usr/src/data/
 

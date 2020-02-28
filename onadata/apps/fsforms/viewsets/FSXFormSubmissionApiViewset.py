@@ -16,7 +16,6 @@ from onadata.apps.fsforms.models import FieldSightXF, Stage, Schedule, Submissio
     EditedSubmission
 from onadata.apps.fsforms.serializers.FieldSightSubmissionSerializer import FieldSightSubmissionSerializer
 from ..fieldsight_logger_tools import safe_create_instance
-from channels import Group as ChannelGroup
 from onadata.apps.eventlog.models import CeleryTaskProgress
 # 10,000,000 bytes
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)

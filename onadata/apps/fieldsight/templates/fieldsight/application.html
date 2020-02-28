@@ -4,8 +4,8 @@
 {% block page-title %}{% trans 'Dashboard' %}{% endblock %}
 
 {%block extracss %}
-<link rel="stylesheet" href="{% static 'application/main.css' %}?v=2020-02-26">
-<!--<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">-->
+
+<link rel="stylesheet" href="{% static 'application/main.css' %}?v=2020-02-28">
 {% endblock %}
 
 {% block content %}
@@ -29,12 +29,11 @@
         var site_id = +(site_id_with_comma.replace(/,/g,''));
 		var submission_id = "{{submission}}";
 		var user_id = "{{request.user.id}}";
-
+		var kpi_base_url = "{{kpi_base_url}}";
 
 	</script>
-<!--	<script src="https://js.stripe.com/v3/"></script>-->
 
-	<script type="text/javascript" src="{{ STATIC_URL }}application/main.js?v=2020-02-26"></script>
+	<script type="text/javascript" src="{{ STATIC_URL }}application/main.js?v=2020-02-28"></script>
 
 {% endblock %}
 

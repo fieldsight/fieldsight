@@ -45,10 +45,6 @@ INSTALLED_APPS += ['rest_framework_docs', 'social_django', 'onadata.apps.eventlo
                    'linaro_django_pagination', 'webstack_django_sorting', 'onadata.apps.fv3']
 
 
-TEMPLATE_CONTEXT_PROCESSORS = list(TEMPLATE_CONTEXT_PROCESSORS)
-
-TEMPLATE_CONTEXT_PROCESSORS += ['onadata.apps.eventlog.context_processors.events']
-
 MIDDLEWARE_CLASSES = list(MIDDLEWARE_CLASSES)
 
 MIDDLEWARE_CLASSES += ['linaro_django_pagination.middleware.PaginationMiddleware',
@@ -103,19 +99,6 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'test@gmail.com')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'password')
 
 TIME_ZONE = 'Asia/Kathmandu'
-
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "asgi_redis.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("redis_main", 6379)],
-        },
-        "ROUTING": "onadata.apps.fieldsight.routing.channel_routing",
-    },
-}
-
-WEBSOCKET_URL = "wss://%s"%(os.environ.get('KOBOCAT_URL'))
-WEBSOCKET_PORT = False
 
 
 from onadata.settings.common import REST_FRAMEWORK
@@ -195,7 +178,6 @@ DEFAULT_FILE_STORAGE = os.environ.get('DEFAULT_FILE_STORAGE', 'django.core.files
 GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', '')
 GS_PROJECT_ID = os.environ.get('GS_PROJECT_ID', '')
 
-GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', "storage_credentials.json")
 
 # google storage
 #https://django-storages.readthedocs.io/en/1.8/backends/gcloud.html
@@ -203,6 +185,7 @@ GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'
 # GS_DEFAULT_ACL = 'publicRead'
 
 #Dont need Expiry urls. django storage docs.
+
 GS_EXPIRATION = os.environ.get('GS_EXPIRATION', 86400 * 24 * 365 * 100)
 
 # Needed when behind load balancer with ssl offloading. an example value is: HTTP_X_FORWARDED_PROTO

@@ -31,7 +31,7 @@ from onadata.apps.fv3.viewsets.utils import check_file_extension, readable_date
 
 
 class SiteSubmissionsPagination(PageNumberPagination):
-    page_size = 100
+    page_size = 20
     page_size_query_param = 'page_size'
 
 
@@ -62,7 +62,7 @@ def site_map(request, pk):
 
 
 class SiteSubmissionsViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = FInstance.objects.select_related('instance', 'site_fxf__xf', 'submitted_by')
+    queryset = FInstance.objects.select_related('instance', 'site_fxf__xf', 'submitted_by', 'project_fxf__xf')
     serializer_class = FInstanceSerializer
     permission_classes = [IsAuthenticated, SiteSubmissionPermission]
     pagination_class = SiteSubmissionsPagination

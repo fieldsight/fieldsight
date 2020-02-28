@@ -8,7 +8,6 @@ from rest_framework.fields import SerializerMethodField
 
 from onadata.apps.fsforms.models import Stage, FieldSightXF, EducationMaterial, EducationalImages
 from onadata.apps.fsforms.serializers.FieldSightXFormSerializer import FSXFSerializer
-from channels import Group as ChannelGroup
 from onadata.apps.fsforms.serializers.InstanceStatusChangedSerializer import FInstanceResponcesSerializer
 
 
@@ -104,11 +103,6 @@ class StageSerializer1(serializers.ModelSerializer):
                                                    fxf.xf.title,
                                                    fxf.project.name
                                                ))
-                        result = {}
-                        result['description'] = noti.description
-                        result['url'] = noti.get_absolute_url()
-                        # ChannelGroup("site-{}".format(fxf.site.id)).send({"text": json.dumps(result)})
-                        ChannelGroup("project-{}".format(fxf.project.id)).send({"text": json.dumps(result)})
                     else:
                         fxf.from_project = False
                         fxf.save()
@@ -123,13 +117,6 @@ class StageSerializer1(serializers.ModelSerializer):
                                                    fxf.xf.title,
                                                    fxf.site.name
                                                ))
-                        result = {}
-                        result['description'] = noti.description
-                        result['url'] = noti.get_absolute_url()
-                        ChannelGroup("site-{}".format(fxf.site.id)).send({"text": json.dumps(result)})
-                        ChannelGroup("project-{}".format(fxf.site.project.id)).send({"text": json.dumps(result)})
-
-
 
             else:
                 # Stage.objects.filter(pk=id).update(**validated_data)
@@ -168,21 +155,6 @@ class StageSerializer1(serializers.ModelSerializer):
                             else:
                                 FieldSightXF.objects.create(xf_id=xf_id, site=stage.site, project=stage.project,
                                                             is_staged=True, stage=sub_stage,from_project=False, default_submission_status=default_submission_status)
-
-                            # org = stage.project.organization if stage.project else stage.site.project.organization
-                            # desc = "deleted form of stage {} substage {} by {}".format(stage.name, sub_stage.name,
-                            #                                                            self.context['request'].user.username)
-                            # noti = old_fsxf.logs.create(source=self.context['request'].user, type=1, title="form Deleted",
-                            #         organization=org, description=desc)
-                            # result = {}
-                            # result['description'] = desc
-                            # result['url'] = noti.get_absolute_url()
-                            # ChannelGroup("notify-{}".format(org.id)).send({"text": json.dumps(result)})
-                            # ChannelGroup("notify-0").send({"text": json.dumps(result)})
-
-                        #     notify mobile and web
-
-                    #     if form change update fxf object's xf
                     else:
                         fxf = sub_stage_data.pop('stage_forms')
                         xf = fxf.get('xf')

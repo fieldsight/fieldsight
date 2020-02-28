@@ -111,8 +111,7 @@ def site_download_zipfile(task_prog_obj_id, size):
     try:
         default_storage = get_storage_class()() 
         buffer = BytesIO()
-        datas = get_images_for_site_all(task.object_id)
-        urls = list(datas["result"])
+        urls = get_images_for_site_all(task.object_id)
         archive = zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED)
         index=0
         username=urls[0]['_attachments']['download_url'].split('/')[2]
@@ -252,7 +251,8 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                       "date":"$_id.date"
                   }
              }
-         }}])['result']
+         }}], cursor={})
+        site_visits = list(site_visits)
 
         for site_visit in site_visits:
             try:
@@ -312,26 +312,33 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
 
 
         else:
-            noti = task.logs.create(source=task.user, type=32, title="Site Stage Progress report generation in Project",
+            task.logs.create(source=task.user,
+                             type=32, title="Site Stage Progress report generation in Project",
                                    recipient=task.user, content_object=project, extra_object=project,
-                                   extra_message=" <a href='/"+ "media/stage-report/{}_stage_data.xls".format(project.id) +"'>Site Stage Progress report </a> generation in project")
+                                   extra_message=" <a href='/" +
+                                                 "media/stage-report/{}_stage_data.xls".format(
+                                                     project.id)  +
+                                                 "'>Site Stage Progress report </a> generation in project")
 
     except DriveException as e:
-        print 'Report upload to drive  Unsuccesfull. %s' % e
-        print e.__dict__
-        noti = task.logs.create(source=task.user, type=432, title="Site Stage Progress report upload to Google Drive in Project",
-                                       content_object=project, recipient=task.user,
-                                       extra_message="@error " + u'{}'.format(e.message))
+        task.logs.create(source=task.user,
+                         type=432,
+                         title="Site Stage Progress report upload to Google Drive in Project",
+                           content_object=project, recipient=task.user,
+                           extra_message="@error " + u'{}'.format(e.message))
 
     except Exception as e:
+        if "SQLCompiler' object has no attribute 'col_count" in str(e):
+            error_message = "Project has no stage to generate Site Stage Progress Report"
+        else:
+            error_message = str(e)
         task.description = "ERROR: " + str(e.message) 
         task.status = 3
         task.save()
-        print 'Report Gen Unsuccesfull. %s' % e
-        print e.__dict__
-        noti = task.logs.create(source=task.user, type=432, title="Site Stage Progress report generation in Project",
+        print('Report Gen Unsuccesfull {}'.format(error_message))
+        task.logs.create(source=task.user, type=432, title="Site Stage Progress report generation in Project",
                                        content_object=project, recipient=task.user,
-                                       extra_message="@error " + u'{}'.format(e.message))
+                                       extra_message="@error " + u'{}'.format(error_message))
 
      
 @shared_task()
@@ -1138,17 +1145,6 @@ def multiuserassignproject(task_prog_obj_id, org_id, projects, users, group_id):
                             organization_id=org.id, group_id=group_id, ended_at=None).order_by('id').values('id')[1:]
                             
                             UserRole.objects.filter(pk__in=redundant_ids).update(ended_at=datetime.datetime.now()) 
-
-                            # description = "{0} was assigned  as Project Manager in {1}".format(
-                                # role.user.get_full_name(), role.project)
-                            # noti = role.logs.create(source=role.user, type=6, title=description, description=description,
-                            #  content_object=role.project, extra_object=self.request.user)
-                            # result = {}
-                            # result['description'] = description
-                            # result['url'] = noti.get_absolute_url()
-                            # ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-                            # ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
-                            # ChannelGroup("notify-0").send({"text": json.dumps(result)})
         task.status = 2
         task.save()
         if roles_created == 0:
@@ -1273,30 +1269,6 @@ def multiuserassignsite(task_prog_obj_id, project_id, sites, users, group_id):
                         redundant_ids = UserRole.objects.filter(user_id=user, site_id=site.id, project__id=project.id, organization__id=site.project.organization_id, group_id=group_id, ended_at=None).order_by('id').values('id')[1:]
                         
                         UserRole.objects.filter(pk__in=redundant_ids).update(ended_at=datetime.datetime.now())
-
-                   
-                        # description = "{0} was assigned  as {1} in {2}".format(
-                        #     role.user.get_full_name(), role.lgroup.name, role.project)
-                        # noti_type = 8
-
-                        # if data.get('group') == "Reviewer":
-                        #     noti_type =7
-                        
-                        # noti = role.logs.create(source=role.user, type=noti_type, title=description,
-                        #                         description=description, content_type=site, extra_object=self.request.user,
-                        #                         site=role.site)
-                        # result = {}
-                        # result['description'] = description
-                        # result['url'] = noti.get_absolute_url()
-                        # ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-                        # ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
-                        # ChannelGroup("site-{}".format(role.site.id)).send({"text": json.dumps(result)})
-                        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
-
-                        # Device = get_device_model()
-                        # if Device.objects.filter(name=role.user.email).exists():
-                        #     message = {'notify_type':'Assign Site', 'site':{'name': site.name, 'id': site.id}}
-                        #     Device.objects.filter(name=role.user.email).send_message(message)
         task.status = 2
         task.save()
         if roles_created == 0:
@@ -1358,29 +1330,6 @@ def multiuserassignregion(task_prog_obj_id, project_id, regions, users, group_id
                                 project__id=project.id, organization__id=project.organization_id, group_id=group_id, ended_at=None).order_by('id').values('id')[1:]
                                 
                                 UserRole.objects.filter(pk__in=redundant_ids).update(ended_at=datetime.datetime.now())
-   
-                                # description = "{0} was assigned  as {1} in {2}".format(
-                                #     role.user.get_full_name(), role.lgroup.name, role.project)
-                                # noti_type = 8
-
-                                # if data.get('group') == "Reviewer":
-                                #     noti_type =7
-                                
-                                # noti = role.logs.create(source=role.user, type=noti_type, title=description,
-                                #                         description=description, content_type=site, extra_object=self.request.user,
-                                #                         site=role.site)
-                                # result = {}
-                                # result['description'] = description
-                                # result['url'] = noti.get_absolute_url()
-                                # ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
-                                # ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
-                                # ChannelGroup("site-{}".format(role.site.id)).send({"text": json.dumps(result)})
-                                # ChannelGroup("notify-0").send({"text": json.dumps(result)})
-
-                                # Device = get_device_model()
-                                # if Device.objects.filter(name=role.user.email).exists():
-                                #     message = {'notify_type':'Assign Site', 'site':{'name': site.name, 'id': site.id}}
-                                #     Device.objects.filter(name=role.user.email).send_message(message)
         task.status = 2
         task.save()
         if roles_created == 0:
@@ -1595,8 +1544,9 @@ def auto_generate_stage_status_report():
                             { "$substr": [ "$start", 0, 10 ] }
                           
                        }
-                     }])['result']
-
+                     }], cursor={})
+                    site_visits = list(site_visits)
+                    site_visits = list(site_visits)
                     site_row[-1] = rejected_count
                     site_row[-2] = flagged_count
                     site_row[-3] = submission_count
@@ -1709,8 +1659,8 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                            }, { "$group": { "_id": "$_id.date", "visits": { '$sum': 1}
                            }},
                            {"$group": {"_id": { "$substr": [ "$_id", 0, 7 ] }, "total_sum": {'$sum': '$visits'}}}
-                           ])['result']
-
+                           ], cursor={})
+            site_visits = list(site_visits)
             for visit in site_visits:
                 if visit['_id'] != "":
                     data[index[visit['_id']]][2] = int(visit['total_sum'])
@@ -1771,8 +1721,8 @@ def exportProjectstatistics(task_prog_obj_id, project_id, reportType, start_date
                            }, { "$group": { "_id": "$_id.date", "visits": { '$sum': 1}
                            }},
                            {"$group": {"_id": { "$substr": [ "$_id", 0, 10 ] }, "total_sum": {'$sum': '$visits'}}}
-                           ])['result']
-
+                           ], cursor={})
+            site_visits = list(site_visits)
             for visit in site_visits:
                 if visit['_id'] != "":
                     data[index[visit['_id']]][2] = int(visit['total_sum'])
@@ -2058,8 +2008,9 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                         "sites_visited": {'$sum': 1}
                     }
                 }
-            ]
-        )['result']
+            ], cursor={}
+        )
+        site_visits = list(site_visits)
 
         all_days_worked = settings.MONGO_DB.instances.aggregate(
             [
@@ -2092,14 +2043,18 @@ def exportProjectUserstatistics(task_prog_obj_id, project_id, start_date, end_da
                         "days_worked": { '$sum': 1}
                     }
                 }
-            ]
-        )['result']
+            ], cursor={}
+        )
 
         user_stats = {}
+
+        all_days_worked = list(all_days_worked)
 
         for visit in site_visits:
             visit['total_worked_days'] = 0
             user_stats[visit['_id']] = visit
+
+        all_days_worked = list(all_days_worked)
 
         for days_worked in all_days_worked:
             user_stats[days_worked['_id']]['total_worked_days'] = days_worked['days_worked']
