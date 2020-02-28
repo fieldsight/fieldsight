@@ -199,7 +199,7 @@ if SECURE_PROXY_SSL_HEADER_NAME:
 CELERY_BEAT_SCHEDULE = {
     "update_sheet_in_drive": {
         "task": "onadata.apps.reporting.tasks.sync_report",
-        "schedule": crontab(minute=0, hour=18),  # execute daily at 6pm
+        "schedule": crontab(minute=30, hour=23),  # execute daily at 6pm
         'options': {'queue': 'beat'}
 
     }
