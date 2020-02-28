@@ -69,7 +69,8 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.create_user',
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
-    'social_core.pipeline.user.user_details',
+    'social_core.pipeline.user.'
+    '',
     'onadata.apps.users.pipeline.email_validate',
     'onadata.apps.users.pipeline.create_role',
     'onadata.apps.users.pipeline.create_profile',
@@ -197,7 +198,7 @@ if SECURE_PROXY_SSL_HEADER_NAME:
 CELERY_BEAT_SCHEDULE = {
     "update_sheet_in_drive": {
         "task": "onadata.apps.reporting.tasks.sync_report",
-        "schedule": crontab(minute=0, hour=23),  # execute daily at midnight
+        "schedule": crontab(minute=0, hour=18),  # execute daily at midnight
         'options': {'queue': 'beat'}
 
     }
