@@ -69,8 +69,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.create_user',
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
-    'social_core.pipeline.user.'
-    '',
+    'social_core.pipeline.user.user_details',
     'onadata.apps.users.pipeline.email_validate',
     'onadata.apps.users.pipeline.create_role',
     'onadata.apps.users.pipeline.create_profile',
@@ -99,7 +98,6 @@ EMAIL_PORT = os.environ.get('EMAIL_PORT', '587')
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'test@gmail.com')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'password')
 
-USE_TZ = True
 TIME_ZONE = os.environ.get('TIME_ZONE', 'Asia/Kathmandu')
 
 
@@ -121,7 +119,9 @@ SESSION_COOKIE_NAME = os.environ.get('SESSION_COOKIE_NAME','testapp_kobo_cookie'
 SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN','.naxa.com.np')
 #CSRF_COOKIE_DOMAIN = '.fieldsight.org'
 DEFAULT_DEPLOYMENT_BACKEND = 'kobocat'
-ADMINS = [('Amulya', 'awemulya@gmail.com'), ('saroj', 'raesaroj16@gmail.com'), ('santosh', 'skhatri.np@gmail.com')]
+ADMINS = [('Amulya', 'awemulya@gmail.com'),
+          ('penchob','penchob@unops.org'),
+          ('santosh', 'skhatri.np@gmail.com')]
 
 #Celery configuration
 CELERY_BROKER_BACKEND = os.environ.get('CELERY_BROKER_BACKEND', "redis")
