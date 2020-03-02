@@ -600,9 +600,15 @@ def bulkuploadsites(task_prog_obj_id, pk):
                     if root_site_id:
                         site_obj.site = root_site_id
 
-                location = Point(
-                    round(float(site.get('latitude', 27.7172)), 6),
-                    round(float(site.get('longitude', 85.3240)), 6), srid=4326)
+                lat = site.get('latitude', 27.7172)
+                long = site.get('longitude', 85.3240)
+                try:
+                    lat = round(float(lat), 6)
+                    long = round(float(long), 6)
+                    location = Point(lat, long, srid=4326)
+                except Exception as e:
+                    print(lat, long, "invalid lat long", str(e))
+                    location = Point(27.7172, 85.3240, srid=4326)
                 site_obj.location = location
 
                 myanswers = {}
@@ -652,9 +658,15 @@ def bulkuploadsites(task_prog_obj_id, pk):
                     if root_site_id:
                         site_obj.site = root_site_id
 
-                location = Point(
-                    round(float(site.get('latitude', 27.7172)), 6),
-                     round(float(site.get('longitude', 85.3240)), 6), srid=4326)
+                lat = site.get('latitude', 27.7172)
+                long = site.get('longitude', 85.3240)
+                try:
+                    lat = round(float(lat), 6)
+                    long = round(float(long), 6)
+                    location = Point(lat, long, srid=4326)
+                except Exception as e:
+                    print(lat, long, "invalid lat long", str(e))
+                    location = Point(27.7172, 85.3240, srid=4326)
                 site_obj.location = location
 
                 myanswers = {}
