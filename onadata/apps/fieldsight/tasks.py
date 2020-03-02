@@ -600,7 +600,9 @@ def bulkuploadsites(task_prog_obj_id, pk):
                     if root_site_id:
                         site_obj.site = root_site_id
 
-                location = Point(round(float(site.get('latitude')), 6), round(float(site.get('longitude')), 6), srid=4326)
+                location = Point(round(float(site.get('latitude'),27.7172), 6), 
+                                 round(float(site.get('longitude'), 85.3240), 6), 
+                                 srid=4326)
                 site_obj.location = location
 
                 myanswers = {}
@@ -650,7 +652,8 @@ def bulkuploadsites(task_prog_obj_id, pk):
                     if root_site_id:
                         site_obj.site = root_site_id
 
-                location = Point(round(float(site.get('latitude')), 6), round(float(site.get('longitude')), 6),
+                location = Point(round(float(site.get('latitude'), 27.7172), 6), 
+                                 round(float(site.get('longitude'), 85.3240), 6),
                                  srid=4326)
                 site_obj.location = location
 
