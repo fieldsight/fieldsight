@@ -600,7 +600,11 @@ def bulkuploadsites(task_prog_obj_id, pk):
                 if root_site_identifier:
                     root_site_id = root_sites_dict.get(root_site_identifier, None)
                     if root_site_id:
-                        site_obj.site = root_site_id
+                        site_obj.site_id = root_site_id
+                    else:
+                        site_obj.site = None
+                else:
+                    site_obj.site = None
 
                 lat = site.get('latitude', 27.7172)
                 long = site.get('longitude', 85.3240)
@@ -658,7 +662,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
                 if root_site_identifier:
                     root_site_id = root_sites_dict.get(root_site_identifier, None)
                     if root_site_id:
-                        site_obj.site = root_site_id
+                        site_obj.site_id = root_site_id
 
                 lat = site.get('latitude', 27.7172)
                 long = site.get('longitude', 85.3240)
