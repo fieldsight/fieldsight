@@ -505,7 +505,8 @@ def bulkuploadsites(task_prog_obj_id, pk):
     task.status = 1
     task.save()
     upload_file = task.file
-    df = pd.read_excel(upload_file)
+    df = pd.read_excel(upload_file, dtype={
+        'identifier':str,'root_site_identifier':str, 'region_identifier':str})
     if not hasattr(df, 'identifier'):
         error_message = "Identifier column required in Excel File"
 
