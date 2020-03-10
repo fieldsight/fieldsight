@@ -376,7 +376,7 @@ def bulk_update_sites(sites):
         additional_desc, region, 
         site_meta_attributes_ans, all_ma_ans, current_progress, lat, longitude) where
         CAST(c.identifier as VarChar)=CAST(t.identifier as VarChar) and CAST(
-        c.project_id as int)=CAST(t.project_id as int); """, [final[0]]
-    print(sql)
+        c.project_id as int)=CAST(t.project_id as int); """
+    print(sql, [final[0]])
     with connection.cursor() as cursor:
-        cursor.execute(sql)
+        cursor.execute(sql, [final[0]])
