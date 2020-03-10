@@ -29,7 +29,7 @@ from onadata.apps.fieldsight.models import Organization, Project, Site, Region, 
 from onadata.apps.fieldsight.utils.google_sheet_create import site_details_generator, upload_to_drive
 from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos, \
-    bulk_update_sites_all_location, bulk_upload_json_site_all_ma, update_site_meta_ans
+    bulk_update_sites_all_location, bulk_upload_json_site_all_ma, update_site_meta_ans, bulk_update_sites
 
 from onadata.apps.userrole.models import UserRole
 from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
@@ -571,6 +571,7 @@ def bulkuploadsites(task_prog_obj_id, pk):
 
 
         with transaction.atomic():
+            bulk_sites = []
             i = 0
             interval = count / 20
             for site in old_sites_dict:
@@ -626,13 +627,13 @@ def bulkuploadsites(task_prog_obj_id, pk):
                 
                 site_obj.site_meta_attributes_ans = myanswers
                 site_obj.all_ma_ans.update(myanswers)
-                site_obj.save()
+                bulk_sites.append(site_obj)
                 i += 1
                 
                 if i > interval:
                     interval = i + interval
                     bulkuploadsites.update_state('PROGRESS', meta={'current': i, 'total': count})
-
+            bulk_update_sites(bulk_sites)
             new_site_objects = []
             for site in new_sites_dict:
                 site_obj = Site(project=project)
