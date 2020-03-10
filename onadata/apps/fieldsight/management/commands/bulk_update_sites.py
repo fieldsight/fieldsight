@@ -10,6 +10,7 @@ def bulk_update_sites(pk):
     a = []
     cursor = connection.cursor()
     for site in sites:
+        site.name = "name"
         lat = site.latitude
         longitude = site.longitude
         site_meta_attributes_ans = Json(site.site_meta_attributes_ans)
@@ -20,19 +21,26 @@ def bulk_update_sites(pk):
                   site_meta_attributes_ans, all_ma_ans,
                   site.current_progress, lat, longitude))
     final = tuple(a)
-    cursor.execute("""update fieldsight_site as t 
-    set name = c.name, type_id = CAST(c.type AS INTEGER), public_desc = c.public_desc, 
-    additional_desc = c.additional_desc,
-    region_id = CAST(c.region AS INTEGER), site_meta_attributes_ans = 
-    CAST(c.site_meta_attributes_ans AS json), 
-    all_ma_ans = CAST(c.all_ma_ans AS json),current_progress = c.current_progress,
-    location = CAST(ST_SetSRID(ST_Point( c.lat, c.longitude), 4326) as geography)
-    from (values %s
-    ) as c(identifier, name, project_id, type, public_desc, 
-    additional_desc, region, 
-    site_meta_attributes_ans, all_ma_ans, current_progress, lat, longitude) where
-    CAST(c.identifier as VarChar)=CAST(t.identifier as VarChar) and CAST(
-    c.project_id as int)=CAST(t.project_id as int); """, [final[0]])
+    sql = """update fieldsight_site as t 
+            set name = c.name, type_id = CAST(c.type AS INTEGER),
+            public_desc = c.public_desc, 
+            additional_desc = c.additional_desc,
+            address = c.address,
+            phone = c.phone,
+            region_id = CAST(c.region AS INTEGER),
+            site_meta_attributes_ans = CAST(c.site_meta_attributes_ans AS json), 
+            all_ma_ans = CAST(c.all_ma_ans AS json),
+            current_progress = c.current_progress,
+            location = CAST(ST_SetSRID(ST_Point( c.lat, c.longitude), 4326) as geography)
+            from (values %s
+            ) as c(identifier, name, address, phone, site_id, project_id, type, public_desc, 
+            additional_desc, region, 
+            site_meta_attributes_ans, all_ma_ans, current_progress, lat, longitude) where
+            CAST(c.identifier as VarChar)=CAST(t.identifier as VarChar) and CAST(
+            c.project_id as int)=CAST(t.project_id as int); """, [final[0]]
+    print(sql)
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
 
 
 class Command(BaseCommand):
