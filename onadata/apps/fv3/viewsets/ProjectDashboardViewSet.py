@@ -3,6 +3,7 @@ import json
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Count, Case, When, F, IntegerField, Prefetch
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.http import Http404
@@ -11,35 +12,46 @@ from django.contrib.gis.geos import Point
 
 from rest_framework import viewsets, status
 from rest_framework.authentication import BasicAuthentication
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from onadata.apps.fieldsight.models import ProjectGeoJSON
 from onadata.apps.eventlog.models import CeleryTaskProgress, FieldSightLog
 from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
 from onadata.apps.fieldsight.utils.siteMetaAttribs import get_site_meta_ans
 from onadata.apps.fieldsight.viewsets.SiteViewSet import SiteUnderProjectPermission
-from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance
+from onadata.apps.fsforms.models import Stage, FieldSightXF, Schedule, FInstance, OrganizationFormLibrary
 from onadata.apps.fv3.serializers.ProjectDashboardSerializer import ProjectDashboardSerializer, \
     ProgressGeneralFormSerializer, ProgressScheduledFormSerializer, ProgressStageFormSerializer, SiteFormSerializer, \
+    StageFormSerializer, ProjectUserProfileSerializer, OrganizationFormLibrarySerializer, \
     SitelistForMetasLinkSerializer, LineChartGeneratorProject
 from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions, SiteFormPermissions, \
     SupervisorPermission
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.logger.models import Instance
 from onadata.apps.fieldsight.tasks import UnassignAllSiteRoles
+from onadata.apps.userrole.models import UserRole
+from onadata.apps.users.models import UserProfile
 from onadata.apps.eventlog.serializers.LogSerializer import NotificationSerializer
 from onadata.apps.fieldsight.bar_data_project import ProgressBarGenerator
 
 
 class ProjectDashboardViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Project.objects.select_related('type', 'sector', 'sub_sector', 'organization')
+    queryset = Project.objects.select_related('type', 'sector', 'sub_sector', 'organization', 'terms_and_labels')
     serializer_class = ProjectDashboardSerializer
     permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
 
     def get_queryset(self):
-        return self.queryset
+
+        return self.queryset.prefetch_related(
+            Prefetch('project_roles',
+                     queryset=UserRole.objects.select_related("user", "user__user_profile").
+                     filter(ended_at__isnull=True, group__name="Project Manager"),
+                     to_attr='project_user_roles'
+                     ),
+         )
 
     def get_serializer_context(self):
         return {'request': self.request}
@@ -57,17 +69,41 @@ class ProjectProgressTableViewSet(APIView):
         except ObjectDoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
 
-        generals_queryset = FieldSightXF.objects.select_related('xf', 'project')\
-            .filter(is_staged=False, is_scheduled=False, is_deleted=False,
-                                                        project_id=project_id, is_survey=False)
+        generals_queryset = FieldSightXF.objects.select_related('xf', 'project', 'organization_form_lib')\
+            .prefetch_related(Prefetch("project_form_instances",
+                                       queryset=FInstance.objects.filter(form_status=0),
+                                       to_attr="pending"
+                                       ),
+                              Prefetch("project_form_instances",
+                                       queryset=FInstance.objects.filter(form_status=1),
+                                       to_attr="rejected"
+                                       ),
+                              Prefetch("project_form_instances",
+                                       queryset=FInstance.objects.filter(form_status=2),
+                                       to_attr="flagged"
+                                       ),
+                              Prefetch("project_form_instances",
+                                       queryset=FInstance.objects.filter(form_status=3),
+                                       to_attr="approved"
+                                       ),
+
+                              Prefetch("project__sites",
+                                       queryset=Site.objects.filter(is_active=True, is_survey=False),
+                                       to_attr="total_sites"
+                                       ),
+                              ).\
+            filter(is_staged=False, is_scheduled=False, is_deleted=False, project_id=project_id, is_survey=False)
         generals = ProgressGeneralFormSerializer(generals_queryset, many=True)
 
-        schedules_queryset = Schedule.objects.select_related('project').prefetch_related('schedule_forms')\
-            .filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
-                    schedule_forms__isnull=False, schedule_forms__xf__isnull=False)
+        schedules_queryset = Schedule.objects.select_related('project').\
+            prefetch_related('schedule_forms', 'schedule_forms__organization_form_lib',
+                             'schedule_forms__xf').\
+            filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
+                   schedule_forms__isnull=False, schedule_forms__xf__isnull=False)
         schedules = ProgressScheduledFormSerializer(schedules_queryset, many=True, context={'project_id': project_id})
 
-        stages_queryset = Stage.objects.select_related('project').filter(stage__isnull=True, project_id=project_id, stage_forms__isnull=True).\
+        stages_queryset = Stage.objects.select_related('project').filter(stage__isnull=True, project_id=project_id,
+                                                                         stage_forms__isnull=True).\
             order_by('order')
 
         stages = ProgressStageFormSerializer(stages_queryset, many=True)
@@ -103,11 +139,15 @@ def project_regions_types(request, pk):
     except ObjectDoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND, data="Not found")
 
+    has_organization = False
+    if project.organization.parent:
+        has_organization = True
+
     regions = Region.objects.filter(project_id=project.id, is_active=True)
     regions_data = [{'id': reg.id, 'identifier': reg.identifier, 'name': reg.name} for reg in regions]
     site_types = SiteType.objects.filter(project_id=project.id, deleted=False)
     site_types_data = [{'id': si_type.id, 'identifier': si_type.identifier, 'name': si_type.name} for si_type in site_types]
-    data = {'regions': regions_data, 'site_types': site_types_data}
+    data = {'regions': regions_data, 'site_types': site_types_data, 'has_organization': has_organization}
 
     return Response(status=status.HTTP_200_OK, data=data)
 
@@ -318,18 +358,75 @@ class SupervisorProjectDashboardView(APIView):
         total_submissions = outstanding + flagged + approved + rejected,
         total_sites = obj.sites.filter(is_active=True, is_survey=False, site__isnull=True).count()
         total_regions = obj.project_region.filter(is_active=True, parent__isnull=True).count()
-        project_managers_qs = obj.project_roles.select_related("user", "user__user_profile").filter(
-            ended_at__isnull=True,
-            group__name="Project Manager")
+        project_users = obj.project_roles.select_related("user", "user__user_profile", "group").\
+            filter(ended_at__isnull=True).values_list('user__user_profile').distinct('user')
 
-        users = [{'id': role.user.id, 'full_name': role.user.get_full_name(),
-                  'profile_picture': role.user.user_profile.profile_picture.url, 'role': 'Project Manager'} for role in
-                 project_managers_qs]
+        profiles = UserProfile.objects.select_related('user').filter(id__in=project_users)
+        users = ProjectUserProfileSerializer(profiles, many=True, context={'project_id': project_id})
+
+        general_forms = FieldSightXF.objects.filter(project_id=project_id, is_staged=False, is_scheduled=False,
+                                                     is_deleted=False, is_survey=False).\
+            select_related('xf', 'project').prefetch_related('project_form_instances').\
+            annotate(response_count=Count(Case(When(project_form_instances__is_deleted=False,
+                                                    then=F('project_form_instances')), output_field=IntegerField(),),
+                                          distinct=True), form_id=F('xf_id'),  title=F('xf__title')).\
+            values('form_id', 'response_count', 'title')
+
+        schedule_forms = Schedule.objects.filter(project_id=project_id, schedule_forms__isnull=False,
+                                                 schedule_forms__is_deleted=False).\
+            select_related('schedule_forms', 'schedule_forms__xf').\
+            prefetch_related('schedule_forms__project_form_instances').\
+            annotate(response_count=Count(Case(When(schedule_forms__project_form_instances__is_deleted=False,
+                                                    then=F('schedule_forms__project_form_instances')),
+                                               output_field=IntegerField(),), distinct=True),
+                     form_id=F('schedule_forms__xf_id'), title=F('schedule_forms__xf__title')).\
+            values('form_id', 'response_count', 'title')
+
+        stage_queryset = Stage.objects.filter(stage__isnull=True, project_id=project_id).\
+            order_by('order', 'date_created')
+        stage_forms = StageFormSerializer(stage_queryset, many=True).data
 
         return Response({'total_submissions': total_submissions[0],
                          'total_sites': total_sites,
                          'total_regions': total_regions,
-                         'users': users})
+                         'users': users.data,
+                         'forms': {'general_forms': general_forms,
+                                   'scheduled_forms': schedule_forms,
+                                   'staged_forms': stage_forms}
+                         })
+
+
+class UpdateProjectGeojson(APIView):
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+    permission_classes = (IsAuthenticated, ProjectDashboardPermissions)
+
+    def post(self, request, *args, **kwargs):
+        project_id = self.kwargs.get('pk', None)
+        project = Project.objects.get(id=project_id)
+
+        try:
+            project_geojson = project.project_geojson
+        except:
+            project_geojson = ProjectGeoJSON.objects.create(project_id=project.id)
+            project_geojson.save()
+        project_geojson.generate_new()
+
+        return Response(status=status.HTTP_200_OK, data={'detail': 'successfully updated.'})
+
+
+class OrganizationLibraryFormsViewSet(viewsets.ReadOnlyModelViewSet):
+
+    permission_classes = (IsAuthenticated, ProjectDashboardPermissions)
+    queryset = OrganizationFormLibrary.objects.select_related('xf')
+    serializer_class = OrganizationFormLibrarySerializer
+
+    def filter_queryset(self, queryset):
+        project = get_object_or_404(Project, id=self.kwargs['pk'])
+        organization = project.organization.parent_id
+        if organization:
+            return queryset.filter(organization_id=organization, deleted=False)
+        else:
+            return []
 
 
 class ProjectFormSubmissionsChartData(APIView):

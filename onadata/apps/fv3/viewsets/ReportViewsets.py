@@ -21,7 +21,7 @@ from onadata.apps.fsforms.tasks import sync_sheet
 from onadata.apps.fsforms.management.commands.corn_sync_report import update_sheet, create_new_sheet
 from onadata.apps.fv3.serializers.ReportSerializer import ReportSerializer, ReportSyncSettingsSerializer, \
     ProjectFormSerializer
-from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF, SCHEDULED_TYPE, Stage
+from onadata.apps.fsforms.models import ReportSyncSettings, FieldSightXF, SCHEDULED_TYPE, Stage, SCHEDULED_LEVEL
 from onadata.apps.fv3.permissions.reports import ReportSyncPermission, check_manager_or_admin_perm, \
     ReportSyncSettingsViewPermission
 
@@ -51,8 +51,11 @@ class ReportVs(viewsets.ModelViewSet):
 class ReportSyncSettingsViewSet(viewsets.ModelViewSet):
     serializer_class = ReportSyncSettingsSerializer
     queryset = ReportSyncSettings.objects.all()
-    permission_classes = [IsAuthenticated, ReportSyncPermission]
+    permission_classes = [IsAuthenticated, ReportSyncSettingsViewPermission]
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -74,25 +77,48 @@ class ReportSyncSettingsList(APIView):
     permission_classes = (IsAuthenticated, ReportSyncSettingsViewPermission)
 
     def get_report_data(self, queryset):
+        data = []
+        for form in queryset:
+            if form.organization_form_lib:
+                from_organization = True
+            else:
+                from_organization = False
 
-        data = [{'title': form.xf.title,
-                 'report_id': form.report_sync_settings.all()[0].id,
-                 'schedule_type': SCHEDULED_TYPE[int(form.report_sync_settings.all()[0].schedule_type)][1],
-                 'day': form.report_sync_settings.all()[0].day,
-                 'grid_id': form.report_sync_settings.all()[0].grid_id,
-                 'range': form.report_sync_settings.all()[0].range,
-                 'report_type': form.report_sync_settings.all()[0].report_type,
-                 'last_synced_date': form.report_sync_settings.all()[0].last_synced_date,
-                 'spreadsheet_id': form.report_sync_settings.all()[0].spreadsheet_id} for form in queryset
-                if form.report_sync_settings.all().exists()]
+            if form.report_sync_settings.all().exists():
+
+                data.append({'title': form.xf.title,
+                             'form_id': form.id,
+                             'report_id': form.report_sync_settings.all()[0].id,
+                             'schedule_type': SCHEDULED_TYPE[int(form.report_sync_settings.all()[0].schedule_type)][1],
+                             'day': form.report_sync_settings.all()[0].day,
+                             'grid_id': form.report_sync_settings.all()[0].grid_id,
+                             'range': form.report_sync_settings.all()[0].range,
+                             'report_type': form.report_sync_settings.all()[0].report_type,
+                             'last_synced_date': form.report_sync_settings.all()[0].last_synced_date,
+                             'spreadsheet_id': form.report_sync_settings.all()[0].spreadsheet_id,
+                             'from_organization': from_organization
+                             })
+            elif form.organization_form_lib:
+                data.append({'title': form.xf.title,
+                             'form_id': form.id,
+                             'report_id': None,
+                             'schedule_type': 'Manual',
+                             'day': None,
+                             'grid_id': None,
+                             'range': None,
+                             'report_type': 'form',
+                             'last_synced_date': None,
+                             'spreadsheet_id': None,
+                             'from_organization': from_organization
+                             })
 
         return data
 
     def get(self, request, *args, **kwargs):
         project_id = self.request.query_params.get('project_id', None)
-        main_queryset = FieldSightXF.objects.select_related('xf').prefetch_related('report_sync_settings')
+        main_queryset = FieldSightXF.objects.select_related('xf', 'schedule').prefetch_related('report_sync_settings')
         schedule_queryset = main_queryset.filter(project_id=project_id, is_scheduled=True, is_staged=False,
-                                                 is_survey=False)
+                                                 is_survey=False, is_deleted=False)
 
         schedule = self.get_report_data(schedule_queryset)
 
@@ -102,6 +128,7 @@ class ReportSyncSettingsList(APIView):
         for stage in stages:
             if stage.stage_id is None:
                 data = [{'title': form.stage_forms.xf.title,
+                         'form_id': form.stage_forms.id,
                          'report_id': form.stage_forms.report_sync_settings.all()[0].id,
                          'schedule_type': SCHEDULED_TYPE[int(form.stage_forms.report_sync_settings.all()[0].schedule_type)][1],
                          'day': form.stage_forms.report_sync_settings.all()[0].day,
@@ -117,11 +144,11 @@ class ReportSyncSettingsList(APIView):
                 mainstage.append(stages)
 
         survey_queryset = main_queryset.filter(project_id=project_id, is_scheduled=False, is_staged=False,
-                                               is_survey=True)
+                                               is_survey=True, is_deleted=False)
         survey = self.get_report_data(survey_queryset)
 
         general_queryset = main_queryset.filter(project_id=project_id, is_scheduled=False, is_staged=False,
-                                                is_survey=False)
+                                                is_survey=False, is_deleted=False)
         general = self.get_report_data(general_queryset)
 
         standard_reports_queryset = ReportSyncSettings.objects.select_related('form__xf').\
@@ -178,3 +205,20 @@ class ReportSyncView(APIView):
         sheet_id = self.kwargs.get('pk', None)
         sync_sheet.delay(sheet_id)
         return Response(status=status.HTTP_200_OK, data={'detail': 'This report is being synced with google sheets.'})
+
+
+class OrganizationFormReportSyncView(APIView):
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+    permission_classes = (IsAuthenticated, ReportSyncSettingsViewPermission)
+
+    def post(self, request, *args, **kwargs):
+        serializer = ReportSyncSettingsSerializer(data=request.data)
+        if serializer.is_valid():
+            obj = serializer.save(user=self.request.user)
+            sheet_id = obj.id
+            sync_sheet.delay(sheet_id)
+            return Response(status=status.HTTP_200_OK,
+                            data={'detail': 'This report is being synced with google sheets.'})
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+

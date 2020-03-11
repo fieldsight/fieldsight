@@ -42,11 +42,18 @@ class GeneralFormSerializer(serializers.ModelSerializer):
     xf = XFormSerializer()
     setting = serializers.SerializerMethodField()
     responses_count = serializers.SerializerMethodField()
+    from_organization = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = FieldSightXF
         fields = ('id', 'xf', 'date_created', 'default_submission_status',
-                  'responses_count', 'em', 'is_deployed', 'setting', 'site', 'project')
+                  'responses_count', 'em', 'is_deployed', 'setting', 'site', 'project', 'from_organization')
+
+    def get_from_organization(self, obj):
+        if obj.organization_form_lib:
+            return True
+        else:
+            return False
 
     def get_setting(self, obj):
         try:
@@ -116,6 +123,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
     responses_count = serializers.SerializerMethodField()
     fsxf = serializers.SerializerMethodField()
     setting = serializers.SerializerMethodField()
+    from_organization = serializers.SerializerMethodField(read_only=True)
 
     def validate(self, data):
         """
@@ -143,7 +151,13 @@ class ScheduleSerializer(serializers.ModelSerializer):
         fields = ('id', 'em', 'xf', 'project', 'site',
                   'is_deployed', 'default_submission_status', 'schedule_level_id', 'frequency', 'month_day',
                   'schedule_level', 'selected_days', 'date_range_start', 'date_range_end', 'responses_count',
-                  'date_created', 'fsxf', 'setting', 'site', 'project')
+                  'date_created', 'fsxf', 'setting', 'site', 'project', 'from_organization')
+
+    def get_from_organization(self, obj):
+        if obj.schedule_forms.organization_form_lib:
+            return True
+        else:
+            return False
 
     def get_all_days(self, obj):
         return u"%s" % (", ".join(day.day for day in obj.selected_days.all()))

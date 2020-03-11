@@ -1,10 +1,9 @@
 from rest_framework import serializers
 
-from onadata.apps.fsforms.models import Stage
+from onadata.apps.fsforms.models import Stage, SCHEDULED_TYPE
 from onadata.apps.fieldsight.models import Site
 
 from .models import ReportSettings
-
 
 
 class StageFormSerializer(serializers.ModelSerializer):
@@ -17,7 +16,14 @@ class StageFormSerializer(serializers.ModelSerializer):
 
     def get_sub_stages(self, obj):
 
-        data = [{'id': form.stage_forms.id, 'form_name': form.stage_forms.xf.title}
+        data = [{'id': form.stage_forms.id,
+                 'form_name': form.stage_forms.xf.title,
+                 'last_synced_date': form.stage_forms.report_sync_settings.all()[0].last_synced_date
+                 if form.stage_forms.report_sync_settings.all().exists() else None,
+                 'schedule_type': SCHEDULED_TYPE[int(form.stage_forms.report_sync_settings.all()[0].schedule_type)][1]
+                 if form.stage_forms.report_sync_settings.all().exists() else None,
+
+                 }
                 for form in obj.active_substages().prefetch_related('stage_forms', 'stage_forms__xf')
                 ]
 
@@ -26,7 +32,11 @@ class StageFormSerializer(serializers.ModelSerializer):
 
 class ReportSettingsSerializer(serializers.ModelSerializer):
     owner_full_name = serializers.SerializerMethodField(read_only=True)
+    shared_with = serializers.SerializerMethodField()
     attributes = serializers.JSONField()
+    filter = serializers.JSONField(default=dict)
+    report_sync_settings = serializers.SerializerMethodField(read_only=True)
+    datapoints = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ReportSettings
@@ -35,6 +45,71 @@ class ReportSettingsSerializer(serializers.ModelSerializer):
 
     def get_owner_full_name(self, obj):
         return obj.owner.get_full_name()
+
+    def get_shared_with(self, obj):
+        users = []
+        [users.append(user.get_full_name()) for user in obj.shared_with.all()]
+        return users
+
+    def get_report_sync_settings(self, obj):
+        if obj.report_sync_settings.all():
+            sync = obj.report_sync_settings.all()[0]
+            sync_settings = {'id': sync.id,
+                             'schedule_type': SCHEDULED_TYPE[int(sync.schedule_type)][1],
+                             'last_synced_date': sync.last_synced_date,
+                             'spreadsheet_id': sync.spreadsheet_id,
+                             'range': sync.range,
+                             'grid_id': sync.grid_id,
+                             'day': sync.day
+                             }
+
+        else:
+            sync_settings = {}
+
+        return sync_settings
+
+    def get_datapoints(self, obj):
+        return len(obj.attributes)
+
+
+class ReportSettingsListSerializer(serializers.ModelSerializer):
+    owner_full_name = serializers.SerializerMethodField(read_only=True)
+    shared_with = serializers.SerializerMethodField()
+    datapoints = serializers.SerializerMethodField(read_only=True)
+    report_sync_settings = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ReportSettings
+
+        exclude = ('owner', 'project', 'filter', 'attributes')
+
+    def get_owner_full_name(self, obj):
+        return obj.owner.get_full_name()
+
+    def get_shared_with(self, obj):
+        users = []
+        [users.append(user.get_full_name()) for user in obj.shared_with.all()]
+        return users
+
+    def get_datapoints(self, obj):
+        return len(obj.attributes)
+
+    def get_report_sync_settings(self, obj):
+        if obj.report_sync_settings.all():
+            sync = obj.report_sync_settings.all()[0]
+            sync_settings = {'id': sync.id,
+                             'schedule_type': SCHEDULED_TYPE[int(sync.schedule_type)][1],
+                             'last_synced_date': sync.last_synced_date,
+                             'spreadsheet_id': sync.spreadsheet_id,
+                             'range': sync.range,
+                             'grid_id': sync.grid_id,
+                             'day': sync.day
+                             }
+
+        else:
+            sync_settings = {}
+
+        return sync_settings
 
 
 class PreviewSiteInformationSerializer(serializers.ModelSerializer):

@@ -10,7 +10,7 @@ from rest_framework.renderers import BaseRenderer
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from rest_framework.response import Response
 from django.utils.translation import ugettext as _
-from onadata.apps.fsforms.models import FieldSightXF
+from onadata.apps.fsforms.models import FieldSightXF, OrganizationFormLibrary
 from onadata.apps.fv3.serializers.KoboExportSerializer import ExportSerializer
 from onadata.apps.viewer.models import Export
 from onadata.apps.viewer.tasks import create_async_export
@@ -25,6 +25,7 @@ class BinaryFileRenderer(BaseRenderer):
 
     def render(self, data, media_type=None, renderer_context=None):
         return data
+
 
 class ExportViewSet(viewsets.ModelViewSet):
     queryset = Export.objects.all().order_by("-created_on")
@@ -46,7 +47,7 @@ class ExportViewSet(viewsets.ModelViewSet):
             self.queryset = self.queryset.filter(fsxf=fsxf, site=id)
         if version:
             return self.queryset.filter(version=version)
-        return self.queryset
+        return self.queryset[:15]
 
     def create(self, request, *args, **kwargs):
         params = self.request.query_params
@@ -98,7 +99,7 @@ class ExportViewSet(viewsets.ModelViewSet):
         }
 
         create_async_export(fsxf.xf, 'xls', query, force_xlsx, options, is_project, fsxf.id, site_id, version, False)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': 'Your Download Has Been Started'}, status=status.HTTP_200_OK)
 
     # @detail_route(methods=['get'], renderer_classes=(BinaryFileRenderer,))
     def retrieve(self, request, *args, **kwargs):
@@ -116,5 +117,66 @@ class ExportViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = Export.objects.get(pk=kwargs['pk'])
         self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': 'Your Export Has Been Deleted'}, status=status.HTTP_200_OK)
 
+
+class OrganizationExportViewSet(viewsets.ModelViewSet):
+    queryset = Export.objects.all().order_by("-created_on")
+    serializer_class = ExportSerializer
+    authentication_classes = [CsrfExemptSessionAuthentication, ]
+    permission_classes = [IsAuthenticated, ]
+
+    def get_queryset(self):
+        params = self.request.query_params
+        org_form_lib = params.get('org_form_lib')
+
+        self.queryset = self.queryset.filter(organization_form_lib_id=org_form_lib)
+
+        return self.queryset[:15]
+
+    def create(self, request, *args, **kwargs):
+        params = self.request.query_params
+        org_form_lib = params.get('org_form_lib')
+        version = params.get('version', 0)
+
+        if not org_form_lib:
+            return Response({'error': 'Parameters missing'}, status=status.HTTP_400_BAD_REQUEST)
+        xform = OrganizationFormLibrary.objects.get(id=org_form_lib).xf
+
+        query = {"fs_organization_uuid": org_form_lib}
+
+        force_xlsx = True
+        if version not in ["0", 0]:
+            query["__version__"] = version
+        deleted_at_query = {
+            "$or": [{"_deleted_at": {"$exists": False}},
+                    {"_deleted_at": None}]
+        }
+        # join existing query with deleted_at_query on an $and
+        query = {"$and": [query, deleted_at_query]}
+        print("query at excel generation", query)
+
+        # export options
+        group_delimiter = request.POST.get("group_delimiter", '/')
+        if group_delimiter not in ['.', '/']:
+            return Response({'error': _("%s is not a valid delimiter" % group_delimiter)},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # default is True, so when dont_.. is yes
+        # split_select_multiples becomes False
+        split_select_multiples = request.POST.get(
+            "dont_split_select_multiples", "no") == "no"
+
+        binary_select_multiples = False
+        # external export option
+        meta = request.POST.get("meta")
+        options = {
+            'group_delimiter': group_delimiter,
+            'split_select_multiples': split_select_multiples,
+            'binary_select_multiples': binary_select_multiples,
+            'meta': meta.replace(",", "") if meta else None
+        }
+
+        create_async_export(xform, 'xls', query, force_xlsx, options, False, None, None, version, False, None,
+                            org_form_lib)
+        return Response({'message': 'Your Download Has Been Started'}, status=status.HTTP_200_OK)

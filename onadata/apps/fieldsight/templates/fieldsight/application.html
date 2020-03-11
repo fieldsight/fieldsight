@@ -4,9 +4,8 @@
 {% block page-title %}{% trans 'Dashboard' %}{% endblock %}
 
 {%block extracss %}
-<link rel="stylesheet"
-	  href="{% static 'application/main.css' %}?v=2020-01-26">
-<!--<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">-->
+
+<link rel="stylesheet" href="{% static 'application/main.css' %}?v=2020-03-06">
 {% endblock %}
 
 {% block content %}
@@ -33,10 +32,8 @@
 		var kpi_base_url = "{{kpi_base_url}}";
 
 	</script>
-<!--	<script src="https://js.stripe.com/v3/"></script>-->
 
-	<script type="text/javascript"
-			src="{{ STATIC_URL }}application/main.js?v=2020-01-26"></script>
+	<script type="text/javascript" src="{{ STATIC_URL }}application/main.js?v=2020-03-06"></script>
 
 {% endblock %}
 

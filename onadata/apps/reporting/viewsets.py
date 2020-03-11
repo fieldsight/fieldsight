@@ -1,9 +1,11 @@
 import ast, gc
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.db.models import Case, When, Sum, IntegerField
+from django.contrib.auth.models import Group
 
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.decorators import permission_classes, api_view
@@ -13,14 +15,20 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework import viewsets
 
-from onadata.apps.fieldsight.models import Project, Site
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance
+from onadata.apps.eventlog.views import TaskListViewSet
+from onadata.apps.fieldsight.models import Project, Site, Region, SiteType
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, ReportSyncSettings, SCHEDULED_TYPE
 from onadata.apps.fieldsight.tasks import generateSiteDetailsXls, generate_stage_status_report, \
-    exportProjectSiteResponses, form_status_map
-from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer
-from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions
+    exportProjectSiteResponses, form_status_map, exportLogs, exportProjectUserstatistics, exportProjectstatistics
+from onadata.apps.fv3.role_api_permissions import ProjectDashboardPermissions
+from .serializers import StageFormSerializer, ReportSettingsSerializer, PreviewSiteInformationSerializer, \
+    ReportSettingsListSerializer
+from .permissions import ReportingProjectFormsPermissions, ReportingSettingsPermissions, ReportingLogsPermissions
 from .models import ReportSettings, REPORT_TYPES, METRICES_DATA, SITE_INFORMATION_VALUES_METRICS_DATA, \
-    FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA
+    FORM_INFORMATION_VALUES_METRICS_DATA, USERS_METRICS_DATA, INDIVIDUAL_FORM_METRICS_DATA, FILTER_METRICS_DATA
+from .utils.site_report import site_report
+from .utils.time_report import time_report
+from .utils.user_report import user_report
 from ..eventlog.models import CeleryTaskProgress
 from ..fsforms.enketo_utils import CsrfExemptSessionAuthentication
 from onadata.apps.reporting.tasks import new_export
@@ -38,8 +46,15 @@ class ReportingProjectFormData(APIView):
 
             generals_queryset = FieldSightXF.objects.select_related('xf')\
                 .filter(is_staged=False, is_scheduled=False, is_deleted=False, project_id=project_id, is_survey=False).\
-                values('xf__title', 'id')
-            generals_data = [{'id': form['id'], 'title': form['xf__title']} for form in generals_queryset]
+                values('xf__title', 'id', 'report_sync_settings__last_synced_date',
+                       'report_sync_settings__schedule_type')
+            generals_data = [{'id': form['id'],
+                              'title': form['xf__title'],
+                              'last_synced_date': form['report_sync_settings__last_synced_date'],
+                              'schedule_type':  SCHEDULED_TYPE[int(form['report_sync_settings__schedule_type'])][1]
+                              if form['report_sync_settings__schedule_type'] is not None else None
+
+                              } for form in generals_queryset]
 
             return Response(status=status.HTTP_200_OK, data=generals_data)
 
@@ -48,9 +63,17 @@ class ReportingProjectFormData(APIView):
             schedules_queryset = Schedule.objects.select_related('project').prefetch_related('schedule_forms')\
                 .filter(project_id=project_id, schedule_forms__is_deleted=False, site__isnull=True,
                         schedule_forms__isnull=False, schedule_forms__xf__isnull=False).\
-                values('schedule_forms__id', 'schedule_forms__xf__title')
+                values('schedule_forms__id', 'schedule_forms__xf__title',
+                       'schedule_forms__report_sync_settings__last_synced_date',
+                       'schedule_forms__report_sync_settings__schedule_type')
 
-            schedules_data = [{'id': form['schedule_forms__id'], 'title': form['schedule_forms__xf__title']}
+            schedules_data = [{'id': form['schedule_forms__id'],
+                               'title': form['schedule_forms__xf__title'],
+                               'last_synced_date': form['schedule_forms__report_sync_settings__last_synced_date'],
+                               'schedule_type': SCHEDULED_TYPE[int(form['schedule_forms__report_sync_settings__schedule_type'])][1]
+                               if form['schedule_forms__report_sync_settings__schedule_type'] is not None else None
+
+                               }
                               for form in schedules_queryset]
 
             return Response(status=status.HTTP_200_OK, data=schedules_data)
@@ -68,9 +91,16 @@ class ReportingProjectFormData(APIView):
 
             surveys_queryset = FieldSightXF.objects.select_related('xf').\
                 filter(is_staged=False, is_scheduled=False, is_deleted=False, project_id=project_id, is_survey=True).\
-                values('id', 'xf__title')
+                values('id', 'xf__title', 'report_sync_settings__last_synced_date',
+                       'report_sync_settings__schedule_type')
 
-            surveys_data = [{'id': form['id'], 'title': form['xf__title']} for form in surveys_queryset]
+            surveys_data = [{'id': form['id'],
+                             'title': form['xf__title'],
+                             'last_synced_date': form['report_sync_settings__last_synced_date'],
+                             'schedule_type': SCHEDULED_TYPE[int(form['report_sync_settings__schedule_type'])][1]
+                             if form['report_sync_settings__schedule_type'] is not None else None
+
+                             } for form in surveys_queryset]
             return Response(status=status.HTTP_200_OK, data=surveys_data)
         else:
             return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'form_type params is required.'})
@@ -78,7 +108,7 @@ class ReportingProjectFormData(APIView):
 
 class ReportSettingsViewSet(viewsets.ModelViewSet):
     serializer_class = ReportSettingsSerializer
-    queryset = ReportSettings.objects.all()
+    queryset = ReportSettings.objects.select_related('owner', 'project').prefetch_related('shared_with').order_by('-id')
     permission_classes = [IsAuthenticated, ReportingProjectFormsPermissions]
     authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
 
@@ -95,7 +125,8 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
                                             add_to_templates=False)
 
         elif type == "my_reports":
-            queryset = self.queryset.filter(project_id=project_id, add_to_templates=False, owner=self.request.user)
+            queryset = self.queryset.filter(project_id=project_id, add_to_templates=False, owner=self.request.user).\
+                defer('attributes', 'filter')
 
         elif id is not None:
             queryset = self.queryset.filter(id=id)
@@ -107,21 +138,51 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         type = self.request.query_params.get('type')
+        project = Project.objects.get(id=self.kwargs.get('pk'))
+
         if type == 'custom':
             custom_data = {
-                'custom_reports': ReportSettingsSerializer(self.get_queryset(), many=True).data
+                'custom_reports': ReportSettingsListSerializer(self.get_queryset(), many=True).data
             }
+            if project.report_sync_settings.filter(report_type="site_info").exists():
+                site_info_last_synced_date = project.report_sync_settings.filter(report_type="site_info")[0].\
+                    last_synced_date
+                site_info_schedule_type = SCHEDULED_TYPE[int(project.report_sync_settings.
+                                                             filter(report_type="site_info")[0].schedule_type)][1]
+            else:
+                site_info_last_synced_date = None
+                site_info_schedule_type = None
+            if project.report_sync_settings.filter(report_type="site_progress").exists():
+                site_progress_last_synced_date = project.report_sync_settings.filter(report_type="site_progress")[0]. \
+                    last_synced_date
+                site_progress_schedule_type = SCHEDULED_TYPE[int(project.report_sync_settings.
+                                                                 filter(report_type="site_progress")[0].schedule_type)][1]
+            else:
+                site_progress_last_synced_date = None
+                site_progress_schedule_type = None
+
             custom_data.update({
                 'standard_reports': [{'title': 'Project Summary',
                                       'description': 'Contains high level overview of the project in form of numbers, '
                                                      'graphs and map.'},
                                      {'title': 'Site Information',
                                       'description': 'Export of key progress indicators like submission count, status '
-                                                     'and site visits generated from Staged Forms.'},
+                                                     'and site visits generated from Staged Forms.',
+
+                                      'last_synced_date': site_info_last_synced_date,
+                                      'schedule_type': site_info_schedule_type
+
+                                      },
 
                                      {'title': 'Progress Report',
                                       'description': 'Export of key progress indicators like submission count, '
-                                                     'status and site visits generated from Staged Forms.'},
+                                                     'status and site visits generated from Staged Forms.',
+
+                                      'last_synced_date': site_progress_last_synced_date,
+                                      'schedule_type': site_progress_schedule_type
+
+                                      },
+
 
                                      {'title': 'Activity Report',
                                       'description': 'Export of sites visits, submissions and active users in a '
@@ -134,11 +195,18 @@ class ReportSettingsViewSet(viewsets.ModelViewSet):
                                      {'title': 'User Activity Report',
                                       'description': 'Export of User Activities in a selected time interval.'},
 
+                                     {'title': 'G-Sheet Reports',
+                                      'description': ''},
 
 
-                                     ]
+
+                                     ],
+                'created_date': project.date_created
             })
             return Response(custom_data)
+        elif type == 'my_reports' or type == 'shared_with_me':
+            return Response(data=ReportSettingsListSerializer(self.get_queryset(), many=True).data)
+
         else:
             return Response(data=ReportSettingsSerializer(self.get_queryset(), many=True).data)
 
@@ -172,13 +240,15 @@ class GenerateStandardReports(APIView):
             sync_to_drive = data.get('sync_to_drive', False)
 
             task_obj = CeleryTaskProgress.objects.create(user=source_user, content_object=project, task_type=8)
+
             if task_obj:
                 task = generateSiteDetailsXls.delay(task_obj.pk, self.kwargs.get('pk'), region_ids, site_type_ids,
                                                     sync_to_drive)
                 task_obj.task_id = task.id
                 task_obj.save()
                 status, data = 200, {'detail': 'The sites details xls file is being generated. '
-                                               'You will be notified after the file is generated.'}
+                                               'You will be notified after the file is generated.',
+                                     'task_id': task_obj.id}
             else:
                 status, data = 401, {'detail': 'Error occured please try again.'}
             return Response(status=status, data=data)
@@ -198,7 +268,9 @@ class GenerateStandardReports(APIView):
                 task_obj.save()
                 status, data = 200, {'detail': 'Progress report is being generated. You will be notified upon '
                                                'completion. (It may take more time depending upon number of sites '
-                                               'and submissions.)'}
+                                               'and submissions.)',
+                                     'task_id': task_obj.id
+                                     }
             else:
                 status, data = 401, {'detail': 'Report cannot be generated a the moment.'}
             return Response(status=status, data=data)
@@ -212,6 +284,7 @@ class GenerateStandardReports(APIView):
             end_date = data.get('end_date')
             region_ids = data.get('regions', None)
             site_type_ids = data.get('siteTypes', None)
+
             project = get_object_or_404(Project, pk=self.kwargs.get('pk'))
 
             task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=3)
@@ -221,10 +294,82 @@ class GenerateStandardReports(APIView):
                 task_obj.task_id = task.id
                 task_obj.save()
                 status, data = 200, {'detail': 'Success, the report is being generated. You will be notified after '
-                                               'the report is generated.'}
+                                               'the report is generated.',
+                                     'task_id': task_obj.id
+                                     }
             else:
                 status, data = 401, {'detail': 'Error occured please try again.'}
             return Response(status=status, data=data)
+
+        elif report_type == 'project_logs':
+            user = self.request.user
+            data = request.data
+            reportType = data.get('type')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            if reportType == "Project":
+                obj = get_object_or_404(Project, pk=self.kwargs.get('pk'))
+            else:
+                obj = get_object_or_404(Site, pk=self.kwargs.get('pk'))
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, content_object=obj, task_type=12)
+            if task_obj:
+                task = exportLogs.delay(task_obj.pk, self.kwargs.get('pk'), reportType, start_date, end_date)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'status': 'true',
+                                     'message': 'Success, the report is being generated. You will be notified after '
+                                                'the report is generated.',
+                                     'task_id': task_obj.id
+                                     }
+            else:
+                status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
+            return Response(data, status=status)
+
+        elif report_type == 'user_activity_report':
+
+            user = request.user
+            data = request.data
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            print('datattatata', data)
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, task_type=16, content_object=project)
+            if task_obj:
+                task = exportProjectUserstatistics.delay(task_obj.pk, project.id, start_date, end_date)
+                task_obj.task_id = task.id
+                task_obj.save()
+                data = {'status': 'true',
+                        'message': 'User Activity report is being generated. You will be notified upon completion.',
+                        'task_id': task_obj.id
+                        }
+            else:
+                data = {'status': 'false', 'message': 'Report cannot be generated a the moment.'}
+            return Response(data, status=200)
+
+        elif report_type == 'activity_report':
+            user = self.request.user
+            data = request.data
+            reportType = data.get('type')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+            task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=11)
+            if task_obj:
+                task = exportProjectstatistics.delay(task_obj.pk, self.kwargs.get('pk'), reportType, start_date,
+                                                     end_date)
+                task_obj.task_id = task.id
+                task_obj.save()
+                status, data = 200, {'status': 'true',
+                                     'message': 'Success, the report is being generated. You will be notified after '
+                                                'the report is generated.',
+                                     'task_id': task_obj.id
+                                     }
+            else:
+                status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
+            return Response(data, status=status)
 
 
 class PreviewStandardReports(APIView):
@@ -431,6 +576,8 @@ def metrics_data(request, pk):
     meta_attributes = project.site_meta_attributes
     form_question_answer_status_form_metas = []
     report_types = [{'id': rep_type[0], 'name': rep_type[1]} for rep_type in REPORT_TYPES]
+    regions = Region.objects.filter(project=project, is_active=True).values('id', 'name')
+    site_types = SiteType.objects.filter(project=project).values('id', 'name')
 
     for meta in meta_attributes:
 
@@ -469,15 +616,24 @@ def metrics_data(request, pk):
     metrics.extend(INDIVIDUAL_FORM_METRICS_DATA)
     metrics.extend(SITE_INFORMATION_VALUES_METRICS_DATA)
     metrics.extend(FORM_INFORMATION_VALUES_METRICS_DATA)
+    metrics.extend(FILTER_METRICS_DATA)
     form_types = [{'id': 1, 'code': 'general', 'label': 'General Forms'},
                   {'id': 2, 'code': 'scheduled', 'label': 'Scheduled Forms'},
                   {'id': 3, 'code': 'stage', 'label': 'Staged Forms'},
                   {'id': 4, 'code': 'survey', 'label': 'Survey Forms'},
                   ]
 
+    user_roles = Group.objects.filter(name__in=['Region Supervisor', 'Region Reviewer', 'Site Supervisor',
+                                                'Reviewer']).values('id', 'name')
+
     return Response(status=status.HTTP_200_OK, data={'report_types': report_types,
+                                                     'regions': regions,
+                                                     'site_types': site_types,
                                                      'metrics': metrics, 'meta_attributes': meta_attributes,
-                                                     'form_types': form_types})
+                                                     'form_types': form_types,
+                                                     'user_roles': user_roles,
+                                                     'created_date': project.date_created
+                                                     })
 
 
 class ReportExportView(APIView):
@@ -493,10 +649,158 @@ class ReportExportView(APIView):
         if export_type == 'excel':
             task_obj = CeleryTaskProgress.objects.create(user=request.user, task_type=26, content_object=report_obj)
             if task_obj:
-                new_export.delay(report_obj.id, task_obj.id)
+                task = new_export.delay(report_obj.id, task_obj.id)
+                task_obj.task_id = task.id
+                task_obj.save()
                 return Response(status=status.HTTP_201_CREATED, data={'detail': 'The excel report is being generated. '
                                                                                 'You will be notified after the report '
                                                                                 'is generated.'})
 
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail': 'export_type params is required.'})
+
+
+class ReportActionView(APIView):
+    permission_classes = [IsAuthenticated, ReportingSettingsPermissions]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def post(self, request, pk, *args,  **kwargs):
+
+        action_type = self.request.query_params.get('action_type', None)
+
+        try:
+            report_obj = ReportSettings.objects.get(id=pk)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Report not found.'})
+
+        if action_type == 'add_to_templates':
+            report_obj.add_to_templates = True
+            report_obj.save()
+
+            response_status, data = status.HTTP_200_OK, {'detail': 'successfully added to Templates.'}
+
+        elif action_type == 'share':
+            shared_users = self.request.data.get('shared_users', None)
+            report_obj.shared_with.add(*shared_users)
+            report_obj.save()
+
+            response_status, data = status.HTTP_200_OK, {'detail': 'successfully shared with users'}
+
+        else:
+            response_status, data = status.HTTP_400_BAD_REQUEST, {'detail': 'required fields is add_to_templates'
+                                                                            ' or share.'}
+        return Response(status=response_status, data=data)
+
+
+class ReportTaskLogViewset(TaskListViewSet):
+    permission_classes = [ReportingLogsPermissions]
+
+    def get_queryset(self):
+        object_id = self.request.query_params.get('id')
+        if object_id:
+            return self.queryset.filter(task_type=26, object_id=object_id)
+        return []
+
+
+class CustomReportPreviewView(APIView):
+    permission_classes = [IsAuthenticated, ReportingSettingsPermissions]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def get(self, request, pk, *args,  **kwargs):
+
+        report_obj = ReportSettings.objects.get(id=pk)
+        report_type = report_obj.type
+
+        if report_type == 0:
+            df = site_report(report_obj, True)
+        elif report_type == 4:
+            df = user_report(report_obj, True)
+        elif report_type == 5:
+            df = time_report(report_obj)
+        else:
+            df = []
+
+        data = df
+
+        return Response(status=status.HTTP_200_OK, data=data)
+
+
+class ProjectReportFilterView(APIView):
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+
+    def get(self, request, pk, *args,  **kwargs):
+
+        try:
+            project_obj = Project.objects.get(id=pk)
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Project not found.'})
+        user_roles = Group.objects.filter(name__in=['Region Supervisor', 'Region Reviewer', 'Site Supervisor',
+                                                    'Reviewer']).values('id', 'name')
+
+        regions = Region.objects.filter(project=project_obj, is_active=True).values('id', 'name')
+        site_types = SiteType.objects.filter(project=project_obj).values('id', 'name')
+        metrics = []
+        metrics.extend(FILTER_METRICS_DATA)
+        created_date = project_obj.date_created
+
+        return Response(status=status.HTTP_200_OK, data={'user_roles': user_roles,
+                                                         'regions': regions,
+                                                         'site_types': site_types,
+                                                         'metrics': metrics,
+                                                         'created_date': created_date
+                                                         })
+
+
+class ProjectDataExportView(APIView):
+    permission_classes = [IsAuthenticated, ProjectDashboardPermissions]
+    authentication_classes = [BasicAuthentication, CsrfExemptSessionAuthentication]
+
+    def post(self, request, pk, *args,  **kwargs):
+
+        base_url = self.request.get_host()
+        user = self.request.user
+        data = request.data
+        fs_ids = data.get('fs_ids')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        regions = data.get('regions', None)
+        site_types = data.get('site_types', None)
+        project = get_object_or_404(Project, pk=pk)
+
+        task_obj = CeleryTaskProgress.objects.create(user=user, content_object=project, task_type=3)
+        if task_obj:
+            task = exportProjectSiteResponses.delay(task_obj.pk, pk, base_url, fs_ids, start_date,
+                                                    end_date, regions, site_types)
+            task_obj.task_id = task.id
+            task_obj.save()
+            status, data = 200, {'status': 'true',
+                                 'message': 'Success, the report is being generated. You will be notified after the '
+                                            'report is generated.'}
+        else:
+            status, data = 401, {'status': 'false', 'message': 'Error occured please try again.'}
+        return Response(data, status=status)
+
+
+class StandardReportsExportXlsView(APIView):
+    """
+    A simple ViewSet for downloading excel file.
+    """
+
+    def get(self, request, pk, *args,  **kwargs):
+
+        try:
+            obj = CeleryTaskProgress.objects.get(id=pk)
+            task_status = obj.get_status_display()
+
+        except ObjectDoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'detail': 'Not found.'})
+
+        if obj.file:
+            file_url = obj.file.url
+        else:
+            file_url = None
+
+        return Response(status=status.HTTP_200_OK, data={'file_url': file_url, 'task_status': task_status})
+
+
+

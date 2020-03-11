@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 
 from onadata.apps.fieldsight.models import Site, Project
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
-from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, FormSettings
+from onadata.apps.fsforms.models import FieldSightXF, Schedule, Stage, FInstance, FormSettings, ReportSyncSettings
 from onadata.apps.fsforms.tasks import copy_schedule_to_sites, \
     copy_allstages_to_sites, copy_stage_to_sites, copy_sub_stage_to_sites
 from onadata.apps.fsforms.utils import send_message_un_deploy_project, \
@@ -765,6 +765,8 @@ class DeleteUndeployedForm(APIView):
                             extra_object=extra_object,
                             extra_message=extra_message,
                             content_object=general_form)
+                        ReportSyncSettings.objects.filter(form_id=query_params.get('id')).update(is_deleted=True)
+
                         return Response({"message": "success"})
                 else:
                     if general_form.site_form_instances.count():
@@ -840,6 +842,8 @@ class DeleteUndeployedForm(APIView):
                             extra_object=extra_object,
                             extra_message=extra_message,
                             content_object=schedule_form)
+                        ReportSyncSettings.objects.filter(form=schedule_form).update(is_deleted=True)
+
                         return Response({"message": "success"})
                 else:
                     if schedule_form.site_form_instances.count():
@@ -1006,6 +1010,8 @@ class DeleteUndeployedForm(APIView):
                         extra_object=extra_object,
                         extra_message=extra_message,
                         content_object=extra_object)
+                    ReportSyncSettings.objects.filter(form__stage_id=id).update(is_deleted=True)
+
                     return Response({"message": "success"})
             else:
                 ids = Stage.objects.filter(stage_id=id).values_list('pk',
@@ -1094,6 +1100,8 @@ class DeleteUndeployedForm(APIView):
                         extra_message=extra_message,
                         content_object=extra_object)
                     Stage.objects.filter(pk=id).update(is_deleted=True)
+                    ReportSyncSettings.objects.filter(form__stage_id=id).update(is_deleted=True)
+
                     return Response({"message": "success"})
             else:
                 if FInstance.objects.filter(

@@ -24,8 +24,9 @@ from openpyxl import Workbook
 
 from django.db import transaction
 from django.contrib.gis.geos import Point
+from celery import shared_task
 from onadata.apps.fieldsight.models import Organization, Project, Site, Region, SiteType,\
-    ProgressSettings, SiteMetaAttrAnsHistory
+    ProgressSettings, SiteMetaAttrAnsHistory, SuperOrganization
 from onadata.apps.fieldsight.utils.google_sheet_create import site_details_generator, upload_to_drive
 from onadata.apps.fieldsight.utils.progress import set_site_progress
 from onadata.apps.fieldsight.utils.siteMetaAttribs import find_answer_from_dict, bulk_update_sites_all_logos, \
@@ -36,7 +37,7 @@ from onadata.apps.eventlog.models import FieldSightLog, CeleryTaskProgress
 from django.contrib.auth.models import User, Group
 from onadata.apps.fieldsight.fs_exports.formParserForExcelReport import parse_form_response
 from django.shortcuts import get_object_or_404
-from onadata.apps.fsforms.models import FieldSightXF, FInstance, Stage
+from onadata.apps.fsforms.models import FieldSightXF, FInstance, Stage, OrganizationFormLibrary, Schedule
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import F
@@ -180,31 +181,27 @@ def generate_stage_status_report(task_prog_obj_id, project_id, site_type_ids, re
                     ss_index.append(str(ss.stage_forms.id))
                     form_ids.append(str(ss.stage_forms.id))
                     query[str(ss.stage_forms.id)] = Sum(
-                        Case(
-                        When(site_instances__project_fxf_id=ss.stage_forms.id,
-                             site_instances__is_deleted=False, then=1),
-                        default=0, output_field=IntegerField()
+                        Case(When(site_instances__project_fxf_id=ss.stage_forms.id,
+                                site_instances__is_deleted=False, then=1),
+                            default=0, output_field=IntegerField()
+
                         ))
 
         query['flagged'] = Sum(
             Case(
-                When(site_instances__form_status=2, site_instances__project_fxf_id__in=form_ids,
-                     site_instances__is_deleted=False, then=1),
-                default=0, output_field=IntegerField()
+                When(site_instances__form_status=2, site_instances__project_fxf_id__in=form_ids,site_instances__is_deleted=False, then=1), default=0, output_field=IntegerField()
             ))
 
         query['rejected'] = Sum(
             Case(
+
                 When(site_instances__form_status=1, site_instances__project_fxf_id__in=form_ids,
-                     site_instances__is_deleted=False, then=1),
-                default=0, output_field=IntegerField()
+                     site_instances__is_deleted=False, then=1), default=0, output_field=IntegerField()
             ))
          
         query['submission'] = Sum(
-            Case(
-                When(site_instances__project_fxf_id__in=form_ids,
-                     site_instances__is_deleted=False, then=1),
-                default=0, output_field=IntegerField()
+            Case(When(site_instances__project_fxf_id__in=form_ids,
+                     site_instances__is_deleted=False, then=1), default=0, output_field=IntegerField()
             ))
 
         head_row.extend(["Site Visits", "Submission Count", "Flagged Submission", "Rejected Submission"])
@@ -1197,6 +1194,78 @@ def multiuserassignproject(task_prog_obj_id, org_id, projects, users, group_id):
         noti = FieldSightLog.objects.create(source=task.user, type=421, title="Bulk Project User Assign",
                                        content_object=org, recipient=task.user,
                                        extra_message=str(users_count)+" people in "+str(projects_count)+" projects ")
+
+
+@shared_task()
+def multiuserassignteam(task_org_obj_id, super_org_id, teams, users, group_id):
+    time.sleep(2)
+    org = SuperOrganization.objects.get(pk=super_org_id)
+    teams_count = len(teams)
+    users_count = len(users)
+
+    task_id = multiuserassignteam.request.id
+    task = CeleryTaskProgress.objects.get(pk=task_org_obj_id)
+    task.content_object = org
+    task.description = "Assign " + str(users_count) + " people in " + str(teams_count) + " teams."
+    task.status = 1
+    task.save()
+    try:
+        with transaction.atomic():
+            roles_created = 0
+            for team_id in teams:
+                project = Organization.objects.get(pk=team_id)
+                for user in users:
+                    try:
+                        role, created = UserRole.objects.get_or_create(user_id=user, super_organization_id=org.id,
+                                                                       organization_id=team_id,
+                                                                       group_id=group_id, ended_at=None)
+                        if created:
+                            roles_created += 1
+
+                    except MultipleObjectsReturned:
+
+                        redundant_ids = UserRole.objects.filter(user_id=user, organization_id=team_id,
+                                                                super_organization_id=org.id, group_id=group_id,
+                                                                ended_at=None).order_by('id').values('id')[1:]
+
+                        UserRole.objects.filter(pk__in=redundant_ids).update(ended_at=datetime.datetime.now())
+
+                        # description = "{0} was assigned  as Project Manager in {1}".format(
+                        # role.user.get_full_name(), role.project)
+                        # noti = role.logs.create(source=role.user, type=6, title=description, description=description,
+                        #  content_object=role.project, extra_object=self.request.user)
+                        # result = {}
+                        # result['description'] = description
+                        # result['url'] = noti.get_absolute_url()
+                        # ChannelGroup("notify-{}".format(role.organization.id)).send({"text": json.dumps(result)})
+                        # ChannelGroup("project-{}".format(role.project.id)).send({"text": json.dumps(result)})
+                        # ChannelGroup("notify-0").send({"text": json.dumps(result)})
+        task.status = 2
+        task.save()
+        if roles_created == 0:
+            noti = FieldSightLog.objects.create(source=task.user, type=23, title="Task Completed.",
+                                                content_object=org, recipient=task.user,
+                                                extra_message=str(
+                                                    roles_created) + " new Team Admin Roles in " + str(
+                                                    teams_count) + " teams ")
+
+        else:
+            noti = FieldSightLog.objects.create(source=task.user, type=21, title="Bulk Team User Assign",
+                                                content_object=org, super_organization=org,
+                                                extra_message=str(
+                                                    roles_created) + " new Team Admin Roles in " + str(
+                                                    teams_count) + " teams ")
+
+    except Exception as e:
+        task.description = "ERROR: " + str(e.message)
+        task.status = 3
+        task.save()
+        print e.__dict__
+        noti = FieldSightLog.objects.create(source=task.user, type=421, title="Bulk Team User Assign",
+                                            content_object=org, recipient=task.user,
+                                            extra_message=str(users_count) + " people in " + str(
+                                                teams_count) + " teams ")
+
 
 @shared_task()
 def multiuserassignsite(task_prog_obj_id, project_id, sites, users, group_id):
@@ -2700,3 +2769,98 @@ def update_metas_in_sites(pk, start, end):
         if metas != old_all_ma_ans:
             site.all_ma_ans = metas
             site.save()
+
+
+@shared_task(max_retries=5)
+def remove_forms_instances(org_form_lib_id, task_id, team_id=None, org_id=None):
+    time.sleep(5)
+    try:
+        if team_id and org_id:
+            Organization.objects.filter(id=team_id).update(parent_id=None)
+            projects = Project.objects.filter(organization_id=team_id).values_list('id', flat=True)
+            library_forms = OrganizationFormLibrary.objects.filter(organization=org_id).values_list('id', flat=True)
+
+            FieldSightXF.objects.filter(project_id__in=projects,
+                                        organization_form_lib_id__in=library_forms).\
+                update(is_deleted=True, is_deployed=False)
+
+            instances = FInstance.objects.filter(organization_form_lib_id__in=library_forms,
+                                                 project_id__in=projects).values_list('instance', flat=True)
+
+            if instances:
+
+                FInstance.objects.filter(organization_form_lib_id__in=library_forms).update(is_deleted=True)
+            else:
+                pass
+
+        else:
+            instances = FInstance.objects.filter(organization_form_lib=org_form_lib_id).values_list('instance',
+                                                                                                    flat=True)
+
+            FieldSightXF.objects.filter(organization_form_lib=org_form_lib_id).update(is_deleted=True,
+                                                                                     is_deployed=False)
+            if instances:
+                FInstance.objects.filter(organization_form_lib=org_form_lib_id).update(is_deleted=True)
+
+            else:
+                pass
+
+        if instances:
+            Instance.objects.filter(id__in=instances).update(deleted_at=datetime.datetime.now())
+            result = settings.MONGO_DB.instances.update({"_id": {"$in": list(instances)}},
+                                                       {"$set": {'_deleted_at': datetime.datetime.now()}},
+                                                       multi=True)
+        else:
+            pass
+
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception as e:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
+
+
+@shared_task(max_retries=5)
+def add_forms_in_projects(org_form_lib_id, task_id):
+    time.sleep(10)
+    obj = OrganizationFormLibrary.objects.get(id=org_form_lib_id)
+    try:
+        projects = Project.objects.filter(organization__parent=obj.organization)
+        fsxf_list = []
+        if obj.form_type == 0:
+            for project in projects:
+                fsxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
+                                    default_submission_status=obj.default_submission_status,
+                                    organization_form_lib=obj
+                                    )
+                fsxf_list.append(fsxf)
+        else:
+            for project in projects:
+                scheduled_obj = Schedule.objects. \
+                    create(project=project, date_range_start=obj.date_range_start,
+                           date_range_end=obj.date_range_end,
+                           schedule_level_id=obj.schedule_level_id, frequency=obj.frequency,
+                           month_day=obj.month_day, organization_form_lib=obj)
+                scheduled_obj.selected_days.add(*obj.selected_days.values_list('id', flat=True))
+                scheduled_obj.save()
+                scheduled_fxf = FieldSightXF(xf=obj.xf, project=project, is_deployed=True,
+                                             is_scheduled=True,
+                                             default_submission_status=obj.default_submission_status,
+                                             schedule=scheduled_obj, organization_form_lib=obj)
+                fsxf_list.append(scheduled_fxf)
+
+        FieldSightXF.objects.bulk_create(fsxf_list)
+
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception as e:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))
+
+
+@shared_task(max_retries=5)
+def remove_organization_forms(org_form_lib_id, task_id):
+    time.sleep(10)
+    obj = OrganizationFormLibrary.objects.get(id=org_form_lib_id)
+    try:
+        FieldSightXF.objects.filter(organization_form_lib=obj).update(is_deleted=True)
+        Schedule.objects.filter(organization_form_lib=obj).update(is_deleted=True)
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2)
+    except Exception as e:
+        CeleryTaskProgress.objects.filter(id=task_id).update(status=2, description=str(e))

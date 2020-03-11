@@ -1177,11 +1177,11 @@ function multiemailvalidate(entry) {
           if(!self.all_selected_projects()[0])
           {
             App.hideProcessing();
-            alert("No Projects Selected.");
+            alert("No Teams Selected.");
             return false;
           }
           if(multiemailstatus == true ){
-            self.new_invite({'group':'Project Manager', 'emails':emails, 'levels':[], 'leveltype':'project'});
+            self.new_invite({'group':'Organization Admin', 'emails':emails, 'levels':[], 'leveltype':'team'});
 
             ko.utils.arrayMap(self.all_selected_projects(), function(item) {
                     self.new_invite().levels.push(item.id);
@@ -1201,7 +1201,7 @@ function multiemailvalidate(entry) {
     self.loadAllProjects();
     self.doAssign = function(){
     App.showProcessing();
-    self.new_role({'group':'Organization Admin', 'users':[], 'projects':[]});
+    self.new_role({'group':'Super Organization Admin', 'users':[], 'projects':[]});
 
     ko.utils.arrayMap(all_selected_users(), function(item) {
                     console.log(item.user().id);
@@ -1477,7 +1477,7 @@ function multiemailvalidate(entry) {
             alert('Contains Invalid Email'); }
     }
     });
-  
+
                
 
   // 
@@ -1715,6 +1715,10 @@ self.unAssignUserROle = function(role_id){
 
     self.assignPM = function(){
         group = 'Project Manager';
+        self.doAssign();
+    }
+    self.assignSuperOrgadmin = function(){
+        group = 'Super Organization Admin';
         self.doAssign();
     }
     self.assignOadmin = function(){

@@ -4,15 +4,14 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.contrib.auth.models import User
 
-
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from jsonfield import JSONField
 
-
-from onadata.apps.fieldsight.models import Organization, Project, Site
+from onadata.apps.fieldsight.models import Organization, Project, Site, SuperOrganization
 from onadata.apps.users.models import UserProfile
+
 from celery.result import AsyncResult
 from django.contrib.contenttypes.fields import GenericRelation
 
@@ -63,12 +62,15 @@ class FieldSightLog(models.Model):
         (38, 'User was added as Region Supervisor of Region Name by Invitor Full Name.'),
         (39, 'User was added as Region Reviewer in count regions of project by Invitor Full Name.'),
         (40, 'User was added as Region Supervisor in count regions of project by Invitor Full Name.'),
+        (41, 'User was added as the Super Organization Admin of Organization Name by Invitor Full Name.'),
         (412, 'Bulk upload of number + sites in Project Name failed.'),
         (421, 'User assign unsuccessful in Team.'),
         (422, 'User assign unsucessfull in project.'),
         (429, 'Project SIte Import From Project Name Completed SuccessFully'),
         (430, 'Project SIte Import From number of region in Project Name Completed SuccessFully'),
         (432, 'Report generation failed.'),
+        (42, 'User was added as Team Admin in count teams of organization by Invitor Full Name.'),
+
     )
     
     type = models.IntegerField(default=0, choices=ACTION_TYPES)
@@ -78,6 +80,7 @@ class FieldSightLog(models.Model):
     is_seen = models.BooleanField(default=False)
     seen_by = models.ManyToManyField(User)
     source = models.ForeignKey(User, related_name='log', null=True)
+    super_organization = models.ForeignKey(SuperOrganization, related_name="logs", null=True, blank=True)
     organization = models.ForeignKey(Organization, related_name="logs", null=True)
     project = models.ForeignKey(Project, related_name="logs", null=True)
     site = models.ForeignKey(Site, related_name="logs", null=True)
@@ -236,6 +239,9 @@ class CeleryTaskProgress(models.Model):
         (24, 'Update and Create History of Site Meta-attributes Answers'),
         (25, 'Update Site Information on Submission'),
         (26, 'Export Report in excel'),
+        (27, 'Add default forms in Projects'),
+        (28, 'Remove default forms from Organization'),
+        (29, 'Remove team from Organization'),
 
     )
     task_id = models.CharField(max_length=255, blank=True, null=True)

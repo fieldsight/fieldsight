@@ -105,12 +105,20 @@ def update_mongo(i):
              'fs_project': x.project_id,
              'fs_status': 0,
              'fs_site': x.site_id,
-            })
+             'fs_organization': None,
+             'fs_organization_uuid': None,
+             'fs_team': x.project.organization_id,
+
+             })
         if x.project_fxf:
             d['fs_project_uuid'] = str(x.project_fxf_id)
+            if x.project_fxf.organization_form_lib:
+                d['fs_organization'] = str(x.project_fxf.organization_form_lib.organization_id)
+                d['fs_organization_uuid'] = str(x.project_fxf.organization_form_lib_id)
 
         if x.site_fxf:
             d['fs_uuid'] = str(x.site_fxf_id)
+
         try:
             synced = update_mongo_instance(d, i.id)
         except Exception as e:

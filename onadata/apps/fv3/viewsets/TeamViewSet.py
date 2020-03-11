@@ -6,6 +6,7 @@ import stripe
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.gis.geos import Point
+from django.db.models import Prefetch
 
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -19,10 +20,12 @@ from onadata.apps.fsforms.tasks import clone_form
 
 from onadata.apps.fv3.serializers.TeamSerializer import TeamSerializer, TeamProjectSerializer
 from onadata.apps.fv3.serializer import ProjectUpdateSerializer
-from onadata.apps.fieldsight.models import Organization, Project, Region, SiteType
+from onadata.apps.fieldsight.models import Organization, Project, Region, SiteType, Site
 from onadata.apps.fv3.role_api_permissions import TeamDashboardPermissions
 from onadata.apps.subscriptions.models import Customer, Package, Subscription
 from onadata.apps.fsforms.enketo_utils import CsrfExemptSessionAuthentication
+from onadata.apps.userrole.models import UserRole
+from onadata.apps.fsforms.models import FInstance
 
 
 class TeamDashboardViewSet(viewsets.ReadOnlyModelViewSet):
@@ -45,7 +48,20 @@ class TeamProjectsViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, TeamDashboardPermissions]
 
     def get_queryset(self):
-        return self.queryset.filter(organization=self.kwargs.get('pk'), is_active=True)
+        return self.queryset.prefetch_related(Prefetch(
+            'project_roles',
+            queryset=UserRole.objects.filter(ended_at=None).distinct('user')
+        ), Prefetch(
+            'project_instances',
+            queryset=FInstance.objects.filter(is_deleted=False)
+
+        ), Prefetch(
+            'project_region',
+            queryset=Region.objects.filter(is_active=True, parent__isnull=True)
+        ), Prefetch(
+            'sites',
+            queryset=Site.objects.filter(is_active=True, is_survey=False, site__isnull=True)
+        )).filter(organization=self.kwargs.get('pk'), is_active=True)
 
     def list(self, request, *args, **kwargs):
         projects = self.serializer_class(self.get_queryset(), many=True).data
@@ -163,7 +179,6 @@ class AddTeamProjectViewset(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance = self.perform_create(serializer)
-
 
         task_obj = CeleryTaskProgress.objects.create(user=request.user,
                                                      description="Auto Clone and Deployment of Forms",

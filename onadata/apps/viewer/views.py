@@ -817,7 +817,6 @@ def attachment_url(request, size='medium'):
         try:
             attachment = result[0]
             return redirect(attachment.media_file.url)
-
         except IndexError:
             media_file_logger.info('attachment not found')
             return HttpResponseNotFound(_(u'Attachment not found'))
