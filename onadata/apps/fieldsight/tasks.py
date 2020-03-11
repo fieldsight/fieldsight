@@ -634,7 +634,13 @@ def bulkuploadsites(task_prog_obj_id, pk):
                     interval = i + interval
                     bulkuploadsites.update_state('PROGRESS', meta={'current': i, 'total': count})
             if bulk_sites:
-                bulk_update_sites(bulk_sites)
+                total_sites = len(bulk_sites)
+                page_size = 1000
+                page = 0
+                while total_sites > 0:
+                    bulk_update_sites(bulk_sites[page * page_size : (page + 1) * page_size])
+                    total_sites -= page_size
+                    page += 1
             new_site_objects = []
             for site in new_sites_dict:
                 site_obj = Site(project=project)
