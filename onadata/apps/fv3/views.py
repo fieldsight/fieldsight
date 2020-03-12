@@ -260,6 +260,9 @@ class ProjectUpdateViewset(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
+        if Project.objects.filter(identifier=request.data.get('identifier')).exclude(id=instance.pk).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST,
+                            data={'detail': 'Identifier with this name already exists.'})
         logo_url = serializer.initial_data['logo']
         if logo_url.endswith('.jpg') or logo_url.endswith('.png'):
             serializer.initial_data.pop('logo')
@@ -863,18 +866,7 @@ class TeamsViewset(viewsets.ReadOnlyModelViewSet):
     pagination_class = TeamsPagination
 
     def get_queryset(self):
-        return self.queryset.filter(parent=None).prefetch_related(
-            Prefetch("organization_roles",
-                     queryset=UserRole.objects.filter(ended_at=None),
-                     to_attr="total_users",
-
-                     ),
-            Prefetch("projects__sites",
-                     queryset=Site.objects.filter(is_survey=False, is_active=True),
-                     to_attr="total_sites"
-                     ),
-
-        )
+        return self.queryset.filter(parent=None)
 
     def list(self, request, *args, **kwargs):
 
@@ -976,6 +968,9 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        if SuperOrganization.objects.filter(identifier=request.data.get('identifier')).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST,
+                            data={'detail': 'Identifier with this name already exists.'})
         serializer.is_valid(raise_exception=True)
         self.object = self.perform_create(serializer)
         self.object.owner = self.request.user
@@ -996,7 +991,12 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
+        if SuperOrganization.objects.filter(identifier=request.data.get('identifier')).exclude(id=instance.pk).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'detail':
+                                                                          'Identifier with this name already exists.'})
+
         serializer.is_valid(raise_exception=True)
+
         self.perform_update(serializer)
         long = request.data.get('longitude', None)
         lat = request.data.get('latitude', None)

@@ -10,8 +10,8 @@ from django.core.files.base import ContentFile
 from django.db.models import Q
 from rest_framework import serializers
 
-
-from onadata.apps.fieldsight.models import Project, Organization, Region, Site, Sector, SiteType,  ProjectLevelTermsAndLabels, SuperOrganization
+from onadata.apps.fieldsight.models import Project, Organization, Region, Site, Sector, SiteType,  \
+    ProjectLevelTermsAndLabels, SuperOrganization
 from onadata.apps.fieldsight.serializers.SiteSerializer import SiteTypeSerializer
 from onadata.apps.userrole.models import UserRole
 
@@ -213,23 +213,13 @@ class TeamSerializer(serializers.ModelSerializer):
         return org_projects
 
     def get_sites(self, obj):
-        total_team_sites = 0
-        try:
-            for o in obj.projects.all():
-                total_team_sites = len(o.total_sites) + total_team_sites
-
-            return total_team_sites
-        except:
-            return 0
+        total_sites = Site.objects.filter(is_survey=False, project__organization=obj).count()
+        return total_sites
 
     def get_users(self, obj):
-        users = []
-        try:
-            [users.append(i.user_id) for i in obj.total_users]
+        users = obj.organization_roles.filter(ended_at=None).distinct('user').count()
 
-            return len(set(users))
-        except:
-            return 0
+        return users
 
 
 class SuperOrganizationSerializer(serializers.ModelSerializer):

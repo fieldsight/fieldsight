@@ -177,6 +177,9 @@ class AddTeamProjectViewset(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        if Project.objects.filter(identifier=request.data.get('identifier')).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST,
+                            data={'detail': 'Identifier with this name already exists.'})
         serializer.is_valid(raise_exception=True)
         instance = self.perform_create(serializer)
 
