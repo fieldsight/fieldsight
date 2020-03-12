@@ -90,7 +90,7 @@ class UserRoleViewSet(viewsets.ModelViewSet):
                                                                    group=group, ended_at=None)
 
                     if created:
-                        description = "{0} was assigned  as {1} in {2}".format(
+                        description = u"{0} was assigned  as {1} in {2}".format(
                             role.user.get_full_name(), role.group.name, role.project)
                         noti_type = 8
 
@@ -111,7 +111,7 @@ class UserRoleViewSet(viewsets.ModelViewSet):
 
                     if created:
                         
-                        description = "{0} was assigned  as {2} in {1}".format(
+                        description = u"{0} was assigned  as {2} in {1}".format(
                             role.user.get_full_name(), role.project, role.group.name)
                         
                         noti_type = 6
@@ -129,7 +129,7 @@ class UserRoleViewSet(viewsets.ModelViewSet):
                                                                    organization_id=self.kwargs.get('pk'),
                                                                    project_id=None, site_id=None, group=group)
                     if created:
-                        description = "{0} was assigned  as Team Admin in {1}".format(
+                        description = u"{0} was assigned  as Team Admin in {1}".format(
                             role.user.get_full_name(), role.organization)
                         noti = role.logs.create(source=role.user, type=5, title=description,
                                                 organization=organization, description=description,
@@ -145,7 +145,7 @@ class UserRoleViewSet(viewsets.ModelViewSet):
                                                                    organization_id=None,
                                                                    project_id=None, site_id=None, group=group)
                     if created:
-                        description = "{0} was assigned  as Super Organization Admin in {1}".format(
+                        description = u"{0} was assigned  as Super Organization Admin in {1}".format(
                             role.user.get_full_name(), role.super_organization)
                         noti = role.logs.create(source=role.user, type=5, title=description,
                                                 super_organization=super_organization, description=description,
