@@ -46,4 +46,4 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         project_id = options['project_id']
         exchange_lat_long(project_id)
-        self.stdout.write("fixing lat long for "%d"' % project_id)
+        self.stdout.write('fixing lat long for "%d"' % project_id)
