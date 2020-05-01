@@ -22,6 +22,8 @@ urlpatterns = patterns(
     url('^api/v1/', include(router_with_patch_list.urls)),
     url(r'^service_health/$',
         'onadata.apps.main.service_health.service_health'),
+    url(r'^healthz/$',
+        'onadata.apps.main.service_health.health'),
     url(r'^api-docs/', RedirectView.as_view(url='/api/v1/', permanent=True)),
     url(r'^api/', RedirectView.as_view(url='/api/v1/', permanent=True)),
     url(r'^api/v1', RedirectView.as_view(url='/api/v1/', permanent=True)),

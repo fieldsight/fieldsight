@@ -45,3 +45,5 @@ def service_health(request):
         output, status=(500 if any_failure else 200), content_type='text/plain'
     )
 
+def health(request):
+    return HttpResponse("ok", status=200)
