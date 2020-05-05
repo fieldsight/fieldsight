@@ -205,7 +205,7 @@ class PDFReport:
             elif question_type == 'photo':
                 #photo = '/media/user/attachments/'+ r_answer[r_question+"/"+question]
 
-                size = "small"
+                size = "original"
                 try:
                     attachment = Attachment.objects.filter(instance_id=self.instance_id, media_file_basename=answer_dict[question_name]).first() or Attachment.objects.filter(instance_id=self.instance_id, media_file__contains=answer_dict[question_name]).first() or Attachment.objects.filter(media_file__contains=answer_dict[question_name]).filter(media_file__contains=self.media_folder).first()
 
