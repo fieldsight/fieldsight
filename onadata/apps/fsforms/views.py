@@ -2258,6 +2258,7 @@ def download_xml_version(request, pk):
     finstance = get_object_or_404(FInstance, pk__exact=pk)
     response = response_with_mimetype_and_name('xml',  str(finstance.instance.id),  show_date=False)
     submission_version = finstance.get_version
+    xml = None
     if finstance.project_fxf:
         xml = finstance.project_fxf.xf.xml
         xf = finstance.project_fxf.xf
@@ -2267,10 +2268,13 @@ def download_xml_version(request, pk):
     xml_version = get_version(xml)
     if submission_version and submission_version == xml_version:
         response.content = xml
-    else:
-        if XformHistory.objects.filter(xform=xf, version=submission_version).exists():
-            xf_history = XformHistory.objects.get(xform=xf, version=submission_version)
+    elif XformHistory.objects.filter(xform=xf,
+                                    version=submission_version).exists():
+            xf_history = XformHistory.objects.get(
+                xform=xf, version=submission_version)
             response.content = xf_history.xml
+    else:
+        response.content = xml
     return response
 
 @api_view(['GET'])
