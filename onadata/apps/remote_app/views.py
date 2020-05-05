@@ -49,10 +49,8 @@ class RemoteAppAuthentication(authentication.BaseAuthentication):
             )
 
         token = parts[1]
-        import base64
-        payload = jwt.decode(
-            token,
-            base64.b64decode(settings.SECRET_KEY),
+        print("token === ", token)
+        payload = jwt.decode(token, settings.SECRET_KEY,
             algorithm='HS256',
         )
 
